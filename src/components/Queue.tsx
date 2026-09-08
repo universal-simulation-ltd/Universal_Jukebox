@@ -7,6 +7,9 @@ import { usePlayerStore } from '../stores/playerStore'
 // leaving the queue alone. Rendering `queue` directly would show the album's
 // running order while playing something else entirely — a list that is wrong
 // precisely when someone opens it to find out what is next.
+//
+// Rows are clickable, and `jumpTo` takes an index into `order` for that same
+// reason — see the note on `orderIndex` below, which was already the hard part.
 
 export default function Queue() {
   const queue = usePlayerStore((s) => s.queue)
@@ -52,14 +55,22 @@ export default function Queue() {
             const orderIndex = cursor + 1 + i
             return (
               <li key={`${track.id}-${orderIndex}`} className="flex items-center gap-3 py-2.5">
-                <span className="min-w-0 flex-1">
+                {/* The row is the control: this list is the only place the rest
+                    of the queue is visible, and reaching track six meant
+                    pressing next five times. */}
+                <button
+                  type="button"
+                  onClick={() => jumpTo(orderIndex)}
+                  aria-label={`Play ${track.title} now`}
+                  className="min-w-0 flex-1 rounded-md text-left transition hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:hover:text-orange-400"
+                >
                   <span className="block truncate text-[13.5px] text-slate-900 dark:text-slate-100">
                     {track.title}
                   </span>
                   <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
                     {track.artist ?? 'Unknown artist'}
                   </span>
-                </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => removeFromQueue(orderIndex)}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Cover from './Cover'
 import { clock } from '../lib/format'
 import { navigate } from '../lib/route'
@@ -118,6 +118,7 @@ export default function PlayerBar() {
           <IconButton label="Next track" onClick={next}>
             <NextGlyph />
           </IconButton>
+          <QueuePeek />
           <IconButton
             label={`Repeat: ${repeat}`}
             onClick={cycleRepeat}
@@ -154,19 +155,153 @@ export default function PlayerBar() {
   )
 }
 
+/**
+ * The queue at a glance, from the transport.
+ *
+ * ⚠️ This is NOT a smaller `Queue`. That list is a deliberate look FORWARD —
+ * "a queue view that lists what has already played is a history, and the two
+ * want different screens". This one is the exception that proves it: opened
+ * from the bar, mid-track, the question is usually "what was that one before?"
+ * as often as "what's next", so it shows a couple either side of the cursor and
+ * says where you are in them. `order.slice(0, cursor)` gets its first use here.
+ *
+ * It matters most at T6 (< 430px), where the stage is hidden and the bar IS the
+ * app — there, this is the only way to see the queue at all.
+ */
+const BEHIND = 2
+const AHEAD = 4
+
+function QueuePeek() {
+  const queue = usePlayerStore((s) => s.queue)
+  const order = usePlayerStore((s) => s.order)
+  const cursor = usePlayerStore((s) => s.cursor)
+  const jumpTo = usePlayerStore((s) => s.jumpTo)
+  const [open, setOpen] = useState(false)
+  const wrap = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    // `pointerdown`, NOT `click`: App.tsx puts a document-level `click`
+    // listener up while the ceremony is running, and sharing the event type
+    // would tangle closing this panel with skipping the intro.
+    const away = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('pointerdown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+
+  if (order.length === 0) return null
+
+  const from = Math.max(0, cursor - BEHIND)
+  const to = Math.min(order.length, cursor + AHEAD + 1)
+  const window = order.slice(from, to).map((queueIndex, i) => ({
+    track: queue[queueIndex],
+    // The index in `order` — what `jumpTo` takes, and the one number that is
+    // wrong in every obvious way of writing this.
+    orderIndex: from + i,
+  }))
+
+  return (
+    <div ref={wrap} className="relative">
+      <IconButton
+        label={open ? 'Hide what’s playing next' : 'What’s playing next'}
+        active={open}
+        onClick={() => setOpen((v) => !v)}
+        // Same reason as the play button: without this the click that OPENS
+        // the panel bubbles to the document and cancels the ceremony.
+        stopPropagation
+      >
+        <QueueGlyph />
+      </IconButton>
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-label="Playing next"
+          onClick={(e) => e.stopPropagation()}
+          // Right-aligned and above the bar. `max-h` with its own scroller, or
+          // a long lookahead pushes the panel off the top of a phone.
+          className="absolute right-0 bottom-full z-40 mb-2 max-h-[min(60vh,20rem)] w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+        >
+          {window.map(({ track, orderIndex }) => {
+            if (!track) return null
+            const isCurrent = orderIndex === cursor
+            return (
+              <button
+                key={`${track.id}-${orderIndex}`}
+                type="button"
+                onClick={() => {
+                  jumpTo(orderIndex)
+                  setOpen(false)
+                }}
+                aria-current={isCurrent ? 'true' : undefined}
+                className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition ${
+                  isCurrent
+                    ? 'bg-orange-50 dark:bg-orange-500/10'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                {/* A fixed-width marker rather than an icon only on the current
+                    row: a column that appears and disappears re-indents every
+                    title as the queue moves on. */}
+                <span className="w-3.5 shrink-0 text-orange-600 dark:text-orange-400">
+                  {isCurrent ? <PlayingGlyph /> : null}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={`block truncate text-[13px] ${
+                      isCurrent
+                        ? 'font-semibold text-orange-700 dark:text-orange-300'
+                        : orderIndex < cursor
+                          ? 'text-slate-400 dark:text-slate-500'
+                          : 'text-slate-900 dark:text-slate-100'
+                    }`}
+                  >
+                    {track.title}
+                  </span>
+                  <span className="block truncate text-[11.5px] text-slate-500 dark:text-slate-400">
+                    {track.artist ?? 'Unknown artist'}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+          {to < order.length ? (
+            <p className="px-2 py-1.5 text-[11.5px] text-slate-500 dark:text-slate-400">
+              and {order.length - to} more
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function IconButton({
-  label, onClick, children, active = false, className = '',
+  label, onClick, children, active = false, className = '', stopPropagation = false,
 }: {
   label: string
   onClick(): void
   children: React.ReactNode
   active?: boolean
   className?: string
+  stopPropagation?: boolean
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        if (stopPropagation) e.stopPropagation()
+        onClick()
+      }}
       aria-label={label}
       aria-pressed={active}
       title={label}
@@ -206,6 +341,12 @@ function RepeatGlyph() {
 }
 function RepeatOneGlyph() {
   return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M4 8V7a3 3 0 0 1 3-3h9M16 12v1a3 3 0 0 1-3 3H4" /><path d="m13 1.5 3 2.5-3 2.5M7 13.5 4 16l3 2.5M10 8.2l1.2-.7V12.5" /></svg>
+}
+function QueueGlyph() {
+  return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M3 5.5h10M3 10h10M3 14.5h6" /><path d="M15.5 8.5v6.2" /><circle cx="14" cy="15" r="1.6" fill="currentColor" stroke="none" /></svg>
+}
+function PlayingGlyph() {
+  return <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor" aria-hidden><path d="M6.3 3.4A1 1 0 0 0 4.8 4.3v11.4a1 1 0 0 0 1.5.9l9.4-5.7a1 1 0 0 0 0-1.8L6.3 3.4Z" /></svg>
 }
 function VolumeGlyph() {
   return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M4 7.5h2.5L10 4.5v11L6.5 12.5H4zM13 7.2a4 4 0 0 1 0 5.6" /></svg>
