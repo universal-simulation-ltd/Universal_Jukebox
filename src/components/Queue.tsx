@@ -14,6 +14,7 @@ export default function Queue() {
   const cursor = usePlayerStore((s) => s.cursor)
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue)
   const clearQueue = usePlayerStore((s) => s.clearQueue)
+  const jumpTo = usePlayerStore((s) => s.jumpTo)
 
   if (order.length === 0) return null
 

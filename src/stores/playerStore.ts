@@ -76,6 +76,15 @@ interface PlayerState {
   toggle(): void
   next(): void
   previous(): void
+  /**
+   * Play the track at this position in `order` — NOT in `queue`.
+   *
+   * The distinction is the whole reason this takes the index it does: with
+   * shuffle on, `queue[3]` and `order[3]` are different tracks, and every list
+   * that shows what is coming up walks `order`. Out-of-range indices and the
+   * currently-playing one are both no-ops rather than errors.
+   */
+  jumpTo(orderIndex: number): void
   seekTo(seconds: number): void
   seekBy(offset: number): void
   setVolume(v: number): void
@@ -194,6 +203,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return
     }
     advance(set, get, -1)
+  },
+
+  jumpTo(orderIndex) {
+    const { order, cursor } = get()
+    if (orderIndex < 0 || orderIndex >= order.length) return
+    // Tapping the track that is already playing is not a request to restart it —
+    // it is a mis-tap, and re-cueing the needle on it would be a surprise.
+    if (orderIndex === cursor) return
+    // A jump is a play, and two records at once is not a preview.
+    get().stopPreview()
+    playAt(set, get, orderIndex)
   },
 
   seekTo(seconds) {
@@ -479,10 +499,20 @@ function armAnimates(): boolean {
  * picture agree; without the wait the music would start with the arm still in
  * the air, which is the bug this whole sequence exists to avoid.
  */
-function needleChange(set: Set, get: Get, land: () => void, duckFirst: boolean): void {
+function needleChange(
+  set: Set,
+  get: Get,
+  land: (fadeInSec: number | undefined) => void,
+  duckFirst: boolean,
+): void {
   clearHandover()
+  // ⚠️ `undefined`, not `HANDOVER.FADE_IN_SEC`, and the difference is audible:
+  // with the animation off the setting promises music that "starts
+  // immediately, every time", so the handover's own half-second rise has to go
+  // with the rest of it. The user's OWN fade-in, from Settings, still applies —
+  // `audio.load` falls back to it when no override is given.
   if (!armAnimates()) {
-    land()
+    land(undefined)
     return
   }
   set({ armDown: false, handover: true })
@@ -491,7 +521,7 @@ function needleChange(set: Set, get: Get, land: () => void, duckFirst: boolean):
     handoverTimer = null
     set({ armDown: true, handover: false })
     if (settings().needleDrop) playNeedleDrop(get().volume)
-    land()
+    land(HANDOVER.FADE_IN_SEC)
   }, HANDOVER.LIFT_MS) as unknown as number
 }
 
@@ -591,6 +621,26 @@ function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
     nextCursor = repeat === 'off' ? 0 : order.length - 1
   }
 
+  playAt(set, get, nextCursor, naturalEnd)
+}
+
+/**
+ * Put the cursor at an absolute position in `order` and play what is there.
+ *
+ * Split out of `advance` when the queue became clickable. Everything below the
+ * cursor move is the same whether the target came from `cursor + 1` or from a
+ * row somebody tapped in "Up next" — the file lookup and its error, the Media
+ * Session update, the needle change and its fade. What `advance` keeps is the
+ * only part that differs: working out WHERE to go, which is the only part that
+ * knows about repeat and about running off the end.
+ *
+ * ⚠️ The cursor moves BEFORE the file is checked, and that is deliberate — it
+ * is the behaviour `advance` has always had. A track whose file has gone still
+ * becomes the current one, so the error names the track the user chose rather
+ * than leaving them on the previous one with a message about a different song.
+ */
+function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
+  const { order } = get()
   set({ cursor: nextCursor })
   const track = get().queue[order[nextCursor]]
   const file = track ? useLibraryStore.getState().fileFor(track) : null
@@ -601,8 +651,8 @@ function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
   publishNowPlaying(track)
   // ⚠️ `naturalEnd` means the outgoing track has ALREADY finished, so there is
   // nothing left to fade out — ducking silence would only delay the next one.
-  needleChange(set, get, () => {
-    void audio.load(file, true, HANDOVER.FADE_IN_SEC)
+  needleChange(set, get, (fadeIn) => {
+    void audio.load(file, true, fadeIn)
   }, !naturalEnd)
 }
 
@@ -679,7 +729,7 @@ audio.setCallbacks({
       needleChange(
         usePlayerStore.setState,
         usePlayerStore.getState,
-        () => { void audio.restart(HANDOVER.FADE_IN_SEC) },
+        (fadeIn) => { void audio.restart(fadeIn) },
         false,
       )
       return
