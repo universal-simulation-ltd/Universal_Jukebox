@@ -104,11 +104,11 @@ export default function About() {
         The turntable
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
-        When you put a different record on, the deck spins up and the arm comes down
-        before the music starts. It only does this when you actually choose a new album —
-        never between tracks of the one already playing, never in the middle of a queue,
-        and not more than once every ninety seconds however fast you click. Any click or
-        key skips it, and you can change or switch it off entirely in{' '}
+        Press play on anything — a track, an album, a search result — and you land on the
+        deck: it spins up, the arm comes down, and the music starts. The needle then works
+        its way in as the track plays, and comes off and back to the outside edge for the
+        next one. Any click or key skips the intro, and you can have it only on a new
+        album, only once a visit, or never at all in{' '}
         <button
           type="button"
           onClick={() => navigate({ view: 'settings' })}
@@ -117,6 +117,12 @@ export default function About() {
           Settings
         </button>
         , along with fades and a volume boost for quietly-mastered albums.
+      </p>
+      <p className="mt-3 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
+        The exception is the small headphones button beside every track in your library.
+        That plays ten seconds, taken ten seconds in — enough to know whether it is the
+        one you meant — without moving you off the page or disturbing whatever you already
+        had playing.
       </p>
 
       <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">

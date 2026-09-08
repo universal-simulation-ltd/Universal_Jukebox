@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import Cover from './Cover'
+import PreviewButton from './PreviewButton'
 import { clock, plural, totalTime } from '../lib/format'
 import { navigate } from '../lib/route'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
@@ -130,10 +131,11 @@ export default function AlbumView({ albumId }: { albumId: string }) {
                   Disc {track.discNo ?? 1}
                 </p>
               )}
+              <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => playTracks(tracks, index)}
-                className="group flex w-full items-center gap-3 py-2.5 text-left focus:outline-none focus-visible:bg-orange-50 dark:focus-visible:bg-orange-950/30"
+                className="group flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left focus:outline-none focus-visible:bg-orange-50 dark:focus-visible:bg-orange-950/30"
               >
                 <span
                   className={`w-7 shrink-0 text-right text-[13px] tabular-nums ${
@@ -167,6 +169,8 @@ export default function AlbumView({ albumId }: { albumId: string }) {
                   {clock(track.durationSec)}
                 </span>
               </button>
+              <PreviewButton track={track} />
+              </div>
             </li>
           )
         })}

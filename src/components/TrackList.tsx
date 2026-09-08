@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import PreviewButton from './PreviewButton'
 import { clock } from '../lib/format'
 import { matchTracks } from '../lib/search'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -47,7 +48,7 @@ export default function TrackList({ query }: { query: string }) {
         {shown.map((track) => {
           const isCurrent = nowPlaying?.id === track.id
           return (
-            <li key={track.id}>
+            <li key={track.id} className="flex items-center gap-2">
               <button
                 type="button"
                 // Clicking a track in this view queues everything MATCHED, from
@@ -55,7 +56,7 @@ export default function TrackList({ query }: { query: string }) {
                 // pressing play on it. Queuing only the one track would make the
                 // list a dead end.
                 onClick={() => playTracks(matched, matched.indexOf(track))}
-                className="group flex w-full items-center gap-3 py-2.5 text-left focus:outline-none focus-visible:bg-orange-50 dark:focus-visible:bg-orange-950/30"
+                className="group flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left focus:outline-none focus-visible:bg-orange-50 dark:focus-visible:bg-orange-950/30"
               >
                 <span className="min-w-0 flex-1">
                   <span
@@ -81,6 +82,10 @@ export default function TrackList({ query }: { query: string }) {
                   {clock(track.durationSec)}
                 </span>
               </button>
+              {/* ⚠️ OUTSIDE the row button, not inside it: a button cannot be
+                  nested in a button, and "hear ten seconds of this" must not
+                  also queue the whole list. */}
+              <PreviewButton track={track} />
             </li>
           )
         })}

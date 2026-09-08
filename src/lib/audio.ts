@@ -155,7 +155,7 @@ export function setCallbacks(callbacks: {
  * duration of the assignment, and some browsers fire an `error` for it — a
  * spurious "that file wouldn't play" on a track that plays fine.
  */
-export async function load(file: File, autoplay: boolean): Promise<void> {
+export async function load(file: File, autoplay: boolean, fadeInOverrideSec?: number): Promise<void> {
   const audio = el()
   const previous = currentUrl
   const url = URL.createObjectURL(file)
@@ -164,7 +164,11 @@ export async function load(file: File, autoplay: boolean): Promise<void> {
   set({ loading: true, currentSec: 0, durationSec: 0 })
   audio.src = url
   if (previous) URL.revokeObjectURL(previous)
-  beginTrack()
+  // ⚠️ The override is the needle handover's, and it is a MAXIMUM of the two —
+  // never less than the fade the user asked for in Settings. Somebody who set a
+  // 6-second fade-in did not ask for it to be cut to a third of a second just
+  // because the arm was lifted between tracks.
+  beginTrack(fadeInOverrideSec === undefined ? undefined : Math.max(fadeInOverrideSec, fadeInSec))
 
   if (!autoplay) return
   ensureRunning()
@@ -315,16 +319,50 @@ function maybeFadeOut(audio: HTMLAudioElement): void {
   if (remaining > 0 && remaining <= fadeOutSec) rampTo(0, remaining)
 }
 
-/** Reset the envelope for a track that is about to start. */
-function beginTrack(): void {
+/**
+ * Reset the envelope for a track that is about to start.
+ *
+ * `overrideSec` is the needle handover asking for a short rise under the
+ * scratch even when the user's own fade-in is off — see `playerStore`.
+ */
+function beginTrack(overrideSec?: number): void {
   stopFadeTimer()
-  if (fadeInSec > 0) {
+  const seconds = overrideSec ?? fadeInSec
+  if (seconds > 0) {
     fadeFactor = 0
     applyVolume()
-    rampTo(1, fadeInSec)
+    rampTo(1, seconds)
   } else {
     endFade(1)
   }
+}
+
+/**
+ * Fade what is playing down to silence over `seconds`, leaving it playing.
+ *
+ * Used by the needle handover: the outgoing track sinks away while the arm
+ * comes off the record, and the incoming one rises under the scratch. With one
+ * `<audio>` element this is as close to "tracks fading into each other" as the
+ * app can honestly get — the two never overlap, but neither of them ends or
+ * begins at full volume.
+ */
+export function duck(seconds: number): void {
+  rampTo(0, seconds)
+}
+
+/**
+ * Start the current track again from the top, with a fade.
+ *
+ * `repeat: 'one'` needs this: the needle really does come off and go back to
+ * the start, and reloading the file to say so would throw away a decode the
+ * element already has.
+ */
+export async function restart(fadeInOverrideSec?: number): Promise<void> {
+  const audio = el()
+  try { audio.currentTime = 0 } catch { /* not seekable yet */ }
+  set({ currentSec: 0 })
+  beginTrack(fadeInOverrideSec === undefined ? undefined : Math.max(fadeInOverrideSec, fadeInSec))
+  await play()
 }
 
 /** The element itself, for the Media Session and the visualiser to attach to. */
@@ -332,9 +370,10 @@ export function mediaElement(): HTMLAudioElement {
   return el()
 }
 
-/** Stop, release the file, and forget everything. */
+/** Stop, release the file, and forget everything — a preview included. */
 export function stop(): void {
   const audio = el()
+  stopPreview()
   endFade(1)
   audio.pause()
   audio.removeAttribute('src')
@@ -344,6 +383,112 @@ export function stop(): void {
     currentUrl = null
   }
   set({ playing: false, currentSec: 0, durationSec: 0, loading: false })
+}
+
+// ── Preview ──────────────────────────────────────────────────────────────────
+//
+// Ten seconds of a track, taken ten seconds in — the one way to hear something
+// WITHOUT putting the record on (§ James, 2026-09-08: every other play goes to
+// the deck and cues the arm; this is the exception).
+//
+// ⚠️ A SECOND, dedicated element, and that is a deliberate exception to the
+// one-element rule at the top of this file. The reason for one element is that
+// a fresh `<audio>` per track leaves forty pinned files behind over an evening;
+// this is ONE more element, reused for every preview and emptied the moment a
+// preview stops, so it pins nothing between previews. What it buys is the queue
+// surviving a listen: auditioning a track must not throw away what you had
+// cued up, and with a single element it would have to.
+//
+// Ten seconds in, because the first ten seconds of a record are the part that
+// is least like it — an intro, a count-in, or silence.
+
+/** How far into the track a preview starts. */
+export const PREVIEW_START_SEC = 10
+/** How long it runs for. */
+export const PREVIEW_RUN_SEC = 10
+/** A track shorter than this cannot give ten seconds from ten seconds in. */
+const PREVIEW_MIN_SEEKABLE_SEC = PREVIEW_START_SEC + 2
+
+let previewEl: HTMLAudioElement | null = null
+let previewUrl: string | null = null
+let previewTimer: number | null = null
+let previewStopped: (() => void) | null = null
+
+/** Told when a preview finishes on its own, so the button can go back to rest. */
+export function setPreviewStoppedCallback(fn: (() => void) | null): void {
+  previewStopped = fn
+}
+
+function previewElement(): HTMLAudioElement {
+  if (previewEl) return previewEl
+  const audio = new Audio()
+  audio.preload = 'metadata'
+  audio.hidden = true
+  audio.setAttribute('data-jukebox-preview', '')
+  try {
+    document.body.appendChild(audio)
+  } catch { /* no document — it works detached */ }
+  previewEl = audio
+  return audio
+}
+
+/**
+ * Play ten seconds of a file, starting ten seconds in.
+ *
+ * ⚠️ The seek happens on `loadedmetadata` and not before. Setting
+ * `currentTime` on an element that has not worked out its duration yet is
+ * silently ignored by every engine, so the preview would start at 0:00 and
+ * nothing anywhere would say why.
+ */
+export function startPreview(file: File, volume: number): void {
+  stopPreview()
+  const audio = previewElement()
+  const url = URL.createObjectURL(file)
+  previewUrl = url
+  audio.volume = Math.max(0, Math.min(1, volume))
+  audio.src = url
+
+  const finish = () => {
+    stopPreview()
+    previewStopped?.()
+  }
+
+  audio.addEventListener('loadedmetadata', () => {
+    const duration = audio.duration
+    const known = Number.isFinite(duration) && duration > 0
+    const from = known && duration > PREVIEW_MIN_SEEKABLE_SEC ? PREVIEW_START_SEC : 0
+    try { audio.currentTime = from } catch { /* not seekable — start where it is */ }
+    void audio.play().catch(finish)
+    const runFor = known ? Math.min(PREVIEW_RUN_SEC, Math.max(1, duration - from)) : PREVIEW_RUN_SEC
+    previewTimer = setTimeout(finish, runFor * 1000) as unknown as number
+  }, { once: true })
+
+  // A file the browser cannot decode ends the preview rather than leaving the
+  // button stuck saying "stop" over silence.
+  audio.addEventListener('error', finish, { once: true })
+  audio.addEventListener('ended', finish, { once: true })
+}
+
+/** Stop a preview and let go of the file. Safe to call when none is running. */
+export function stopPreview(): void {
+  if (previewTimer !== null) {
+    clearTimeout(previewTimer)
+    previewTimer = null
+  }
+  if (previewEl) {
+    previewEl.pause()
+    previewEl.removeAttribute('src')
+    previewEl.load()
+  }
+  if (previewUrl) {
+    URL.revokeObjectURL(previewUrl)
+    previewUrl = null
+  }
+}
+
+/** Follow the volume slider while a preview is running. */
+export function setPreviewVolume(volume: number): void {
+  if (previewEl) previewEl.volume = Math.max(0, Math.min(1, volume))
 }
 
 // ── Shuffle ──────────────────────────────────────────────────────────────────

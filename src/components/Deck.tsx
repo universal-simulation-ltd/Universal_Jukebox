@@ -4,8 +4,9 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { usePlayerStore } from '../stores/playerStore'
 import type { Album } from '../lib/types'
 
-// The deck: a record turning, with the album's cover as its centre label — and
-// on the first play of a session, the arm coming down onto it.
+// The deck: a record turning, with the album's cover as its centre label, the
+// arm coming down onto it when you put something on — and the needle working
+// its way in across the record as the track plays.
 //
 // ⚠️ THIS COMPONENT OWNS NO TIMING. The ceremony's beats (§22.9) live in
 // `playerStore`, and this reads `armDown` / `ceremonyCount` off it.
@@ -23,6 +24,41 @@ import type { Album } from '../lib/types'
 //   1.56s  "1" — the arm is most of the way across
 //   1.83s  the arm lands: thunk, then crackle fading under the music
 //   2.34s  numerals clear, playback starts, the platter keeps turning
+//
+// After that the arm is no longer the ceremony's: it belongs to the TRACK. The
+// needle creeps inward from the outer groove to the label over the track's
+// length (`ARM`, below, off `currentSec / durationSec`), and `playerStore`'s
+// needle handover lifts it and sends it back out to the start between tracks.
+//
+// ⚠️ And it FREEZES on pause rather than resetting — both the platter, whose
+// `animation-play-state` is paused and never removed, and the needle, whose
+// angle comes from `currentSec` and so stays exactly where the music stopped.
+// Pressing pause on a record player does not spin the label back to the top or
+// throw the needle back to track one.
+
+/**
+ * Where the needle sits, in degrees of tonearm rotation.
+ *
+ * ⚠️ These three numbers ARE the "progressively move the needle" request
+ * (James, 2026-09-08), and they are geometry rather than taste: the arm pivots
+ * at (78,12) in the SVG's own coordinates, and the svg box is placed so that
+ * `TRACK_START` puts the head near the outer edge of the record and
+ * `TRACK_START + TRACK_TRAVEL` puts it just outside the label. Change one and
+ * check the OTHER end still lands on vinyl — an arm that finishes on the centre
+ * label, or that starts off the rim, reads as a bug rather than as a tweak.
+ *
+ * The travel is inward, the way a record actually plays: the needle lands in
+ * the outer groove and works its way towards the middle, then comes off and
+ * goes back out to the start for the next track.
+ */
+const ARM = {
+  /** The outer groove — where the needle lands. */
+  TRACK_START: -14,
+  /** How far it creeps inward over a whole track. */
+  TRACK_TRAVEL: 24,
+  /** How far ABOVE its current position the arm sits when lifted. */
+  LIFT: -24,
+}
 
 interface DeckProps {
   album: Album | undefined
@@ -36,12 +72,29 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   const playing = usePlayerStore((s) => s.playing)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const armDownState = usePlayerStore((s) => s.armDown)
+  const currentSec = usePlayerStore((s) => s.currentSec)
+  const durationSec = usePlayerStore((s) => s.durationSec)
   const reduced = usePrefersReducedMotion()
 
   const active = ceremonial && ceremony
   // A non-ceremonial deck (the mini player) always shows the arm down while
   // something is playing — it is a picture of the state, not of the ceremony.
   const armDown = ceremonial ? armDownState : playing
+
+  /**
+   * How far through the track we are, 0 → 1, and therefore how far across the
+   * record the needle has travelled.
+   *
+   * ⚠️ Guarded on a KNOWN duration. A track whose length the browser has not
+   * worked out yet reports NaN or Infinity; dividing by either gives a rotation
+   * of `NaNdeg`, which CSS drops on the floor — the arm would simply stop
+   * following the music, with nothing anywhere raising an error.
+   */
+  const progress =
+    Number.isFinite(durationSec) && durationSec > 0
+      ? Math.max(0, Math.min(1, currentSec / durationSec))
+      : 0
+  const trackAngle = ARM.TRACK_START + progress * ARM.TRACK_TRAVEL
 
   const url = album ? coverUrl(album.id, album.cover) : null
   const hue = album ? fallbackHue(album.id) : 24
@@ -131,16 +184,36 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           aria-hidden
         >
           <circle cx="78" cy="12" r="7" className="fill-slate-400 dark:fill-slate-500" />
+          {/* ⚠️ TWO nested rotations about the SAME pivot, not one sum, and the
+              reason is that they need different curves. The outer one is where
+              on the record the needle is — a slow, linear creep inward as the
+              track plays. The inner one is the arm being lifted off it and
+              cued back down, which overshoots a touch and settles the way a
+              real arm does. Added together into one `rotate()` they would have
+              to share a transition, and either the landing would crawl or the
+              creep would spring. Both use `transformOrigin: 78px 12px`, which
+              for an SVG element resolves against the viewBox, so nesting does
+              not move the bearing. */}
           <g
             style={{
               transformOrigin: '78px 12px',
-              transform: `rotate(${armDown ? 0 : -34}deg)`,
-              // Overshoots a touch and settles, like a real arm being cued.
-              transition: reduced ? undefined : 'transform 1.05s cubic-bezier(.34,1.2,.4,1)',
+              transform: `rotate(${trackAngle}deg)`,
+              // Just longer than the ~250ms between `timeupdate` events, so the
+              // creep is continuous rather than four visible steps a second.
+              transition: reduced ? undefined : 'transform 0.4s linear',
             }}
           >
-            <path d="M78 12 L48 62" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="6" strokeLinecap="round" />
-            <path d="M48 62 L42 74" stroke="currentColor" className="text-slate-500 dark:text-slate-400" strokeWidth="11" strokeLinecap="round" />
+            <g
+              style={{
+                transformOrigin: '78px 12px',
+                transform: `rotate(${armDown ? 0 : ARM.LIFT}deg)`,
+                // Overshoots a touch and settles, like a real arm being cued.
+                transition: reduced ? undefined : 'transform 1.05s cubic-bezier(.34,1.2,.4,1)',
+              }}
+            >
+              <path d="M78 12 L48 62" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="6" strokeLinecap="round" />
+              <path d="M48 62 L42 74" stroke="currentColor" className="text-slate-500 dark:text-slate-400" strokeWidth="11" strokeLinecap="round" />
+            </g>
           </g>
         </svg>
 

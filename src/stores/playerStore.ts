@@ -56,6 +56,17 @@ interface PlayerState {
   ceremonyCount: number | null
   /** Whether the tonearm is down. True whenever a ceremony is not running. */
   armDown: boolean
+  /**
+   * True while the arm is off the record between two tracks.
+   *
+   * ⚠️ Read by `followPlayback`, which otherwise puts the arm straight back
+   * down: the outgoing track is still playing as the arm lifts, and "playing"
+   * is what that function normally takes as proof the arm belongs on the
+   * record. The ceremony has exactly the same exemption, for the same reason.
+   */
+  handover: boolean
+  /** The track being previewed, or null. Never the same thing as `playing`. */
+  previewTrackId: string | null
   /** The album the last ceremony was run for, so the same record doesn't repeat it. */
   lastCeremonyAlbumId: string | null
   /** When the last ceremony started, for the cooldown. Epoch ms. */
@@ -73,6 +84,12 @@ interface PlayerState {
   cycleRepeat(): void
   /** Any click, key, or second press of play cuts straight to the audio. */
   skipCeremony(): void
+  /**
+   * Ten seconds of a track from ten seconds in — the ONE way to hear something
+   * without putting the record on. Pressing it again stops it.
+   */
+  preview(track: Track): void
+  stopPreview(): void
   enqueue(tracks: Track[], mode: 'next' | 'end'): void
   removeFromQueue(index: number): void
   clearQueue(): void
@@ -125,6 +142,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   // Nothing has played yet, so the arm is parked — not resting on a record
   // that is not turning.
   armDown: false,
+  handover: false,
+  previewTrackId: null,
   lastCeremonyAlbumId: null,
   lastCeremonyAt: 0,
 
@@ -138,6 +157,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
    */
   playTracks(tracks, startAt = 0) {
     if (tracks.length === 0) return
+    get().stopPreview()
     showTheDeck()
     const { shuffle } = get()
     const order = shuffle
@@ -193,6 +213,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       audio.setMuted(false)
       set({ muted: false })
     }
+    audio.setPreviewVolume(get().muted ? 0 : volume)
     try { localStorage.setItem(VOLUME_KEY, String(volume)) } catch { /* ignore */ }
     set({ volume })
   },
@@ -200,6 +221,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   toggleMute() {
     const muted = !get().muted
     audio.setMuted(muted)
+    audio.setPreviewVolume(muted ? 0 : get().volume)
     set({ muted })
   },
 
@@ -230,6 +252,43 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     clearCeremony()
     set({ ceremony: false, ceremonyDone: true, ceremonyCount: null, armDown: true })
     void audio.play()
+  },
+
+  /**
+   * Preview a track: ten seconds, from ten seconds in, with the scratch.
+   *
+   * ⚠️ THE ONE PLAY THAT DOES NOT GO TO THE DECK. Everything else — a track
+   * row, an album, a search result — navigates to Now Playing and cues the arm
+   * (James, 2026-09-08). This is the exception that makes that bearable: a way
+   * to answer "is this the one I mean?" from the library, without a queue, a
+   * ceremony or a change of screen.
+   *
+   * It runs on its own element (see `lib/audio.ts`), so the queue survives it.
+   * What it does NOT do is play over the top of the music: whatever is playing
+   * is paused first, because two records at once is not a preview.
+   */
+  preview(track) {
+    if (get().previewTrackId === track.id) {
+      get().stopPreview()
+      return
+    }
+    const file = useLibraryStore.getState().fileFor(track)
+    if (!file) {
+      set({ error: 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.' })
+      return
+    }
+    audio.pause()
+    audio.stopPreview()
+    set({ previewTrackId: track.id, error: null })
+    audio.startPreview(file, get().muted ? 0 : get().volume)
+    // The scratch rides along, because the needle is landing on something —
+    // it is just not landing on the deck you can see.
+    if (settings().needleDrop) playNeedleDrop(get().volume)
+  },
+
+  stopPreview() {
+    audio.stopPreview()
+    if (get().previewTrackId !== null) set({ previewTrackId: null })
   },
 
   enqueue(tracks, mode) {
@@ -270,6 +329,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   clearQueue() {
     audio.stop()
+    set({ previewTrackId: null })
     publishNowPlaying(null)
     set({ queue: [], order: [], cursor: -1, playing: false, currentSec: 0, durationSec: 0 })
   },
@@ -354,11 +414,85 @@ type Get = () => PlayerState
  */
 const BEATS = { two: 780, one: 1560, land: 1830, start: 2340 }
 
+/**
+ * The needle handover between two tracks (§ James, 2026-09-08).
+ *
+ * "Progressively move the needle out as the track progresses, then at the end
+ * remove the needle and place it at the start position again — fade the tracks
+ * into each other and have the scratch on top as the needle lands."
+ *
+ * The travel is drawn by `Deck.tsx` off `currentSec / durationSec`. These three
+ * numbers are the change-over itself:
+ *
+ *   LIFT_MS       the arm is off the record and going back to the outer groove
+ *   FADE_OUT_SEC  what is still playing sinks away while it does
+ *   FADE_IN_SEC   the next track rises under the scratch as the arm lands
+ *
+ * ⚠️ LIFT_MS IS A REAL GAP BETWEEN EVERY PAIR OF TRACKS, and it is the number
+ * to change if it turns out to be too much. It is the price of the arm actually
+ * going back to the start rather than teleporting; the alternative is a needle
+ * that jumps, which is the thing the request is about. It is skipped entirely
+ * when the animation is off or under `prefers-reduced-motion`, so anyone who
+ * finds it a toll booth has a one-click way out that also matches the rest of
+ * the app's behaviour.
+ *
+ * ⚠️ This is NOT a crossfade, and cannot be: one `<audio>` element decodes one
+ * file (see the note at the top of `lib/audio.ts`). The two tracks do not
+ * overlap — but neither of them ends or begins at full volume, and the scratch
+ * covers the seam, which is what the request is actually asking to hear.
+ */
+const HANDOVER = { LIFT_MS: 420, FADE_OUT_SEC: 0.32, FADE_IN_SEC: 0.55 }
+
 let ceremonyTimers: number[] = []
+let handoverTimer: number | null = null
 
 function clearCeremony(): void {
   for (const t of ceremonyTimers) clearTimeout(t)
   ceremonyTimers = []
+}
+
+function clearHandover(): void {
+  if (handoverTimer !== null) {
+    clearTimeout(handoverTimer)
+    handoverTimer = null
+  }
+}
+
+/**
+ * Whether the tonearm animates at all.
+ *
+ * The needle handover is part of the same picture as the ceremony, so it obeys
+ * the same two switches: "Never" in Settings, and `prefers-reduced-motion`. A
+ * user who turned the animation off asked for music that starts immediately,
+ * and would not thank us for a 420ms pause between every track in the name of
+ * an arm they cannot see move.
+ */
+function armAnimates(): boolean {
+  return settings().ceremonyMode !== 'off' && !prefersReducedMotion()
+}
+
+/**
+ * Take the needle off, put it back at the start, and land it on the next thing.
+ *
+ * `land` is what actually starts the audio — a new file, or the same one from
+ * the top for `repeat: 'one'`. It runs after the lift so the sound and the
+ * picture agree; without the wait the music would start with the arm still in
+ * the air, which is the bug this whole sequence exists to avoid.
+ */
+function needleChange(set: Set, get: Get, land: () => void, duckFirst: boolean): void {
+  clearHandover()
+  if (!armAnimates()) {
+    land()
+    return
+  }
+  set({ armDown: false, handover: true })
+  if (duckFirst) audio.duck(HANDOVER.FADE_OUT_SEC)
+  handoverTimer = setTimeout(() => {
+    handoverTimer = null
+    set({ armDown: true, handover: false })
+    if (settings().needleDrop) playNeedleDrop(get().volume)
+    land()
+  }, HANDOVER.LIFT_MS) as unknown as number
 }
 
 function prefersReducedMotion(): boolean {
@@ -385,6 +519,8 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
 
   publishNowPlaying(track)
   clearCeremony()
+  clearHandover()
+  if (get().handover) set({ handover: false })
 
   const { ceremonyDone, lastCeremonyAlbumId, lastCeremonyAt } = get()
   const run = shouldRunCeremony({
@@ -435,17 +571,19 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
  * single most confusing thing a player can do. `advance` is the button path;
  * `onEnded` below handles the natural one.
  */
-function advance(set: Set, get: Get, delta: number) {
+function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
   const { order, cursor, repeat } = get()
   if (order.length === 0) return
   let nextCursor = cursor + delta
 
   if (nextCursor >= order.length) {
     if (repeat === 'off') {
-      // The end of the queue. Stop rather than wrapping silently.
+      // The end of the queue. Stop rather than wrapping silently — and take the
+      // needle off, since nothing is going to follow it.
+      clearHandover()
       audio.pause()
       audio.seek(0)
-      set({ playing: false })
+      set({ playing: false, handover: false })
       return
     }
     nextCursor = 0
@@ -461,7 +599,11 @@ function advance(set: Set, get: Get, delta: number) {
     return
   }
   publishNowPlaying(track)
-  void audio.load(file, true)
+  // ⚠️ `naturalEnd` means the outgoing track has ALREADY finished, so there is
+  // nothing left to fade out — ducking silence would only delay the next one.
+  needleChange(set, get, () => {
+    void audio.load(file, true, HANDOVER.FADE_IN_SEC)
+  }, !naturalEnd)
 }
 
 // ── Wiring ───────────────────────────────────────────────────────────────────
@@ -492,7 +634,12 @@ function followPlayback(playing: boolean): void {
   const store = usePlayerStore.getState()
   // While the ceremony is running it owns the arm — it is mid-swing, and
   // playback is deliberately not started until the arm has landed.
-  if (store.ceremony) return
+  //
+  // ⚠️ And the same during a needle handover, where the OUTGOING track is
+  // still playing as the arm comes off the record. Without this the very next
+  // `timeupdate` would put the arm straight back down and the lift would never
+  // be seen — a bug whose only symptom is an animation that does not happen.
+  if (store.ceremony || store.handover) return
 
   if (playing) {
     if (armLiftTimer !== null) {
@@ -507,7 +654,7 @@ function followPlayback(playing: boolean): void {
   armLiftTimer = setTimeout(() => {
     armLiftTimer = null
     const now = usePlayerStore.getState()
-    if (!now.playing && !now.ceremony) usePlayerStore.setState({ armDown: false })
+    if (!now.playing && !now.ceremony && !now.handover) usePlayerStore.setState({ armDown: false })
   }, ARM_LIFT_DELAY_MS) as unknown as number
 }
 
@@ -527,11 +674,17 @@ audio.setCallbacks({
   onEnded() {
     const store = usePlayerStore.getState()
     if (store.repeat === 'one') {
-      audio.seek(0)
-      void audio.play()
+      // Even the same record gets the needle put back at the start — that is
+      // literally what repeat-one is.
+      needleChange(
+        usePlayerStore.setState,
+        usePlayerStore.getState,
+        () => { void audio.restart(HANDOVER.FADE_IN_SEC) },
+        false,
+      )
       return
     }
-    advance(usePlayerStore.setState, usePlayerStore.getState, 1)
+    advance(usePlayerStore.setState, usePlayerStore.getState, 1, true)
   },
   onDuration(seconds) {
     // Durations are not in the tags — they are learnt here, the first time a
@@ -559,6 +712,15 @@ ms.setHandlers({
   onPrevious: () => usePlayerStore.getState().previous(),
   onSeekTo: (seconds) => usePlayerStore.getState().seekTo(seconds),
   onSeekBy: (offset) => usePlayerStore.getState().seekBy(offset),
+})
+
+// A preview that ran its ten seconds puts its own button back to rest. Wired
+// here rather than in the component, because the component that started it may
+// well have been scrolled away or unmounted by the time it finishes.
+audio.setPreviewStoppedCallback(() => {
+  if (usePlayerStore.getState().previewTrackId !== null) {
+    usePlayerStore.setState({ previewTrackId: null })
+  }
 })
 
 // Apply the stored volume to the element the first time anything touches it.
