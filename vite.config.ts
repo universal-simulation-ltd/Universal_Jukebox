@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => {
   const BASE_PATH = mode === 'production' ? '/jukebox/' : '/';
   return {
     base: BASE_PATH,
+    // 5204 is this app's slot in the registry (Docs_UNI_SIM/dev-preview.md), and
+    // `strictPort` means a clash fails loudly rather than silently serving this
+    // app on another one's port — which is how two apps end up sharing a
+    // localStorage origin and each wondering why its settings keep changing.
+    server: { port: 5204, strictPort: true },
     define: { __APP_VERSION__: JSON.stringify(pkg.version) },
     resolve: { dedupe: ['react', 'react-dom'] },
     optimizeDeps: {
