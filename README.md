@@ -314,3 +314,9 @@ longer starts or stops at full volume, not that the gap between tracks closes.
 
 Free and open source, like every Universal App. Part of the
 [UNI·SIM](https://www.unisim.co.uk) suite.
+
+## Licence
+
+[AGPL-3.0-or-later](LICENSE), with an added permission for app-store
+distribution. Use it, change it, share it — and if you run a changed copy and
+let other people use it over a network, offer them your source.

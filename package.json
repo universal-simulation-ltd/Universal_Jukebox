@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "description": "Universal Jukebox — a player for the music already on your device. Point it at a folder and it reads the tags and the embedded album art out of your own files, builds a library, and plays it. Nothing is uploaded and there is no account.",
   "scripts": {
     "dev": "vite",
