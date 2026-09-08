@@ -78,7 +78,16 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           style={{
             // The platter turns at a real 33⅓ rpm — 1.8s a revolution — which is
             // slow enough to read as a record rather than a loading spinner.
-            animation: spinning ? 'jb-spin 1.8s linear infinite' : undefined,
+            //
+            // ⚠️ PAUSED, never removed. Taking the animation off resets the
+            // element to its untransformed state, so the record snapped back to
+            // 0° the instant you hit pause — a real record does not jump to the
+            // top of the label when you lift the needle. `animation-play-state`
+            // freezes it exactly where it is and resumes from there. Reported
+            // on Firefox, where the snap is most obvious, but it is what every
+            // engine does with a removed animation.
+            animation: reduced ? undefined : 'jb-spin 1.8s linear infinite',
+            animationPlayState: spinning ? 'running' : 'paused',
           }}
         >
           {/* Grooves. Rendered as repeating rings in one gradient rather than N

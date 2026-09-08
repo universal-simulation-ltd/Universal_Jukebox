@@ -48,7 +48,12 @@ interface LibraryState {
   /** Set when the stored folder needs its permission re-granted. */
   needsRegrant: boolean
 
+  /** True once a scan has been stopped early, so the UI can say what it kept. */
+  stoppedEarly: boolean
+
   hydrate(): Promise<void>
+  /** Stop a running scan, keeping everything found so far. */
+  stopScan(): void
   pickFolder(): Promise<void>
   addFiles(files: FileList | File[], label?: string): Promise<void>
   regrant(): Promise<void>
@@ -82,6 +87,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   filesByPath: new Map(),
   canPersistFolder: hasDirectoryPicker(),
   needsRegrant: false,
+  stoppedEarly: false,
 
   /**
    * Load whatever last session left behind.
@@ -177,12 +183,26 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     })
   },
 
+  /**
+   * ⚠️ Stopping keeps what has been found — it does not undo the scan.
+   *
+   * Everything already scanned is in the store and in IndexedDB (the batches
+   * are written as they arrive), so aborting the walk simply stops adding to a
+   * library that is already usable. A "stop" that threw the work away would be
+   * a cancel, and cancelling forty minutes of scanning is not what anybody
+   * pressing it wants.
+   */
+  stopScan() {
+    scanAbort?.abort()
+  },
+
   async clear() {
     releaseAllCovers()
     await db.clearLibrary()
     set({
       status: 'empty', tracks: [], albums: [], roots: [], progress: null,
       refusals: [], filesByPath: new Map(), needsRegrant: false, error: null,
+      stoppedEarly: false,
     })
   },
 
@@ -203,6 +223,15 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
  * of a few thousand files that is the whole difference between a progress bar
  * and a tab that appears to have hung.
  */
+/**
+ * The controller for the scan currently running, if any.
+ *
+ * Module-level rather than in the store because it is not state anything
+ * renders — and because a new scan must be able to abort the previous one even
+ * if the component that started it is long gone.
+ */
+let scanAbort: AbortController | null = null
+
 async function runScan(
   set: (partial: Partial<LibraryState>) => void,
   get: () => LibraryState,
@@ -213,11 +242,18 @@ async function runScan(
   releaseAllCovers()
   await db.clearScanned()
 
+  // A second scan started while one is running aborts the first, or the two
+  // walks interleave into one library and the progress count runs backwards.
+  scanAbort?.abort()
+  const abort = new AbortController()
+  scanAbort = abort
+
   const tracks: Track[] = []
   const albums = new Map<string, Album>()
 
   set({
     status: 'scanning', tracks: [], albums: [], error: null, needsRegrant: false,
+    stoppedEarly: false,
     progress: { seen: 0, added: 0, skipped: 0, where: '', done: false },
   })
 
@@ -232,6 +268,7 @@ async function runScan(
         set({ tracks: [...tracks], albums: [...albums.values()] })
       },
       onProgress: (progress) => set({ progress }),
+      signal: abort.signal,
     })
   } catch {
     set({
@@ -256,6 +293,9 @@ async function runScan(
     .filter((r) => r.why)
     .sort((a, b) => b.count - a.count)
 
+  const stopped = abort.signal.aborted
+  if (scanAbort === abort) scanAbort = null
+
   set({
     status: result.tracks.length > 0 ? 'ready' : 'empty',
     tracks: result.tracks,
@@ -265,8 +305,13 @@ async function runScan(
     refusals,
     progress: null,
     needsRegrant: false,
-    error: result.tracks.length === 0
-      ? `Nothing playable in that folder — checked ${result.refused.size > 0 ? 'every file' : 'the whole folder'}.`
-      : null,
+    stoppedEarly: stopped,
+    // ⚠️ A stopped scan is not an error, so it does not get the error slot. It
+    // is a library that is complete as far as it goes, and `ScanBanner` says so
+    // with the button to finish the job — putting it in red would tell someone
+    // their music is broken when what actually happened is that they asked.
+    error: stopped || result.tracks.length > 0
+      ? null
+      : `Nothing playable in that folder — checked ${result.refused.size > 0 ? 'every file' : 'the whole folder'}.`,
   })
 }

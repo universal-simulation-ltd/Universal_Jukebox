@@ -11,6 +11,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   const refusals = useLibraryStore((s) => s.refusals)
   const needsRegrant = useLibraryStore((s) => s.needsRegrant)
   const regrant = useLibraryStore((s) => s.regrant)
+  const rescan = useLibraryStore((s) => s.rescan)
+  const stopScan = useLibraryStore((s) => s.stopScan)
+  const stoppedEarly = useLibraryStore((s) => s.stoppedEarly)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const roots = useLibraryStore((s) => s.roots)
   const folderInput = useRef<HTMLInputElement>(null)
@@ -23,9 +26,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   return (
     <>
       {progress && !progress.done && (
-        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
           <DropRing size={34} motion="busy" aria-hidden />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-medium text-slate-900 dark:text-slate-100">
               Reading your folder — {plural(progress.added, 'track')} so far
             </p>
@@ -37,6 +40,39 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               {progress.where || 'Starting…'}
             </p>
           </div>
+          {/* ⚠️ "Stop", not "Cancel", and the difference is the whole point: it
+              KEEPS everything found so far. A big library takes minutes, and
+              somebody who realises halfway through that they pointed at their
+              whole drive wants out with what they have — not a choice between
+              waiting and starting again. Everything scanned is already in the
+              store and in IndexedDB, so stopping just stops adding. */}
+          <button
+            type="button"
+            onClick={stopScan}
+            className="shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+          >
+            {/* The count is live, so for the first moment of a scan it is
+                genuinely zero — and "Stop and keep 0 tracks" is a strange thing
+                to offer somebody. Say plain "Stop" until there is something to
+                keep. */}
+            {progress.added > 0 ? `Stop and keep ${plural(progress.added, 'track')}` : 'Stop'}
+          </button>
+        </div>
+      )}
+
+      {stoppedEarly && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          <p className="min-w-0 flex-1">
+            Stopped early — everything found up to that point is in your library and
+            plays normally. Scanning again reads the whole folder from the start.
+          </p>
+          <button
+            type="button"
+            onClick={() => void rescan()}
+            className="shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+          >
+            Scan the rest
+          </button>
         </div>
       )}
 

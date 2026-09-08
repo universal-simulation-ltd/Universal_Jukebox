@@ -9,6 +9,7 @@ import type { Track } from '../lib/types'
 import { useLibraryStore } from './libraryStore'
 import { settings } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
+import { navigate } from '../lib/route'
 
 // Playback: the queue, what is on, and the transport.
 //
@@ -121,7 +122,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   ceremony: false,
   ceremonyDone: false,
   ceremonyCount: null,
-  armDown: true,
+  // Nothing has played yet, so the arm is parked — not resting on a record
+  // that is not turning.
+  armDown: false,
   lastCeremonyAlbumId: null,
   lastCeremonyAt: 0,
 
@@ -135,6 +138,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
    */
   playTracks(tracks, startAt = 0) {
     if (tracks.length === 0) return
+    showTheDeck()
     const { shuffle } = get()
     const order = shuffle
       ? shuffled(tracks.length, startAt)
@@ -274,6 +278,32 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ error: null })
   },
 }))
+
+/**
+ * Send the user to Now Playing when they start something.
+ *
+ * ⚠️ Done HERE rather than in each button, and that is deliberate: `playTracks`
+ * is the single funnel for "the user explicitly started this", which is already
+ * what decides whether the ceremony runs. Two rules keyed off the same moment
+ * belong in the same place — the alternative is four call sites that each have
+ * to remember, and forgetting is invisible.
+ *
+ * It also fixes something that was quietly broken: the ceremony only renders on
+ * Now Playing, so pressing play from an ALBUM ran the whole animation on a
+ * screen that cannot show it. The deck the app is built around was reachable
+ * only by knowing to go and look.
+ *
+ * ⚠️ Except at the narrowest tier, where Now Playing is deliberately not a
+ * screen at all (the player bar IS the app — see `useMiniMode` in App.tsx).
+ * Navigating there would land on the "the player is at the bottom" note, which
+ * is a worse answer than staying where you are.
+ */
+function showTheDeck(): void {
+  try {
+    if (window.matchMedia('(max-width: 429px)').matches) return
+  } catch { /* no matchMedia — assume a real screen */ }
+  navigate({ view: 'playing' })
+}
 
 function persistModes(shuffle: boolean, repeat: Repeat) {
   try { localStorage.setItem(MODES_KEY, JSON.stringify({ shuffle, repeat })) } catch { /* ignore */ }
@@ -440,6 +470,47 @@ function advance(set: Set, get: Get, delta: number) {
 // and the Media Session outlive every screen — a Now Playing view unmounting
 // when the window narrows to T6 must not take the media keys with it.
 
+/**
+ * The tonearm follows playback: down while a record is playing, lifted the
+ * moment it stops.
+ *
+ * ⚠️ The LIFT is delayed and the drop is not, and that asymmetry is the whole
+ * trick. Every track change pauses the element for a fraction of a second
+ * before the next one starts, so an immediate lift makes the arm flick up and
+ * back down between every pair of tracks — a twitch, on the one screen meant to
+ * be pleasant to leave open. A quarter of a second is longer than any gap
+ * between tracks and far shorter than anyone's pause.
+ *
+ * Derived from the audio element rather than from the pause BUTTON, so it is
+ * right however playback stopped: the media keys, the lock screen, the end of
+ * the queue, or a file that failed.
+ */
+const ARM_LIFT_DELAY_MS = 250
+let armLiftTimer: number | null = null
+
+function followPlayback(playing: boolean): void {
+  const store = usePlayerStore.getState()
+  // While the ceremony is running it owns the arm — it is mid-swing, and
+  // playback is deliberately not started until the arm has landed.
+  if (store.ceremony) return
+
+  if (playing) {
+    if (armLiftTimer !== null) {
+      clearTimeout(armLiftTimer)
+      armLiftTimer = null
+    }
+    if (!store.armDown) usePlayerStore.setState({ armDown: true })
+    return
+  }
+
+  if (armLiftTimer !== null) return
+  armLiftTimer = setTimeout(() => {
+    armLiftTimer = null
+    const now = usePlayerStore.getState()
+    if (!now.playing && !now.ceremony) usePlayerStore.setState({ armDown: false })
+  }, ARM_LIFT_DELAY_MS) as unknown as number
+}
+
 audio.subscribe((state) => {
   usePlayerStore.setState({
     playing: state.playing,
@@ -447,6 +518,7 @@ audio.subscribe((state) => {
     currentSec: state.currentSec,
     durationSec: state.durationSec,
   })
+  followPlayback(state.playing)
   ms.setPlaybackState(state.playing)
   ms.setPosition(state.currentSec, state.durationSec)
 })
