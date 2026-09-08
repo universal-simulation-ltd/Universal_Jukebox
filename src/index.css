@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* Dark mode is class-driven, not media-driven: light is the default until the
+   user explicitly chooses otherwise (suite rule), so `.dark` on <html> is the
+   only trigger. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Track, album and artist names are free text out of somebody's tags: a long
+     unbroken string must wrap rather than widen the page. */
+  overflow-wrap: break-word;
+}
+
+/* ── The ceremony and the deck ──────────────────────────────────────────────
+   Keyframes rather than Tailwind utilities because they are referenced from
+   inline styles in Deck.tsx, where the rotation has to be composed with a
+   `transform-origin` the class system can't express per-element. */
+
+/* 33⅓ rpm — 1.8s a revolution. Slow enough to read as a record turning rather
+   than as a loading spinner, which is the whole difference. */
+@keyframes jb-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Each numeral arrives, holds, and leaves — it does not simply swap. The `key`
+   on the element restarts this for every count. */
+@keyframes jb-count {
+  0%   { opacity: 0; transform: scale(0.72); }
+  22%  { opacity: 1; transform: scale(1); }
+  78%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.15; transform: scale(0.96); }
+}
+
+/* Notes drifting off the headshell. */
+@keyframes jb-drift {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  15%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(26px, -74px) rotate(18deg); }
+}
+
+/* The level bars beside a playing track in a list. */
+@keyframes bars {
+  0%, 100% { height: 35%; }
+  50%      { height: 100%; }
+}
+
+/* ⚠️ Every one of the above is decoration, and `prefers-reduced-motion` stops
+   all of it. The components also branch on the same query where the END STATE
+   differs (the tonearm is DOWN rather than mid-swing) — CSS alone can only stop
+   an animation, not choose a different resting position, and a stopped arm
+   frozen halfway across the record is worse than no animation at all. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── Range inputs ───────────────────────────────────────────────────────────
+   The scrub bar and the volume slider. Styled by hand because a native range
+   thumb is 20px+ on every platform and sits proud of a 4px track, which on a
+   player bar reads as a bug rather than a control. */
+.jb-scrub {
+  border-radius: 9999px;
+}
+
+.jb-scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #e05504;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.3);
+  /* The thumb only appears on hover or focus: at rest the filled track IS the
+     position, and a permanent dot on a 4px bar is visual noise on every screen
+     in the app. */
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.jb-scrub:hover::-webkit-slider-thumb,
+.jb-scrub:focus-visible::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+.jb-scrub::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #e05504;
+  border: 2px solid #fff;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.jb-scrub:hover::-moz-range-thumb,
+.jb-scrub:focus-visible::-moz-range-thumb {
+  opacity: 1;
+}
+
+/* iOS Safari zooms the page in when a field under 16px takes focus, and it does
+   not zoom back out — which is how a layout that fits ends up half off-screen
+   with the right-hand edge unreachable. Touch devices therefore get a 16px
+   floor on every control; pointer devices keep the denser 13-14px.
+
+   ⚠️ The `!important` is load-bearing: it has to beat a `text-[13px]` utility
+   on the element AND an inline `fontSize: 12` on the language <select> inside
+   the SDK's own profile dropdown, which no class of ours can reach. The wrong
+   fix is `maximum-scale=1` on the viewport meta — pinch-zoom is an
+   accessibility feature. */
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range'])
+       :not([type='color']):not([type='file']):not([type='button'])
+       :not([type='submit']):not([type='reset']),
+  textarea, select { font-size: max(16px, 1em) !important; }
+}

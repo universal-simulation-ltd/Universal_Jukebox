@@ -1,0 +1,39 @@
+# Push to main → build → wrangler deploy (Worker: static assets, no script).
+# Same token as the portal's workflow; account_id is hardcoded in
+# wrangler.jsonc so the token doesn't need "User Details: Read".
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # The tag/cover-art reader is byte-level and DOM-free, so it is provable
+      # without a browser — and it is the half of this app most likely to break
+      # silently, because a mis-parsed cover is a missing picture rather than an
+      # error. Runs on every push for the same reason Converter's does.
+      - run: npm run test:tags
+      - run: npm run build
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # ⚠️ PINNED EXACTLY, not the '4' major range. On 2026-08-11
+          # `wrangler@4` resolved to a version depending on a `miniflare` that
+          # was not on npm, and every deploy in the suite on the floating range
+          # broke at once with nothing wrong in any repo. A floating major is a
+          # standing dependency on someone else's publish going out cleanly.
+          # Bump deliberately, after checking
+          # `npm view wrangler@<v> dependencies.miniflare` resolves.
+          wranglerVersion: '4.120.1'
+          command: deploy

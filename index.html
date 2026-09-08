@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <!-- ⚠️ THE NAME NEVER APPEARS ALONE — on this page or any other.
+         "Universal Jukebox" is a suite prefix plus the generic word for a
+         machine that plays music you already own, and the whole point of the
+         name (owner, 2026-09-08) is that it reads as a UTILITY rather than
+         anything to do with a label, a catalogue or an industry. So every
+         surface that carries the name carries what the thing does beside it:
+         this <title>, the description, the og: pair, the h1, the manifest, the
+         SDK catalogue entry and the README all say "plays" and "your own
+         files". Keep that rule when editing any one of them. -->
+    <title>Universal Jukebox — plays the music already on your device</title>
+    <meta
+      name="description"
+      content="A music player for the files you already have. Point it at a folder and it reads the tags and the embedded album art out of your own MP3, M4A, FLAC and WAV files, builds a browsable library, and plays it — with lock-screen and media-key controls. Nothing is uploaded, there is no account, and it is not a streaming service."
+    />
+    <meta name="keywords" content="local music player, browser music player, play my music folder, offline music player, album art, no upload, free music player, no account" />
+    <meta name="author" content="UNI·SIM" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="canonical" href="https://opensource.unisim.co.uk/jukebox/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Universal Jukebox" />
+    <meta property="og:title" content="Universal Jukebox — plays the music already on your device" />
+    <meta property="og:description" content="Point it at a folder. It reads the tags and the real album art out of your own files and plays them. Nothing uploaded, no account, not a streaming service." />
+    <meta property="og:url" content="https://opensource.unisim.co.uk/jukebox/" />
+    <meta property="og:image" content="https://opensource.unisim.co.uk/jukebox/icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:locale" content="en_GB" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Universal Jukebox — plays the music already on your device" />
+    <meta name="twitter:description" content="A player for your own music files. Nothing uploaded, no account." />
+    <meta name="twitter:image" content="https://opensource.unisim.co.uk/jukebox/icon-512.png" />
+    <!-- Structured data. The designer credit lives in two places, and this is
+         the one a search engine can read: the in-app line is in the SDK's
+         <AboutAppDialog>, which is a React portal and only enters the DOM once
+         somebody opens it, so a crawler never sees it.
+
+         Every value below is taken from THIS FILE's own <title>, description
+         and canonical rather than typed again, so the block cannot drift from
+         what the page already says about itself.
+
+         `applicationCategory` is MultimediaApplication and `applicationSubCategory`
+         spells out "Music player" — this is the machine-readable half of the
+         name rule above, and the one that decides how the page is filed. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Universal Jukebox",
+      "applicationCategory": "MultimediaApplication",
+      "applicationSubCategory": "Music player",
+      "operatingSystem": "Web browser",
+      "url": "https://opensource.unisim.co.uk/jukebox/",
+      "description": "Point it at a folder. It reads the tags and the real album art out of your own files and plays them. Nothing uploaded, no account, not a streaming service.",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "author": [
+        {
+          "@type": "Person",
+          "name": "James Markey",
+          "honorificSuffix": "MBE",
+          "jobTitle": "Founder & Director",
+          "url": "https://www.unisim.co.uk/about-james"
+        },
+        {
+          "@type": "Organization",
+          "name": "UNI·SIM",
+          "url": "https://www.unisim.co.uk",
+          "subjectOf": {
+            "@type": "BlogPosting",
+            "name": "Welcome to the UNI·SIM studio",
+            "url": "https://www.unisim.co.uk/blog/welcome-to-uni-sim"
+          }
+        }
+      ],
+      "provider": {
+        "@type": "Organization",
+        "name": "UNI·SIM",
+        "url": "https://www.unisim.co.uk"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

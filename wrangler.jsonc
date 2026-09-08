@@ -1,0 +1,24 @@
+// Universal Jukebox — Cloudflare Worker serving static assets only.
+//
+// A NEW Universal App starts on Workers static assets, not Pages (standing
+// policy, 2026-08-06). The portal Worker proxies
+// opensource.unisim.co.uk/jukebox/* here.
+//
+// There is no `main` and no Worker script, because this app has no server side
+// at all: no API, no relay, no cron. Every byte of anyone's music is read off
+// their own disk by the browser and never leaves it. If a reason to add a
+// Worker script ever appears here, that claim is what it has to survive.
+//
+// ⚠️ `assets.directory` must NEVER be "." — that uploads .git/ to the edge and
+// with it the whole repo history.
+{
+  "name": "universal-jukebox",
+  // Hardcoded so CI tokens don't need "User Details: Read" (same as the portal).
+  "account_id": "12fb850ff7cd52f3ef0244b1837e3008",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

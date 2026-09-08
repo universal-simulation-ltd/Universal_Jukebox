@@ -1,0 +1,21 @@
+<!-- GENERATED FILE — do not edit by hand.
+     Source: backoffice/universal-platform/scripts/app-marks/marks.mjs
+     Regenerate: node scripts/app-marks/build.mjs (from backoffice/universal-platform)
+     Mark: Universal Jukebox — A record with its tonearm lifted clear; on hover the arm comes down. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Universal Jukebox">
+  <defs>
+    <linearGradient id="u-jukebox-tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fe8c01"/>
+      <stop offset="1" stop-color="#e05504"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#u-jukebox-tile)"/>
+  <circle cx="29" cy="33" r="20" fill="#ffffff"/>
+  <circle cx="29" cy="33" r="15.5" fill="none" stroke-width="1.6" opacity="0.5" stroke="#e05504"/>
+  <circle cx="29" cy="33" r="11" fill="none" stroke-width="1.6" opacity="0.5" stroke="#e05504"/>
+  <circle cx="29" cy="33" r="6.2" fill="#e05504"/>
+  <circle cx="29" cy="33" r="1.6" fill="#ffffff"/>
+  <circle cx="49" cy="14" r="4" fill="#fed7aa"/>
+  <path d="M49 14 L42 28.5" fill="none" stroke-width="2.8" stroke-linecap="round" stroke="#fed7aa"/>
+  <path d="M42 28.5 L40.6 31.4" fill="none" stroke-width="5.4" stroke-linecap="round" stroke="#fed7aa"/>
+</svg>
