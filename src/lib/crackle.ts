@@ -7,7 +7,9 @@
 // ⚠️ FOUR RULES, and they are not stylistic (§22.9 of next-products.md):
 //
 //   1. This is sound the user did not ask for. It rides the app volume, it is
-//      off in one click, and the setting persists.
+//      off in one click, and the setting persists. It also has its own level
+//      slider — which is what earns the louder default below, because the way
+//      to answer "too much" is now a control rather than a bug report.
 //   2. It never plays before a user gesture. Browsers forbid it anyway — an
 //      `AudioContext` created without one starts `suspended` — but the reason
 //      it matters is that a page that makes a noise on load is a page people
@@ -39,8 +41,14 @@ function ctx(): AudioContext | null {
  * `volume` is the app's own volume, passed in rather than read, so the effect
  * can never be louder than the music it introduces — the complaint that would
  * otherwise arrive first.
+ *
+ * `level` is the user's own multiplier for this effect alone (Settings →
+ * "Needle-drop volume"), and it is deliberately allowed ABOVE 1. The point of
+ * the control is that the crackle was too easy to miss under a loud first bar,
+ * and a slider that can only ever make it quieter would not fix that. It still
+ * rides `volume`, so it cannot outlive turning the music down.
  */
-export function playNeedleDrop(volume = 0.8): void {
+export function playNeedleDrop(volume = 0.8, level = 1): void {
   const audio = ctx()
   if (!audio) return
   // A context created before any gesture starts suspended; resuming inside the
@@ -48,12 +56,24 @@ export function playNeedleDrop(volume = 0.8): void {
   if (audio.state === 'suspended') void audio.resume().catch(() => {})
 
   const now = audio.currentTime
-  const level = Math.max(0, Math.min(1, volume))
-  if (level <= 0) return
+  // ⚠️ The PRODUCT is not clamped to 1 — see the note above. Each part is
+  // clamped on its own so a corrupt stored setting cannot produce a bang.
+  const gain = Math.max(0, Math.min(1, volume)) * Math.max(0, Math.min(MAX_LEVEL, level))
+  if (gain <= 0) return
 
-  thunk(audio, now, level)
-  surfaceNoise(audio, now + 0.04, level)
+  thunk(audio, now, gain)
+  surfaceNoise(audio, now + 0.04, gain)
 }
+
+/**
+ * The loudest the multiplier may be, enforced here as well as in the store.
+ *
+ * Duplicated rather than imported because this file is the synth and knows
+ * nothing about settings — and because the clamp that stops a hand-edited
+ * localStorage blob from blowing someone's ears out belongs next to the gains
+ * it protects, not two files away.
+ */
+const MAX_LEVEL = 2
 
 /** 120 → 46 Hz over 0.3s: the body of the arm meeting the record. */
 function thunk(audio: AudioContext, at: number, level: number): void {
@@ -64,7 +84,7 @@ function thunk(audio: AudioContext, at: number, level: number): void {
     osc.frequency.setValueAtTime(120, at)
     osc.frequency.exponentialRampToValueAtTime(46, at + 0.3)
     gain.gain.setValueAtTime(0.0001, at)
-    gain.gain.exponentialRampToValueAtTime(0.28 * level, at + 0.012)
+    gain.gain.exponentialRampToValueAtTime(0.34 * level, at + 0.012)
     // An exponential ramp cannot reach zero — it is undefined at 0 — so it runs
     // to a floor and the node is stopped. Ramping to 0 silently does nothing in
     // some engines and throws in others.
@@ -93,11 +113,16 @@ function surfaceNoise(audio: AudioContext, at: number, level: number): void {
     const data = buffer.getChannelData(0)
 
     for (let i = 0; i < frames; i++) {
-      // Base hiss, quiet.
-      data[i] = (Math.random() * 2 - 1) * 0.16
-      // Pops: rare, short and much louder than the hiss. Roughly 25 a second,
-      // which is what reads as "dusty record" rather than "broken speaker".
-      if (Math.random() < 0.00055) {
+      // Base hiss.
+      data[i] = (Math.random() * 2 - 1) * 0.22
+      // Pops: short, and much louder than the hiss. Roughly 55 a second.
+      //
+      // ⚠️ Was 25/s at half this gain, and the honest verdict after living with
+      // it was that you had to already know it was there. The failure mode in
+      // the other direction is "broken speaker", and what separates the two is
+      // DENSITY rather than loudness — so this doubles the count and lets the
+      // user's own multiplier do the loudness.
+      if (Math.random() < 0.0012) {
         const length = 40 + Math.floor(Math.random() * 90)
         const amplitude = 0.5 + Math.random() * 0.5
         for (let j = 0; j < length && i + j < frames; j++) {
@@ -113,12 +138,15 @@ function surfaceNoise(audio: AudioContext, at: number, level: number): void {
     // bass, the top end is what makes noise sound like static rather than vinyl.
     const filter = audio.createBiquadFilter()
     filter.type = 'bandpass'
-    filter.frequency.value = 2600
-    filter.Q.value = 0.7
+    // 2600/0.7 sat entirely in the region a first bar of music fills, which is
+    // most of why it went unheard. Lower and wider leaves it some body of its
+    // own without reaching the bass it must not fight.
+    filter.frequency.value = 1900
+    filter.Q.value = 0.5
 
     const gain = audio.createGain()
     gain.gain.setValueAtTime(0.0001, at)
-    gain.gain.exponentialRampToValueAtTime(0.22 * level, at + 0.05)
+    gain.gain.exponentialRampToValueAtTime(0.42 * level, at + 0.05)
     // Fades out under the music rather than stopping — the point is that it
     // hands over, not that it ends.
     gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.88)

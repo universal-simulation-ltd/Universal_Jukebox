@@ -1,6 +1,6 @@
 import { coverUrl } from '../lib/art'
 import { plural } from '../lib/format'
-import { navigate } from '../lib/route'
+import { goHome, navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -47,6 +47,7 @@ export default function NowPlaying() {
 
   return (
     <>
+    <BackToLibrary />
     <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-14">
       {/* Blurred cover as the ground, the way every good Now Playing screen
           does it — the album's own colours, at a size that can't compete with
@@ -126,6 +127,36 @@ export default function NowPlaying() {
     </div>
     <Queue />
     </>
+  )
+}
+
+/**
+ * The way back to the library, from the deck.
+ *
+ * ⚠️ Rendered ABOVE the stage and OUTSIDE the ceremony branch, so it is there
+ * during the countdown as well as after it. That is the whole point of it: the
+ * previous version of this screen had no way home at all, so leaving meant the
+ * browser back button or waiting out the animation to find a link — and being
+ * held in a 2.3-second animation with no visible exit is exactly the feeling
+ * the ceremony is supposed to be the opposite of.
+ *
+ * ⚠️ It deliberately does NOT `stopPropagation`. `App.tsx` skips the ceremony
+ * on any click, and letting this one through is correct: leaving the deck while
+ * the arm is still in the air should start the music, not walk away from a
+ * record suspended mid-cue.
+ */
+function BackToLibrary() {
+  return (
+    <button
+      type="button"
+      onClick={goHome}
+      className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400"
+    >
+      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
+        <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
+      </svg>
+      Back to your library
+    </button>
   )
 }
 

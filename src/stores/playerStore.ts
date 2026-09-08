@@ -303,7 +303,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     audio.startPreview(file, get().muted ? 0 : get().volume)
     // The scratch rides along, because the needle is landing on something —
     // it is just not landing on the deck you can see.
-    if (settings().needleDrop) playNeedleDrop(get().volume)
+    needleDrop(get().volume)
   },
 
   stopPreview() {
@@ -520,9 +520,24 @@ function needleChange(
   handoverTimer = setTimeout(() => {
     handoverTimer = null
     set({ armDown: true, handover: false })
-    if (settings().needleDrop) playNeedleDrop(get().volume)
+    needleDrop(get().volume)
     land(HANDOVER.FADE_IN_SEC)
   }, HANDOVER.LIFT_MS) as unknown as number
+}
+
+/**
+ * The needle drop, with both of its settings applied in one place.
+ *
+ * ⚠️ Three callers — the ceremony's landing, the handover between tracks, and a
+ * preview — and they must not each remember to check the toggle AND pass the
+ * level. The version of this that was inlined at all three sites is exactly how
+ * a fourth caller would ship with the effect stuck at full whatever the slider
+ * said.
+ */
+function needleDrop(volume: number): void {
+  const { needleDrop: on, needleDropLevel } = settings()
+  if (!on) return
+  playNeedleDrop(volume, needleDropLevel)
 }
 
 function prefersReducedMotion(): boolean {
@@ -587,7 +602,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   at(BEATS.one, () => set({ ceremonyCount: 1 }))
   at(BEATS.land, () => {
     set({ armDown: true })
-    if (settings().needleDrop) playNeedleDrop(get().volume)
+    needleDrop(get().volume)
   })
   // This is what actually starts the sound.
   at(BEATS.start, () => get().skipCeremony())

@@ -1,8 +1,12 @@
 import { graphUnavailable } from '../lib/audioGraph'
+import { playNeedleDrop } from '../lib/crackle'
 import { goHome } from '../lib/route'
+import { usePlayerStore } from '../stores/playerStore'
 import {
   MAX_BOOST,
   MAX_FADE_SEC,
+  MAX_NEEDLE_LEVEL,
+  MIN_NEEDLE_LEVEL,
   useSettingsStore,
   type CeremonyMode,
   type HomeTab,
@@ -88,6 +92,25 @@ export default function Settings() {
           hint="A low thunk and a second of surface noise as the arm lands — putting a record on, changing track, and previewing one. Rides your volume, and never plays on its own."
           checked={s.needleDrop}
           onChange={(v) => s.set('needleDrop', v)}
+        />
+        {/* ⚠️ `onCommit` plays it. A loudness control you cannot hear while you
+            set it is a control you set once, wrongly, and never touch again —
+            and this one is for an effect that lasts under a second and happens
+            when you are looking somewhere else. Firing on release rather than
+            on every input event is what keeps dragging the slider from becoming
+            a stack of forty overlapping thunks. */}
+        <Slider
+          label="Needle-drop volume"
+          hint="How loud the thunk and crackle are. Drag it to hear it. Still rides your main volume, so turning the music down turns this down with it."
+          value={s.needleDropLevel}
+          min={MIN_NEEDLE_LEVEL}
+          max={MAX_NEEDLE_LEVEL}
+          step={0.25}
+          disabled={!s.needleDrop}
+          disabledHint="Turn the needle-drop sound on to set how loud it is."
+          format={(v) => `${Math.round(v * 100)}%`}
+          onChange={(v) => s.set('needleDropLevel', v)}
+          onCommit={(v) => playNeedleDrop(usePlayerStore.getState().volume, v)}
         />
       </Section>
 
@@ -270,7 +293,7 @@ function Toggle({
 }
 
 function Slider({
-  label, hint, value, min, max, step, format, onChange, disabled = false, disabledHint,
+  label, hint, value, min, max, step, format, onChange, onCommit, disabled = false, disabledHint,
 }: {
   label: string
   hint?: string
@@ -280,6 +303,8 @@ function Slider({
   step: number
   format(value: number): string
   onChange(value: number): void
+  /** Fired when the drag ENDS, for a setting worth demonstrating. */
+  onCommit?(value: number): void
   disabled?: boolean
   disabledHint?: string
 }) {
@@ -306,6 +331,11 @@ function Slider({
           disabled={disabled}
           aria-label={label}
           onChange={(e) => onChange(Number(e.target.value))}
+          // Both, because a slider is dragged with a pointer and nudged with the
+          // arrow keys, and only handling the first leaves the keyboard user
+          // with a control that never demonstrates itself.
+          onPointerUp={(e) => onCommit?.(Number(e.currentTarget.value))}
+          onKeyUp={(e) => onCommit?.(Number(e.currentTarget.value))}
           className="jb-scrub mt-3 h-1 w-full cursor-pointer appearance-none rounded-full bg-slate-200 disabled:cursor-default dark:bg-slate-700"
         />
       </div>

@@ -45,6 +45,16 @@ export interface Settings {
   /** The synthesised thunk and surface noise as the arm lands. */
   needleDrop: boolean
   /**
+   * How loud that thunk and crackle are, 0.25–2× the synth's own level.
+   *
+   * ⚠️ Separate from `volume` on purpose. It multiplies the app volume rather
+   * than replacing it, so the effect can never be heard over music that has
+   * been turned down — but it is allowed ABOVE 1, because the complaint that
+   * produced this control was that the crackle was too quiet to notice, and a
+   * slider that only attenuates would not have answered it.
+   */
+  needleDropLevel: number
+  /**
    * Extra gain ABOVE the volume slider, 1–4×.
    *
    * ⚠️ The `<audio>` element's own `volume` is hard-capped at 1.0 by the HTML
@@ -63,6 +73,7 @@ export const DEFAULTS: Settings = {
   ceremonyMode: 'always',
   homeTab: 'albums',
   needleDrop: true,
+  needleDropLevel: 1,
   volumeBoost: 1,
   fadeInSec: 0,
   fadeOutSec: 0,
@@ -72,6 +83,16 @@ export const DEFAULTS: Settings = {
 export const MAX_FADE_SEC = 8
 /** The loudest boost offered. Past ~4x almost everything clips audibly. */
 export const MAX_BOOST = 4
+/**
+ * The needle-drop level's range.
+ *
+ * The floor is deliberately NOT zero: silencing the effect is what the toggle
+ * beside it is for, and a slider that can reach silence gives two controls that
+ * both mean "off" — and then a toggle that says "on" over an effect nobody can
+ * hear, which is indistinguishable from a broken app.
+ */
+export const MIN_NEEDLE_LEVEL = 0.25
+export const MAX_NEEDLE_LEVEL = 2
 
 const KEY = 'unisim-jukebox-settings'
 /** The single-purpose key `playerStore` used before this store existed. */
@@ -110,6 +131,7 @@ function read(): Settings {
         : DEFAULTS.ceremonyMode,
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' ? tab : DEFAULTS.homeTab,
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
+    needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
     fadeOutSec: clamp(stored.fadeOutSec, 0, MAX_FADE_SEC, DEFAULTS.fadeOutSec),
@@ -157,6 +179,7 @@ function persist(state: Settings) {
     ceremonyMode: state.ceremonyMode,
     homeTab: state.homeTab,
     needleDrop: state.needleDrop,
+    needleDropLevel: state.needleDropLevel,
     volumeBoost: state.volumeBoost,
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
