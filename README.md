@@ -112,13 +112,14 @@ src/
 │   ├── audio.ts       # one <audio> element, the queue, a real shuffle, the fades
 │   ├── audioGraph.ts  # the OPTIONAL Web Audio graph — boost + analyser. Read it first
 │   ├── ceremony.ts    # when the record-changing animation runs. Pure, tested
+│   ├── tidy.ts        # the tidy-up rules. Pure, and mostly about what it refuses
 │   ├── crackle.ts     # the synthesised needle drop — no asset, no licence
 │   ├── applySettings.ts # the one place settings become audible
 │   └── mediaSession.ts
 ├── stores/            # playerStore (owns the ceremony timeline) · libraryStore
-│                      # · settingsStore · themeStore
-└── components/        # Landing · AlbumGrid · AlbumView · Deck · NowPlaying
-                       # · PlayerBar · Settings
+│                      # · settingsStore · tidyStore · themeStore
+└── components/        # Landing · AlbumGrid · AlbumView · CoverFan · Deck
+                       # · NowPlaying · PlayerBar · Settings · Tidy
 ```
 
 ### Three things that are load-bearing
@@ -168,6 +169,54 @@ check properly.
 Its **timeline** lives in `playerStore`, not in the `Deck` component — the deck
 is only mounted on Now Playing, so a ceremony owned by it never finished when
 you pressed play from an album.
+
+---
+
+## Tidying up
+
+`#/tidy`, from the app menu. It looks for two things and **proposes** them:
+
+- **Missing artwork that is already on your disk** — a `cover.jpg` (or `folder`,
+  `front`, `albumart`…) sitting beside the tracks, or art embedded in a *later*
+  track of the album. The scan only asks the first track it meets for art, so an
+  album whose sleeve is on track 2 shows nothing at all.
+- **Records split in two by inconsistent tags** — two albums with the same name
+  in the same folder under different artist spellings, and tracks with no album
+  tag sitting in an album's folder.
+
+### ⚠️ There is no lookup, and there never will be
+
+Every other player fixes missing artwork by asking MusicBrainz or the Cover Art
+Archive, which means sending someone's album and artist names to a server. This
+app's whole claim is that nothing leaves the machine, and *"we only send the
+metadata"* is exactly the sentence people say when they have quietly started
+sending something. If the art is not on the disk, the app says so.
+
+### ⚠️ Everything is a proposal, and the refusals are the feature
+
+`keys.ts` puts it plainly: **a wrongly merged album cannot be told apart
+afterwards.** So `tidy.ts` finds candidates, explains each in a sentence, shows
+the actual picture it would use — and a person presses the button. The rules are
+deliberately narrow, and `tidy.test.ts` spends more of its length on what they
+must *refuse* than on what they find:
+
+| Refused | Why |
+|---|---|
+| Same album title in **different folders** | "Greatest Hits" by two artists, or one record owned twice |
+| Two **different** albums sharing a folder | A folder of singles — merging destroys two records to make one that never existed |
+| `Album` vs `Album (Deluxe Edition)` | Different releases with different track lists; somebody with both has both on purpose |
+| Loose tracks where the folder holds **two** albums | No single right answer, so it says nothing |
+| Any image that is not named like a cover | `IMG_4821.jpg` is a photo. A wrong picture is worse than an honest blank tile |
+| Anything fuzzy-matched | Where a tidy-up feature starts destroying libraries |
+
+### Your files are never touched
+
+Tidying corrects the library *here*; it does not rewrite tags or move files. The
+fixes live in their own IndexedDB store keyed by album id and track id — both
+derived from the files themselves — so **a rescan re-applies them** rather than
+undoing them. That is the whole reason they are stored apart from the library
+they correct: a tidy-up you have to redo after every new album is worse than
+none, because you have to remember whether you did it.
 
 ---
 

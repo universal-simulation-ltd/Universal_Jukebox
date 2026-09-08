@@ -1,5 +1,5 @@
-// The library's storage: three IndexedDB stores, no server, no schema
-// migration to write, nothing that leaves the device.
+// The library's storage: four IndexedDB stores, no server, nothing that leaves
+// the device.
 //
 // A thin hand-rolled wrapper rather than a library, matching the eight other
 // Universal Apps that do this (`Universal_PDF/src/lib/recents.ts` is the
@@ -16,11 +16,21 @@
 import type { Album, Root, Track } from './types'
 
 const DB_NAME = 'unisim-jukebox'
-const DB_VERSION = 1
+/**
+ * ⚠️ Bumped to 2 for the `fixes` store (2026-09-08).
+ *
+ * `onupgradeneeded` below creates only what is missing, so it runs correctly
+ * for a brand-new database AND for one already holding somebody's library —
+ * dropping and recreating on an upgrade would silently throw away a scan of
+ * five thousand files, which is the sort of thing a version bump does when
+ * nobody thinks about it.
+ */
+const DB_VERSION = 2
 
 export const STORE_TRACKS = 'tracks'
 export const STORE_ALBUMS = 'albums'
 export const STORE_ROOTS = 'roots'
+export const STORE_FIXES = 'fixes'
 
 let dbPromise: Promise<IDBDatabase | null> | null = null
 
@@ -49,6 +59,17 @@ function open(): Promise<IDBDatabase | null> {
       }
       if (!db.objectStoreNames.contains(STORE_ROOTS)) {
         db.createObjectStore(STORE_ROOTS, { keyPath: 'id' })
+      }
+      // Tidy-up decisions, kept apart from the library they correct.
+      //
+      // ⚠️ This is the store that makes tidying worth doing. Everything else
+      // here is DERIVED and thrown away by a rescan — so without somewhere
+      // durable to record them, every fix a person made would be undone the
+      // next time they added an album. Fixes are keyed by album id and track
+      // id, both of which a rescan of unchanged files reproduces exactly, so
+      // they survive and are re-applied.
+      if (!db.objectStoreNames.contains(STORE_FIXES)) {
+        db.createObjectStore(STORE_FIXES, { keyPath: 'id' })
       }
     }
     request.onsuccess = () => {
@@ -166,6 +187,10 @@ export async function putAlbums(albums: Album[]): Promise<void> {
   })
 }
 
+export async function deleteAlbum(id: string): Promise<void> {
+  await tx(STORE_ALBUMS, 'readwrite', (s) => s.delete(id))
+}
+
 // ── Roots ────────────────────────────────────────────────────────────────────
 
 export async function allRoots(): Promise<Root[]> {
@@ -178,6 +203,42 @@ export async function putRoot(root: Root): Promise<void> {
 
 export async function deleteRoot(id: string): Promise<void> {
   await tx(STORE_ROOTS, 'readwrite', (s) => s.delete(id))
+}
+
+// ── Fixes ────────────────────────────────────────────────────────────────────
+
+export type Fix =
+  | { id: string; kind: 'cover'; albumId: string; blob: Blob }
+  | { id: string; kind: 'album'; trackId: string; albumId: string }
+
+export const coverFixId = (albumId: string) => `cover:${albumId}`
+export const albumFixId = (trackId: string) => `album:${trackId}`
+
+export async function allFixes(): Promise<Fix[]> {
+  return (await tx<Fix[]>(STORE_FIXES, 'readonly', (s) => s.getAll())) ?? []
+}
+
+export async function putFixes(fixes: Fix[]): Promise<void> {
+  if (fixes.length === 0) return
+  const db = await open()
+  if (!db) return
+  await new Promise<void>((resolve) => {
+    let t: IDBTransaction
+    try {
+      t = db.transaction(STORE_FIXES, 'readwrite')
+    } catch {
+      return resolve()
+    }
+    const store = t.objectStore(STORE_FIXES)
+    for (const fix of fixes) store.put(fix)
+    t.oncomplete = () => resolve()
+    t.onerror = () => resolve()
+    t.onabort = () => resolve()
+  })
+}
+
+export async function clearFixes(): Promise<void> {
+  await tx(STORE_FIXES, 'readwrite', (s) => s.clear())
 }
 
 // ── Wholesale ────────────────────────────────────────────────────────────────
@@ -195,13 +256,17 @@ export async function clearLibrary(): Promise<void> {
   await new Promise<void>((resolve) => {
     let t: IDBTransaction
     try {
-      t = db.transaction([STORE_TRACKS, STORE_ALBUMS, STORE_ROOTS], 'readwrite')
+      t = db.transaction([STORE_TRACKS, STORE_ALBUMS, STORE_ROOTS, STORE_FIXES], 'readwrite')
     } catch {
       return resolve()
     }
     t.objectStore(STORE_TRACKS).clear()
     t.objectStore(STORE_ALBUMS).clear()
     t.objectStore(STORE_ROOTS).clear()
+    // ⚠️ Fixes go too, but ONLY here. "Forget this library" means forget it;
+    // `clearScanned` (which a rescan uses) deliberately leaves them, because
+    // that is the whole reason they are stored separately.
+    t.objectStore(STORE_FIXES).clear()
     t.oncomplete = () => resolve()
     t.onerror = () => resolve()
     t.onabort = () => resolve()

@@ -43,6 +43,15 @@ const HEAD_BYTES = 512 * 1024
  */
 const TAIL_BYTES = 512 * 1024
 
+/**
+ * Image files worth remembering as we walk past them.
+ *
+ * The scan does not read these — it just notes where they are, which costs a
+ * map entry each. `tidy.ts` is what decides whether one is an album cover, and
+ * it only does so for albums that have no embedded art at all.
+ */
+const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'])
+
 /** Extensions the browser's `<audio>` element can actually decode. */
 const PLAYABLE = new Set(['mp3', 'm4a', 'mp4', 'aac', 'flac', 'wav', 'wave', 'aiff', 'aif', 'ogg', 'oga', 'opus'])
 
@@ -80,6 +89,14 @@ interface Found {
   path: string
 }
 
+/** An image file found beside some music. */
+export interface FoundImage {
+  /** File name, lower-cased — `tidy.ts` matches on `cover`, `folder` and so on. */
+  name: string
+  path: string
+  file: File
+}
+
 export interface ScanResult {
   tracks: Track[]
   albums: Album[]
@@ -99,6 +116,16 @@ export interface ScanResult {
    * nothing, and a stored one is a broken reference that looks valid.
    */
   files: Map<string, File>
+  /**
+   * Directory → the image files sitting in it.
+   *
+   * ⚠️ Collected but NOT read. A folder image is the commonest place an album's
+   * artwork lives in a ripped library, and the scanner used to walk straight
+   * past every one of them — an album with `cover.jpg` right beside its tracks
+   * showed a blank tile. Noting the path costs nothing; reading it is `tidy.ts`'s
+   * business, and only for albums that need it.
+   */
+  images: Map<string, FoundImage[]>
 }
 
 export interface ScanOptions {
@@ -254,6 +281,7 @@ export async function scan(
   const albums = new Map<string, Album>()
   const refused = new Map<string, number>()
   const files = new Map<string, File>()
+  const images = new Map<string, FoundImage[]>()
   /** Album ids we have already tried to get a cover for. */
   const artTried = new Set<string>()
 
@@ -286,6 +314,13 @@ export async function scan(
     const ext = extensionOf(found.file.name)
 
     if (!PLAYABLE.has(ext)) {
+      if (IMAGE_EXTS.has(ext)) {
+        const dir = directoryOf(found.path)
+        const list = images.get(dir)
+        const image: FoundImage = { name: found.file.name.toLowerCase(), path: found.path, file: found.file }
+        if (list) list.push(image)
+        else images.set(dir, [image])
+      }
       if (REFUSED[ext]) refused.set(ext, (refused.get(ext) ?? 0) + 1)
       skipped++
       // Reporting on every single file makes the scan slower than the disk.
@@ -293,8 +328,7 @@ export async function scan(
       continue
     }
 
-    const slash = found.path.lastIndexOf('/')
-    where = slash > 0 ? found.path.slice(0, slash) : ''
+    where = directoryOf(found.path)
 
     // The album a file belongs to is only known AFTER its tags are read, and
     // whether to ask for art is only known from the album. So: read text first,
@@ -379,7 +413,13 @@ export async function scan(
   flush()
   report(true)
 
-  return { tracks, albums: [...albums.values()], refused, files }
+  return { tracks, albums: [...albums.values()], refused, files, images }
+}
+
+/** The folder a path sits in — '' for a file at the root of the chosen folder. */
+export function directoryOf(path: string): string {
+  const slash = path.lastIndexOf('/')
+  return slash < 0 ? '' : path.slice(0, slash)
 }
 
 function isDirectoryHandle(source: unknown): source is FileSystemDirectoryHandle {

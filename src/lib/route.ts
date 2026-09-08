@@ -6,7 +6,7 @@
 // this file needing to know about it, and makes an album a link somebody can
 // send to themselves. `Universal_Video/src/lib/route.ts` is the same shape.
 
-export type View = 'albums' | 'artists' | 'tracks' | 'album' | 'playing' | 'about' | 'settings'
+export type View = 'albums' | 'artists' | 'tracks' | 'album' | 'playing' | 'about' | 'settings' | 'tidy'
 
 export interface Route {
   view: View
@@ -33,6 +33,7 @@ export function currentRoute(): Route {
   if (hash === 'playing') return { view: 'playing' }
   if (hash === 'about') return { view: 'about' }
   if (hash === 'settings') return { view: 'settings' }
+  if (hash === 'tidy') return { view: 'tidy' }
   return { view: 'albums' }
 }
 

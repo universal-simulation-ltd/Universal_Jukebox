@@ -12,6 +12,7 @@ import NowPlaying from './components/NowPlaying'
 import PlayerBar from './components/PlayerBar'
 import ScanBanner from './components/ScanBanner'
 import Settings from './components/Settings'
+import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
 import { NAVIGATED, currentRoute, navigate, type Route, type View } from './lib/route'
 import { useLibraryStore } from './stores/libraryStore'
@@ -217,7 +218,9 @@ export default function App() {
             all, so they follow you everywhere. */}
         <ScanBanner showRefusals={LIBRARY_VIEWS.has(route.view)} />
 
-        {route.view === 'settings' ? (
+        {route.view === 'tidy' ? (
+          <Tidy />
+        ) : route.view === 'settings' ? (
           <Settings />
         ) : route.view === 'about' ? (
           <About />

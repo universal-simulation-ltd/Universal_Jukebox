@@ -40,6 +40,7 @@ export default function AppMenu() {
               {roots[0].label}
             </p>
           )}
+          <Row onClick={() => navigate({ view: 'tidy' })}>Tidy up library…</Row>
           <Row onClick={() => void rescan()}>Rescan folder</Row>
           <Row onClick={() => void clear()}>Forget this library…</Row>
           <Divider />

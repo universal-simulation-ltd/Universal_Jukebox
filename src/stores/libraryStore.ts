@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { releaseAllCovers } from '../lib/art'
 import * as db from '../lib/library'
-import { hasDirectoryPicker, scan, REFUSED } from '../lib/scan'
+import { hasDirectoryPicker, scan, REFUSED, type FoundImage } from '../lib/scan'
+import { applyFixes } from '../lib/tidy'
 import type { Album, Root, ScanProgress, Track } from '../lib/types'
 
 // The library: what was found, and everything about getting it.
@@ -44,6 +45,8 @@ interface LibraryState {
   error: string | null
   /** path → File, for everything currently reachable. Never persisted. */
   filesByPath: Map<string, File>
+  /** Directory → the images found in it, for the tidy-up. Never persisted. */
+  folderImages: Map<string, FoundImage[]>
   canPersistFolder: boolean
   /** Set when the stored folder needs its permission re-granted. */
   needsRegrant: boolean
@@ -85,6 +88,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   refusals: [],
   error: null,
   filesByPath: new Map(),
+  folderImages: new Map(),
   canPersistFolder: hasDirectoryPicker(),
   needsRegrant: false,
   stoppedEarly: false,
@@ -201,7 +205,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     await db.clearLibrary()
     set({
       status: 'empty', tracks: [], albums: [], roots: [], progress: null,
-      refusals: [], filesByPath: new Map(), needsRegrant: false, error: null,
+      refusals: [], filesByPath: new Map(), folderImages: new Map(),
+      needsRegrant: false, error: null,
       stoppedEarly: false,
     })
   },
@@ -296,12 +301,29 @@ async function runScan(
   const stopped = abort.signal.aborted
   if (scanAbort === abort) scanAbort = null
 
+  // ⚠️ Fold the user's tidy-up back in, because a scan has just rebuilt the
+  // library from the files and thrown every correction away. Fixes are keyed by
+  // album id and track id — both derived from the files themselves — so a
+  // rescan of unchanged music reproduces exactly the ids they refer to. Without
+  // this, tidying would last until the next time somebody added an album, which
+  // is worse than not offering it.
+  const fixes = await db.allFixes()
+  let fixedTracks = result.tracks
+  let fixedAlbums = result.albums
+  if (fixes.length > 0) {
+    const applied = applyFixes(result.tracks, result.albums, fixes)
+    fixedTracks = applied.tracks
+    fixedAlbums = applied.albums
+    await Promise.all([db.putTracks(fixedTracks), db.putAlbums(fixedAlbums)])
+  }
+
   set({
-    status: result.tracks.length > 0 ? 'ready' : 'empty',
-    tracks: result.tracks,
-    albums: result.albums,
+    status: fixedTracks.length > 0 ? 'ready' : 'empty',
+    tracks: fixedTracks,
+    albums: fixedAlbums,
     roots: [root],
     filesByPath: result.files,
+    folderImages: result.images,
     refusals,
     progress: null,
     needsRegrant: false,
