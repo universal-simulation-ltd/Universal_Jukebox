@@ -28,7 +28,7 @@ export default function Landing() {
       <Turntable />
 
       <h1 className="mt-6 text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-        Plays the music already on your device
+        Plays your whole music library, in your browser
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
         Point it at a folder. It reads the tags and the real album art out of your own

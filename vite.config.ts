@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
           // ⚠️ The name never travels alone. See the note in the SDK catalogue
           // entry: every surface carrying "Universal Jukebox" says what it DOES
           // in the same breath, so the product reads as the utility it is.
-          description: 'Plays the music already on your device. Nothing uploaded, no account.',
+          description: 'Plays your whole music library, in your browser. Nothing uploaded, no account.',
           theme_color: '#0f172a',
           background_color: '#f8fafc',
           display: 'standalone',
