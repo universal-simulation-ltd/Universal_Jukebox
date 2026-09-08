@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { UniversalProvider } from '@unisim/sdk'
 import App from './App'
+import { startApplyingSettings } from './lib/applySettings'
 import './index.css'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
@@ -45,6 +46,11 @@ const universalConfig = {
   product: 'jukebox' as const,
   cookieDomain: import.meta.env.PROD ? '.unisim.co.uk' : undefined,
 }
+
+// Settings reach the audio layer through one subscription, set up before the
+// first render so a boost or a fade chosen last visit is already in force when
+// the first track plays.
+startApplyingSettings()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

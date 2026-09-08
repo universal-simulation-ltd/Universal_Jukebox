@@ -7,6 +7,8 @@
 // length; `index.html`, the manifest and the SDK catalogue entry each say it in
 // one line.
 
+import { navigate } from '../lib/route'
+
 export default function About() {
   return (
     <div className="mx-auto max-w-2xl">
@@ -80,6 +82,25 @@ export default function About() {
         permission itself is the thing that cannot be saved — so you pick the folder again
         each visit. Either way the library and its artwork are kept, so it comes back
         immediately rather than being rebuilt.
+      </p>
+
+      <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
+        The turntable
+      </h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
+        When you put a different record on, the deck spins up and the arm comes down
+        before the music starts. It only does this when you actually choose a new album —
+        never between tracks of the one already playing, never in the middle of a queue,
+        and not more than once every ninety seconds however fast you click. Any click or
+        key skips it, and you can change or switch it off entirely in{' '}
+        <button
+          type="button"
+          onClick={() => navigate({ view: 'settings' })}
+          className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >
+          Settings
+        </button>
+        , along with fades and a volume boost for quietly-mastered albums.
       </p>
 
       <p className="mt-8 border-t border-slate-200 pt-6 text-[13px] text-slate-500 dark:border-slate-800 dark:text-slate-400">

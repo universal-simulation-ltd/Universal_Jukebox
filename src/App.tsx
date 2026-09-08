@@ -11,6 +11,7 @@ import Landing from './components/Landing'
 import NowPlaying from './components/NowPlaying'
 import PlayerBar from './components/PlayerBar'
 import ScanBanner from './components/ScanBanner'
+import Settings from './components/Settings'
 import TrackList from './components/TrackList'
 import { NAVIGATED, currentRoute, navigate, type Route, type View } from './lib/route'
 import { useLibraryStore } from './stores/libraryStore'
@@ -28,6 +29,9 @@ import { useThemeStore } from './stores/themeStore'
 export const CONTAINER = 'mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8'
 
 const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_Jukebox'
+
+/** The views the skipped-files report belongs on: the library itself. */
+const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'album'])
 
 const TABS: { view: View; label: string }[] = [
   { view: 'albums', label: 'Albums' },
@@ -204,15 +208,18 @@ export default function App() {
           </div>
         )}
 
-        {/* ⚠️ Not on Now Playing. The skipped-files list is a report about a
-            SCAN and belongs with the library it describes; parked above the
-            deck it turns the one screen in the app meant to be left open into a
-            page of warnings about files the user already can't play. Progress
-            and the folder-permission prompt are a different matter — those are
-            about whether the app works at all, so they follow you. */}
-        <ScanBanner showRefusals={route.view !== 'playing'} />
+        {/* ⚠️ Only on the LIBRARY views. The skipped-files list is a report
+            about a scan and belongs with the library it describes. Parked above
+            the deck it turns the one screen meant to be left open into a page
+            of warnings; parked above Settings or About it is just noise on a
+            page about something else. Progress and the folder-permission prompt
+            are a different matter — those are about whether the app works at
+            all, so they follow you everywhere. */}
+        <ScanBanner showRefusals={LIBRARY_VIEWS.has(route.view)} />
 
-        {route.view === 'about' ? (
+        {route.view === 'settings' ? (
+          <Settings />
+        ) : route.view === 'about' ? (
           <About />
         ) : !hasLibrary ? (
           <Landing />

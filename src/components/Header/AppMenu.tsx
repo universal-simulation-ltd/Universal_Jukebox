@@ -1,5 +1,4 @@
 import { useLibraryStore } from '../../stores/libraryStore'
-import { usePlayerStore } from '../../stores/playerStore'
 import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
 
@@ -12,14 +11,18 @@ import { navigate } from '../../lib/route'
 // rows — they are ours, so they carry their own `dark:` classes. That split is
 // documented in `new-universal-app.md` §2 and is easy to forget, because it
 // looks fine until someone switches to dark.
+//
+// ⚠️ This menu is for what you reach FOR — the library actions and the theme
+// switch you flip in the evening. Everything you set once and leave lives on
+// the Settings page. The needle-drop toggle was here and moved there when it
+// stopped being the only preference; a dropdown that grows a settings panel
+// inside it is a settings page with worse ergonomics.
 
 export default function AppMenu() {
   const rescan = useLibraryStore((s) => s.rescan)
   const clear = useLibraryStore((s) => s.clear)
   const status = useLibraryStore((s) => s.status)
   const roots = useLibraryStore((s) => s.roots)
-  const crackle = usePlayerStore((s) => s.crackle)
-  const setCrackle = usePlayerStore((s) => s.setCrackle)
   const pref = useThemeStore((s) => s.pref)
   const setPref = useThemeStore((s) => s.setPref)
 
@@ -65,22 +68,7 @@ export default function AppMenu() {
       </div>
 
       <Divider />
-      <label className="flex cursor-pointer items-start gap-2.5 px-3 py-2">
-        <input
-          type="checkbox"
-          checked={crackle}
-          onChange={(e) => setCrackle(e.target.checked)}
-          className="mt-0.5 h-3.5 w-3.5 accent-orange-600"
-        />
-        <span>
-          Needle-drop sound
-          <span className="block text-[11px] text-slate-500 dark:text-slate-400">
-            A thunk and a little crackle before the first track.
-          </span>
-        </span>
-      </label>
-
-      <Divider />
+      <Row onClick={() => navigate({ view: 'settings' })}>Settings…</Row>
       <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
     </div>
   )

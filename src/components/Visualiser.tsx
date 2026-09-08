@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { mediaElement } from '../lib/audio'
+import { ensureGraph, ensureRunning } from '../lib/audioGraph'
 import { usePlayerStore } from '../stores/playerStore'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 
@@ -11,38 +12,12 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 // The drifting notes on the deck are decoration and are allowed to be fake;
 // this is a readout and is not.
 //
-// ⚠️ THE SOURCE NODE IS CREATED AT MOST ONCE, EVER. `createMediaElementSource`
-// throws `InvalidStateError` on a second call for the same element — and once
-// an element is routed through a source node, its audio goes to the graph
-// instead of the speakers, so a failed re-attach after this component remounts
-// is SILENCE, not a missing visualiser. Hence the module-level cache: the node
-// outlives every mount, exactly like the element it is attached to.
-
-let context: AudioContext | null = null
-let source: MediaElementAudioSourceNode | null = null
-let analyser: AnalyserNode | null = null
-
-function graph(): AnalyserNode | null {
-  if (analyser) return analyser
-  try {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!Ctor) return null
-    context = new Ctor()
-    source = context.createMediaElementSource(mediaElement())
-    analyser = context.createAnalyser()
-    analyser.fftSize = 128
-    analyser.smoothingTimeConstant = 0.78
-    // ⚠️ The analyser is a TAP, and the destination connection is what keeps the
-    // sound audible. Connect only source→analyser and the music stops.
-    source.connect(analyser)
-    analyser.connect(context.destination)
-    return analyser
-  } catch {
-    // A browser that refuses the graph loses the visualiser, not the music.
-    analyser = null
-    return null
-  }
-}
+// ⚠️ THE GRAPH IS NOT OWNED HERE ANY MORE. It used to be — a module-level
+// AudioContext and source node built by this file — and that stopped working
+// the moment the volume boost needed one too: `createMediaElementSource` throws
+// on a second call for the same element, so whichever feature got there first
+// would have silently disabled the other. `lib/audioGraph.ts` owns the single
+// graph now and both features ask it for one.
 
 export default function Visualiser() {
   const playing = usePlayerStore((s) => s.playing)
@@ -51,12 +26,16 @@ export default function Visualiser() {
 
   useEffect(() => {
     if (!playing || reduced) return
-    const node = graph()
+    // Asking for the graph BUILDS one if none exists yet — the visualiser is a
+    // legitimate reason to have it, same as the boost.
+    const built = ensureGraph(mediaElement())
     const surface = canvas.current
-    if (!node || !surface) return
-    // An element routed through a source node is muted until the context is
-    // running — resuming here is what keeps the first play audible.
-    if (context?.state === 'suspended') void context.resume().catch(() => {})
+    if (!built || !surface) return
+    const node = built.analyser
+    // An element routed through a source node makes no sound at all while the
+    // context is suspended, so this is not about the visualiser — it is what
+    // keeps the music audible.
+    ensureRunning()
 
     const ctx2d = surface.getContext('2d')
     if (!ctx2d) return

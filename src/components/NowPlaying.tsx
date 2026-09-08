@@ -2,6 +2,7 @@ import { coverUrl } from '../lib/art'
 import { plural } from '../lib/format'
 import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import Deck, { CeremonyCount } from './Deck'
 import Queue from './Queue'
@@ -21,6 +22,8 @@ import Visualiser from './Visualiser'
 export default function NowPlaying() {
   const track = usePlayerStore(currentTrack)
   const ceremony = usePlayerStore((s) => s.ceremony)
+  const skipCeremony = usePlayerStore((s) => s.skipCeremony)
+  const setSetting = useSettingsStore((s) => s.set)
   const queue = usePlayerStore((s) => s.queue)
   const cursor = usePlayerStore((s) => s.cursor)
   const albums = useLibraryStore((s) => s.albums)
@@ -61,6 +64,24 @@ export default function NowPlaying() {
           <div className="min-h-[8rem]">
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Cueing up…</p>
+            {/* ⚠️ The way out, offered AT THE MOMENT the thing happens.
+                Burying "turn this off" in Settings only helps the person who
+                already knows the page exists; the person who finds a 2.3-second
+                animation irritating is looking at it right now. It also stops
+                the animation immediately rather than only from next time —
+                being told "we'll stop doing that later" while it carries on is
+                the worst version of this control. */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setSetting('ceremonyMode', 'off')
+                skipCeremony()
+              }}
+              className="mt-4 text-[12px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+            >
+              Don’t show this again
+            </button>
           </div>
         ) : (
           <div className="min-h-[8rem]">

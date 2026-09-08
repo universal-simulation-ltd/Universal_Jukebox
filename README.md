@@ -60,7 +60,7 @@ the copy differ per browser rather than failing at the moment of use.
 ```sh
 cd D:/Github/UNISIM/Universal_Apps/Universal_Jukebox
 npm install
-npm run dev          # http://localhost:5231
+npm run dev          # http://localhost:5204
 ```
 
 ```sh
@@ -104,16 +104,21 @@ library has no disc numbers" rather than as any kind of error.
 ```
 src/
 ├── lib/
-│   ├── tags.ts     # ID3v2 · MP4 ilst · Vorbis comments, + cover art. Pure, no DOM
-│   ├── keys.ts     # what counts as the same file, and the same album
-│   ├── scan.ts     # the folder walk — header-only reads, streaming results
-│   ├── library.ts  # IndexedDB: tracks / albums / roots
-│   ├── art.ts      # extract → downscale → cache → object URLs (bounded)
-│   ├── audio.ts    # one <audio> element, the queue, a real shuffle
-│   ├── crackle.ts  # the synthesised needle drop — no asset, no licence
+│   ├── tags.ts        # ID3v2 · MP4 ilst · Vorbis comments, + cover art. Pure, no DOM
+│   ├── keys.ts        # what counts as the same file, and the same album
+│   ├── scan.ts        # the folder walk — header-only reads, streaming results
+│   ├── library.ts     # IndexedDB: tracks / albums / roots
+│   ├── art.ts         # extract → downscale → cache → object URLs (bounded)
+│   ├── audio.ts       # one <audio> element, the queue, a real shuffle, the fades
+│   ├── audioGraph.ts  # the OPTIONAL Web Audio graph — boost + analyser. Read it first
+│   ├── ceremony.ts    # when the record-changing animation runs. Pure, tested
+│   ├── crackle.ts     # the synthesised needle drop — no asset, no licence
+│   ├── applySettings.ts # the one place settings become audible
 │   └── mediaSession.ts
-├── stores/         # playerStore (owns the ceremony) · libraryStore · themeStore
-└── components/     # Landing · AlbumGrid · AlbumView · Deck · NowPlaying · PlayerBar
+├── stores/            # playerStore (owns the ceremony timeline) · libraryStore
+│                      # · settingsStore · themeStore
+└── components/        # Landing · AlbumGrid · AlbumView · Deck · NowPlaying
+                       # · PlayerBar · Settings
 ```
 
 ### Three things that are load-bearing
@@ -132,17 +137,79 @@ src/
    copying towards is a change over there rendering a different picture here,
    with nothing anywhere raising an error.
 
-### The first play
+### Putting a record on
 
-The first time you press play in a session the platter spins up, the tonearm
-comes down, and a 3 · 2 · 1 counts **beside** the deck while the first bytes come
-off disk. It happens **once per session**, any click or key skips it,
-`prefers-reduced-motion` drops it entirely (the arm is simply down and the music
-starts), and the needle-drop sound is off in one click from the app menu.
+The turntable animation — platter spins up, tonearm comes down, a 3 · 2 · 1
+counts **beside** the deck while the first bytes come off disk, and a
+synthesised needle drop as the arm lands.
 
-Its timeline lives in `playerStore`, not in the `Deck` component — the deck is
-only mounted on Now Playing, so a ceremony owned by it never finished when you
-pressed play from an album.
+By default it runs **when you put a different record on**, which is not the same
+as "whenever the album changes":
+
+- Only on an **explicit** start — pressing play on an album, a track or a search
+  result. `advance()` (next, previous, the natural end of a track) never runs
+  it, so crossing an album boundary *inside* a running queue is silent. You did
+  not put that record on; the queue did.
+- Only if the album differs from the one the **last ceremony** was for.
+- And **at most once every 90 seconds**. This is the limit that makes the rule
+  safe to offer at all: shuffle a whole library and nearly every track is a new
+  album, browse the grid and every click is a new album. Without the cooldown
+  the animation stops being an arrival and becomes a 2.3-second toll booth.
+
+Any click or key skips it, `prefers-reduced-motion` drops it entirely (the arm
+is simply down and the music starts), and there is a **Don't show this again**
+on the animation itself as well as three choices in Settings.
+
+The rule lives in `src/lib/ceremony.ts`, pure and tested — the shuffle and
+browse cases are `ceremony.test.ts`, because "does it stay quiet through a
+shuffled library" takes an hour of listening to check by hand and one test to
+check properly.
+
+Its **timeline** lives in `playerStore`, not in the `Deck` component — the deck
+is only mounted on Now Playing, so a ceremony owned by it never finished when
+you pressed play from an album.
+
+---
+
+## Settings
+
+`#/settings`, reachable from the app menu. Everything is per-device and written
+straight through to `localStorage` on change; there is no Save button because
+nothing here is a form.
+
+| Setting | Notes |
+|---|---|
+| **Record-changing animation** | On a new album (default) · Once per visit · Never |
+| **Needle-drop sound** | The thunk and surface noise. Greys out when the animation is off, with the reason |
+| **Volume boost** | 1–4× on top of the volume slider, for quietly-mastered albums |
+| **Fade in / Fade out** | 0–8s. A fade, **not** a crossfade — see below |
+| **Theme** | Light · Dark · Match my device |
+
+**Adding one** should be a field and a default in `stores/settingsStore.ts` plus
+one `<Choice>` / `<Slider>` / `<Toggle>` in `components/Settings.tsx`. The page
+is a list of sections of rows precisely so that stays true.
+
+### Two things worth knowing before changing the audio
+
+**The fades need no Web Audio, and the boost cannot avoid it.** An
+`HTMLMediaElement`'s `volume` is hard-capped at 1.0 by the spec, so gain above
+unity has to go through a `GainNode` — which means routing the element through
+an `AudioContext`, and *that* is a one-way door whose failure mode is silence
+(`createMediaElementSource` may be called once per element, ever, and once
+called the element's audio no longer reaches the speakers by itself). So the
+graph in `lib/audioGraph.ts` is built **only** when something actually asks:
+a boost above 1×, or the visualiser. Someone who never touches the boost never
+takes that risk. `ensureRunning()` is called on every play because a suspended
+context is silence, not an error.
+
+**The user's volume and the fade envelope are separate values**, multiplied to
+give `element.volume`. The obvious implementation — a fade writing straight to
+`element.volume` — has no memory of what the slider said, so a fade-out ends
+with the slider's own value redefined as zero and the next track silent.
+
+The fade is a **fade, not a crossfade**. A crossfade needs two elements decoding
+at once and this app has exactly one on purpose; what changes is that a track no
+longer starts or stops at full volume, not that the gap between tracks closes.
 
 ---
 

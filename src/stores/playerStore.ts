@@ -7,6 +7,8 @@ import * as ms from '../lib/mediaSession'
 import { shuffled } from '../lib/audio'
 import type { Track } from '../lib/types'
 import { useLibraryStore } from './libraryStore'
+import { settings } from './settingsStore'
+import { shouldRunCeremony } from '../lib/ceremony'
 
 // Playback: the queue, what is on, and the transport.
 //
@@ -20,7 +22,6 @@ export type Repeat = 'off' | 'all' | 'one'
 
 const VOLUME_KEY = 'unisim-jukebox-volume'
 const MODES_KEY = 'unisim-jukebox-modes'
-const CRACKLE_KEY = 'unisim-jukebox-crackle'
 
 interface PlayerState {
   queue: Track[]
@@ -54,8 +55,10 @@ interface PlayerState {
   ceremonyCount: number | null
   /** Whether the tonearm is down. True whenever a ceremony is not running. */
   armDown: boolean
-  /** The synthesised thunk and crackle. Persisted; off in one click. */
-  crackle: boolean
+  /** The album the last ceremony was run for, so the same record doesn't repeat it. */
+  lastCeremonyAlbumId: string | null
+  /** When the last ceremony started, for the cooldown. Epoch ms. */
+  lastCeremonyAt: number
 
   playTracks(tracks: Track[], startAt?: number): void
   toggle(): void
@@ -67,7 +70,6 @@ interface PlayerState {
   toggleMute(): void
   toggleShuffle(): void
   cycleRepeat(): void
-  setCrackle(on: boolean): void
   /** Any click, key, or second press of play cuts straight to the audio. */
   skipCeremony(): void
   enqueue(tracks: Track[], mode: 'next' | 'end'): void
@@ -101,16 +103,6 @@ function readNumber(key: string, fallback: number): number {
   return fallback
 }
 
-function readCrackle(): boolean {
-  try {
-    const raw = localStorage.getItem(CRACKLE_KEY)
-    if (raw !== null) return raw === '1'
-  } catch { /* ignore */ }
-  // Default on is defensible ONLY because it lasts under a second and sits
-  // under the first bar of music. See §22.9 rule 4.
-  return true
-}
-
 const modes = readModes()
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -130,7 +122,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   ceremonyDone: false,
   ceremonyCount: null,
   armDown: true,
-  crackle: readCrackle(),
+  lastCeremonyAlbumId: null,
+  lastCeremonyAt: 0,
 
   /**
    * Replace the queue and start playing.
@@ -226,11 +219,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const repeat: Repeat = get().repeat === 'off' ? 'all' : get().repeat === 'all' ? 'one' : 'off'
     persistModes(get().shuffle, repeat)
     set({ repeat })
-  },
-
-  setCrackle(on) {
-    try { localStorage.setItem(CRACKLE_KEY, on ? '1' : '0') } catch { /* ignore */ }
-    set({ crackle: on })
   },
 
   skipCeremony() {
@@ -368,17 +356,32 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   publishNowPlaying(track)
   clearCeremony()
 
-  const first = !get().ceremonyDone
-  // Under reduced motion the end state has to be reachable without the
-  // transition: the arm is simply DOWN and playback is immediate. Same rule
-  // every app mark follows.
-  if (!first || prefersReducedMotion()) {
+  const { ceremonyDone, lastCeremonyAlbumId, lastCeremonyAt } = get()
+  const run = shouldRunCeremony({
+    mode: settings().ceremonyMode,
+    reducedMotion: prefersReducedMotion(),
+    ceremonyDone,
+    lastAlbumId: lastCeremonyAlbumId,
+    lastAt: lastCeremonyAt,
+    albumId: track.albumId,
+    now: Date.now(),
+  })
+
+  if (!run) {
     set({ ceremony: false, ceremonyDone: true, ceremonyCount: null, armDown: true })
     void audio.load(file, true)
     return
   }
 
-  set({ ceremony: true, ceremonyCount: 3, armDown: false })
+  set({
+    ceremony: true,
+    ceremonyCount: 3,
+    armDown: false,
+    // Recorded when the ceremony STARTS, not when it finishes. Both are read by
+    // the cooldown, and starting is the moment the user actually experienced.
+    lastCeremonyAlbumId: track.albumId,
+    lastCeremonyAt: Date.now(),
+  })
   void audio.load(file, false)
 
   const at = (ms: number, fn: () => void) => {
@@ -388,7 +391,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   at(BEATS.one, () => set({ ceremonyCount: 1 }))
   at(BEATS.land, () => {
     set({ armDown: true })
-    if (get().crackle) playNeedleDrop(get().volume)
+    if (settings().needleDrop) playNeedleDrop(get().volume)
   })
   // This is what actually starts the sound.
   at(BEATS.start, () => get().skipCeremony())
