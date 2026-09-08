@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useLibraryStore } from '../../stores/libraryStore'
 import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
@@ -17,16 +18,43 @@ import { navigate } from '../../lib/route'
 // the Settings page. The needle-drop toggle was here and moved there when it
 // stopped being the only preference; a dropdown that grows a settings panel
 // inside it is a settings page with worse ergonomics.
+//
+// ⚠️ THERE ARE EXACTLY THREE LIBRARY ACTIONS, AND "ADD TO LIBRARY" IS NOT ONE
+// OF THEM (James, 2026-09-08): the folder you CHOSE, RESCAN it, FORGET it.
+//
+// That is not a shortfall to be filled in later — it is what the app actually
+// does. A scan REPLACES the library (`runScan` in `libraryStore` clears the
+// stores and rebuilds from the walk), there is one root, and every id is
+// derived from the files themselves so a rescan reproduces exactly what was
+// there plus whatever is new. An "add" that quietly meant "replace" would be
+// the worst kind of button; a real one would need a second root, merge rules
+// and a way to un-add, none of which exist. So the folder row says which folder
+// it is, and choosing a different one says out loud that it replaces this.
+//
+// Tidy-up used to sit in this group and doesn't any more, for the same reason:
+// it is a page you visit, like Settings and About, not one of the three things
+// you can do to the library itself.
 
 export default function AppMenu() {
   const rescan = useLibraryStore((s) => s.rescan)
   const clear = useLibraryStore((s) => s.clear)
   const status = useLibraryStore((s) => s.status)
   const roots = useLibraryStore((s) => s.roots)
+  const pickFolder = useLibraryStore((s) => s.pickFolder)
+  const addFiles = useLibraryStore((s) => s.addFiles)
+  const canPersist = useLibraryStore((s) => s.canPersistFolder)
   const pref = useThemeStore((s) => s.pref)
   const setPref = useThemeStore((s) => s.setPref)
+  const folderInput = useRef<HTMLInputElement>(null)
 
   const hasLibrary = status === 'ready'
+
+  // Same two paths as the landing screen: the real picker where the browser
+  // has one, and `webkitdirectory` where it hasn't.
+  const chooseFolder = () => {
+    if (canPersist) void pickFolder()
+    else folderInput.current?.click()
+  }
 
   return (
     <div className="min-w-[15rem] py-1 text-[13px] text-slate-700 dark:text-slate-200">
@@ -40,9 +68,14 @@ export default function AppMenu() {
               {roots[0].label}
             </p>
           )}
-          <Row onClick={() => navigate({ view: 'tidy' })}>Tidy up library…</Row>
-          <Row onClick={() => void rescan()}>Rescan folder</Row>
+          {/* Chosen · rescan · forget. Nothing else, and nothing that adds. */}
+          <Row onClick={chooseFolder}>Choose a different folder…</Row>
+          <Row onClick={() => void rescan()}>Rescan this folder</Row>
           <Row onClick={() => void clear()}>Forget this library…</Row>
+          <p className="px-3 pt-1 pb-2 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
+            One folder at a time — choosing another replaces this library rather
+            than adding to it. Rescanning picks up anything new inside it.
+          </p>
           <Divider />
         </>
       )}
@@ -69,8 +102,25 @@ export default function AppMenu() {
       </div>
 
       <Divider />
+      {hasLibrary && <Row onClick={() => navigate({ view: 'tidy' })}>Tidy up library…</Row>}
       <Row onClick={() => navigate({ view: 'settings' })}>Settings…</Row>
       <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
+
+      {/* ⚠️ Always mounted, even when the picker path is the one in use: this is
+          also the fallback if `showDirectoryPicker` throws — an iframe, a
+          policy, an older Chromium — and a ref to something conditionally
+          rendered is a click that silently does nothing. */}
+      <input
+        ref={folderInput}
+        type="file"
+        {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) void addFiles(e.target.files)
+          e.target.value = ''
+        }}
+      />
     </div>
   )
 }

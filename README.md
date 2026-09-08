@@ -38,6 +38,18 @@ Each of these is named on screen with a sentence.
 | `.wma`, `.ape`, `.wv` | No browser ships a decoder. [Universal Converter](https://opensource.unisim.co.uk/converter) turns them into something this plays, also without uploading. |
 | `.mid` / `.midi` | A score, not a recording — there is no audio in the file. |
 
+## One folder — chosen, rescanned, forgotten
+
+**There is no "add to library".** The three library actions in the app menu are
+the folder you **chose**, **rescan** it, and **forget** it, and that is not a
+gap waiting to be filled: a scan REPLACES the library (`runScan` in
+`libraryStore` clears the stores and rebuilds from the walk), there is one root,
+and every id is derived from the files themselves so a rescan reproduces exactly
+what was there plus whatever is new. An "add" that quietly meant "replace" would
+be the worst kind of button, and a real one needs a second root, merge rules and
+a way to un-add — none of which exist. Choosing a different folder therefore
+says out loud that it replaces this one.
+
 ## The folder problem
 
 This is the honest bit, and the app is designed around it rather than
@@ -106,6 +118,7 @@ src/
 ├── lib/
 │   ├── tags.ts        # ID3v2 · MP4 ilst · Vorbis comments, + cover art. Pure, no DOM
 │   ├── keys.ts        # what counts as the same file, and the same album
+│   ├── search.ts      # what the search box matches — and so the tab counts too
 │   ├── scan.ts        # the folder walk — header-only reads, streaming results
 │   ├── library.ts     # IndexedDB: tracks / albums / roots
 │   ├── art.ts         # extract → downscale → cache → object URLs (bounded)
@@ -119,7 +132,8 @@ src/
 ├── stores/            # playerStore (owns the ceremony timeline) · libraryStore
 │                      # · settingsStore · tidyStore · themeStore
 └── components/        # Landing · AlbumGrid · AlbumView · CoverFan · Deck
-                       # · NowPlaying · PlayerBar · Settings · Tidy
+                       # · NowPlaying · PlayerBar · PreviewButton · Settings
+                       # · Tidy
 ```
 
 ### Three things that are load-bearing
@@ -144,31 +158,66 @@ The turntable animation — platter spins up, tonearm comes down, a 3 · 2 · 1
 counts **beside** the deck while the first bytes come off disk, and a
 synthesised needle drop as the arm lands.
 
-By default it runs **when you put a different record on**, which is not the same
-as "whenever the album changes":
+**By default it runs on every play** (James, 2026-09-08). Press play on a track,
+an album or a search result and you land on the deck and the arm is cued. Only
+on an **explicit** start, though: `advance()` (next, previous, the natural end of
+a track) never asks, so a running queue is never interrupted by the full
+ceremony — it gets the shorter needle change below instead.
 
-- Only on an **explicit** start — pressing play on an album, a track or a search
-  result. `advance()` (next, previous, the natural end of a track) never runs
-  it, so crossing an album boundary *inside* a running queue is silent. You did
-  not put that record on; the queue did.
-- Only if the album differs from the one the **last ceremony** was for.
-- And **at most once every 90 seconds**. This is the limit that makes the rule
-  safe to offer at all: shuffle a whole library and nearly every track is a new
-  album, browse the grid and every click is a new album. Without the cooldown
-  the animation stops being an arrival and becomes a 2.3-second toll booth.
+There was a **90-second cooldown**, and it is now **zero** — `CEREMONY_COOLDOWN_MS`
+in `src/lib/ceremony.ts`, deliberately off so James can find the real limit by
+ear. That constant is the only place a rate limit lives; put `90_000` back and
+the old behaviour returns exactly, with the tests in `ceremony.test.ts` (which
+pass their own cooldown, so they go on proving the knob while the shipping value
+is zero) to say what it should do.
 
 Any click or key skips it, `prefers-reduced-motion` drops it entirely (the arm
 is simply down and the music starts), and there is a **Don't show this again**
-on the animation itself as well as three choices in Settings.
-
-The rule lives in `src/lib/ceremony.ts`, pure and tested — the shuffle and
-browse cases are `ceremony.test.ts`, because "does it stay quiet through a
-shuffled library" takes an hour of listening to check by hand and one test to
-check properly.
+on the animation itself as well as four choices in Settings — *every time I
+press play* · *only on a new album* · *once per visit* · *never*.
 
 Its **timeline** lives in `playerStore`, not in the `Deck` component — the deck
 is only mounted on Now Playing, so a ceremony owned by it never finished when
 you pressed play from an album.
+
+### The needle, once the music is going
+
+The arm is not decoration after the landing. It creeps **inward** across the
+record as the track plays — the outer groove to just outside the label, driven
+by `currentSec / durationSec` — and between tracks it lifts, goes back out to
+the start, and lands again with the scratch on top.
+
+Three things about that are worth knowing before changing it:
+
+- The arm is **two nested rotations about the same bearing**, not one sum. Where
+  on the record the needle is (slow, linear) and the arm being lifted and cued
+  (springy, overshooting) need different transitions; added together they would
+  have to share one, and either the landing crawls or the creep springs.
+- **`HANDOVER.LIFT_MS` (420ms) is a real gap between every pair of tracks.** It
+  is the price of the arm going back to the start rather than teleporting.
+  Skipped entirely when the animation is off or under `prefers-reduced-motion`.
+- The two tracks **fade into each other, and it is still not a crossfade**. The
+  outgoing one ducks over 0.32s as the arm lifts, the incoming one rises over
+  0.55s as it lands, and the scratch covers the seam — but they never overlap,
+  because one `<audio>` element decodes one file (see below).
+
+Pause **freezes** all of it where it stands: the platter's `animation-play-state`
+is paused rather than the animation being removed (removing it snaps the record
+back to 0°), and the needle's angle comes from `currentSec`, so it simply stays.
+
+### Previewing, the one play that isn't a play
+
+Every other way of starting audio goes to the deck. The exception is the small
+**headphones** button beside each track in the library and on every album: ten
+seconds, taken **ten seconds in** — the first ten seconds of a track are the
+part least like it — with no queue, no change of screen, and whatever you had on
+still cued up behind it.
+
+⚠️ It runs on a **second `<audio>` element**, which is a deliberate exception to
+the one-element rule below. One extra element, reused for every preview and
+emptied the moment one stops, pins nothing between previews; what it buys is the
+queue surviving a listen. It does pause the music first — two records at once is
+not a preview.
 
 ---
 
@@ -228,8 +277,9 @@ nothing here is a form.
 
 | Setting | Notes |
 |---|---|
-| **Record-changing animation** | On a new album (default) · Once per visit · Never |
-| **Needle-drop sound** | The thunk and surface noise. Greys out when the animation is off, with the reason |
+| **Open my library on** | Albums · Artists · Tracks. Also settable from the star beside each tab |
+| **Record-changing animation** | Every time I press play (default) · Only on a new album · Once per visit · Never |
+| **Needle-drop sound** | The thunk and surface noise — on a new record, between tracks, and on a preview |
 | **Volume boost** | 1–4× on top of the volume slider, for quietly-mastered albums |
 | **Fade in / Fade out** | 0–8s. A fade, **not** a crossfade — see below |
 | **Theme** | Light · Dark · Match my device |
