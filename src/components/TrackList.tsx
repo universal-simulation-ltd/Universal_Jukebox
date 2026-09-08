@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { clock, fold } from '../lib/format'
+import { clock } from '../lib/format'
+import { matchTracks } from '../lib/search'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
@@ -24,18 +25,10 @@ export default function TrackList({ query }: { query: string }) {
   const nowPlaying = usePlayerStore(currentTrack)
   const [showAll, setShowAll] = useState(false)
 
-  const matched = useMemo(() => {
-    const needle = fold(query)
-    const list = needle
-      ? tracks.filter(
-          (t) =>
-            fold(t.title).includes(needle) ||
-            fold(t.artist ?? '').includes(needle) ||
-            fold(t.album ?? '').includes(needle),
-        )
-      : tracks
-    return [...list].sort(byTitle)
-  }, [tracks, query])
+  // ⚠️ `matchTracks` and not an inline filter: the count in the tab above comes
+  // from the same function, and two copies of "what counts as a match" drift
+  // without anything failing.
+  const matched = useMemo(() => [...matchTracks(tracks, query)].sort(byTitle), [tracks, query])
 
   const shown = showAll ? matched : matched.slice(0, CAP)
   const hidden = matched.length - shown.length

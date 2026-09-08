@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { DropRing } from '@unisim/sdk'
 import { plural } from '../lib/format'
-import { navigate } from '../lib/route'
+import { goHome } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { proposalKey, useTidyStore } from '../stores/tidyStore'
 
@@ -39,7 +39,7 @@ export default function Tidy() {
     <div className="mx-auto max-w-2xl">
       <button
         type="button"
-        onClick={() => navigate({ view: 'albums' })}
+        onClick={goHome}
         className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>

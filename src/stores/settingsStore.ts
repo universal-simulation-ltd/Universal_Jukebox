@@ -17,14 +17,31 @@ import { create } from 'zustand'
 /**
  * When the record-changing ceremony runs.
  *
- * - `album` — whenever you deliberately start a DIFFERENT album (the default).
- * - `first` — once per session, on the first play, and never again.
- * - `off`   — never.
+ * - `always` — every time you press play on anything (the default).
+ * - `album`  — only when you deliberately start a DIFFERENT album.
+ * - `first`  — once per session, on the first play, and never again.
+ * - `off`    — never.
+ *
+ * ⚠️ `always` is the default as of 2026-09-08 (James). Putting a record on is
+ * what this app IS, so pressing play anywhere — the tracks list, a search
+ * result, an album — takes you to the deck and cues the arm. The other three
+ * remain because somebody who finds it too much has to be able to say so, and
+ * "Don't show this again" on the animation itself still writes `off`.
  */
-export type CeremonyMode = 'album' | 'first' | 'off'
+export type CeremonyMode = 'always' | 'album' | 'first' | 'off'
+
+/** Which library tab the front door opens on. */
+export type HomeTab = 'albums' | 'artists' | 'tracks'
 
 export interface Settings {
   ceremonyMode: CeremonyMode
+  /**
+   * The tab starred in the library nav.
+   *
+   * ⚠️ Only applies to HOME (`#/`) — an explicit `#/albums` is still albums, or
+   * starring Tracks would make the Albums tab unreachable by its own button.
+   */
+  homeTab: HomeTab
   /** The synthesised thunk and surface noise as the arm lands. */
   needleDrop: boolean
   /**
@@ -43,7 +60,8 @@ export interface Settings {
 }
 
 export const DEFAULTS: Settings = {
-  ceremonyMode: 'album',
+  ceremonyMode: 'always',
+  homeTab: 'albums',
   needleDrop: true,
   volumeBoost: 1,
   fadeInSec: 0,
@@ -84,8 +102,13 @@ function read(): Settings {
   } catch { /* storage disabled, or somebody else's JSON under our key */ }
 
   const mode = stored.ceremonyMode
+  const tab = stored.homeTab
   return {
-    ceremonyMode: mode === 'album' || mode === 'first' || mode === 'off' ? mode : DEFAULTS.ceremonyMode,
+    ceremonyMode:
+      mode === 'always' || mode === 'album' || mode === 'first' || mode === 'off'
+        ? mode
+        : DEFAULTS.ceremonyMode,
+    homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' ? tab : DEFAULTS.homeTab,
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
@@ -132,6 +155,7 @@ export const useSettingsStore = create<SettingsState>((setState, get) => ({
 function persist(state: Settings) {
   const blob: Settings = {
     ceremonyMode: state.ceremonyMode,
+    homeTab: state.homeTab,
     needleDrop: state.needleDrop,
     volumeBoost: state.volumeBoost,
     fadeInSec: state.fadeInSec,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 import UsageTracker from './UsageTracker'
 import AppMenu from './components/Header/AppMenu'
@@ -14,9 +14,11 @@ import ScanBanner from './components/ScanBanner'
 import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
-import { NAVIGATED, currentRoute, navigate, type Route, type View } from './lib/route'
+import { NAVIGATED, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
+import { tabCounts } from './lib/search'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
+import { useSettingsStore, type HomeTab } from './stores/settingsStore'
 import { useThemeStore } from './stores/themeStore'
 
 // The single page container. The navbar (via the SDK's `contentClassName`), the
@@ -34,7 +36,7 @@ const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_Jukebox'
 /** The views the skipped-files report belongs on: the library itself. */
 const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'album'])
 
-const TABS: { view: View; label: string }[] = [
+const TABS: { view: HomeTab; label: string }[] = [
   { view: 'albums', label: 'Albums' },
   { view: 'artists', label: 'Artists' },
   { view: 'tracks', label: 'Tracks' },
@@ -90,6 +92,8 @@ export default function App() {
   const theme = useThemeStore((s) => s.effective)
 
   const status = useLibraryStore((s) => s.status)
+  const albums = useLibraryStore((s) => s.albums)
+  const tracks = useLibraryStore((s) => s.tracks)
   const hydrate = useLibraryStore((s) => s.hydrate)
   const libraryError = useLibraryStore((s) => s.error)
   const dismissLibraryError = useLibraryStore((s) => s.dismissError)
@@ -103,7 +107,31 @@ export default function App() {
   const previous = usePlayerStore((s) => s.previous)
   const queueLength = usePlayerStore((s) => s.queue.length)
 
+  const homeTab = useSettingsStore((s) => s.homeTab)
+  const setSetting = useSettingsStore((s) => s.set)
+
   const [query, setQuery] = useState('')
+
+  /**
+   * The view actually on screen.
+   *
+   * ⚠️ `route.home` — the hash naming no view at all — is where the starred tab
+   * takes over. An explicit `#/albums` is still albums, so the Albums tab does
+   * what its label says even for somebody who has starred Tracks.
+   */
+  const view: View = route.home ? homeTab : route.view
+
+  /**
+   * How many results each tab holds, computed only while there is a query.
+   *
+   * ⚠️ From `lib/search`, which is also what the three views filter with — a
+   * count that came from its own copy of the rule would drift silently, and
+   * "Tracks (2)" over a list of three is worse than no count at all.
+   */
+  const counts = useMemo(
+    () => (query.trim() ? tabCounts(albums, tracks, query) : null),
+    [albums, tracks, query],
+  )
 
   useEffect(() => {
     void hydrate()
@@ -216,41 +244,80 @@ export default function App() {
             page about something else. Progress and the folder-permission prompt
             are a different matter — those are about whether the app works at
             all, so they follow you everywhere. */}
-        <ScanBanner showRefusals={LIBRARY_VIEWS.has(route.view)} />
+        <ScanBanner showRefusals={LIBRARY_VIEWS.has(view)} />
 
-        {route.view === 'tidy' ? (
+        {view === 'tidy' ? (
           <Tidy />
-        ) : route.view === 'settings' ? (
+        ) : view === 'settings' ? (
           <Settings />
-        ) : route.view === 'about' ? (
+        ) : view === 'about' ? (
           <About />
         ) : !hasLibrary ? (
           <Landing />
-        ) : route.view === 'album' && route.albumId ? (
+        ) : view === 'album' && route.albumId ? (
           <AlbumView albumId={route.albumId} />
-        ) : route.view === 'playing' ? (
+        ) : view === 'playing' ? (
           // At T6 the stage is gone and the bar is the app — so Now Playing
           // sends you back to the library rather than rendering an empty stage.
           mini ? <MiniStageNote /> : <NowPlaying />
         ) : (
           <>
             <div className="mb-5 flex flex-wrap items-center gap-3">
-              <nav className="flex gap-1" aria-label="Library views">
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.view}
-                    type="button"
-                    onClick={() => navigate({ view: tab.view })}
-                    aria-current={route.view === tab.view ? 'page' : undefined}
-                    className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
-                      route.view === tab.view
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                        : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+              <nav className="flex items-center gap-0.5" aria-label="Library views">
+                {TABS.map((tab) => {
+                  const starred = homeTab === tab.view
+                  return (
+                    <span key={tab.view} className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => navigate({ view: tab.view })}
+                        aria-current={view === tab.view ? 'page' : undefined}
+                        className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
+                          view === tab.view
+                            ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                            : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {tab.label}
+                        {/* Only while searching. A permanent count is a number
+                            nobody asked for; during a search it is the only way
+                            to know the tab you are NOT looking at has answers. */}
+                        {counts && (
+                          <span className="ml-1 tabular-nums opacity-70">
+                            ({counts[tab.view].toLocaleString()})
+                          </span>
+                        )}
+                      </button>
+                      {/* ⚠️ A separate button, not a click target inside the tab
+                          — a button cannot be nested in a button, and starring a
+                          tab must not also switch to it. Always visible rather
+                          than hover-revealed: on a touch screen there is no
+                          hover, and a control that never appears is not one. */}
+                      <button
+                        type="button"
+                        onClick={() => setSetting('homeTab', starred ? 'albums' : tab.view)}
+                        aria-pressed={starred}
+                        title={
+                          starred
+                            ? `${tab.label} is what the library opens on`
+                            : `Open the library on ${tab.label}`
+                        }
+                        aria-label={
+                          starred
+                            ? `${tab.label} is what the library opens on`
+                            : `Open the library on ${tab.label}`
+                        }
+                        className={`mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
+                          starred
+                            ? 'text-orange-500 dark:text-orange-400'
+                            : 'text-slate-300 hover:text-orange-500 dark:text-slate-600 dark:hover:text-orange-400'
+                        }`}
+                      >
+                        <StarGlyph filled={starred} />
+                      </button>
+                    </span>
+                  )
+                })}
               </nav>
               <input
                 type="search"
@@ -271,9 +338,9 @@ export default function App() {
               )}
             </div>
 
-            {route.view === 'artists' ? (
+            {view === 'artists' ? (
               <ArtistList query={query} />
-            ) : route.view === 'tracks' ? (
+            ) : view === 'tracks' ? (
               <TrackList query={query} />
             ) : (
               <AlbumGrid query={query} />
@@ -322,11 +389,33 @@ function MiniStageNote() {
       </p>
       <button
         type="button"
-        onClick={() => navigate({ view: 'albums' })}
+        onClick={goHome}
         className="mt-3 text-sm font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
       >
         Back to your library
       </button>
     </div>
+  )
+}
+
+/**
+ * The star beside a library tab: "this is the one I want to land on".
+ *
+ * Outlined until it is chosen, then filled — the same shape either way, so the
+ * row does not move when you press it.
+ */
+function StarGlyph({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="h-[13px] w-[13px]"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={filled ? 0 : 1.6}
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M10 2.6l2.32 4.7 5.18.75-3.75 3.66.885 5.16L10 14.44l-4.635 2.43.885-5.16L2.5 8.05l5.18-.75L10 2.6Z" />
+    </svg>
   )
 }

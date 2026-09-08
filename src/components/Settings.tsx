@@ -1,10 +1,11 @@
 import { graphUnavailable } from '../lib/audioGraph'
-import { navigate } from '../lib/route'
+import { goHome } from '../lib/route'
 import {
   MAX_BOOST,
   MAX_FADE_SEC,
   useSettingsStore,
   type CeremonyMode,
+  type HomeTab,
 } from '../stores/settingsStore'
 import { useThemeStore, type ThemePref } from '../stores/themeStore'
 
@@ -35,7 +36,7 @@ export default function Settings() {
     <div className="mx-auto max-w-2xl">
       <button
         type="button"
-        onClick={() => navigate({ view: 'albums' })}
+        onClick={goHome}
         className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
@@ -52,6 +53,22 @@ export default function Settings() {
       </p>
 
       <Section
+        title="Your library"
+        note="Where the app takes you, and what it opens on."
+      >
+        <Choice<HomeTab>
+          label="Open my library on"
+          value={s.homeTab}
+          onChange={(v) => s.set('homeTab', v)}
+          options={[
+            { value: 'albums', label: 'Albums' },
+            { value: 'artists', label: 'Artists' },
+            { value: 'tracks', label: 'Tracks' },
+          ]}
+        />
+      </Section>
+
+      <Section
         title="Putting a record on"
         note="The turntable animation, the countdown, and the sound of the needle landing."
       >
@@ -60,17 +77,16 @@ export default function Settings() {
           value={s.ceremonyMode}
           onChange={(v) => s.set('ceremonyMode', v)}
           options={[
-            { value: 'album', label: 'On a new album', hint: 'Whenever you put a different record on — and at most once every 90 seconds, so skipping through your library doesn’t set it off each time.' },
+            { value: 'always', label: 'Every time I press play', hint: 'Any play — a track, an album, a search result — goes to the deck and cues the arm.' },
+            { value: 'album', label: 'Only on a new album', hint: 'Just when you put a different record on, and never twice for the same one.' },
             { value: 'first', label: 'Once per visit', hint: 'Only the first time you press play after opening the app.' },
-            { value: 'off', label: 'Never', hint: 'Music starts immediately, every time.' },
+            { value: 'off', label: 'Never', hint: 'Music starts immediately, every time — and tracks run into each other with no pause for the needle.' },
           ]}
         />
         <Toggle
           label="Needle-drop sound"
-          hint="A low thunk and a second of surface noise as the arm lands. Rides your volume, and never plays on its own."
+          hint="A low thunk and a second of surface noise as the arm lands — putting a record on, changing track, and previewing one. Rides your volume, and never plays on its own."
           checked={s.needleDrop}
-          disabled={s.ceremonyMode === 'off'}
-          disabledHint="There is no animation to make a sound during."
           onChange={(v) => s.set('needleDrop', v)}
         />
       </Section>

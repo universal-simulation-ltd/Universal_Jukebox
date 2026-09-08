@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { CEREMONY_COOLDOWN_MS, shouldRunCeremony, type CeremonyDecision } from './ceremony'
 
+// ⚠️ The cooldown is currently ZERO — the gate is deliberately off (see
+// `ceremony.ts`). The tests that are ABOUT the cooldown therefore pass their
+// own value: they exist to prove the knob still works, so that putting a real
+// number back is one edit and not an archaeology exercise. Every other test
+// runs against the shipping constant.
+const A_MINUTE_AND_A_HALF = 90_000
+
 // The rule that decides when the record-changing animation runs.
 //
 // This is tested hard because it is the half of the feature that cannot be
@@ -23,7 +30,27 @@ function decision(over: Partial<CeremonyDecision> = {}): CeremonyDecision {
   }
 }
 
-describe('mode: album (the default)', () => {
+describe('mode: always (the default)', () => {
+  // ⚠️ The behaviour James asked for on 2026-09-08: pressing play anywhere
+  // takes you to the deck and cues the arm. `shouldRunCeremony` is only ever
+  // asked on an EXPLICIT start, so a running queue is still silent — that
+  // separation lives in `playerStore.advance`, not here.
+  it('runs on every explicit play, same record or not', () => {
+    expect(shouldRunCeremony(decision({ mode: 'always' }))).toBe(true)
+    expect(shouldRunCeremony(decision({
+      mode: 'always',
+      ceremonyDone: true,
+      lastAlbumId: 'the tone arms|sides a and b',
+      lastAt: NOW - 500,
+    }))).toBe(true)
+  })
+
+  it('still yields to reduced motion', () => {
+    expect(shouldRunCeremony(decision({ mode: 'always', reducedMotion: true }))).toBe(false)
+  })
+})
+
+describe('mode: album', () => {
   it('runs on the very first play — there is no last album', () => {
     expect(shouldRunCeremony(decision())).toBe(true)
   })
@@ -35,26 +62,47 @@ describe('mode: album (the default)', () => {
     }))).toBe(true)
   })
 
+  // The gate is off as shipped, so back-to-back records each get their arrival.
+  // This is the test that FAILS the moment somebody puts a cooldown back
+  // without meaning to.
+  it('with the gate off, runs again immediately for another record', () => {
+    expect(CEREMONY_COOLDOWN_MS).toBe(0)
+    expect(shouldRunCeremony(decision({
+      lastAlbumId: 'longform|both halves',
+      lastAt: NOW - 1,
+    }))).toBe(true)
+  })
+
   // ⚠️ The behaviour the whole feature is named for. Starting another track
   // from the record already playing is not putting a record on.
   it('stays quiet for another track from the SAME record', () => {
     expect(shouldRunCeremony(decision({
       lastAlbumId: 'the tone arms|sides a and b',
-      lastAt: NOW - CEREMONY_COOLDOWN_MS * 10,
+      lastAt: NOW - 10_000,
     }))).toBe(false)
   })
+})
 
-  it('stays quiet for a different record inside the cooldown', () => {
+// ── The knob, proved separately ─────────────────────────────────────────────
+//
+// These pass their own cooldown rather than reading the constant, so they go on
+// proving the limit works while the shipping value is zero — and so that James
+// setting `CEREMONY_COOLDOWN_MS` to whatever he finds by ear gets the behaviour
+// these describe, with no other edit anywhere.
+
+describe('the cooldown, when one is set', () => {
+  it('stays quiet for a different record inside it', () => {
     expect(shouldRunCeremony(decision({
+      cooldownMs: A_MINUTE_AND_A_HALF,
       lastAlbumId: 'longform|both halves',
       lastAt: NOW - 1_000,
     }))).toBe(false)
   })
 
-  it('runs again the moment the cooldown is up', () => {
-    const base = { lastAlbumId: 'longform|both halves' }
-    expect(shouldRunCeremony(decision({ ...base, lastAt: NOW - CEREMONY_COOLDOWN_MS + 1 }))).toBe(false)
-    expect(shouldRunCeremony(decision({ ...base, lastAt: NOW - CEREMONY_COOLDOWN_MS }))).toBe(true)
+  it('runs again the moment it is up', () => {
+    const base = { cooldownMs: A_MINUTE_AND_A_HALF, lastAlbumId: 'longform|both halves' }
+    expect(shouldRunCeremony(decision({ ...base, lastAt: NOW - A_MINUTE_AND_A_HALF + 1 }))).toBe(false)
+    expect(shouldRunCeremony(decision({ ...base, lastAt: NOW - A_MINUTE_AND_A_HALF }))).toBe(true)
   })
 })
 
@@ -83,13 +131,17 @@ describe('reduced motion', () => {
   // The end state has to be reachable without the transition, so the arm is
   // simply down and the music starts. Beats every mode.
   it('overrides every mode', () => {
-    for (const mode of ['album', 'first'] as const) {
+    for (const mode of ['always', 'album', 'first'] as const) {
       expect(shouldRunCeremony(decision({ mode, reducedMotion: true })), mode).toBe(false)
     }
   })
 })
 
 // ── The two behaviours the cooldown exists for ──────────────────────────────
+//
+// Both run with a cooldown passed in, because that is what they are about. With
+// the gate off (as shipped) both fire every time, which is exactly the thing
+// James wants to hear before choosing a number.
 
 describe('a shuffled library, where almost every track is a new album', () => {
   it('⚠️ fires ONCE, not on every track', () => {
@@ -103,7 +155,7 @@ describe('a shuffled library, where almost every track is a new album', () => {
     for (let i = 0; i < 10; i++) {
       const now = NOW + i * 3_000
       const albumId = `artist ${i}|album ${i}`
-      if (shouldRunCeremony(decision({ albumId, lastAlbumId, lastAt, now }))) {
+      if (shouldRunCeremony(decision({ cooldownMs: A_MINUTE_AND_A_HALF, albumId, lastAlbumId, lastAt, now }))) {
         fired++
         lastAlbumId = albumId
         lastAt = now
@@ -123,7 +175,7 @@ describe('browsing the grid, clicking album after album', () => {
     clicks.forEach((offset, i) => {
       const now = NOW + offset
       const albumId = `artist ${i}|album ${i}`
-      if (shouldRunCeremony(decision({ albumId, lastAlbumId, lastAt, now }))) {
+      if (shouldRunCeremony(decision({ cooldownMs: A_MINUTE_AND_A_HALF, albumId, lastAlbumId, lastAt, now }))) {
         fired.push(offset)
         lastAlbumId = albumId
         lastAt = now

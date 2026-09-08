@@ -10,18 +10,20 @@ import type { CeremonyMode } from '../stores/settingsStore'
 /**
  * The shortest gap between two ceremonies, whatever else says yes.
  *
- * ⚠️ This is the limit that makes "on a new album" safe to offer at all.
- * Without it the rule is actively worse than once-per-session: shuffle a whole
- * library and nearly every track is a different album; browse the grid
- * auditioning records and every click is a different album. Either way the
- * ceremony stops being an arrival and becomes a 2.3-second toll booth on
- * everything you do.
+ * ⚠️ CURRENTLY ZERO — THE GATE IS OFF, ON PURPOSE (James, 2026-09-08).
  *
- * 90 seconds is picked against those two behaviours — long enough that a burst
- * of clicking yields exactly one, short enough that deliberately putting a
- * second record on always gets it.
+ * It was 90 seconds, picked against two behaviours: shuffling a whole library
+ * (nearly every track is a different album) and browsing the grid (every click
+ * is a different album). The argument was that without a cooldown the ceremony
+ * stops being an arrival and becomes a 2.3-second toll booth.
+ *
+ * That argument was made without listening to it. James asked for the gate off
+ * so he can find the real limit by using the app, so this is the ONE number to
+ * change when he does — nothing else in the codebase encodes a rate limit, and
+ * `shouldRunCeremony` still honours whatever this says. Put 90_000 back and the
+ * old behaviour returns exactly, with the tests below to prove it.
  */
-export const CEREMONY_COOLDOWN_MS = 90_000
+export const CEREMONY_COOLDOWN_MS = 0
 
 export interface CeremonyDecision {
   mode: CeremonyMode
@@ -36,6 +38,8 @@ export interface CeremonyDecision {
   /** The album about to start. */
   albumId: string
   now: number
+  /** Overrides `CEREMONY_COOLDOWN_MS`. Only the tests pass this. */
+  cooldownMs?: number
 }
 
 /**
@@ -57,10 +61,16 @@ export function shouldRunCeremony(d: CeremonyDecision): boolean {
   // and the music starts.
   if (d.reducedMotion) return false
 
+  // ⚠️ 'always' is the DEFAULT. Putting a record on is what this app is, so
+  // every deliberate play — a track in the list, a search result, an album —
+  // goes to the deck and cues the arm. It is still only asked on an explicit
+  // start, so a running queue stays silent whatever this says.
+  if (d.mode === 'always') return true
+
   if (d.mode === 'first') return !d.ceremonyDone
 
   // 'album' — a different record from the one the last ceremony was for…
   if (d.lastAlbumId !== null && d.albumId === d.lastAlbumId) return false
   // …and not so soon after the last one that it reads as a stutter.
-  return d.now - d.lastAt >= CEREMONY_COOLDOWN_MS
+  return d.now - d.lastAt >= (d.cooldownMs ?? CEREMONY_COOLDOWN_MS)
 }

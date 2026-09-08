@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
-import { fold, plural } from '../lib/format'
+import { plural } from '../lib/format'
+import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Album } from '../lib/types'
@@ -32,9 +33,11 @@ export default function ArtistList({ query }: { query: string }) {
       if (list) list.push(album)
       else byArtist.set(album.artist, [album])
     }
-    const needle = fold(query)
+    // ⚠️ The same name test the tab count runs, so "Artists (2)" is always the
+    // length of this list.
+    const matching = new Set(matchArtistNames(albums, query))
     return [...byArtist.entries()]
-      .filter(([name]) => !needle || fold(name).includes(needle))
+      .filter(([name]) => matching.has(name))
       .sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' }))
       .map(([name, list]) => ({
         name,

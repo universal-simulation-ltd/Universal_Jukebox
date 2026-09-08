@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
-import { fold, plural } from '../lib/format'
+import { plural } from '../lib/format'
+import { matchAlbums } from '../lib/search'
 import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Album } from '../lib/types'
@@ -32,14 +33,13 @@ export default function AlbumGrid({ query }: AlbumGridProps) {
   /** Artists the user has opened out. Names, because that is what groups them. */
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  const shown = useMemo(() => {
-    const sorted = [...albums].sort(byArtistThenYear)
-    if (!query.trim()) return sorted
-    const needle = fold(query)
-    return sorted.filter(
-      (a) => fold(a.title).includes(needle) || fold(a.artist).includes(needle),
-    )
-  }, [albums, query])
+  // ⚠️ Sorted first, then filtered through `matchAlbums` — the same function
+  // the tab count uses, so the number beside "Albums" and the tiles below it
+  // can never disagree.
+  const shown = useMemo(
+    () => matchAlbums([...albums].sort(byArtistThenYear), query),
+    [albums, query],
+  )
 
   /**
    * The sorted list cut into runs by artist.

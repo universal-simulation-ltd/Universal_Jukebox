@@ -7,11 +7,27 @@
 // length; `index.html`, the manifest and the SDK catalogue entry each say it in
 // one line.
 
-import { navigate } from '../lib/route'
+import { goHome, navigate } from '../lib/route'
 
 export default function About() {
   return (
     <div className="mx-auto max-w-2xl">
+      {/* ⚠️ The way back, and it is not optional. This page is reached from a
+          dropdown that closes behind you, so without this row the only exits
+          are the browser's back button and the app's own logo — neither of
+          which looks like a way back to your music. Settings and Tidy carry
+          the same row, in the same place, saying the same words. */}
+      <button
+        type="button"
+        onClick={goHome}
+        className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400"
+      >
+        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
+          <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
+        </svg>
+        Back to your library
+      </button>
+
       <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
         A player for the music you already have
       </h1>
@@ -103,9 +119,20 @@ export default function About() {
         , along with fades and a volume boost for quietly-mastered albums.
       </p>
 
-      <p className="mt-8 border-t border-slate-200 pt-6 text-[13px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
-        Free and open source, like every Universal App. Built by UNI·SIM.
-      </p>
+      <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">
+        <button
+          type="button"
+          onClick={goHome}
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
+        >
+          Back to your library
+        </button>
+        {/* Repeated at the foot because this is a long page, and somebody who
+            has read to the bottom should not have to scroll back up to leave. */}
+        <p className="mt-6 text-[13px] text-slate-500 dark:text-slate-400">
+          Free and open source, like every Universal App. Built by UNI·SIM.
+        </p>
+      </div>
     </div>
   )
 }
