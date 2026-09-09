@@ -78,10 +78,17 @@ every failure here is **silent**: a collision overwrites rather than throwing,
 and a track count that is added up rather than recomputed is just a wrong number
 on a tile.
 
-### ⚠️ Permission is per folder, so the banner is per folder
+### ⚠️ Permission is per folder, so the BUTTON is per folder — the banner is one
 
-One row per unreachable folder, each with its own button, each naming the folder.
-A single "Allow access" that looped over them would fire several permission
+One card, with a row per unreachable folder naming that folder and carrying its
+own button. The explanation and the "Start a new library" escape hatch are said
+once, above and below the list, because they are true of the library rather than
+of any one folder; only the name and the button repeat. A whole warning card per
+folder — which is what shipped first — read as several separate problems and
+pushed the album view underneath it off the screen.
+
+The **button** cannot be merged, and that is the part to leave alone. A single
+"Allow access" that looped over the folders would fire several permission
 prompts inside one user gesture — which browsers may collapse into a single
 grant, silently leaving the rest unplayable under a banner that has just
 disappeared.
