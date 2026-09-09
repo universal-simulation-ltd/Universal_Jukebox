@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
+import OpenGroup from './OpenGroup'
 import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
@@ -60,6 +61,7 @@ export default function ArtistList({ query }: { query: string }) {
       <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {artists.map((artist) => {
           const many = artist.albums.length > 1
+          const isOpen = openArtist === artist.name
           return (
             <li key={artist.name}>
               <button
@@ -74,7 +76,18 @@ export default function ArtistList({ query }: { query: string }) {
                 aria-expanded={many ? openArtist === artist.name : undefined}
                 className="group w-full text-left focus:outline-none"
               >
-                {many ? (
+                {/* ⚠️ Open, the fan becomes the sleeve — the same card the
+                    albums grid uses, for the same reason: the drawer below
+                    holds this artist's records and nothing on screen otherwise
+                    says which card they came out of. */}
+                {many && isOpen ? (
+                  <div className="aspect-square w-full">
+                    <OpenGroup
+                      albums={artist.albums}
+                      className="h-full w-full transition-transform group-hover:-translate-y-0.5"
+                    />
+                  </div>
+                ) : many ? (
                   <div className="aspect-square w-full px-3 pt-3">
                     <CoverFan
                       albums={artist.albums}
@@ -89,7 +102,7 @@ export default function ArtistList({ query }: { query: string }) {
                 )}
                 <p
                   className={`mt-2 line-clamp-2 text-[13px] font-medium ${
-                    openArtist === artist.name
+                    isOpen
                       ? 'text-orange-700 dark:text-orange-400'
                       : 'text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400'
                   }`}
@@ -97,7 +110,7 @@ export default function ArtistList({ query }: { query: string }) {
                   {artist.name}
                 </p>
                 <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
-                  {plural(artist.albums.length, 'album')}
+                  {isOpen ? `Showing ${plural(artist.albums.length, 'album')}` : plural(artist.albums.length, 'album')}
                 </p>
               </button>
             </li>

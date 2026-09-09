@@ -9,6 +9,7 @@ import type { Track } from '../lib/types'
 import { useLibraryStore } from './libraryStore'
 import { settings } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
+import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
 
 // Playback: the queue, what is on, and the transport.
@@ -20,6 +21,22 @@ import { navigate } from '../lib/route'
 // means the same thing to the UI in both modes.
 
 export type Repeat = 'off' | 'all' | 'one'
+
+/**
+ * What the deck itself is doing, as opposed to what the pickup is doing.
+ *
+ * - `arriving` — the medium is coming in from above and fading up into place.
+ * - `leaving`  — it is lifting away and fading out, because a DIFFERENT record
+ *                is about to go on.
+ * - `idle`     — it is simply there.
+ *
+ * ⚠️ Read by `Deck.tsx`, which animates the whole face as one block. That is
+ * what lets the cover swap happen while the picture is invisible: the old
+ * record fades out, the album underneath changes, the new one fades in — with
+ * no face needing to know anything about it, and no cross-dissolve between two
+ * covers to build three times over.
+ */
+export type DeckPhase = 'idle' | 'arriving' | 'leaving'
 
 const VOLUME_KEY = 'unisim-jukebox-volume'
 const MODES_KEY = 'unisim-jukebox-modes'
@@ -67,8 +84,12 @@ interface PlayerState {
   handover: boolean
   /** The track being previewed, or null. Never the same thing as `playing`. */
   previewTrackId: string | null
+  /** What the deck is doing: arriving, leaving, or simply sitting there. */
+  deckPhase: DeckPhase
   /** The album the last ceremony was run for, so the same record doesn't repeat it. */
   lastCeremonyAlbumId: string | null
+  /** Its artist, folded, for `ceremonyMode: 'artist'`. */
+  lastCeremonyArtist: string | null
   /** When the last ceremony started, for the cooldown. Epoch ms. */
   lastCeremonyAt: number
 
@@ -153,7 +174,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   armDown: false,
   handover: false,
   previewTrackId: null,
+  deckPhase: 'idle',
   lastCeremonyAlbumId: null,
+  lastCeremonyArtist: null,
   lastCeremonyAt: 0,
 
   /**
@@ -270,7 +293,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   skipCeremony() {
     if (!get().ceremony) return
     clearCeremony()
-    set({ ceremony: false, ceremonyDone: true, ceremonyCount: null, armDown: true })
+    // ⚠️ `deckPhase: 'idle'` too. Skipping cuts the countdown short, and a
+    // record left mid-arrival — half faded in, floating above the deck — is the
+    // one state the animation must never be able to stick in.
+    set({ ceremony: false, ceremonyDone: true, ceremonyCount: null, armDown: true, deckPhase: 'idle' })
     void audio.play()
   },
 
@@ -351,7 +377,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     audio.stop()
     set({ previewTrackId: null })
     publishNowPlaying(null)
-    set({ queue: [], order: [], cursor: -1, playing: false, currentSec: 0, durationSec: 0 })
+    set({ queue: [], order: [], cursor: -1, playing: false, currentSec: 0, durationSec: 0, deckPhase: 'idle' })
   },
 
   dismissError() {
@@ -435,33 +461,48 @@ type Get = () => PlayerState
 const BEATS = { two: 780, one: 1560, land: 1830, start: 2340 }
 
 /**
- * The needle handover between two tracks (§ James, 2026-09-08).
+ * The change-over between two tracks (§ James, 2026-09-08 and 2026-09-09).
  *
- * "Progressively move the needle out as the track progresses, then at the end
- * remove the needle and place it at the start position again — fade the tracks
- * into each other and have the scratch on top as the needle lands."
+ * There are now TWO of them, because he asked for two:
  *
- * The travel is drawn by `Deck.tsx` off `currentSec / durationSec`. These three
- * numbers are the change-over itself:
+ *   same album      "crossfade the tracks and have the needle move into the
+ *                    start position as it's beginning with the player noise"
+ *   different album "fade out, fade in, have an animation of one record lifting
+ *   or artist        out and fading away with the new one fading in and the
+ *                    needle resetting"
  *
- *   LIFT_MS       the arm is off the record and going back to the outer groove
- *   FADE_OUT_SEC  what is still playing sinks away while it does
- *   FADE_IN_SEC   the next track rises under the scratch as the arm lands
+ * Which one runs is decided by `lib/transition.ts`, and nothing here decides it.
  *
- * ⚠️ LIFT_MS IS A REAL GAP BETWEEN EVERY PAIR OF TRACKS, and it is the number
- * to change if it turns out to be too much. It is the price of the arm actually
- * going back to the start rather than teleporting; the alternative is a needle
- * that jumps, which is the thing the request is about. It is skipped entirely
- * when the animation is off or under `prefers-reduced-motion`, so anyone who
- * finds it a toll booth has a one-click way out that also matches the rest of
- * the app's behaviour.
+ * ── The blend (same album) ──────────────────────────────────────────────────
  *
- * ⚠️ This is NOT a crossfade, and cannot be: one `<audio>` element decodes one
- * file (see the note at the top of `lib/audio.ts`). The two tracks do not
- * overlap — but neither of them ends or begins at full volume, and the scratch
- * covers the seam, which is what the request is actually asking to hear.
+ * A REAL crossfade, as of 2026-09-09: the two tracks genuinely overlap on two
+ * `<audio>` elements (see the top of `lib/audio.ts`). It used to be impossible
+ * — one element decodes one file — and the backlog said so for a while.
+ *
+ * `SEC` is also the LEAD: the change-over starts that many seconds before the
+ * outgoing track ends, because a crossfade cannot begin at `ended`. `MANUAL_SEC`
+ * is shorter, because a crossfade you asked for by pressing Next should not
+ * leave the old track audible for two more seconds.
+ *
+ * ── The record change (different album or artist) ───────────────────────────
+ *
+ * Not a blend, on purpose: the request is "fade out, fade in", which is a
+ * sequence. `LIFT_MS` is a real silence between the two records, and it is the
+ * number to change if it turns out to be too much — it is the price of the arm
+ * genuinely going back rather than teleporting, and of the record on the deck
+ * being seen to change. `SWAP_IN_MS` is how long the new record takes to settle
+ * once it is on.
  */
-const HANDOVER = { LIFT_MS: 420, FADE_OUT_SEC: 0.32, FADE_IN_SEC: 0.55 }
+const CROSSFADE = { SEC: 1.8, MANUAL_SEC: 0.9 }
+const HANDOVER = { LIFT_MS: 420, SWAP_IN_MS: 620, FADE_OUT_SEC: 0.32, FADE_IN_SEC: 0.55 }
+/**
+ * How long the pickup takes to get back to the start during a crossfade.
+ *
+ * Shorter than `LIFT_MS`, and it has to be: nothing is waiting for it. The
+ * music has already begun — that is what a crossfade IS — so this is the arm
+ * catching up with the sound rather than the sound waiting for the arm.
+ */
+const NEEDLE_RETURN_MS = 380
 
 let ceremonyTimers: number[] = []
 let handoverTimer: number | null = null
@@ -479,50 +520,87 @@ function clearHandover(): void {
 }
 
 /**
- * Whether the tonearm animates at all.
+ * Run the change-over between two tracks, then start the new one.
  *
- * The needle handover is part of the same picture as the ceremony, so it obeys
- * the same two switches: "Never" in Settings, and `prefers-reduced-motion`. A
- * user who turned the animation off asked for music that starts immediately,
- * and would not thank us for a 420ms pause between every track in the name of
- * an arm they cannot see move.
- */
-function armAnimates(): boolean {
-  return settings().ceremonyMode !== 'off' && !prefersReducedMotion()
-}
-
-/**
- * Take the needle off, put it back at the start, and land it on the next thing.
+ * `land` is what actually starts the audio, and it is handed the fade-in the
+ * change-over wants — a new file, or the same one from the top for
+ * `repeat: 'one'`. Which of the three shapes below runs is `plan`'s decision,
+ * made in `lib/transition.ts`, and this function makes none of its own.
  *
- * `land` is what actually starts the audio — a new file, or the same one from
- * the top for `repeat: 'one'`. It runs after the lift so the sound and the
- * picture agree; without the wait the music would start with the arm still in
- * the air, which is the bug this whole sequence exists to avoid.
+ *   a cut       nothing animates: `land` immediately, with no fade of ours.
+ *   a blend     the tracks overlap, the pickup goes back while they do.
+ *   a change    the record lifts off, a silence, then the new one lands.
+ *
+ * ⚠️ `land` is NOT called for a blend. A crossfade has to load the incoming
+ * file into the OTHER element while this one is still playing, which is a
+ * different call (`audio.crossfade`) rather than a differently-timed version of
+ * the same one — so a blend passes `crossfadeFile` instead and `land` is left
+ * for the two paths that really do replace what is on the deck.
  */
-function needleChange(
+function runHandover(
   set: Set,
   get: Get,
+  plan: Handover,
   land: (fadeInSec: number | undefined) => void,
-  duckFirst: boolean,
+  options: { duckFirst: boolean; crossfadeFile?: File | null; crossfadeSec?: number },
 ): void {
   clearHandover()
+
+  // The blend. Both tracks are audible for a moment; the pickup catches up.
+  if (plan.crossfade && options.crossfadeFile) {
+    const seconds = options.crossfadeSec ?? CROSSFADE.MANUAL_SEC
+    if (plan.needle) {
+      set({ armDown: false, handover: true })
+      handoverTimer = setTimeout(() => {
+        handoverTimer = null
+        set({ armDown: true, handover: false })
+        if (plan.cue) needleDrop(get().volume)
+      }, NEEDLE_RETURN_MS) as unknown as number
+    }
+    void audio.crossfade(options.crossfadeFile, seconds)
+    return
+  }
+
   // ⚠️ `undefined`, not `HANDOVER.FADE_IN_SEC`, and the difference is audible:
   // with the animation off the setting promises music that "starts
-  // immediately, every time", so the handover's own half-second rise has to go
-  // with the rest of it. The user's OWN fade-in, from Settings, still applies —
-  // `audio.load` falls back to it when no override is given.
-  if (!armAnimates()) {
+  // immediately, every time", so the change-over's own half-second rise has to
+  // go with the rest of it. The user's OWN fade-in, from Settings, still
+  // applies — `audio.load` falls back to it when no override is given.
+  if (!plan.needle) {
     land(undefined)
     return
   }
-  set({ armDown: false, handover: true })
-  if (duckFirst) audio.duck(HANDOVER.FADE_OUT_SEC)
+
+  // The record change: off, a gap, on. `deckPhase` is what makes the picture
+  // agree with it — see `DeckPhase`.
+  set({ armDown: false, handover: true, deckPhase: plan.swap ? 'leaving' : get().deckPhase })
+  if (options.duckFirst) audio.duck(HANDOVER.FADE_OUT_SEC)
   handoverTimer = setTimeout(() => {
     handoverTimer = null
-    set({ armDown: true, handover: false })
-    needleDrop(get().volume)
+    set({ armDown: true, handover: false, deckPhase: plan.swap ? 'arriving' : get().deckPhase })
+    if (plan.cue) needleDrop(get().volume)
     land(HANDOVER.FADE_IN_SEC)
+    if (plan.swap) {
+      handoverTimer = setTimeout(() => {
+        handoverTimer = null
+        set({ deckPhase: 'idle' })
+      }, HANDOVER.SWAP_IN_MS) as unknown as number
+    }
   }, HANDOVER.LIFT_MS) as unknown as number
+}
+
+/**
+ * What the animation setting says about a change from `from` to `to`.
+ *
+ * One line, but it is the line every caller has to get right, so it is here
+ * rather than repeated at each of them.
+ */
+function handoverFor(from: Track | null, to: Track): Handover {
+  return planHandover({
+    mode: settings().ceremonyMode,
+    reducedMotion: prefersReducedMotion(),
+    change: changeBetween(from, to),
+  })
 }
 
 /**
@@ -568,19 +646,21 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   clearHandover()
   if (get().handover) set({ handover: false })
 
-  const { ceremonyDone, lastCeremonyAlbumId, lastCeremonyAt } = get()
+  const { ceremonyDone, lastCeremonyAlbumId, lastCeremonyArtist, lastCeremonyAt } = get()
   const run = shouldRunCeremony({
     mode: settings().ceremonyMode,
     reducedMotion: prefersReducedMotion(),
     ceremonyDone,
     lastAlbumId: lastCeremonyAlbumId,
+    lastArtist: lastCeremonyArtist,
     lastAt: lastCeremonyAt,
     albumId: track.albumId,
+    artist: artistKey(track),
     now: Date.now(),
   })
 
   if (!run) {
-    set({ ceremony: false, ceremonyDone: true, ceremonyCount: null, armDown: true })
+    set({ ceremony: false, ceremonyDone: true, ceremonyCount: null, armDown: true, deckPhase: 'idle' })
     void audio.load(file, true)
     return
   }
@@ -589,9 +669,16 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
     ceremony: true,
     ceremonyCount: 3,
     armDown: false,
+    // ⚠️ The medium comes IN as the countdown runs (James, 2026-09-09: "load the
+    // record player with an animation, e.g. the disc fading in from just above
+    // the record player into position as the countdown goes"). It is cleared at
+    // the landing beat below, not at the end — the record is on the deck before
+    // the pickup meets it, which is the order the two things happen in life.
+    deckPhase: 'arriving',
     // Recorded when the ceremony STARTS, not when it finishes. Both are read by
     // the cooldown, and starting is the moment the user actually experienced.
     lastCeremonyAlbumId: track.albumId,
+    lastCeremonyArtist: artistKey(track),
     lastCeremonyAt: Date.now(),
   })
   void audio.load(file, false)
@@ -602,7 +689,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   at(BEATS.two, () => set({ ceremonyCount: 2 }))
   at(BEATS.one, () => set({ ceremonyCount: 1 }))
   at(BEATS.land, () => {
-    set({ armDown: true })
+    set({ armDown: true, deckPhase: 'idle' })
     needleDrop(get().volume)
   })
   // This is what actually starts the sound.
@@ -657,6 +744,10 @@ function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
  */
 function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
   const { order } = get()
+  // ⚠️ Read BEFORE the cursor moves. What is leaving the deck is what decides
+  // whether this is a blend or a record change, and one line further down it is
+  // already gone.
+  const from = currentTrack(get())
   set({ cursor: nextCursor })
   const track = get().queue[order[nextCursor]]
   const file = track ? useLibraryStore.getState().fileFor(track) : null
@@ -665,11 +756,84 @@ function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
     return
   }
   publishNowPlaying(track)
+
+  const plan = handoverFor(from, track)
   // ⚠️ `naturalEnd` means the outgoing track has ALREADY finished, so there is
-  // nothing left to fade out — ducking silence would only delay the next one.
-  needleChange(set, get, (fadeIn) => {
+  // nothing left to fade out — ducking silence would only delay the next one,
+  // and there is nothing left to crossfade WITH either. A blend that reaches
+  // here on a natural end is one the early start below could not run (a track
+  // whose length the browser never worked out, or a queue that was changed
+  // inside the lead), so it degrades to a plain change rather than pretending.
+  runHandover(set, get, naturalEnd ? { ...plan, crossfade: false } : plan, (fadeIn) => {
     void audio.load(file, true, fadeIn)
-  }, !naturalEnd)
+  }, {
+    duckFirst: !naturalEnd,
+    crossfadeFile: file,
+    crossfadeSec: CROSSFADE.MANUAL_SEC,
+  })
+}
+
+/**
+ * Start the change-over EARLY, so the two tracks really overlap.
+ *
+ * ⚠️ This is the only thing standing between "a crossfade" and "a fade-out
+ * followed by a fade-in". By the time `ended` fires there is nothing left of
+ * the outgoing track to fade, so the queue has to move while it is still
+ * playing — `lib/audio.ts` reports the seconds remaining on every `timeupdate`
+ * and this decides when that is close enough.
+ *
+ * It only ever runs for a blend (same record, and `planHandover` said so). A
+ * record CHANGE is deliberately left to `onEnded`: "fade out, fade in" means
+ * the first record finishes before the second starts.
+ */
+let crossfadeArmed = false
+
+function maybeStartEarlyCrossfade(remainingSec: number): void {
+  const set = usePlayerStore.setState
+  const get = usePlayerStore.getState
+  const store = get()
+
+  // Rearm as soon as the new track is far enough from its own end. Anything
+  // else — a flag cleared on load — misses the case where the crossfade is
+  // superseded by the user pressing next inside the lead.
+  if (remainingSec > CROSSFADE.SEC + 1) {
+    crossfadeArmed = false
+    return
+  }
+  if (crossfadeArmed || remainingSec > CROSSFADE.SEC) return
+  // Nothing to overlap with: the ceremony owns the deck, a change-over is
+  // already running, or two tracks are already crossing.
+  if (store.ceremony || store.handover || audio.crossfading()) return
+  // `repeat: 'one'` re-cues the same file rather than moving on, which
+  // `onEnded` does by restarting the element it already has decoded.
+  if (store.repeat === 'one') return
+
+  const { order, cursor, repeat } = store
+  const nextCursor = cursor + 1
+  if (nextCursor >= order.length && repeat === 'off') return
+  const target = nextCursor >= order.length ? 0 : nextCursor
+
+  const from = currentTrack(store)
+  const to = store.queue[order[target]]
+  if (!from || !to) return
+  if (!handoverFor(from, to).crossfade) return
+
+  crossfadeArmed = true
+  const file = useLibraryStore.getState().fileFor(to)
+  // A missing file is not an error worth raising here — `onEnded` will reach
+  // the same track a moment later and say so properly, on the path that owns
+  // the message.
+  if (!file) return
+
+  set({ cursor: target })
+  publishNowPlaying(to)
+  runHandover(set, get, handoverFor(from, to), () => {}, {
+    duckFirst: false,
+    crossfadeFile: file,
+    // The lead and the fade are the same number by definition: the overlap
+    // starts `SEC` before the end and has exactly that long to finish.
+    crossfadeSec: CROSSFADE.SEC,
+  })
 }
 
 // ── Wiring ───────────────────────────────────────────────────────────────────
@@ -742,11 +906,21 @@ audio.setCallbacks({
     if (store.repeat === 'one') {
       // Even the same record gets the needle put back at the start — that is
       // literally what repeat-one is.
-      needleChange(
+      //
+      // ⚠️ `crossfade: false`, always. The same file cannot overlap itself: one
+      // element decodes one file, and `audio.restart` re-cues the decode this
+      // one already has rather than loading a second copy of the same track
+      // into the other deck to fade between two identical signals.
+      const track = currentTrack(store)
+      const plan = track
+        ? { ...handoverFor(track, track), crossfade: false }
+        : { crossfade: false, needle: false, cue: false, swap: false }
+      runHandover(
         usePlayerStore.setState,
         usePlayerStore.getState,
+        plan,
         (fadeIn) => { void audio.restart(fadeIn) },
-        false,
+        { duckFirst: false },
       )
       return
     }
@@ -767,6 +941,9 @@ audio.setCallbacks({
   },
   onError(message) {
     usePlayerStore.setState({ error: message })
+  },
+  onApproachingEnd(remainingSec) {
+    maybeStartEarlyCrossfade(remainingSec)
   },
 })
 

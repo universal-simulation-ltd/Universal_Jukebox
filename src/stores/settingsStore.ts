@@ -15,20 +15,42 @@ import { create } from 'zustand'
 // existed".
 
 /**
- * When the record-changing ceremony runs.
+ * How often the record-changing animation runs.
  *
- * - `always` — every time you press play on anything (the default).
- * - `album`  — only when you deliberately start a DIFFERENT album.
+ * - `always` — every time you press play, and every track change (the default).
+ * - `album`  — only when the RECORD changes.
+ * - `artist` — only when the ARTIST changes.
  * - `first`  — once per session, on the first play, and never again.
  * - `off`    — never.
  *
+ * ⚠️ A FREQUENCY LADDER, most often to least, and the order matters: it is what
+ * the Settings slider slides along (James asked for a slider rather than a set
+ * of radios, 2026-09-09). Each rung includes the ones below it, because every
+ * artist change is also an album change. `first` sits between `artist` and
+ * `off` because once per visit is rarer than either.
+ *
+ * ⚠️ It governs TWO things that used to be one: the ceremony on an explicit
+ * play (`lib/ceremony.ts`) and the change-over between two tracks in a running
+ * queue (`lib/transition.ts`). `artist` was added for the second — "only when
+ * the artist changes" is meaningless for a play the user just asked for by name.
+ *
  * ⚠️ `always` is the default as of 2026-09-08 (James). Putting a record on is
  * what this app IS, so pressing play anywhere — the tracks list, a search
- * result, an album — takes you to the deck and cues the arm. The other three
- * remain because somebody who finds it too much has to be able to say so, and
+ * result, an album — takes you to the deck and cues the arm. The others remain
+ * because somebody who finds it too much has to be able to say so, and
  * "Don't show this again" on the animation itself still writes `off`.
  */
-export type CeremonyMode = 'always' | 'album' | 'first' | 'off'
+export type CeremonyMode = 'always' | 'album' | 'artist' | 'first' | 'off'
+
+/**
+ * The ladder as an ARRAY, least often first, so a slider can index it.
+ *
+ * ⚠️ The single source of the order. The Settings slider reads it, and so does
+ * anything else that has to put the modes in a line — a second hand-written
+ * copy of this order is how a slider ends up going the wrong way after somebody
+ * adds a mode.
+ */
+export const CEREMONY_LADDER: CeremonyMode[] = ['off', 'first', 'artist', 'album', 'always']
 
 /** Which library tab the front door opens on. */
 export type HomeTab = 'albums' | 'artists' | 'tracks'
@@ -111,15 +133,51 @@ export const MAX_FADE_SEC = 8
 /** The loudest boost offered. Past ~4x almost everything clips audibly. */
 export const MAX_BOOST = 4
 /**
- * The needle-drop level's range.
+ * The needle-drop level's range, as a multiplier.
  *
  * The floor is deliberately NOT zero: silencing the effect is what the toggle
  * beside it is for, and a slider that can reach silence gives two controls that
  * both mean "off" — and then a toggle that says "on" over an effect nobody can
  * hear, which is indistinguishable from a broken app.
+ *
+ * ⚠️ The floor moved from 0.25 to 0.5 when the control became a ±5 scale
+ * (below). A stored 0.25 clamps up to 0.5 on read, which is a change of about
+ * six decibels to a sound that lasts under a second — and the alternative was a
+ * slider whose bottom end was twice as far from centre as its top end.
  */
-export const MIN_NEEDLE_LEVEL = 0.25
+export const MIN_NEEDLE_LEVEL = 0.5
 export const MAX_NEEDLE_LEVEL = 2
+
+/**
+ * The same control as a ±5 scale, which is how it is presented (James asked for
+ * "0 as default with slider from -5 to +5 to boost or silent", 2026-09-09).
+ *
+ * ⚠️ The STORED value stays a multiplier and the scale is presentation only.
+ * `lib/crackle.ts` is a synth that knows nothing about settings and multiplies
+ * a gain by this number; teaching it about steps, or storing steps and
+ * converting at four call sites, would put the same arithmetic in more places
+ * than one. Steps are what the slider speaks; multipliers are what the audio
+ * speaks; this is the one place they meet.
+ *
+ * Geometric, not linear: each step is a fifth of an octave, so -5 is half as
+ * loud, +5 is twice, and 0 is exactly the level everyone already has. A linear
+ * scale over the same range would put ten of its eleven stops above unity.
+ */
+export const NEEDLE_STEP_MIN = -5
+export const NEEDLE_STEP_MAX = 5
+
+/** A ±5 step as the multiplier the synth wants. */
+export function stepToLevel(step: number): number {
+  const clamped = Math.max(NEEDLE_STEP_MIN, Math.min(NEEDLE_STEP_MAX, step))
+  return Math.max(MIN_NEEDLE_LEVEL, Math.min(MAX_NEEDLE_LEVEL, 2 ** (clamped / NEEDLE_STEP_MAX)))
+}
+
+/** A stored multiplier as the nearest ±5 step, for the slider to sit on. */
+export function levelToStep(level: number): number {
+  if (!Number.isFinite(level) || level <= 0) return 0
+  const step = Math.round(NEEDLE_STEP_MAX * Math.log2(level))
+  return Math.max(NEEDLE_STEP_MIN, Math.min(NEEDLE_STEP_MAX, step))
+}
 
 const KEY = 'unisim-jukebox-settings'
 /** The single-purpose key `playerStore` used before this store existed. */
@@ -153,10 +211,9 @@ function read(): Settings {
   const tab = stored.homeTab
   const deck = stored.deck
   return {
-    ceremonyMode:
-      mode === 'always' || mode === 'album' || mode === 'first' || mode === 'off'
-        ? mode
-        : DEFAULTS.ceremonyMode,
+    ceremonyMode: CEREMONY_LADDER.includes(mode as CeremonyMode)
+      ? (mode as CeremonyMode)
+      : DEFAULTS.ceremonyMode,
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' ? tab : DEFAULTS.homeTab,
     deck: deck === 'vinyl' || deck === 'cd' || deck === 'cassette' ? deck : DEFAULTS.deck,
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),

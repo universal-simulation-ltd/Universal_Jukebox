@@ -35,7 +35,7 @@ const LASER = {
 const RAD = (LASER.ANGLE * Math.PI) / 180
 const point = (r: number) => ({ x: 50 + r * Math.cos(RAD), y: 50 + r * Math.sin(RAD) })
 
-export default function CdDeck({ progress, engaged, spinning, reduced, url, hue }: DeckFaceProps) {
+export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, arrival }: DeckFaceProps) {
   // Parked at the start until the laser is on: a disc that has not been read
   // yet has its sled at the hub, and the seek back out is what the handover
   // between tracks looks like on this deck.
@@ -46,6 +46,9 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue 
 
   return (
     <>
+      {/* The disc, inside its arrival wrapper — it is the part that goes in and
+          comes out; the sled and the rail below belong to the machine. */}
+      <div className="absolute inset-0" style={{ animation: arrival }}>
       {/* The disc. Silver in both themes, because a CD is silver in both. */}
       <div
         className="absolute inset-0 overflow-hidden rounded-full shadow-xl"
@@ -119,6 +122,8 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue 
           className="absolute rounded-full bg-slate-100 ring-1 ring-slate-900/20 dark:bg-slate-900"
           style={{ inset: '47%' }}
         />
+      </div>
+
       </div>
 
       {/* The fixed gloss: a reflection belongs to the room, not to the disc, so

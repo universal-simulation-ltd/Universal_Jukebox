@@ -196,8 +196,11 @@ export default function App() {
   const hasLibrary = status === 'ready' || status === 'scanning'
   const error = playerError ?? libraryError
 
+  // ⚠️ No background class on the root div. The page colour is on `<html>` —
+  // see the note in `index.css`: an opaque background here is what made Now
+  // Playing's cover ground invisible for the whole time it existed.
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100 dark:bg-slate-950">
+    <div className="flex min-h-screen flex-col">
       <UniversalAppsNavBar
         contentClassName={CONTAINER}
         product="jukebox"

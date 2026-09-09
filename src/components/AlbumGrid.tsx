@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
+import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
 import { plural } from '../lib/format'
 import { matchAlbums } from '../lib/search'
 import { navigate } from '../lib/route'
@@ -74,13 +75,22 @@ export default function AlbumGrid({ query }: AlbumGridProps) {
   return (
     <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {runs.map((run) => {
-        const isFan = fanning && run.albums.length >= FAN_MIN && !expanded.has(run.artist)
+        const groupable = fanning && run.albums.length >= FAN_MIN
+        const isFan = groupable && !expanded.has(run.artist)
+        const open = () => setExpanded((prev) => new Set(prev).add(run.artist))
+        const close = () =>
+          setExpanded((prev) => {
+            const next = new Set(prev)
+            next.delete(run.artist)
+            return next
+          })
+
         if (isFan) {
           return (
             <li key={`fan-${run.artist}`}>
               <button
                 type="button"
-                onClick={() => setExpanded((prev) => new Set(prev).add(run.artist))}
+                onClick={open}
                 aria-expanded={false}
                 className="group w-full text-left focus:outline-none"
               >
@@ -105,13 +115,16 @@ export default function AlbumGrid({ query }: AlbumGridProps) {
           )
         }
 
-        const wasExpanded = fanning && run.albums.length >= FAN_MIN
-        return run.albums.map((album, i) => (
+        const tiles = run.albums.map((album) => (
           <li key={album.id}>
             <button
               type="button"
               onClick={() => navigate({ view: 'album', albumId: album.id })}
-              className="group w-full text-left focus:outline-none"
+              // ⚠️ The tint is what answers "which of these fourteen tiles are
+              // Rihanna's?" once a group is open. Without it an opened run is
+              // indistinguishable from the albums either side of it, which is
+              // the whole complaint.
+              className={`group w-full text-left focus:outline-none ${groupable ? GROUP_MEMBER_TINT : ''}`}
             >
               <Cover
                 album={album}
@@ -127,24 +140,37 @@ export default function AlbumGrid({ query }: AlbumGridProps) {
                 {album.year ? ` · ${album.year}` : ''}
               </p>
             </button>
-            {/* The way back, on the last tile of a run the user opened out. */}
-            {wasExpanded && i === run.albums.length - 1 && (
-              <button
-                type="button"
-                onClick={() =>
-                  setExpanded((prev) => {
-                    const next = new Set(prev)
-                    next.delete(run.artist)
-                    return next
-                  })
-                }
-                className="mt-1 text-[12px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
-              >
-                Fold {run.artist} back up
-              </button>
-            )}
           </li>
         ))
+
+        if (!groupable) return tiles
+
+        // ⚠️ The group's own card, FIRST and in the cell the fan was in — not a
+        // "fold back up" link at the end of the run. See `OpenGroup`.
+        return [
+          <li key={`open-${run.artist}`}>
+            <button
+              type="button"
+              onClick={close}
+              aria-expanded
+              className="group w-full text-left focus:outline-none"
+            >
+              <div className="aspect-square w-full">
+                <OpenGroup
+                  albums={run.albums}
+                  className="h-full w-full transition-transform group-hover:-translate-y-0.5"
+                />
+              </div>
+              <p className="mt-2 line-clamp-2 text-[13px] font-medium text-orange-700 dark:text-orange-400">
+                {run.artist}
+              </p>
+              <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
+                Showing {plural(run.albums.length, 'album')} — tap to fold up
+              </p>
+            </button>
+          </li>,
+          ...tiles,
+        ]
       })}
     </ul>
   )

@@ -39,12 +39,17 @@ const ARM = {
   LIFT: -24,
 }
 
-export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue }: DeckFaceProps) {
+export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, arrival }: DeckFaceProps) {
   const trackAngle = ARM.TRACK_START + progress * ARM.TRACK_TRAVEL
 
   return (
     <>
-      {/* The record. */}
+      {/* The record — inside its own arrival wrapper, so it can be lowered onto
+          the deck and lifted off it while the tonearm below stays where it is.
+          A plain `<div>` would not do: the record positions itself with
+          `absolute inset-0` against the FRAME, so anything between the two has
+          to fill the frame exactly. */}
+      <div className="absolute inset-0" style={{ animation: arrival }}>
       <div
         className="absolute inset-0 rounded-full bg-slate-900 shadow-xl dark:bg-[#12192b]"
         style={{
@@ -93,6 +98,7 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           className="absolute rounded-full bg-slate-100 dark:bg-slate-900"
           style={{ inset: '48.4%' }}
         />
+      </div>
       </div>
 
       {/* The tonearm, pivoting about its bearing at the top right — the same

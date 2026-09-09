@@ -11,6 +11,27 @@ body {
   margin: 0;
 }
 
+/* ⚠️ THE PAGE COLOUR LIVES HERE, NOT ON THE APP'S ROOT `<div>`, and that is
+   load-bearing rather than tidy.
+
+   Now Playing paints the album cover across the whole page as a faint ground,
+   as a `fixed inset-0` element at `-z-10`. A negative z-index puts an element
+   behind its ancestors' BACKGROUNDS as well as their content — so while
+   `bg-slate-100` was on the app's root div, that ground was painted and then
+   immediately covered by an opaque grey rectangle. It had no visible effect
+   whatsoever, which is exactly what it looked like: nothing.
+
+   A background on the root element propagates to the canvas instead, and the
+   canvas is behind everything including negative z-index. Same colour, same
+   theme switch, and the ground now has somewhere to be. */
+html {
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+html.dark {
+  background-color: #020617; /* slate-950 */
+}
+
 #root {
   min-height: 100%;
 }
@@ -48,6 +69,29 @@ body {
   0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
   15%  { opacity: 0.9; }
   100% { opacity: 0; transform: translate(26px, -74px) rotate(18deg); }
+}
+
+/* The medium arriving on the deck: a record lowered in from above, fading up
+   into place. Runs as the countdown counts (James, 2026-09-09: "the disc fading
+   in from just above the record player into position as the countdown goes")
+   and again once the outgoing record has been lifted away.
+
+   ⚠️ It ends at `none`, not at `translateY(0) scale(1)`, and that matters: the
+   deck's own hover lift is a transform on an ancestor, and an animation that
+   settles on an explicit identity transform of its own would still be composited
+   over it — harmless here, but it also means the element keeps a transform after
+   the animation is `forwards`-filled, which creates a containing block and
+   quietly re-parents the tonearm's absolute positioning. */
+@keyframes jb-deck-in {
+  from { opacity: 0; transform: translateY(-16%) scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* And leaving: lifted off and faded away, so the cover underneath can change
+   while nobody can see it. */
+@keyframes jb-deck-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-13%) scale(0.95); }
 }
 
 /* The level bars beside a playing track in a list. */

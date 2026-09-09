@@ -34,7 +34,7 @@ function pack(fraction: number): number {
   return Math.sqrt(REEL.HUB * REEL.HUB + (REEL.MAX * REEL.MAX - REEL.HUB * REEL.HUB) * f)
 }
 
-export default function CassetteDeck({ progress, engaged, spinning, reduced, url, hue }: DeckFaceProps) {
+export default function CassetteDeck({ progress, engaged, spinning, reduced, url, hue, arrival }: DeckFaceProps) {
   // ⚠️ `useId` gives ids with colons in them, which are legal in HTML but break
   // `url(#…)` references in some engines. Strip them; the point is only that
   // two decks on one page cannot share a clip path.
@@ -49,7 +49,11 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
   const right = pack(progress)
 
   return (
-    <div className="absolute inset-0">
+    // ⚠️ The arrival is on EVERYTHING here, unlike the other two faces. A
+    // cassette deck is a slot: the shell, its window and the head that meets it
+    // are one drawing, and there is no "player" left behind when the tape comes
+    // out. See `arrival` in `decks/face.ts`.
+    <div className="absolute inset-0" style={{ animation: arrival }}>
       <svg viewBox="0 0 100 66" className="h-full w-full drop-shadow-xl" aria-hidden>
         <defs>
           <clipPath id={labelClip}>

@@ -1,13 +1,30 @@
 // The thing that actually makes sound.
 //
-// One `<audio>` element, created once and reused for every track, plus the
-// object-URL discipline that keeps a long listening session from leaking the
-// whole library into memory.
+// TWO `<audio>` elements — a deck A and a deck B — plus the object-URL
+// discipline that keeps a long listening session from leaking the whole library
+// into memory.
 //
-// ⚠️ ONE element, not one per track. Each `createObjectURL` pins its File until
-// revoked, and a fresh `<audio>` per track leaves the old one holding a decoder
-// and a buffer. Forty tracks into an evening that is forty pinned files. So:
-// one element, and the previous URL is revoked at the moment the next is set.
+// ⚠️ TWO, AND EXACTLY TWO. This file used to say "one element, on purpose", and
+// the reason was real: every `createObjectURL` pins its File until revoked, so
+// a fresh `<audio>` per track leaves forty pinned files behind over an evening.
+// That reason survives — what changed is the count, not the discipline. The two
+// elements are created once and REUSED for every track, and the retiring one's
+// URL is revoked the moment its fade finishes, so at most two files are ever
+// pinned no matter how long the queue runs.
+//
+// What the second one buys is the one thing a single element genuinely cannot
+// do: a REAL crossfade (James, 2026-09-09). One element decodes one file, so
+// with one element the outgoing track has to stop before the incoming one can
+// start, and "fade the tracks into each other" could only ever be a duck-out
+// followed by a rise-in around a gap. Two elements overlap, which is what a
+// crossfade is.
+//
+// ⚠️ WHICH ELEMENT IS "THE" ELEMENT CHANGES. `active` is the one the app is
+// about: its `timeupdate` drives the scrub bar, its `ended` advances the queue,
+// its `duration` is the track length. The other is either idle or RETIRING —
+// still audible, fading out, and deliberately ignored by every one of those.
+// Anything reading an element must go through `el()` or `mediaElements()`;
+// nothing may cache one.
 //
 // There is deliberately no Web Audio graph around this BY DEFAULT. `<audio>`
 // decodes MP3, M4A/AAC, FLAC and WAV natively in every current browser — that
@@ -16,10 +33,10 @@
 // a permanent risk of silence (see `lib/audioGraph.ts`). A graph is built only
 // when something needs one: the visualiser, or a volume boost above unity.
 //
-// The FADES below need no graph at all, and that is on purpose. They scale the
-// element's own `volume`, so the most-used new setting carries none of the
-// Web Audio risk — only the boost, which genuinely cannot be done any other
-// way, opts into it.
+// The FADES below need no graph at all, and that is on purpose. They scale each
+// element's own `volume`, so the most-used new settings — the fades AND the
+// crossfade — carry none of the Web Audio risk. Only the boost, which genuinely
+// cannot be done any other way, opts into it.
 
 import { ensureRunning } from './audioGraph'
 
@@ -34,8 +51,37 @@ export interface AudioState {
 
 type Listener = (state: AudioState) => void
 
-let element: HTMLAudioElement | null = null
-let currentUrl: string | null = null
+/**
+ * One of the two decks.
+ *
+ * ⚠️ `fade` is this deck's OWN envelope, and it has to be per-deck rather than
+ * module-level: during a crossfade the two are at different points on opposite
+ * ramps, which is the entire mechanism. It multiplies `userVolume` — see
+ * `applyVolume` for why the two are never merged.
+ */
+interface Deck {
+  el: HTMLAudioElement | null
+  url: string | null
+  fade: number
+  /** The interval running this deck's ramp, if any. */
+  timer: number | null
+}
+
+const decks: [Deck, Deck] = [
+  { el: null, url: null, fade: 1, timer: null },
+  { el: null, url: null, fade: 1, timer: null },
+]
+
+/** Which deck the app is about. The other is idle or retiring. */
+let active: 0 | 1 = 0
+/**
+ * The deck fading out under the incoming one, or null.
+ *
+ * Only ever the non-active deck. Its events are ignored, its `ended` does not
+ * advance the queue, and it is silenced and released when its ramp finishes.
+ */
+let retiring: 0 | 1 | null = null
+
 const listeners = new Set<Listener>()
 
 let state: AudioState = { playing: false, currentSec: 0, durationSec: 0, loading: false }
@@ -46,6 +92,16 @@ let onEnded: (() => void) | null = null
 let onDuration: ((seconds: number) => void) | null = null
 /** Fired when a track cannot be played at all. */
 let onError: ((message: string) => void) | null = null
+/**
+ * Fired on the active deck's `timeupdate` with the seconds left in the track.
+ *
+ * ⚠️ This is what makes a crossfade at the END of a track possible at all. A
+ * crossfade has to START before the outgoing track finishes — by the time
+ * `ended` fires there is nothing left to fade — so the queue is told how close
+ * the end is and decides for itself whether to begin the change-over early.
+ * Nothing in this file knows what the next track is, and it stays that way.
+ */
+let onApproachingEnd: ((remainingSec: number) => void) | null = null
 
 function emit() {
   for (const listener of listeners) listener(state)
@@ -56,20 +112,38 @@ function set(patch: Partial<AudioState>) {
   emit()
 }
 
+/** The active deck's element, built on first use. */
 function el(): HTMLAudioElement {
-  if (element) return element
+  return element(active)
+}
+
+function element(index: 0 | 1): HTMLAudioElement {
+  const deck = decks[index]
+  if (deck.el) return deck.el
+
   const audio = new Audio()
   audio.preload = 'metadata'
 
-  audio.addEventListener('play', () => set({ playing: true }))
-  audio.addEventListener('pause', () => set({ playing: false }))
-  audio.addEventListener('playing', () => set({ playing: true, loading: false }))
-  audio.addEventListener('waiting', () => set({ loading: true }))
+  // ⚠️ EVERY listener below is gated on this deck being the ACTIVE one. A
+  // retiring deck is still playing, still firing `timeupdate` four times a
+  // second and still firing `ended` if its fade outlasts it — and every one of
+  // those events describes the track the user has already moved on from. Left
+  // ungated, the scrub bar jumps between two tracks during a crossfade and the
+  // queue advances twice.
+  const mine = () => active === index
+
+  audio.addEventListener('play', () => { if (mine()) set({ playing: true }) })
+  audio.addEventListener('pause', () => { if (mine()) set({ playing: false }) })
+  audio.addEventListener('playing', () => { if (mine()) set({ playing: true, loading: false }) })
+  audio.addEventListener('waiting', () => { if (mine()) set({ loading: true }) })
   audio.addEventListener('timeupdate', () => {
+    if (!mine()) return
     set({ currentSec: audio.currentTime })
-    maybeFadeOut(audio)
+    maybeFadeOut(audio, index)
+    reportRemaining(audio)
   })
   audio.addEventListener('durationchange', () => {
+    if (!mine()) return
     // A stream with no known length reports Infinity; a not-yet-loaded one NaN.
     // Both must be treated as "unknown" rather than written to the library,
     // or a scrub bar ends up dividing by Infinity and sitting at zero forever.
@@ -79,10 +153,12 @@ function el(): HTMLAudioElement {
     }
   })
   audio.addEventListener('ended', () => {
+    if (!mine()) return
     set({ playing: false, currentSec: 0 })
     onEnded?.()
   })
   audio.addEventListener('error', () => {
+    if (!mine()) return
     set({ playing: false, loading: false })
     onError?.(describeError(audio.error))
   })
@@ -96,7 +172,7 @@ function el(): HTMLAudioElement {
   // from the UI that is supposed to be under test. Verifying a fade by reading
   // the same slider the fade is meant to leave alone proves nothing.
   audio.hidden = true
-  audio.setAttribute('data-jukebox-audio', '')
+  audio.setAttribute('data-jukebox-audio', String(index))
   try {
     document.body.appendChild(audio)
   } catch {
@@ -104,7 +180,8 @@ function el(): HTMLAudioElement {
     // detached, which is exactly what it did before.
   }
 
-  element = audio
+  deck.el = audio
+  audio.volume = Math.max(0, Math.min(1, userVolume * deck.fade))
   return audio
 }
 
@@ -141,14 +218,20 @@ export function setCallbacks(callbacks: {
   onEnded?: () => void
   onDuration?: (seconds: number) => void
   onError?: (message: string) => void
+  onApproachingEnd?: (remainingSec: number) => void
 }): void {
   onEnded = callbacks.onEnded ?? null
   onDuration = callbacks.onDuration ?? null
   onError = callbacks.onError ?? null
+  onApproachingEnd = callbacks.onApproachingEnd ?? null
 }
 
 /**
- * Point the element at a file and (optionally) start it.
+ * Point the active deck at a file and (optionally) start it.
+ *
+ * This is the CUT: whatever was playing stops, and the new track takes over the
+ * same deck. Everything that is meant to be an arrival rather than a blend goes
+ * through here — a record you chose, an album change, the first play.
  *
  * ⚠️ The previous object URL is revoked AFTER the new `src` is assigned, not
  * before. Revoking first leaves the element pointed at a dead URL for the
@@ -156,10 +239,16 @@ export function setCallbacks(callbacks: {
  * spurious "that file wouldn't play" on a track that plays fine.
  */
 export async function load(file: File, autoplay: boolean, fadeInOverrideSec?: number): Promise<void> {
-  const audio = el()
-  const previous = currentUrl
+  // A load is a decision to play THIS, now. Anything still fading out under it
+  // is from a change-over the user has just overtaken.
+  finishRetirement()
+
+  const index = active
+  const deck = decks[index]
+  const audio = element(index)
+  const previous = deck.url
   const url = URL.createObjectURL(file)
-  currentUrl = url
+  deck.url = url
 
   set({ loading: true, currentSec: 0, durationSec: 0 })
   audio.src = url
@@ -168,7 +257,7 @@ export async function load(file: File, autoplay: boolean, fadeInOverrideSec?: nu
   // never less than the fade the user asked for in Settings. Somebody who set a
   // 6-second fade-in did not ask for it to be cut to a third of a second just
   // because the arm was lifted between tracks.
-  beginTrack(fadeInOverrideSec === undefined ? undefined : Math.max(fadeInOverrideSec, fadeInSec))
+  beginTrack(index, fadeInOverrideSec === undefined ? undefined : Math.max(fadeInOverrideSec, fadeInSec))
 
   if (!autoplay) return
   ensureRunning()
@@ -179,6 +268,106 @@ export async function load(file: File, autoplay: boolean, fadeInOverrideSec?: nu
     // presses play and it works. Silently leaving it paused is correct; showing
     // an error for a browser policy is not.
     set({ playing: false, loading: false })
+  }
+}
+
+/**
+ * Start the next track UNDER the one playing, and swap the two over.
+ *
+ * The real crossfade, and the reason there are two elements at all. The
+ * incoming file is loaded into the idle deck, started at silence and ramped up
+ * while the outgoing deck ramps down over the same `seconds`. They genuinely
+ * overlap: for that window both files are decoding and both are audible.
+ *
+ * ⚠️ THE SWAP HAPPENS IMMEDIATELY, NOT AT THE END OF THE RAMP. The moment the
+ * incoming deck starts, it becomes `active` and the outgoing one becomes
+ * `retiring`. That is what keeps the rest of the app coherent through the
+ * overlap: the scrub bar, the duration, the media session and the queue are all
+ * about the track that is arriving, which is the one the user has been shown.
+ * The retiring deck goes on making sound for another `seconds` and is ignored
+ * by all of them.
+ *
+ * ⚠️ Equal-power (√) rather than linear on BOTH sides. Two linear ramps crossing
+ * dip audibly in the middle — the sum of two half-volume signals is not a
+ * full-volume one — and that dip is exactly the seam a crossfade exists to
+ * hide. See `rampTo`, which takes the curve.
+ */
+export async function crossfade(file: File, seconds: number): Promise<void> {
+  // Two crossfades at once would need three decks. The one in flight is
+  // finished off instantly, which is what "you pressed next during a fade"
+  // should sound like anyway.
+  finishRetirement()
+
+  const from = active
+  const to: 0 | 1 = active === 0 ? 1 : 0
+  const incoming = decks[to]
+  const audio = element(to)
+
+  const previous = incoming.url
+  const url = URL.createObjectURL(file)
+  incoming.url = url
+
+  // Silence first, then the source: assigning `src` to a deck still at full
+  // volume can leak a few milliseconds of the new track at full level on a slow
+  // frame, which is a click at the very moment the seam is meant to disappear.
+  setFade(to, 0)
+  set({ loading: true, currentSec: 0, durationSec: 0 })
+  audio.src = url
+  if (previous) URL.revokeObjectURL(previous)
+
+  // From here the incoming deck IS the app's deck.
+  active = to
+  retiring = from
+
+  ensureRunning()
+  try {
+    await audio.play()
+  } catch {
+    // The browser refused to start the incoming track. Rather than leaving the
+    // outgoing one fading into silence with nothing behind it, put everything
+    // back the way it was — the queue's own error handling takes it from here.
+    active = from
+    retiring = null
+    setFade(to, 1)
+    set({ playing: !decks[from].el?.paused, loading: false })
+    return
+  }
+
+  rampTo(to, 1, seconds, 'equal-power')
+  rampTo(from, 0, seconds, 'equal-power', () => finishRetirement())
+}
+
+/** True while two tracks are genuinely overlapping. */
+export function crossfading(): boolean {
+  return retiring !== null
+}
+
+/**
+ * Silence the retiring deck, let go of its file, and put its envelope back.
+ *
+ * Called when its ramp finishes, and eagerly by anything that supersedes the
+ * change-over — a new load, a pause, another crossfade. Safe when nothing is
+ * retiring.
+ */
+function finishRetirement(): void {
+  if (retiring === null) return
+  const index = retiring
+  retiring = null
+  const deck = decks[index]
+  stopRamp(index)
+  deck.fade = 1
+  const audio = deck.el
+  if (audio) {
+    audio.pause()
+    audio.removeAttribute('src')
+    // Without this the element keeps the old media loaded and, on some engines,
+    // fires a spurious `error` for the removed source.
+    audio.load()
+    audio.volume = Math.max(0, Math.min(1, userVolume))
+  }
+  if (deck.url) {
+    URL.revokeObjectURL(deck.url)
+    deck.url = null
   }
 }
 
@@ -195,6 +384,10 @@ export async function play(): Promise<void> {
 }
 
 export function pause(): void {
+  // A pause during a crossfade has to stop BOTH, or the outgoing track carries
+  // on playing under a paused player — the one bug a second element makes
+  // possible that a single element could not.
+  finishRetirement()
   el().pause()
 }
 
@@ -208,12 +401,12 @@ export function seek(seconds: number): void {
   // fade had got to — usually near zero — and the rest of the track plays
   // silently with a volume slider that says otherwise.
   const remaining = audio.duration - audio.currentTime
-  if (fadeOutSec <= 0 || remaining > fadeOutSec) endFade(1)
+  if (fadeOutSec <= 0 || remaining > fadeOutSec) endFade(active, 1)
 }
 
 /**
- * The user's volume (the slider) and the fade envelope are SEPARATE, and the
- * element's `volume` is always the product of the two.
+ * The user's volume (the slider) and each deck's fade envelope are SEPARATE,
+ * and an element's `volume` is always the product of the two.
  *
  * ⚠️ Keeping them apart is what stops the two fighting. The obvious
  * implementation — a fade writing straight to `element.volume` — has no memory
@@ -222,30 +415,39 @@ export function seek(seconds: number): void {
  * values means neither control can destroy the other's.
  */
 let userVolume = 1
-let fadeFactor = 1
 
-function applyVolume(): void {
-  const audio = el()
-  const v = userVolume * fadeFactor
-  audio.volume = Math.max(0, Math.min(1, v))
+function applyVolume(index: 0 | 1): void {
+  const deck = decks[index]
+  if (!deck.el) return
+  deck.el.volume = Math.max(0, Math.min(1, userVolume * deck.fade))
+}
+
+function setFade(index: 0 | 1, value: number): void {
+  decks[index].fade = value
+  applyVolume(index)
 }
 
 export function setVolume(volume: number): void {
   userVolume = Math.max(0, Math.min(1, volume))
-  applyVolume()
+  applyVolume(0)
+  applyVolume(1)
 }
 
 export function setMuted(muted: boolean): void {
+  // Both, or a crossfade started before the mute leaks the outgoing track.
+  for (const index of [0, 1] as const) {
+    if (decks[index].el) decks[index].el.muted = muted
+  }
+  // Touching the active one builds it if it does not exist yet, which is what
+  // the single-element version did.
   el().muted = muted
 }
 
 // ── Fades ────────────────────────────────────────────────────────────────────
 //
-// A fade in at the start of a track and out before its end. Not a CROSSFADE:
-// that needs two elements decoding at once, and this app has exactly one on
-// purpose (see the note at the top). The gap between tracks stays the gap the
-// browser gives us — what changes is that a track no longer starts or stops at
-// full volume.
+// A fade in at the start of a track, a fade out before its end, and the two
+// halves of a crossfade. All four are the same mechanism: ramp one deck's own
+// envelope from where it is to a target, over a number of seconds.
 //
 // ⚠️ Driven by a 50 ms interval rather than `timeupdate`. `timeupdate` fires
 // about four times a second, which over a two-second fade is eight steps — an
@@ -254,7 +456,6 @@ export function setMuted(muted: boolean): void {
 
 const FADE_TICK_MS = 50
 
-let fadeTimer: number | null = null
 let fadeInSec = 0
 let fadeOutSec = 0
 
@@ -262,42 +463,64 @@ export function setFades(inSec: number, outSec: number): void {
   fadeInSec = Math.max(0, inSec)
   fadeOutSec = Math.max(0, outSec)
   // Turning fades off mid-track must not leave the envelope wherever it was.
-  if (fadeInSec === 0 && fadeOutSec === 0) endFade(1)
+  // Only the ACTIVE deck: a crossfade in flight is not the setting's business.
+  if (fadeInSec === 0 && fadeOutSec === 0 && retiring === null) endFade(active, 1)
 }
 
-function stopFadeTimer(): void {
-  if (fadeTimer !== null) {
-    clearInterval(fadeTimer)
-    fadeTimer = null
+function stopRamp(index: 0 | 1): void {
+  const deck = decks[index]
+  if (deck.timer !== null) {
+    clearInterval(deck.timer)
+    deck.timer = null
   }
 }
 
-function endFade(factor: number): void {
-  stopFadeTimer()
-  fadeFactor = factor
-  applyVolume()
+function endFade(index: 0 | 1, factor: number): void {
+  stopRamp(index)
+  setFade(index, factor)
 }
 
 /**
- * Ramp the envelope from where it is to `target` over `seconds`.
+ * Ramp a deck's envelope from where it is to `target` over `seconds`.
  *
- * Linear in amplitude. A "correct" equal-power curve is the right answer for a
- * crossfade between two sources; for a single track fading to or from silence,
- * linear is what people expect and what every player does.
+ * ⚠️ TWO CURVES, and which one is right depends on what is on the other side of
+ * the fade.
+ *
+ * `linear` for a single track fading to or from SILENCE — a fade-in, a fade-out,
+ * the duck under a needle change. It is what people expect and what every
+ * player does.
+ *
+ * `equal-power` for the two halves of a CROSSFADE, where something else is
+ * doing the opposite at the same time. Two linear ramps crossing produce an
+ * audible dip in the middle: at the halfway point both tracks are at 0.5, and
+ * two uncorrelated signals at half amplitude do not sum to one. Taking the
+ * square root holds the perceived loudness flat across the overlap, which is
+ * the difference between a crossfade and a dip.
  */
-function rampTo(target: number, seconds: number): void {
-  stopFadeTimer()
+function rampTo(
+  index: 0 | 1,
+  target: number,
+  seconds: number,
+  curve: 'linear' | 'equal-power' = 'linear',
+  done?: () => void,
+): void {
+  stopRamp(index)
   if (seconds <= 0) {
-    endFade(target)
+    endFade(index, target)
+    done?.()
     return
   }
-  const from = fadeFactor
+  const deck = decks[index]
+  const from = deck.fade
   const started = Date.now()
-  fadeTimer = setInterval(() => {
+  deck.timer = setInterval(() => {
     const t = Math.min(1, (Date.now() - started) / (seconds * 1000))
-    fadeFactor = from + (target - from) * t
-    applyVolume()
-    if (t >= 1) endFade(target)
+    const shaped = curve === 'equal-power' ? Math.sqrt(t) : t
+    setFade(index, from + (target - from) * shaped)
+    if (t >= 1) {
+      endFade(index, target)
+      done?.()
+    }
   }, FADE_TICK_MS) as unknown as number
 }
 
@@ -308,46 +531,57 @@ function rampTo(target: number, seconds: number): void {
  * worked out yet reports NaN or Infinity, and `remaining` computed from that is
  * not a number — which would either fade nothing or fade instantly to silence
  * at the first tick, on every track, until metadata arrived.
+ *
+ * ⚠️ And skipped entirely while a crossfade is running. The user's fade-out and
+ * the crossfade's own ramp are two envelopes on the same deck, and the last one
+ * to be set wins — with both running, the crossfade's rise is repeatedly
+ * stamped back down and the incoming track arrives silent.
  */
-function maybeFadeOut(audio: HTMLAudioElement): void {
-  if (fadeOutSec <= 0 || fadeTimer !== null) return
+function maybeFadeOut(audio: HTMLAudioElement, index: 0 | 1): void {
+  if (fadeOutSec <= 0 || decks[index].timer !== null || retiring !== null) return
   const duration = audio.duration
   if (!Number.isFinite(duration) || duration <= 0) return
   // A track shorter than twice the fade would spend its whole life fading.
   if (duration < fadeOutSec * 2) return
   const remaining = duration - audio.currentTime
-  if (remaining > 0 && remaining <= fadeOutSec) rampTo(0, remaining)
+  if (remaining > 0 && remaining <= fadeOutSec) rampTo(index, 0, remaining)
+}
+
+/** Tell the queue how much of the track is left, so it can start a change-over. */
+function reportRemaining(audio: HTMLAudioElement): void {
+  if (!onApproachingEnd) return
+  const duration = audio.duration
+  if (!Number.isFinite(duration) || duration <= 0) return
+  onApproachingEnd(Math.max(0, duration - audio.currentTime))
 }
 
 /**
- * Reset the envelope for a track that is about to start.
+ * Reset a deck's envelope for a track that is about to start.
  *
  * `overrideSec` is the needle handover asking for a short rise under the
  * scratch even when the user's own fade-in is off — see `playerStore`.
  */
-function beginTrack(overrideSec?: number): void {
-  stopFadeTimer()
+function beginTrack(index: 0 | 1, overrideSec?: number): void {
+  stopRamp(index)
   const seconds = overrideSec ?? fadeInSec
   if (seconds > 0) {
-    fadeFactor = 0
-    applyVolume()
-    rampTo(1, seconds)
+    setFade(index, 0)
+    rampTo(index, 1, seconds)
   } else {
-    endFade(1)
+    endFade(index, 1)
   }
 }
 
 /**
  * Fade what is playing down to silence over `seconds`, leaving it playing.
  *
- * Used by the needle handover: the outgoing track sinks away while the arm
- * comes off the record, and the incoming one rises under the scratch. With one
- * `<audio>` element this is as close to "tracks fading into each other" as the
- * app can honestly get — the two never overlap, but neither of them ends or
- * begins at full volume.
+ * Used by the needle change on an ALBUM change, where the two records are
+ * deliberately not blended: the outgoing one sinks away while the arm comes off,
+ * and the new one rises under the scratch after it. Within an album the tracks
+ * genuinely overlap instead — see `crossfade`.
  */
 export function duck(seconds: number): void {
-  rampTo(0, seconds)
+  rampTo(active, 0, seconds)
 }
 
 /**
@@ -361,26 +595,45 @@ export async function restart(fadeInOverrideSec?: number): Promise<void> {
   const audio = el()
   try { audio.currentTime = 0 } catch { /* not seekable yet */ }
   set({ currentSec: 0 })
-  beginTrack(fadeInOverrideSec === undefined ? undefined : Math.max(fadeInOverrideSec, fadeInSec))
+  beginTrack(active, fadeInOverrideSec === undefined ? undefined : Math.max(fadeInOverrideSec, fadeInSec))
   await play()
 }
 
-/** The element itself, for the Media Session and the visualiser to attach to. */
+/**
+ * The element the app is currently about.
+ *
+ * ⚠️ NEVER CACHE WHAT THIS RETURNS. It changes at every crossfade. The Media
+ * Session is fine calling it per use; the Web Audio graph is not, which is why
+ * `mediaElements()` exists and the graph captures both at once.
+ */
 export function mediaElement(): HTMLAudioElement {
   return el()
 }
 
-/** Stop, release the file, and forget everything — a preview included. */
+/**
+ * Both elements, for the Web Audio graph to capture.
+ *
+ * `createMediaElementSource` is once-per-element and permanent, so a graph that
+ * captured only the active deck would silence the app the first time a
+ * crossfade made the other one active — see `audioGraph.ts`.
+ */
+export function mediaElements(): [HTMLAudioElement, HTMLAudioElement] {
+  return [element(0), element(1)]
+}
+
+/** Stop, release both files, and forget everything — a preview included. */
 export function stop(): void {
+  finishRetirement()
   const audio = el()
   stopPreview()
-  endFade(1)
+  endFade(active, 1)
   audio.pause()
   audio.removeAttribute('src')
   audio.load()
-  if (currentUrl) {
-    URL.revokeObjectURL(currentUrl)
-    currentUrl = null
+  const deck = decks[active]
+  if (deck.url) {
+    URL.revokeObjectURL(deck.url)
+    deck.url = null
   }
   set({ playing: false, currentSec: 0, durationSec: 0, loading: false })
 }
@@ -391,13 +644,11 @@ export function stop(): void {
 // WITHOUT putting the record on (§ James, 2026-09-08: every other play goes to
 // the deck and cues the arm; this is the exception).
 //
-// ⚠️ A SECOND, dedicated element, and that is a deliberate exception to the
-// one-element rule at the top of this file. The reason for one element is that
-// a fresh `<audio>` per track leaves forty pinned files behind over an evening;
-// this is ONE more element, reused for every preview and emptied the moment a
-// preview stops, so it pins nothing between previews. What it buys is the queue
-// surviving a listen: auditioning a track must not throw away what you had
-// cued up, and with a single element it would have to.
+// ⚠️ A THIRD, dedicated element, and that is deliberate. The two decks above
+// are the queue's; a preview must not disturb either of them, because
+// auditioning a track has to leave what you had cued up exactly where it was.
+// It is reused for every preview and emptied the moment a preview stops, so it
+// pins nothing between previews.
 //
 // Ten seconds in, because the first ten seconds of a record are the part that
 // is least like it — an intro, a count-in, or silence.

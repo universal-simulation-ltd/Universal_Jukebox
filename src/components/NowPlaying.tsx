@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { coverUrl } from '../lib/art'
 import { plural } from '../lib/format'
 import { goHome, navigate } from '../lib/route'
@@ -5,6 +6,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import Deck, { CeremonyCount } from './Deck'
+import type { Album } from '../lib/types'
 import Queue from './Queue'
 import Visualiser from './Visualiser'
 
@@ -27,8 +29,10 @@ export default function NowPlaying() {
   const queue = usePlayerStore((s) => s.queue)
   const cursor = usePlayerStore((s) => s.cursor)
   const albums = useLibraryStore((s) => s.albums)
+  const deckPhase = usePlayerStore((s) => s.deckPhase)
 
   const album = track ? albums.find((a) => a.id === track.albumId) : undefined
+  const onTheDeck = useLeavingAlbum(album, deckPhase === 'leaving')
 
   if (!track) {
     return (
@@ -49,13 +53,15 @@ export default function NowPlaying() {
     <>
     <BackToLibrary />
     <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-14">
-      {/* Blurred cover as the ground, the way every good Now Playing screen
-          does it — the album's own colours, at a size that can't compete with
-          the deck. Behind everything, and only when there IS a cover. */}
+      {/* The cover, stretched across the whole page as the ground (James,
+          2026-09-09: "noticeable but not distracting"). Behind everything, and
+          only when there IS a cover. */}
       {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
 
       <div className="relative shrink-0">
-        <Deck album={album} size={clampDeck()} ceremonial />
+        {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
+            off, the record on the deck is still the OLD one — see below. */}
+        <Deck album={onTheDeck} size={clampDeck()} ceremonial />
       </div>
 
       <div className="relative min-w-0 flex-1 text-center lg:text-left">
@@ -131,6 +137,27 @@ export default function NowPlaying() {
 }
 
 /**
+ * The album the DECK is showing, which is not always the album playing.
+ *
+ * ⚠️ The cursor moves the instant a change-over starts — it has to, because the
+ * title, the queue and the media session are all about the track that is
+ * arriving. But the RECORD is not: for the 420ms of the lift, the thing being
+ * lifted off the deck is the record that was on it. Without this the sequence
+ * ran "swap the artwork, fade the new record out, fade the same record back
+ * in", which is a flicker rather than a record change — and it was doing
+ * exactly that until it was watched frame by frame.
+ *
+ * A ref updated during render, which is the sanctioned shape for "the previous
+ * value of a prop": it is idempotent, so a double render under Strict Mode
+ * produces the same answer.
+ */
+function useLeavingAlbum(album: Album | undefined, leaving: boolean): Album | undefined {
+  const previous = useRef<Album | undefined>(undefined)
+  if (!leaving) previous.current = album
+  return leaving ? previous.current : album
+}
+
+/**
  * The way back to the library, from the deck.
  *
  * ⚠️ Rendered ABOVE the stage and OUTSIDE the ceremony branch, so it is there
@@ -175,15 +202,32 @@ function clampDeck(): number {
   return Math.round(Math.max(180, Math.min(420, byWidth, byHeight)))
 }
 
+/**
+ * The album cover as the page's ground.
+ *
+ * ⚠️ SOFTENED, NOT DISSOLVED. This was `blur-3xl` at 13%, which is a wash of
+ * the record's colours and not the record — you could not tell one album from
+ * another, which is most of the point of putting it there. The blur is now
+ * light enough to recognise the sleeve and heavy enough that no edge in it
+ * competes with a line of text.
+ *
+ * ⚠️ The mask is the part that makes it safe rather than the opacity. Text sits
+ * in the middle band of this page, so the middle band is where the picture is
+ * faded out; the image is strongest at the top and bottom edges, where there is
+ * nothing to read. Raising the opacity without the mask is what turns a
+ * background into a legibility problem.
+ */
 function BlurredGround({ albumId, cover }: { albumId: string; cover: Blob }) {
   const url = coverUrl(albumId, cover)
   if (!url) return null
+  const fade = 'linear-gradient(to bottom, black 0%, rgba(0,0,0,.35) 38%, rgba(0,0,0,.35) 62%, black 100%)'
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
       <img
         src={url}
         alt=""
-        className="h-full w-full scale-125 object-cover opacity-[0.13] blur-3xl dark:opacity-20"
+        className="h-full w-full scale-110 object-cover opacity-[0.17] blur-[14px] dark:opacity-[0.24]"
+        style={{ maskImage: fade, WebkitMaskImage: fade }}
       />
     </div>
   )

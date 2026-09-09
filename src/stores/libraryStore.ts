@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { releaseAllCovers } from '../lib/art'
 import * as db from '../lib/library'
+import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
 import { hasDirectoryPicker, scan, REFUSED, type FoundImage } from '../lib/scan'
 import { applyFixes } from '../lib/tidy'
 import type { Album, Root, ScanProgress, Track } from '../lib/types'
@@ -59,6 +60,8 @@ interface LibraryState {
   stopScan(): void
   pickFolder(): Promise<void>
   addFiles(files: FileList | File[], label?: string): Promise<void>
+  /** Fill the library with the generated example records — see `lib/exampleLibrary.ts`. */
+  loadExample(): Promise<void>
   regrant(): Promise<void>
   rescan(): Promise<void>
   clear(): Promise<void>
@@ -117,7 +120,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       // file isn't reachable any more" with no way offered to fix it. The two
       // paths need different WORDING, not different silence — `ScanBanner`
       // branches on `roots[0].handle` for that.
-      needsRegrant: tracks.length > 0,
+      // ⚠️ …EXCEPT for the example library, which has no folder to re-grant.
+      // Its audio is generated from the track paths, so it comes back off a
+      // reload fully playable — and telling somebody their example library
+      // needs a folder chosen would be an error message about nothing.
+      needsRegrant: tracks.length > 0 && roots[0]?.id !== EXAMPLE_ROOT_ID,
     })
   },
 
@@ -133,6 +140,48 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return
     }
     await runScan(set, get, handle, handle.name, handle)
+  },
+
+  /**
+   * Put the example library in, as if a folder of it had been scanned.
+   *
+   * ⚠️ It goes into IndexedDB like a real one, and that is deliberate: the demo
+   * then survives a reload exactly as a real library does, and the tracks still
+   * play afterwards because their audio is regenerated from their paths rather
+   * than read from a disk. The one thing that must NOT follow is the
+   * folder-permission banner — there is no folder — which is why `hydrate`
+   * checks the root id.
+   *
+   * ⚠️ It REPLACES whatever is there, like every other way of loading a
+   * library. Only offered from the landing page, which is only shown when there
+   * is nothing to replace.
+   */
+  async loadExample() {
+    releaseAllCovers()
+    scanAbort?.abort()
+    await db.clearLibrary()
+    set({ status: 'scanning', tracks: [], albums: [], error: null, needsRegrant: false, stoppedEarly: false, refusals: [], progress: null })
+
+    const { tracks, albums } = await buildExampleLibrary()
+    const root: Root = {
+      id: EXAMPLE_ROOT_ID,
+      label: EXAMPLE_LABEL,
+      handle: null,
+      scannedAt: Date.now(),
+      trackCount: tracks.length,
+    }
+    await Promise.all([db.putTracks(tracks), db.putAlbums(albums), db.putRoot(root)])
+
+    set({
+      status: 'ready',
+      tracks,
+      albums,
+      roots: [root],
+      // Nothing to hold: the audio is made on demand by `fileFor` below.
+      filesByPath: new Map(),
+      folderImages: new Map(),
+      needsRegrant: false,
+    })
   },
 
   async addFiles(files, label) {
@@ -176,6 +225,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   async rescan() {
     const root = get().roots[0]
     if (!root) return
+    // The example library has no folder — "rescan" is simply "build it again".
+    if (root.id === EXAMPLE_ROOT_ID) {
+      await get().loadExample()
+      return
+    }
     if (root.handle) {
       await get().regrant()
       return
@@ -212,7 +266,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   fileFor(track) {
-    return get().filesByPath.get(track.path) ?? null
+    const file = get().filesByPath.get(track.path)
+    if (file) return file
+    // ⚠️ The example library's audio does not exist until this asks for it, and
+    // then it is synthesised on the spot rather than read. That is the whole
+    // reason a demo of a local-file player can ship with no files in it — see
+    // `lib/exampleLibrary.ts`.
+    if (isExampleTrack(track)) return exampleFile(track)
+    return null
   },
 
   dismissError() {

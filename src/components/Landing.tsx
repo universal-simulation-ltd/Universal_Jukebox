@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useLibraryStore } from '../stores/libraryStore'
 
 // The front door, before there is a library.
@@ -20,8 +20,13 @@ export default function Landing() {
   const pickFolder = useLibraryStore((s) => s.pickFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
+  const loadExample = useLibraryStore((s) => s.loadExample)
   const folderInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  // Building it draws eleven sleeves, which is fast but not instant — and a
+  // button that appears to do nothing for half a second is a button people
+  // press twice.
+  const [building, setBuilding] = useState(false)
 
   return (
     <div className="mx-auto max-w-2xl text-center">
@@ -67,6 +72,32 @@ export default function Landing() {
         >
           Or pick individual files
         </button>
+      </div>
+
+      {/* ⚠️ Below the fold of the real thing, and visibly a side door. The app
+          is for the music you already have; an example library is for deciding
+          whether to point it at yours. Putting it level with the main button
+          would advertise the demo as the product. */}
+      <div className="mt-9 border-t border-slate-200 pt-7 dark:border-slate-800">
+        <p className="text-[13px] text-slate-600 dark:text-slate-300">
+          Nothing to hand? Take it for a spin.
+        </p>
+        <button
+          type="button"
+          disabled={building}
+          onClick={() => {
+            setBuilding(true)
+            void loadExample().finally(() => setBuilding(false))
+          }}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2.5 text-[14px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+        >
+          {building ? 'Cutting the records…' : 'Load the example library'}
+        </button>
+        <p className="mx-auto mt-2.5 max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+          Eleven records by four artists that don’t exist — the music and the sleeves are
+          both generated on this device, in this tab. Nothing is downloaded. Choosing your
+          own folder afterwards replaces it.
+        </p>
       </div>
 
       {/* Both inputs are always present. The folder one is the Firefox/Safari

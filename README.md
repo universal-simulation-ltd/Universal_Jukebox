@@ -50,6 +50,28 @@ be the worst kind of button, and a real one needs a second root, merge rules and
 a way to un-add — none of which exist. Choosing a different folder therefore
 says out loud that it replaces this one.
 
+## The example library
+
+**Nothing to hand?** The landing page offers an example library: eleven records
+by four artists who do not exist, with the music AND the sleeves generated in
+the browser (`lib/exampleLibrary.ts`). Not one byte of it is shipped or
+downloaded — which is the only honest way for this app to have a demo, since
+bundling real music means licensing real music, and an app whose pitch is "it
+plays your own files" should not quietly fetch somebody else's.
+
+Three things about it are deliberate:
+
+- **The index is built eagerly, the audio lazily.** Titles, years, durations and
+  artwork appear at once; the WAV for a track is synthesised the first time
+  something tries to play it, and at most four are kept.
+- **It is deterministic.** Every note comes from a PRNG seeded with the track's
+  own path, so a record sounds the same next time — and, more usefully, still
+  plays after a reload, when the library has come back out of IndexedDB with no
+  files anywhere to point at.
+- **Two of the four artists have three or more records**, because three is where
+  the album grid folds a run into a fan. A demo library that showed none of the
+  grouping would be missing the part worth showing.
+
 ## The folder problem
 
 This is the honest bit, and the app is designed around it rather than
@@ -122,18 +144,20 @@ src/
 │   ├── scan.ts        # the folder walk — header-only reads, streaming results
 │   ├── library.ts     # IndexedDB: tracks / albums / roots
 │   ├── art.ts         # extract → downscale → cache → object URLs (bounded)
-│   ├── audio.ts       # one <audio> element, the queue, a real shuffle, the fades
+│   ├── audio.ts       # two <audio> decks, the crossfade, a real shuffle, the fades
 │   ├── audioGraph.ts  # the OPTIONAL Web Audio graph — boost + analyser. Read it first
 │   ├── ceremony.ts    # when the record-changing animation runs. Pure, tested
+│   ├── transition.ts  # what happens BETWEEN two tracks: blend or record change. Pure, tested
+│   ├── exampleLibrary.ts # the demo library — generated music and sleeves, no assets
 │   ├── tidy.ts        # the tidy-up rules. Pure, and mostly about what it refuses
 │   ├── crackle.ts     # the synthesised needle drop — no asset, no licence
 │   ├── applySettings.ts # the one place settings become audible
 │   └── mediaSession.ts
 ├── stores/            # playerStore (owns the ceremony timeline) · libraryStore
 │                      # · settingsStore · tidyStore · themeStore
-└── components/        # Landing · AlbumGrid · AlbumView · CoverFan · Deck
-                       # · NowPlaying · PlayerBar · PreviewButton · Settings
-                       # · Tidy
+└── components/        # Landing · AlbumGrid · AlbumView · CoverFan · OpenGroup
+                       # · Deck · NowPlaying · PlayerBar · PreviewButton
+                       # · Settings · Tidy
 ```
 
 ### Three things that are load-bearing
@@ -154,9 +178,17 @@ src/
 
 ### Putting a record on
 
-The turntable animation — platter spins up, tonearm comes down, a 3 · 2 · 1
+The turntable animation — the record is **lowered onto the deck**, fading in
+from just above it, the platter spins up, the tonearm comes down, a 3 · 2 · 1
 counts **beside** the deck while the first bytes come off disk, and a
 synthesised needle drop as the arm lands.
+
+The arrival is one CSS animation on **the medium alone** (`arrival` in
+`components/decks/face.ts`) rather than on the whole deck: the record player has
+to still be there while the record arrives. It is also what makes the record
+CHANGE possible without any face holding two covers at once — the old record
+fades out, the artwork underneath swaps while nothing can see it, and the new
+one fades in.
 
 **By default it runs on every play** (James, 2026-09-08). Press play on a track,
 an album or a search result and you land on the deck and the arm is cued. Only
@@ -173,8 +205,11 @@ is zero) to say what it should do.
 
 Any click or key skips it, `prefers-reduced-motion` drops it entirely (the arm
 is simply down and the music starts), and there is a **Don't show this again**
-on the animation itself as well as four choices in Settings — *every time I
-press play* · *only on a new album* · *once per visit* · *never*.
+on the animation itself as well as a slider in Settings along a frequency
+ladder — *every track* · *when the album changes* · *when the artist changes* ·
+*once per visit* · *never*. The same setting governs the change-over between
+tracks and how often the start-up sound plays; the ladder's order lives in
+`CEREMONY_LADDER` and nowhere else.
 
 Its **timeline** lives in `playerStore`, not in the `Deck` component — the deck
 is only mounted on Now Playing, so a ceremony owned by it never finished when
@@ -187,19 +222,27 @@ record as the track plays — the outer groove to just outside the label, driven
 by `currentSec / durationSec` — and between tracks it lifts, goes back out to
 the start, and lands again with the scratch on top.
 
-Three things about that are worth knowing before changing it:
+Four things about that are worth knowing before changing it:
 
 - The arm is **two nested rotations about the same bearing**, not one sum. Where
   on the record the needle is (slow, linear) and the arm being lifted and cued
   (springy, overshooting) need different transitions; added together they would
   have to share one, and either the landing crawls or the creep springs.
-- **`HANDOVER.LIFT_MS` (420ms) is a real gap between every pair of tracks.** It
-  is the price of the arm going back to the start rather than teleporting.
-  Skipped entirely when the animation is off or under `prefers-reduced-motion`.
-- The two tracks **fade into each other, and it is still not a crossfade**. The
-  outgoing one ducks over 0.32s as the arm lifts, the incoming one rises over
-  0.55s as it lands, and the scratch covers the seam — but they never overlap,
-  because one `<audio>` element decodes one file (see below).
+- **`HANDOVER.LIFT_MS` (420ms) is a real gap between two RECORDS.** It is the
+  price of the arm going back to the start rather than teleporting, and of the
+  record on the deck being seen to change. Skipped entirely when the animation is
+  off or under `prefers-reduced-motion` — and it does not apply within an album,
+  where the tracks overlap instead.
+- **Two tracks of the same record genuinely crossfade** (2026-09-09). They
+  overlap on two `<audio>` elements over 1.8s at a natural end, 0.9s when you
+  press Next, and the needle goes back to the start while they cross. This used
+  to be impossible and the README said so; what changed is that there are two
+  decks now, not one.
+- **A different record does NOT blend.** It fades out, the record lifts off and
+  fades away, the new one fades in, and the needle resets — which is what
+  `HANDOVER.LIFT_MS`'s 420ms of silence is for. Which of the two you get is
+  decided in `lib/transition.ts`, from what changed and what the animation
+  slider says.
 
 Pause **freezes** all of it where it stands: the platter's `animation-play-state`
 is paused rather than the animation being removed (removing it snaps the record
@@ -278,17 +321,17 @@ nothing here is a form.
 | Setting | Notes |
 |---|---|
 | **Open my library on** | Albums · Artists · Tracks. Also settable from the star beside each tab |
-| **Record-changing animation** | Every time I press play (default) · Only on a new album · Once per visit · Never |
-| **Needle-drop sound** | The thunk and surface noise — on a new record, between tracks, and on a preview |
+| **Record-changing animation** | A slider along a frequency ladder: Every track (default) · When the album changes · When the artist changes · Once per visit · Never. Governs the ceremony, the change-over animation and how often the start-up sound plays |
+| **Needle-drop sound** | The thunk and surface noise — on a new record, between tracks, and on a preview. Its level is a **±5** slider, 0 being the level it has always been |
 | **Volume boost** | 1–4× on top of the volume slider, for quietly-mastered albums |
-| **Fade in / Fade out** | 0–8s. A fade, **not** a crossfade — see below |
+| **Fade in / Fade out** | 0–8s, at the ends of a track. Separate from the crossfade between two tracks of one album — see below |
 | **Theme** | Light · Dark · Match my device |
 
 **Adding one** should be a field and a default in `stores/settingsStore.ts` plus
 one `<Choice>` / `<Slider>` / `<Toggle>` in `components/Settings.tsx`. The page
 is a list of sections of rows precisely so that stays true.
 
-### Two things worth knowing before changing the audio
+### Three things worth knowing before changing the audio
 
 **The fades need no Web Audio, and the boost cannot avoid it.** An
 `HTMLMediaElement`'s `volume` is hard-capped at 1.0 by the spec, so gain above
@@ -306,9 +349,24 @@ give `element.volume`. The obvious implementation — a fade writing straight to
 `element.volume` — has no memory of what the slider said, so a fade-out ends
 with the slider's own value redefined as zero and the next track silent.
 
-The fade is a **fade, not a crossfade**. A crossfade needs two elements decoding
-at once and this app has exactly one on purpose; what changes is that a track no
-longer starts or stops at full volume, not that the gap between tracks closes.
+**There are two elements, and exactly two.** A crossfade needs two files
+decoding at once, so `lib/audio.ts` keeps a deck A and a deck B, swaps which one
+is "active" at every blend, and revokes the retiring one's object URL when its
+ramp finishes — at most two files pinned however long the queue runs. Three
+things follow that are easy to get wrong:
+
+- **Every element event is gated on being the active deck.** A retiring deck is
+  still playing and still firing `timeupdate` and `ended`; ungated, the scrub bar
+  jumps between two tracks and the queue advances twice.
+- **The graph captures BOTH elements in one go.** `createMediaElementSource` is
+  once-per-element and permanent, so a graph built over only the active deck
+  would silence the app the first time the other one took over.
+- **The two halves of a crossfade are equal-power (√), not linear.** Two linear
+  ramps crossing dip audibly in the middle — which is the seam the crossfade
+  exists to hide.
+
+Fade in / fade out are still linear, because a fade to or from silence has
+nothing on the other side of it.
 
 ---
 

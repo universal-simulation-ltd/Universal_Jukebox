@@ -74,6 +74,7 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   const playing = usePlayerStore((s) => s.playing)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const armDownState = usePlayerStore((s) => s.armDown)
+  const phase = usePlayerStore((s) => s.deckPhase)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const durationSec = usePlayerStore((s) => s.durationSec)
   const style = useSettingsStore((s) => s.deck)
@@ -116,6 +117,27 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   // exactly backwards for the two seconds anybody is actually watching.
   const spinning = playing || active
 
+  /**
+   * The medium arriving on the deck, or being lifted off it.
+   *
+   * ⚠️ ONE animation on THE MEDIUM, rather than a cross-dissolve between two
+   * covers. That is what lets the album underneath change at the moment the
+   * picture is invisible: a record fading out, the cover swapping behind it,
+   * and the new record fading in is exactly the sequence asked for, with no
+   * face needing to hold two covers at once. Each face decides what its medium
+   * is — see `arrival` in `decks/face.ts`, and why it is not the whole face.
+   *
+   * ⚠️ Ceremonial deck only. The mini player's deck is a 40px picture of the
+   * state; a record dropping into it from above would be a twitch in the corner
+   * of the screen, which is the opposite of what any of this is for.
+   */
+  const arrival =
+    !ceremonial || reduced || phase === 'idle'
+      ? undefined
+      : phase === 'arriving'
+        ? 'jb-deck-in 700ms cubic-bezier(.22,.9,.3,1) both'
+        : 'jb-deck-out 420ms ease-in both'
+
   const openAlbum = () => {
     if (album) navigate({ view: 'album', albumId: album.id })
   }
@@ -148,6 +170,7 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           reduced={reduced}
           url={url}
           hue={hue}
+          arrival={arrival}
         />
 
         {/* Drifting notes — pure decoration, and only while something is

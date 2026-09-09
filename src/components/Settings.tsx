@@ -4,10 +4,13 @@ import { DECKS, deckCopy } from '../lib/decks'
 import { goHome } from '../lib/route'
 import { usePlayerStore } from '../stores/playerStore'
 import {
+  CEREMONY_LADDER,
   MAX_BOOST,
   MAX_FADE_SEC,
-  MAX_NEEDLE_LEVEL,
-  MIN_NEEDLE_LEVEL,
+  NEEDLE_STEP_MAX,
+  NEEDLE_STEP_MIN,
+  levelToStep,
+  stepToLevel,
   useSettingsStore,
   type CeremonyMode,
   type DeckStyle,
@@ -98,16 +101,40 @@ export default function Settings() {
       </Section>
 
       <Section title={deck.startTitle} note={deck.startNote}>
-        <Choice<CeremonyMode>
+        {/* ⚠️ A SLIDER, not the radios this used to be (James asked for one,
+            2026-09-09). The five settings are a frequency ladder — every track,
+            every record, every artist, once a visit, never — and a ladder is
+            what a slider is for: you can see where you are on it and which
+            direction is "more". The radios' one advantage was that every
+            option's sentence was visible at once; `<Ladder>` keeps that by
+            showing the sentence for wherever the handle is. */}
+        <Ladder
           label={`Show the ${deck.noun}-changing animation`}
+          hint={`Also how often you hear the ${deck.soundLabel.toLowerCase()} — the two are the same event.`}
           value={s.ceremonyMode}
           onChange={(v) => s.set('ceremonyMode', v)}
-          options={[
-            { value: 'always', label: 'Every time I press play', hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}.` },
-            { value: 'album', label: 'Only on a new album', hint: 'Just when you start a different album, and never twice for the same one.' },
-            { value: 'first', label: 'Once per visit', hint: 'Only the first time you press play after opening the app.' },
-            { value: 'off', label: 'Never', hint: 'Music starts immediately, every time — and tracks run into each other with no pause between them.' },
-          ]}
+          copy={{
+            always: {
+              label: 'Every track',
+              hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.noun === 'record' ? 'needle' : 'pickup'} put back.`,
+            },
+            album: {
+              label: 'When the album changes',
+              hint: `Only when a different ${deck.noun} goes on. Tracks within one album blend into each other quietly.`,
+            },
+            artist: {
+              label: 'When the artist changes',
+              hint: 'Only when somebody new comes on — a whole discography plays through without interruption.',
+            },
+            first: {
+              label: 'Once per visit',
+              hint: 'Only the first time you press play after opening the app.',
+            },
+            off: {
+              label: 'Never',
+              hint: 'Music starts immediately, every time. Tracks on one album still run into each other with no gap — that is the crossfade, not the animation.',
+            },
+          }}
         />
         <Toggle
           label={deck.soundLabel}
@@ -120,19 +147,22 @@ export default function Settings() {
             and this one is for an effect that lasts under a second and happens
             when you are looking somewhere else. Firing on release rather than
             on every input event is what keeps dragging the slider from becoming
-            a stack of forty overlapping thunks. */}
+            a stack of forty overlapping thunks.
+
+            ⚠️ The slider speaks STEPS (-5…+5) and the store speaks multipliers;
+            `stepToLevel` is the only crossing point. See `settingsStore`. */}
         <Slider
           label={`${deck.soundLabel} volume`}
-          hint="How loud it is. Drag it to hear it. Still rides your main volume, so turning the music down turns this down with it."
-          value={s.needleDropLevel}
-          min={MIN_NEEDLE_LEVEL}
-          max={MAX_NEEDLE_LEVEL}
-          step={0.25}
+          hint="0 is the level it has always been. Drag it to hear it — it still rides your main volume, so turning the music down turns this down with it."
+          value={levelToStep(s.needleDropLevel)}
+          min={NEEDLE_STEP_MIN}
+          max={NEEDLE_STEP_MAX}
+          step={1}
           disabled={!s.needleDrop}
           disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
-          format={(v) => `${Math.round(v * 100)}%`}
-          onChange={(v) => s.set('needleDropLevel', v)}
-          onCommit={(v) => playTransportCue(s.deck, usePlayerStore.getState().volume, v)}
+          format={(v) => (v === 0 ? '0' : v > 0 ? `+${v}` : String(v))}
+          onChange={(v) => s.set('needleDropLevel', stepToLevel(v))}
+          onCommit={(v) => playTransportCue(s.deck, usePlayerStore.getState().volume, stepToLevel(v))}
         />
       </Section>
 
@@ -164,7 +194,7 @@ export default function Settings() {
         />
         <Slider
           label="Fade out"
-          hint="Each track falls away before it ends. This is a fade, not a crossfade — the next track still starts when this one finishes."
+          hint="Each track falls away before it ends — including the last one of an album. Two tracks of the SAME record already blend into each other; this is for the ends of things."
           value={s.fadeOutSec}
           min={0}
           max={MAX_FADE_SEC}
@@ -282,6 +312,68 @@ function Choice<T extends string>({
           ))}
         </div>
       </fieldset>
+    </Row>
+  )
+}
+
+/**
+ * A slider along an ordered set of named settings.
+ *
+ * ⚠️ It is a real `<input type="range">` over the ladder's INDICES, not a row
+ * of styled buttons pretending to be a slider. That buys the keyboard and the
+ * screen reader for free — arrow keys step, Home and End jump, and
+ * `aria-valuetext` reads the option's name rather than "3 of 5", which is the
+ * one thing a numeric slider gets wrong for a set of named choices.
+ *
+ * ⚠️ The order comes from `CEREMONY_LADDER` and is not repeated here. A second
+ * copy of the order is how a slider ends up running backwards after somebody
+ * adds a mode in the middle.
+ */
+function Ladder({
+  label, hint, value, copy, onChange,
+}: {
+  label: string
+  hint?: string
+  value: CeremonyMode
+  copy: Record<CeremonyMode, { label: string; hint: string }>
+  onChange(value: CeremonyMode): void
+}) {
+  const index = Math.max(0, CEREMONY_LADDER.indexOf(value))
+  const here = copy[CEREMONY_LADDER[index]]
+  return (
+    <Row>
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="text-[14px] font-medium text-slate-900 dark:text-slate-100">{label}</span>
+        <span className="shrink-0 text-[13px] font-medium text-orange-700 dark:text-orange-400">
+          {here.label}
+        </span>
+      </div>
+      {hint && (
+        <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">{hint}</p>
+      )}
+      <input
+        type="range"
+        min={0}
+        max={CEREMONY_LADDER.length - 1}
+        step={1}
+        value={index}
+        aria-label={label}
+        aria-valuetext={here.label}
+        onChange={(e) => onChange(CEREMONY_LADDER[Number(e.target.value)])}
+        className="jb-scrub mt-3 h-1 w-full cursor-pointer appearance-none rounded-full bg-slate-200 dark:bg-slate-700"
+      />
+      {/* The two ends, named. Without them a slider with no scale is a control
+          you have to drag to find out what it does — and the whole reason this
+          replaced radios was that the ORDER means something. */}
+      <div className="mt-1.5 flex justify-between text-[11px] text-slate-400 dark:text-slate-500">
+        <span>{copy[CEREMONY_LADDER[0]].label}</span>
+        <span>{copy[CEREMONY_LADDER[CEREMONY_LADDER.length - 1]].label}</span>
+      </div>
+      {/* ⚠️ A fixed height, because the sentence under the handle changes as you
+          drag and the rows below must not jump about while you are dragging. */}
+      <p className="mt-2 min-h-[2.6rem] text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
+        {here.hint}
+      </p>
     </Row>
   )
 }

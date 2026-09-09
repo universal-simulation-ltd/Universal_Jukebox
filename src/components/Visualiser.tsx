@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { mediaElement } from '../lib/audio'
+import { mediaElements } from '../lib/audio'
 import { ensureGraph, ensureRunning } from '../lib/audioGraph'
 import { usePlayerStore } from '../stores/playerStore'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
@@ -18,6 +18,10 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 // on a second call for the same element, so whichever feature got there first
 // would have silently disabled the other. `lib/audioGraph.ts` owns the single
 // graph now and both features ask it for one.
+//
+// ⚠️ `mediaElements()`, plural — BOTH crossfade decks. Handing the graph only
+// the element that happens to be active right now would silence the app the
+// first time the other one took over.
 
 export default function Visualiser() {
   const playing = usePlayerStore((s) => s.playing)
@@ -28,7 +32,7 @@ export default function Visualiser() {
     if (!playing || reduced) return
     // Asking for the graph BUILDS one if none exists yet — the visualiser is a
     // legitimate reason to have it, same as the boost.
-    const built = ensureGraph(mediaElement())
+    const built = ensureGraph(mediaElements())
     const surface = canvas.current
     if (!built || !surface) return
     const node = built.analyser

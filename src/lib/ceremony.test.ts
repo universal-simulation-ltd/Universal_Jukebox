@@ -23,8 +23,10 @@ function decision(over: Partial<CeremonyDecision> = {}): CeremonyDecision {
     reducedMotion: false,
     ceremonyDone: false,
     lastAlbumId: null,
+    lastArtist: null,
     lastAt: 0,
     albumId: 'the tone arms|sides a and b',
+    artist: 'the tone arms',
     now: NOW,
     ...over,
   }
@@ -103,6 +105,32 @@ describe('the cooldown, when one is set', () => {
     const base = { cooldownMs: A_MINUTE_AND_A_HALF, lastAlbumId: 'longform|both halves' }
     expect(shouldRunCeremony(decision({ ...base, lastAt: NOW - A_MINUTE_AND_A_HALF + 1 }))).toBe(false)
     expect(shouldRunCeremony(decision({ ...base, lastAt: NOW - A_MINUTE_AND_A_HALF }))).toBe(true)
+  })
+})
+
+// ⚠️ `artist` is the rung James added on 2026-09-09, and its whole point is
+// that it is RARER than `album`: a discography played through should cue the
+// arm when the artist changes and stay quiet through their records.
+describe('mode: artist', () => {
+  it('runs for somebody new', () => {
+    expect(shouldRunCeremony(decision({
+      mode: 'artist',
+      lastArtist: 'lathe',
+      artist: 'the tone arms',
+    }))).toBe(true)
+  })
+
+  it('stays quiet for another record by the same artist', () => {
+    expect(shouldRunCeremony(decision({
+      mode: 'artist',
+      lastArtist: 'the tone arms',
+      artist: 'the tone arms',
+      albumId: 'the tone arms|b-sides',
+    }))).toBe(false)
+  })
+
+  it('runs the first time anything is played', () => {
+    expect(shouldRunCeremony(decision({ mode: 'artist', lastArtist: null }))).toBe(true)
   })
 })
 

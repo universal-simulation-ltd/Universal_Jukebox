@@ -1,5 +1,5 @@
 import { ensureGraph, graphExists, setBoost } from './audioGraph'
-import { mediaElement, setFades } from './audio'
+import { mediaElements, setFades } from './audio'
 import { useSettingsStore } from '../stores/settingsStore'
 
 // The one place settings become audible.
@@ -26,7 +26,7 @@ function apply(): void {
   setFades(fadeInSec, fadeOutSec)
 
   const wantsBoost = volumeBoost > 1.001
-  if (wantsBoost && !graphExists()) ensureGraph(mediaElement())
+  if (wantsBoost && !graphExists()) ensureGraph(mediaElements())
   if (graphExists()) setBoost(wantsBoost ? volumeBoost : 1)
 }
 
