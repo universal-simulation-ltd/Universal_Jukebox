@@ -113,7 +113,7 @@ page, before there is even a library. Callers subscribe to the pieces and
 
 ## The example library
 
-**Nothing to hand?** The landing page offers an example library: eleven records
+**Nothing to hand?** The landing page offers an example library: nine records
 by four artists who do not exist, with the music AND the sleeves generated in
 the browser (`lib/exampleLibrary.ts`). Not one byte of it is shipped or
 downloaded — which is the only honest way for this app to have a demo, since
@@ -121,7 +121,7 @@ bundling real music means licensing real music, and an app whose pitch is "it
 plays your own files" should not quietly fetch somebody else's.
 
 ⚠️ **It stands aside for real music.** Adding a folder ADDS to the library, and
-the one thing that must never add is the demo — eleven records by artists who do
+the one thing that must never add is the demo — nine records by artists who do
 not exist, mixed in among somebody's own albums, indistinguishable in the grid
 and removable only by knowing which names were fake. So the first real folder
 takes its place.
@@ -138,6 +138,23 @@ Three things about it are deliberate:
 - **Two of the four artists have three or more records**, because three is where
   the album grid folds a run into a fan. A demo library that showed none of the
   grouping would be missing the part worth showing.
+
+⚠️ **It was a drum machine for its whole first week, and nothing failed.**
+`addTone` ran its "has this note died away" test *during the attack*, where the
+envelope is exactly `0` — so it broke out of the write loop on the **first
+sample of every note** and the pad, the bass and the lead wrote nothing at all.
+What survived was the drums, which are built by a different function. Eight of
+the nine records played as percussion only, and "Quiet Rooms" — the one record
+with `drums: false` — was thirty-eight seconds of digital silence. Fixed
+2026-09-09.
+
+The reason it lasted is worth more than the fix: **every file was the right
+shape.** Correct duration, decoded cleanly, played to the end, fired `ended` on
+time. The unit tests, the typecheck and every browser run through the app agreed
+it was working, because none of them looked at the *content*. If you change the
+synthesis, check it by measuring — the PCM peak of a generated track, **per
+voice**, not per file. The whole-file peak was healthy the entire time the melody
+was missing, because the drums were never affected.
 
 ## The folder problem
 
@@ -292,6 +309,34 @@ tracks and how often the start-up sound plays; the ladder's order lives in
 Its **timeline** lives in `playerStore`, not in the `Deck` component — the deck
 is only mounted on Now Playing, so a ceremony owned by it never finished when
 you pressed play from an album.
+
+### ⚠️ When the file has gone, the music has to stop
+
+Both file lookups in `playerStore` move the cursor **before** they check the
+file. That is deliberate: the error then names the track you asked for rather
+than the one that was already on. But it means the state has already moved when
+the lookup fails, and for a while each one simply set `error` and returned.
+
+Nothing told the `<audio>` element. The title changed, the level bars beside it
+kept animating, the scrub bar kept moving — and **a different song went on
+playing underneath a message saying it could not be played**. That reads as a
+bug in the *message*, which is the one reading that leaves nobody able to fix
+it.
+
+`unreachable()` takes the whole transport down: the ceremony and change-over
+timers (which would otherwise fire into the wreckage), `audio.stop()`, the OS
+media card (which would otherwise still offer play/pause for a track that is not
+on), and `previewTrackId`, since stopping the sound also stops a preview and its
+button must not be left saying "stop" over nothing.
+
+**Anything added to an error path here has to answer the same question:** what
+was the old state driving, and who is going to tell it? A `set({ error })` and a
+`return` is a label on a machine that is still running.
+
+⚠️ What it deliberately does **not** do is act on the reason. A deleted file and
+a folder whose permission has lapsed produce the identical message, and only one
+of them is fixable by the person reading it — `ScanBanner` already knows how to
+ask for a folder again, per root, and the error does not reach for it.
 
 ### The needle, once the music is going
 
@@ -558,6 +603,48 @@ disc, a hole you can see across a room, and 45 rpm against the turntable's 33⅓
 That is the only thing distinguishing the two record decks in the waiting row,
 where neither machine is drawn: get it wrong and switching between them appears
 to do nothing.
+
+### The jukebox's side lights are a real meter
+
+The two lit pilaster tubes down the sides of the jukebox move to the music —
+bass in the left one, mids and top in the right — driven by `lib/useLevels.ts`
+off the same `AnalyserNode` the visualiser uses. Three things about it are
+load-bearing.
+
+**It writes to the DOM, not to React.** The hook sets a `--jb-level` custom
+property on the elements it is given, once a frame. Returning a per-frame value
+as state would re-render the cabinet, the record, the arm and the whole SVG
+sixty times a second to move two coloured bars. Same argument as
+`Visualiser.tsx`, which owns a canvas for the same reason.
+
+**The property is REMOVED when nothing is metering, never set to zero.** Each
+tube is two elements — the glass, which is always there, and the light inside it
+— and the light's height reads `var(--jb-level, 1)`. So a paused deck, a browser
+that will not give an analyser, and `prefers-reduced-motion` all fall back to the
+solid lit bar the tubes have always had. Zero would make all three of those
+states a dark tube, i.e. a machine that looks switched off.
+
+⚠️ **The band edges are geometric, and equal slices do not work.** The
+analyser's bins are linear in frequency — at `fftSize: 128` each is about
+345 Hz — so splitting the range in half puts everything a listener would call
+bass, and most of what they would call the tune, in the *first* band, and hands
+the second one 7 kHz upwards, where music is nearly silent. Split that way the
+upper tube sits on its floor through whole tracks.
+
+Also asymmetric on purpose: a rise is instant and only the *fall* is rate-limited
+(`FALL_PER_FRAME`). That is what makes a meter read as a meter — it snaps to a
+beat and sinks back between them — rather than as a wobble.
+
+⚠️ **This is not an equaliser in the audio sense** and must not be described as
+one anywhere it could be read as a tone control. Nothing in the signal path
+changes; it is a read-only tap. The app has no EQ, no DSP chain and no
+ReplayGain, and its comparison entry says so.
+
+⚠️ **A hover lift inside a clipped row.** The waiting row lifts a record 3px on
+hover, and `overflow-hidden` clips at the **padding box** — so with no padding
+the clip line sat exactly on the record's top edge and took a slice off it. The
+row carries `pt-1` with `-mt-1` to stay put. `overflow-x-hidden` is not the
+alternative: setting one axis computes the other to `auto`, which clips anyway.
 
 ### Three things worth knowing before changing the audio
 
