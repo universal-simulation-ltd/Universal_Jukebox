@@ -1,4 +1,5 @@
 import { coverUrl, fallbackHue } from '../lib/art'
+import { resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { usePlayerStore } from '../stores/playerStore'
@@ -7,6 +8,7 @@ import type { Album } from '../lib/types'
 import { SHAPES, type DeckFaceProps, type NotesAnchor } from './decks/face'
 import CassetteDeck from './decks/CassetteDeck'
 import CdDeck from './decks/CdDeck'
+import JukeboxDeck from './decks/JukeboxDeck'
 import VinylDeck from './decks/VinylDeck'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
@@ -60,6 +62,7 @@ const FACES: Record<DeckStyle, React.ComponentType<DeckFaceProps>> = {
   vinyl: VinylDeck,
   cd: CdDeck,
   cassette: CassetteDeck,
+  jukebox: JukeboxDeck,
 }
 
 interface DeckProps {
@@ -77,7 +80,17 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   const phase = usePlayerStore((s) => s.deckPhase)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const durationSec = usePlayerStore((s) => s.durationSec)
-  const style = useSettingsStore((s) => s.deck)
+  const setting = useSettingsStore((s) => s.deck)
+  // ⚠️ The machine comes from the CURSOR, not from a counter kept in here.
+  // Under `deck: 'random'` it is a pure function of where the track sits in the
+  // queue (`resolveDeck`), which is what lets this deck, the start-up sound in
+  // `playerStore`, the Settings page's demonstration of it and the row of
+  // records waiting to go on all arrive at the same answer without any of them
+  // telling the others. A counter incremented on each load would have to be
+  // persisted, and would disagree with the reel the moment somebody jumped down
+  // the queue — which is exactly the gesture the reel exists to offer.
+  const cursor = usePlayerStore((s) => s.cursor)
+  const style = resolveDeck(setting, cursor)
   const reduced = usePrefersReducedMotion()
 
   // The `??`s are not dead code: a settings blob edited by hand, or written by

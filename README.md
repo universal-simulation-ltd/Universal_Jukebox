@@ -204,13 +204,15 @@ src/
 │   ├── transition.ts  # what happens BETWEEN two tracks: blend or record change. Pure, tested
 │   ├── exampleLibrary.ts # the demo library — generated music and sleeves, no assets
 │   ├── tidy.ts        # the tidy-up rules. Pure, and mostly about what it refuses
-│   ├── crackle.ts     # the synthesised needle drop — no asset, no licence
+│   ├── crackle.ts     # the four synthesised start-up cues — no asset, no licence
+│   ├── decks.ts       # the decks as WORDS, + the Random rotation. Pure, tested
 │   ├── applySettings.ts # the one place settings become audible
 │   └── mediaSession.ts
 ├── stores/            # playerStore (owns the ceremony timeline) · libraryStore
 │                      # · settingsStore · tidyStore · themeStore
 └── components/        # Landing · AlbumGrid · AlbumView · CoverFan · OpenGroup
-                       # · Deck · NowPlaying · UpNextReel · PlayerBar
+                       # · Deck (the frame) · decks/ (Vinyl · Cd · Cassette · Jukebox)
+                       # · NowPlaying · UpNextReel · PlayerBar
                        # · PreviewButton · Settings · Tidy
 ```
 
@@ -300,16 +302,35 @@ Four things about that are worth knowing before changing it:
 
 **The records waiting their turn** are drawn beside the deck as a row of the
 same medium — `UpNextReel`, one item per QUEUE ENTRY rather than per album,
-because what goes on the player is a track. As each one is loaded it shrinks out
-of the row and the rest slide along to fill the gap; only as many as fit on one
-line are shown, measured from the row with a `ResizeObserver` rather than
-guessed from the viewport.
+because what goes on the player is a track. Each one is **named** underneath and
+each one is a **button that plays that track**, so reaching track six no longer
+means pressing next five times. As each one is loaded it shrinks out of the row
+and the rest slide along to fill the gap; only as many as fit on one line are
+shown, measured from the row with a `ResizeObserver` rather than guessed from
+the viewport.
 
-⚠️ The reel draws its own small record / disc / cassette rather than reusing the
-deck faces, and that is deliberate: the faces draw the MACHINE — a tonearm, a
-laser sled, a Discman body with buttons — which at 76px is a smudge, and none of
-which is waiting to go on. It is `aria-hidden` because "Up next" underneath is
-the same queue with names and a remove button on every row.
+⚠️ The reel draws its own small record / 45 / disc / cassette rather than
+reusing the deck faces, and that is deliberate: the faces draw the MACHINE — a
+tonearm, a laser sled, a Discman body with buttons, a whole jukebox cabinet —
+which at 76px is a smudge, and none of which is waiting to go on. Under
+**Random** each item is resolved separately, so the row shows what each track
+will actually be played on.
+
+⚠️ It **used to be `aria-hidden`** and is not any more. That was right while it
+was a picture of a queue that had a real list underneath it; now that each item
+carries a name and plays its track, an `aria-hidden` button would be unreachable
+by keyboard while still taking up the space. The row is exposed and the
+*drawings inside it* stay hidden. What survives of the old argument is that this
+is the short version — as many as fit on one line, no remove button, no scroll.
+"Up next" underneath is still the complete list and still where the queue is
+edited.
+
+⚠️ The departing item's exit animation takes its starting width from
+`--jb-item`, set by the component. It was a hard-coded `100px` in
+`@keyframes jb-reel-out`, which only worked because the element also sets
+`width` — widen the column past that number and the record hangs still for the
+first part of the animation and then jumps, which reads as a dropped frame
+rather than as a wrong constant.
 
 Pause **freezes** all of it where it stands: the platter's `animation-play-state`
 is paused rather than the animation being removed (removing it snaps the record
@@ -388,6 +409,7 @@ nothing here is a form.
 | Setting | Notes |
 |---|---|
 | **Open my library on** | Albums · Artists · Tracks. Also settable from the star beside each tab |
+| **Deck** | Vinyl · CD · Cassette · Jukebox · **Random**. Changes the picture on Now Playing and the start-up sound, never the music — see below |
 | **Record-changing animation** | A slider along a frequency ladder: Every track (default) · When the album changes · When the artist changes · Once per visit · Never. Governs the ceremony, the change-over animation and how often the start-up sound plays |
 | **Needle-drop sound** | The thunk and surface noise — on a new record, between tracks, and on a preview. Its level is a **±5** slider, 0 being the level it has always been |
 | **Volume boost** | 1–4× on top of the volume slider, for quietly-mastered albums |
@@ -397,6 +419,41 @@ nothing here is a form.
 **Adding one** should be a field and a default in `stores/settingsStore.ts` plus
 one `<Choice>` / `<Slider>` / `<Toggle>` in `components/Settings.tsx`. The page
 is a list of sections of rows precisely so that stays true.
+
+### Four decks, and a fifth option that is not a machine
+
+**Vinyl · CD · Cassette · Jukebox.** One timeline, four skins: the ceremony's
+beats, the progress driving them and every rule in `lib/ceremony.ts` are
+identical for all four. The temptation is to let each medium have its own timing
+"because a CD is quicker" — don't; the store's asserted beats and
+`ceremony.test.ts` cover ONE timeline.
+
+**Adding a fifth** is a row in `lib/decks.ts` (the words), a face in
+`components/decks/` (the picture), a shape in `decks/face.ts` (the frame and
+where the notes drift from), a cue in `lib/crackle.ts` (the sound) and a value in
+the `DeckStyle` union. Every one of those tables is keyed through the union, so
+leaving any of them out **fails the build** rather than shipping a blank deck.
+
+⚠️ **`DeckStyle` and `DeckSetting` are two types on purpose.** `DeckStyle` is a
+machine — always one of the four. `DeckSetting` is what the user picked, which
+has one more value: `random`. `FACES`, `SHAPES` and `CUES` are all keyed on the
+narrower type, so nothing that has to *draw* or *sound* a deck can be handed
+`random` — it has to go through `resolveDeck()` first. The version of this that
+made `random` a `DeckStyle` compiled fine and rendered nothing.
+
+**Random is a rotation, not a dice roll** — vinyl → CD → cassette → jukebox →
+round again, indexed by the track's position in `order`. A real random pick
+repeats (three cassettes in a row is an ordinary outcome) and the complaint that
+produces is "the random setting is broken", which it would not be. Being a pure
+function of a *position* is also what lets the row of records waiting to go on
+show the machine each one is headed for, and what makes it agree with the deck
+after a reload: nothing is remembered, so nothing can disagree.
+
+⚠️ **The jukebox's medium is a 45, not an LP** — a label half the width of the
+disc, a hole you can see across a room, and 45 rpm against the turntable's 33⅓.
+That is the only thing distinguishing the two record decks in the waiting row,
+where neither machine is drawn: get it wrong and switching between them appears
+to do nothing.
 
 ### Three things worth knowing before changing the audio
 

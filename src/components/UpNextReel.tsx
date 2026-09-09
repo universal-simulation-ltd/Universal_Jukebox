@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Cover from './Cover'
+import { resolveDeck } from '../lib/decks'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -7,7 +8,8 @@ import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
 import type { Album, Track } from '../lib/types'
 
 // The records waiting to go on — a row of them beside the deck, in the order
-// they will be played (James, 2026-09-09).
+// they will be played, each one named, and each one a way of jumping straight
+// to that track (James, 2026-09-09).
 //
 // ⚠️ It shows one item per QUEUE ENTRY, not one per album, and that is the
 // literal reading of the request on purpose: "the same disc visualisation that
@@ -17,14 +19,32 @@ import type { Album, Track } from '../lib/types'
 // exactly what a stack of singles waiting on a jukebox arm looks like, and what
 // makes the fade-out mean something — one item leaves per track, not per album.
 //
-// ⚠️ IT IS `aria-hidden`, and that is not laziness. "Up next" underneath is the
-// same queue as a real list with real names and a remove button on every row;
-// this is a picture of it. A screen reader that read both would announce every
-// upcoming track twice, once as a name and once as a nameless image, and the
-// second one cannot be acted on.
+// ⚠️ IT USED TO BE `aria-hidden`, and it is not any more. That was right while
+// this was a picture of the queue: "Up next" underneath is the same list with
+// real names and a remove button, and a screen reader that read both would have
+// announced every upcoming track twice, the second time as a nameless image
+// that could not be acted on. Both halves of that have now changed — these
+// carry names, and each one is a button that plays its track — and an
+// `aria-hidden` button is worse than a duplicated one: it is unreachable by
+// keyboard while still taking a tab stop's worth of visual space. So the row is
+// exposed, and the DRAWINGS inside it stay hidden.
+//
+// What survives of the old argument is that this is deliberately the SHORT
+// version — as many as fit on one line, no remove button, no scroll. "Up next"
+// underneath is still the complete list, and is still where you go to change
+// the queue rather than to move about in it.
 
-/** The size of one medium in the row, and the space between two. */
-const ITEM = 76
+/**
+ * One column in the row, and the space between two.
+ *
+ * ⚠️ `ITEM` is the COLUMN, `MEDIA` is the drawing inside it. They were one
+ * number until the titles arrived, and 76px is not enough width for a track
+ * name to say anything — at that size almost every title truncates to two
+ * words and an ellipsis, which is a row of identical grey stubs rather than a
+ * queue you can read.
+ */
+const ITEM = 104
+const MEDIA = 76
 const GAP = 18
 
 /** How long a record takes to leave the row once it is on the deck. */
@@ -40,6 +60,15 @@ interface Waiting {
    * appears exactly once and is the only stable key available.
    */
   key: number
+  /**
+   * Where this track sits in `order` — which is what `jumpTo` takes, and what
+   * `resolveDeck` counts the rotation along.
+   *
+   * ⚠️ NOT the same number as `key`, and passing one where the other belongs
+   * plays a different track than the one whose picture was pressed. `key` is a
+   * position in the QUEUE; this is a position in the SEQUENCE.
+   */
+  orderIndex: number
   track: Track
 }
 
@@ -47,8 +76,9 @@ export default function UpNextReel() {
   const queue = usePlayerStore((s) => s.queue)
   const order = usePlayerStore((s) => s.order)
   const cursor = usePlayerStore((s) => s.cursor)
+  const jumpTo = usePlayerStore((s) => s.jumpTo)
   const albums = useLibraryStore((s) => s.albums)
-  const style = useSettingsStore((s) => s.deck)
+  const setting = useSettingsStore((s) => s.deck)
   const reduced = usePrefersReducedMotion()
 
   const box = useRef<HTMLDivElement>(null)
@@ -56,7 +86,7 @@ export default function UpNextReel() {
 
   const upcoming: Waiting[] = order
     .slice(cursor + 1)
-    .map((index) => ({ key: index, track: queue[index] }))
+    .map((index, i) => ({ key: index, orderIndex: cursor + 1 + i, track: queue[index] }))
     .filter((w) => !!w.track)
 
   const departing = useDeparting(order[cursor] ?? null, upcoming, reduced)
@@ -64,8 +94,11 @@ export default function UpNextReel() {
   if (upcoming.length === 0 && !departing) return null
 
   return (
-    <section className="mt-8" aria-hidden>
-      <p className="mb-3 text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
+    <section className="mt-8" aria-labelledby="jb-reel-heading">
+      <p
+        id="jb-reel-heading"
+        className="mb-3 text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500"
+      >
         Waiting to go on
       </p>
       {/* ⚠️ `overflow-hidden` is load-bearing rather than defensive. While a
@@ -73,19 +106,35 @@ export default function UpNextReel() {
           departing one at full width plus everything that will replace it — and
           that extra item sliding in from the clipped edge IS the "move the next
           items into place" half of the effect. Without the clip it would jut
-          out of the page instead. */}
-      <div ref={box} className="flex items-center overflow-hidden" style={{ gap: GAP }}>
+          out of the page instead.
+
+          ⚠️ `items-start`, not `items-center`. The titles under the drawings are
+          one or two lines depending on how long they are, and centring makes
+          the media themselves sit at different heights — a row of records that
+          is not level. */}
+      <div ref={box} className="flex items-start overflow-hidden" style={{ gap: GAP }}>
         {departing && (
           <Waiting
             key={`leaving-${departing.key}`}
-            track={departing.track}
+            item={departing}
             albums={albums}
-            style={style}
+            style={resolveDeck(setting, departing.orderIndex)}
             leaving
           />
         )}
         {upcoming.slice(0, fits).map((w) => (
-          <Waiting key={w.key} track={w.track} albums={albums} style={style} />
+          <Waiting
+            key={w.key}
+            item={w}
+            albums={albums}
+            // ⚠️ Resolved per ITEM, not once for the row. Under `deck: 'random'`
+            // this is the whole point of the rotation being a pure function of
+            // a queue position: the row shows what each track is actually going
+            // to be played on, and it agrees with the deck because both of them
+            // asked `resolveDeck` rather than each other.
+            style={resolveDeck(setting, w.orderIndex)}
+            onJump={() => jumpTo(w.orderIndex)}
+          />
         ))}
       </div>
     </section>
@@ -166,40 +215,84 @@ function useDeparting(
 }
 
 function Waiting({
-  track, albums, style, leaving = false,
-}: { track: Track; albums: Album[]; style: DeckStyle; leaving?: boolean }) {
+  item, albums, style, onJump, leaving = false,
+}: {
+  item: Waiting
+  albums: Album[]
+  style: DeckStyle
+  onJump?: () => void
+  leaving?: boolean
+}) {
+  const { track } = item
   const album = albums.find((a) => a.id === track.albumId)
+  const inner = (
+    <>
+      <div className="mx-auto" style={{ width: MEDIA }} aria-hidden>
+        <Medium album={album} style={style} />
+      </div>
+      {/* ⚠️ `break-words` and no truncation. A title clipped to one line is a
+          row of grey stubs — the reason the column got wider — and a jukebox
+          strip has always been a small label with a long name squeezed onto it.
+          Two lines is the common case; three is rare and allowed. */}
+      <span className="mt-2 block text-[11.5px] leading-snug font-medium break-words text-slate-700 dark:text-slate-200">
+        {track.title}
+      </span>
+      <span className="mt-0.5 block truncate text-[10.5px] text-slate-400 dark:text-slate-500">
+        {track.artist ?? track.albumArtist ?? 'Unknown artist'}
+      </span>
+    </>
+  )
+
   return (
     <div
       className="shrink-0 overflow-hidden"
       style={{
         // The animation shrinks `max-width` to zero, and everything to the
         // right of it slides along to fill the space. Setting it here rather
-        // than in the keyframes is what lets one rule serve any item size.
+        // than in the keyframes is what lets one rule serve any item size —
+        // `jb-reel-out` reads this custom property for its starting width, so
+        // the two cannot drift apart when the column is resized.
+        ['--jb-item' as string]: `${ITEM}px`,
         maxWidth: ITEM,
         width: ITEM,
         ...(leaving ? { animation: `jb-reel-out ${LEAVE_MS}ms ease-in forwards` } : null),
       }}
     >
-      <Medium album={album} style={style} />
+      {/* ⚠️ The departing item is NOT a button. It has already been loaded onto
+          the deck, so it is no longer a place in the queue to jump to — and a
+          control that disappears from under the pointer 460ms after it appears
+          is one that gets pressed by accident. */}
+      {leaving || !onJump ? (
+        <div className="text-center">{inner}</div>
+      ) : (
+        <button
+          type="button"
+          onClick={onJump}
+          aria-label={`Play ${track.title} now`}
+          className="w-full cursor-pointer rounded-lg text-center transition hover:-translate-y-[3px] hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] dark:hover:text-orange-400"
+        >
+          {inner}
+        </button>
+      )}
     </div>
   )
 }
 
 /**
- * One waiting record, disc or cassette.
+ * One waiting record, disc, cassette or single.
  *
  * ⚠️ NOT the deck faces from `components/decks/`, and that is deliberate. Those
  * draw the MACHINE — a tonearm, a laser sled on its rail, a Discman body with
- * buttons on it — which at 76px is a smudge, and none of which is waiting to go
- * on: the machine stays where it is. What belongs in this row is the medium
- * itself, so these are three deliberately plain drawings of one.
+ * buttons on it, a whole jukebox cabinet — which at 76px is a smudge, and none
+ * of which is waiting to go on: the machine stays where it is. What belongs in
+ * this row is the medium itself, so these are four deliberately plain drawings
+ * of one.
  *
  * The cost of that decision is that the media are now drawn in two places, and
- * the honest guard against drift is that these three are trivial: a circle with
- * the artwork in the middle, twice, and a rectangle with the artwork across it.
- * If one of them ever needs a detail from the real face, it is the wrong shape
- * for this row.
+ * the honest guard against drift is that these are trivial: a circle with the
+ * artwork in the middle, three times, and a rectangle with the artwork across
+ * it. If one of them ever needs a detail from the real face, it is the wrong
+ * shape for this row.
  */
 function Medium({ album, style }: { album: Album | undefined; style: DeckStyle }) {
   if (style === 'cassette') {
@@ -242,6 +335,11 @@ function Medium({ album, style }: { album: Album | undefined; style: DeckStyle }
     )
   }
 
+  // ⚠️ The jukebox's medium is a 45, not the LP above it: a bigger label and a
+  // hole you can see across a room. It is the only thing distinguishing the two
+  // record decks in this row, since neither of their machines is drawn here —
+  // get it wrong and switching between vinyl and jukebox appears to do nothing.
+  const single = style === 'jukebox'
   return (
     <div className="relative h-[76px] w-[76px] overflow-hidden rounded-full bg-slate-900 shadow-md ring-1 ring-slate-900/10 dark:bg-[#12192b]">
       <div
@@ -251,10 +349,16 @@ function Medium({ album, style }: { album: Album | undefined; style: DeckStyle }
             'repeating-radial-gradient(circle at 50% 50%, transparent 0 2px, rgba(255,255,255,.5) 2px 3px)',
         }}
       />
-      <div className="absolute overflow-hidden rounded-full ring-1 ring-white/10" style={{ inset: '30%' }}>
+      <div
+        className="absolute overflow-hidden rounded-full ring-1 ring-white/10"
+        style={{ inset: single ? '25%' : '30%' }}
+      >
         <Cover album={album} className="h-full w-full" rounded={false} />
       </div>
-      <div className="absolute rounded-full bg-slate-100 dark:bg-slate-900" style={{ inset: '47%' }} />
+      <div
+        className="absolute rounded-full bg-slate-100 dark:bg-slate-900"
+        style={{ inset: single ? '43%' : '47%' }}
+      />
     </div>
   )
 }

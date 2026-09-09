@@ -99,4 +99,18 @@ export const SHAPES: Record<DeckStyle, { frame: DeckFrame; notes: NotesAnchor }>
   // above and below the deck that nothing fills. Its notes leave the tape head,
   // low and centre.
   cassette: { frame: { ratio: 0.66, radius: '14px' }, notes: { right: '40%', top: '80%' } },
+  // ⚠️ A CABINET, so this is the one frame that is TALLER than it is wide, and
+  // the radius is an ARCH — two radii per corner, because a jukebox dome is
+  // wider than it is tall and the single-value form would give it a circle.
+  // The focus ring and the hover target take their shape from this string, so
+  // it has to be the cabinet's outline and not an approximation of it.
+  //
+  // ⚠️ 1.24 is not free choice: the glass window is `aspect-square` at 70% of
+  // the WIDTH (see `WINDOW` in `JukeboxDeck.tsx`), which eats 70/124 of the
+  // height, and the selection panel and grille below it need the rest. Make the
+  // cabinet squarer and the grille slides off the bottom edge.
+  jukebox: {
+    frame: { ratio: 1.24, radius: '46% 46% 10% 10% / 30% 30% 7% 7%' },
+    notes: { right: '12%', top: '44%' },
+  },
 }

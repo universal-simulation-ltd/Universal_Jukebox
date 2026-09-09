@@ -62,15 +62,50 @@ export type HomeTab = 'albums' | 'artists' | 'tracks'
  *                app was before this setting existed).
  * - `cd`       — a disc under a Discman-style laser sled, tracking outward.
  * - `cassette` — a Walkman-style shell, the tape spooling left to right.
+ * - `jukebox`  — the cabinet the app is named after: a 45 lifted out of the
+ *                rack by a gripper, laid on the platter, and played.
  *
  * ⚠️ This changes the PICTURE and the start-up sound, and nothing else. The
  * ceremony's beats, the progress it is driven by, and every rule in
- * `lib/ceremony.ts` are identical for all three — see `components/Deck.tsx`.
+ * `lib/ceremony.ts` are identical for all four — see `components/Deck.tsx`.
  * The temptation with a setting like this is to let each medium have its own
- * timing "because a CD is quicker"; don't. One timeline, three skins, or the
- * ceremony tests stop covering two thirds of the app.
+ * timing "because a CD is quicker"; don't. One timeline, four skins, or the
+ * ceremony tests stop covering three quarters of the app.
+ *
+ * ⚠️ This is a MACHINE, always one of these four. What the user may have
+ * chosen is a `DeckSetting`, which has one more value — see below.
  */
-export type DeckStyle = 'vinyl' | 'cd' | 'cassette'
+export type DeckStyle = 'vinyl' | 'cd' | 'cassette' | 'jukebox'
+
+/**
+ * What the user picked, which is not quite the same thing.
+ *
+ * `random` is the one value that is not a machine: it means "a different one
+ * each time", and `lib/decks.ts` resolves it against a position in the queue.
+ *
+ * ⚠️ The two types are deliberately separate rather than one union with a
+ * `random` member, and the split is what keeps the rest of the app honest.
+ * `FACES`, `SHAPES` and `CUES` are all `Record<DeckStyle, …>`, so nothing that
+ * has to DRAW or SOUND a deck can be handed `random` — it has to go through
+ * `resolveDeck()` first, which is the only place the rotation exists. The
+ * version of this that made `random` a `DeckStyle` compiled fine and rendered
+ * nothing.
+ */
+export type DeckSetting = DeckStyle | 'random'
+
+/**
+ * Every value `deck` may hold, in the order the chooser lists them.
+ *
+ * ⚠️ The validator reads THIS rather than a hand-written chain of `===`. The
+ * chain is what was here, and adding the jukebox to it meant remembering a
+ * fourth clause in a file that has nothing else to do with decks — miss it and
+ * the setting saves, then silently reverts to vinyl on the next load, which is
+ * the hardest kind of bug to see because the app looks like it is working.
+ *
+ * ⚠️ `random` is LAST on purpose: it is the option that is not a machine, and
+ * putting it at the end of the radio list keeps the four real ones together.
+ */
+export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'jukebox', 'random']
 
 export interface Settings {
   ceremonyMode: CeremonyMode
@@ -82,13 +117,14 @@ export interface Settings {
    */
   homeTab: HomeTab
   /**
-   * Which player the deck draws, and which start-up sound it makes.
+   * Which player the deck draws, and which start-up sound it makes — or
+   * `random`, for a different one per track.
    *
    * ⚠️ Vinyl is the default and must stay it: an existing user's stored blob
    * has no `deck` key, and the field-by-field fallback below has to give them
    * back exactly the app they had.
    */
-  deck: DeckStyle
+  deck: DeckSetting
   /** The synthesised start-up sound: the needle landing, the disc spinning up,
    *  or the play key latching, whichever deck is showing. */
   needleDrop: boolean
@@ -215,7 +251,7 @@ function read(): Settings {
       ? (mode as CeremonyMode)
       : DEFAULTS.ceremonyMode,
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' ? tab : DEFAULTS.homeTab,
-    deck: deck === 'vinyl' || deck === 'cd' || deck === 'cassette' ? deck : DEFAULTS.deck,
+    deck: DECK_SETTINGS.includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),

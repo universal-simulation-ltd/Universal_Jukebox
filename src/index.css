@@ -98,9 +98,17 @@ body {
    deck. Shrinking `max-width` rather than fading in place is what makes the
    records behind it SLIDE ALONG into the gap — a plain opacity fade would leave
    a hole where it was and then jump everything left when it unmounted. The
-   element sets its own starting `max-width`, so this rule works at any size. */
+   element sets its own starting `max-width`, so this rule works at any size.
+
+   ⚠️ The `from` width comes from `--jb-item`, which `UpNextReel` sets to its own
+   column width, and the 100px fallback is only for an element that forgot to.
+   It was a hard 100px, which happened to work while the column was 76px wide
+   BECAUSE the element also sets `width` — max-width can only shrink, so the
+   first quarter of the animation did nothing visible. Widen the column past the
+   hard-coded number and that turns into a record that hangs still and then
+   jumps, which reads as a dropped frame rather than as a wrong constant. */
 @keyframes jb-reel-out {
-  from { max-width: 100px; opacity: 1; transform: translateY(0) scale(1); }
+  from { max-width: var(--jb-item, 100px); opacity: 1; transform: translateY(0) scale(1); }
   to   { max-width: 0px; opacity: 0; transform: translateY(-18%) scale(0.8); }
 }
 

@@ -2,23 +2,24 @@ import type { DeckStyle } from '../stores/settingsStore'
 
 // The moment the pickup engages: a low thunk, then noise fading under the music.
 //
-// THREE cues, one per deck (Settings ▸ What you're playing on):
+// FOUR cues, one per deck (Settings ▸ What you're playing on):
 //
 //   vinyl     the needle landing — a thunk, then surface noise and pops
 //   cd        the lid clicking shut, then a servo spinning the disc up
 //   cassette  the play key latching, then tape hiss
+//   jukebox   the gripper clacking, the carriage swinging across, then vinyl
 //
 // ⚠️ They are all the same SHAPE — an impact, then a bed of filtered noise
 // fading out under the first bar — and that is deliberate. The four rules below
 // are what make a sound the user did not ask for defensible, and a cue that
 // runs longer or louder because the medium "deserves" it breaks them. Two
-// primitives (`tone` and `noise`) and a table of numbers, so a fourth deck is a
+// primitives (`tone` and `noise`) and a table of numbers, so a fifth deck is a
 // row rather than a new synth.
 //
 // All of it is SYNTHESISED — no asset to ship, no licence to think about, and
-// two functions between the three of them. The impacts are swept oscillators
+// two functions between the four of them. The impacts are swept oscillators
 // with a fast decay; the beds are band-passed white noise, with a scattering of
-// pops on the vinyl one only.
+// pops on the two that end in a needle — vinyl and jukebox.
 //
 // ⚠️ FOUR RULES, and they are not stylistic (§22.9 of next-products.md):
 //
@@ -91,7 +92,7 @@ export function playTransportCue(style: DeckStyle, volume = 0.8, level = 1): voi
 }
 
 /**
- * The three cues, as numbers.
+ * The four cues, as numbers.
  *
  * ⚠️ Every one of them finishes inside a second (rule 3 above) — check the
  * largest `at + seconds` in a row before adding to it. The vinyl row is the
@@ -120,6 +121,22 @@ const CUES: Record<DeckStyle, CuePart[]> = {
     { kind: 'noise', at: 0.07, freq: 900, q: 1.4, peak: 0.28, seconds: 0.05, pops: 0 },
     { kind: 'tone', at: 0, wave: 'sine', from: 96, to: 52, peak: 0.26, seconds: 0.22 },
     { kind: 'noise', at: 0.1, freq: 4600, q: 0.7, peak: 0.3, seconds: 0.8, pops: 0 },
+  ],
+  // The one cue with TWO impacts a third of a second apart, because a jukebox
+  // is the one machine that does two things: the gripper takes the record out
+  // of the rack (a solenoid clack and a carriage running across) and then the
+  // needle lands on it. The gap between them is the whole character of the
+  // sound — close them up and it is a noisier needle drop.
+  //
+  // ⚠️ Its landing is the vinyl cue's, deliberately near-identical: it IS a
+  // record being played by a needle, and giving it a different landing would
+  // say the jukebox plays some other format. The pops are the same too.
+  jukebox: [
+    { kind: 'noise', at: 0, freq: 760, q: 1.3, peak: 0.34, seconds: 0.05, pops: 0 },
+    { kind: 'tone', at: 0.02, wave: 'sawtooth', from: 58, to: 132, peak: 0.11, seconds: 0.3 },
+    { kind: 'noise', at: 0.06, freq: 2400, q: 0.8, peak: 0.09, seconds: 0.3, pops: 0 },
+    { kind: 'tone', at: 0.38, wave: 'sine', from: 120, to: 46, peak: 0.3, seconds: 0.3 },
+    { kind: 'noise', at: 0.42, freq: 1900, q: 0.5, peak: 0.34, seconds: 0.5, pops: 0.0013 },
   ],
 }
 

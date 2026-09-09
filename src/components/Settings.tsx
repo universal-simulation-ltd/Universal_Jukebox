@@ -1,10 +1,11 @@
 import { graphUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
-import { DECKS, deckCopy } from '../lib/decks'
+import { DECKS, deckCopy, resolveDeck } from '../lib/decks'
 import { goHome } from '../lib/route'
 import { usePlayerStore } from '../stores/playerStore'
 import {
   CEREMONY_LADDER,
+  DECK_SETTINGS,
   MAX_BOOST,
   MAX_FADE_SEC,
   NEEDLE_STEP_MAX,
@@ -13,7 +14,7 @@ import {
   stepToLevel,
   useSettingsStore,
   type CeremonyMode,
-  type DeckStyle,
+  type DeckSetting,
   type HomeTab,
 } from '../stores/settingsStore'
 import { useThemeStore, type ThemePref } from '../stores/themeStore'
@@ -88,11 +89,15 @@ export default function Settings() {
         title="What you’re playing on"
         note="The deck on Now Playing. It changes the picture and the sound it makes starting up — never the music."
       >
-        <Choice<DeckStyle>
+        <Choice<DeckSetting>
           label="Deck"
           value={s.deck}
           onChange={(v) => s.set('deck', v)}
-          options={(Object.keys(DECKS) as DeckStyle[]).map((value) => ({
+          // ⚠️ `DECK_SETTINGS` rather than `Object.keys(DECKS)`. Both hold the
+          // same five values, but only one of them has a defined ORDER — object
+          // key order is an implementation detail, and this list has `random`
+          // deliberately last, after the four real machines.
+          options={DECK_SETTINGS.map((value) => ({
             value,
             label: DECKS[value].label,
             hint: DECKS[value].hint,
@@ -116,7 +121,7 @@ export default function Settings() {
           copy={{
             always: {
               label: 'Every track',
-              hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.noun === 'record' ? 'needle' : 'pickup'} put back.`,
+              hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.pickup} put back.`,
             },
             album: {
               label: 'When the album changes',
@@ -162,7 +167,14 @@ export default function Settings() {
           disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
           format={(v) => (v === 0 ? '0' : v > 0 ? `+${v}` : String(v))}
           onChange={(v) => s.set('needleDropLevel', stepToLevel(v))}
-          onCommit={(v) => playTransportCue(s.deck, usePlayerStore.getState().volume, stepToLevel(v))}
+          // ⚠️ Resolved against the cursor, so under Random the demonstration is
+          // the machine currently on the deck rather than always the first of
+          // the rotation. `playTransportCue` takes a `DeckStyle` and this store
+          // holds a `DeckSetting`, so the compiler insists on the crossing.
+          onCommit={(v) => {
+            const player = usePlayerStore.getState()
+            playTransportCue(resolveDeck(s.deck, player.cursor), player.volume, stepToLevel(v))
+          }}
         />
       </Section>
 

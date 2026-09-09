@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { coverUrl } from '../lib/art'
 import { playTransportCue } from '../lib/crackle'
+import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
@@ -616,7 +617,18 @@ function handoverFor(from: Track | null, to: Track): Handover {
 function needleDrop(volume: number): void {
   const { needleDrop: on, needleDropLevel, deck } = settings()
   if (!on) return
-  playTransportCue(deck, volume, needleDropLevel)
+  // ⚠️ The CURSOR is read here rather than passed in, and all four callers are
+  // better for it. Under `deck: 'random'` the cue has to be the one belonging
+  // to the machine currently on screen — `Deck.tsx` resolves the same setting
+  // against the same cursor — and every call site is inside a timer that fires
+  // after the cursor has already moved. Passing it as an argument would give
+  // four chances to pass the OLD one, and a cassette clunk over a spinning
+  // record is exactly the kind of wrongness nobody can quite name.
+  //
+  // The preview is the one caller with no queue position of its own, and it
+  // wants this answer too: it is a needle landing on something that is not the
+  // deck you can see, so it sounds like the deck you can see.
+  playTransportCue(resolveDeck(deck, usePlayerStore.getState().cursor), volume, needleDropLevel)
 }
 
 function prefersReducedMotion(): boolean {
