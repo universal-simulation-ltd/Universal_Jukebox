@@ -68,6 +68,21 @@ export interface Album {
 export interface Root {
   id: string
   label: string
+  /**
+   * The path prefix every track under this root carries — `Music` for
+   * `Music/Nick Cave/Let Love In/01.mp3`.
+   *
+   * ⚠️ THIS IS THE ROOT'S IDENTITY, not decoration. It is what makes "remove
+   * this folder" a filter over paths, and it is what stops two folders holding
+   * the same relative path from producing the same `trackKey` — see the header
+   * of `lib/roots.ts`, which is where every rule about it lives.
+   *
+   * ⚠️ OPTIONAL, because a root stored before multi-folder has no prefix and
+   * its tracks have unprefixed paths. `prefixOf()` reads that absence as "" —
+   * "everything is mine" — which is exactly true of the single-root library it
+   * came from. Never read this field directly; go through `prefixOf`.
+   */
+  prefix?: string
   handle: FileSystemDirectoryHandle | null
   scannedAt: number
   trackCount: number

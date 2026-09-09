@@ -134,6 +134,22 @@ export interface ScanOptions {
   onProgress?: (progress: ScanProgress) => void
   /** Aborts the walk between files. */
   signal?: AbortSignal
+  /**
+   * The root's name, put in front of every path this scan produces.
+   *
+   * ⚠️ NOT cosmetic. `trackKey` is path + size + mtime, so without it two
+   * folders that both contain `Nick Cave/Let Love In/01.mp3` mint the SAME
+   * track id and the same `filesByPath` key, and one silently overwrites the
+   * other — the bug that had to be fixed before a second folder could be
+   * allowed at all. See the header of `lib/roots.ts`.
+   *
+   * ⚠️ It is applied by BOTH walkers, to paths that are relative to the chosen
+   * folder. `webkitRelativePath` already begins with the folder's own name, so
+   * `walkFileList` strips that first segment before this goes on — otherwise
+   * the same folder would be `Music/Music/…` on Firefox and `Music/…` on
+   * Chrome, i.e. two different libraries depending on the browser.
+   */
+  prefix?: string
 }
 
 /** How many tracks to accumulate before handing a batch to the UI and the DB. */
@@ -151,8 +167,9 @@ const BATCH = 40
 async function* walkHandle(
   root: FileSystemDirectoryHandle,
   signal?: AbortSignal,
+  rootPrefix = '',
 ): AsyncGenerator<Found> {
-  const stack: { dir: FileSystemDirectoryHandle; prefix: string }[] = [{ dir: root, prefix: '' }]
+  const stack: { dir: FileSystemDirectoryHandle; prefix: string }[] = [{ dir: root, prefix: rootPrefix }]
   while (stack.length > 0) {
     if (signal?.aborted) return
     const { dir, prefix } = stack.pop()!
@@ -189,10 +206,15 @@ async function* walkHandle(
  * The Firefox/Safari path: a `<input webkitdirectory>` FileList, which arrives
  * already flattened with `webkitRelativePath` carrying the folder structure.
  */
-function* walkFileList(files: FileList | File[]): Generator<Found> {
+function* walkFileList(files: FileList | File[], rootPrefix = ''): Generator<Found> {
   for (const file of Array.from(files)) {
     const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath
-    yield { file, path: rel && rel.length > 0 ? rel : file.name }
+    // ⚠️ Drop the leading segment: `webkitRelativePath` is
+    // `<the folder they chose>/<everything below it>`, and the caller has
+    // already decided what this root is called. Keeping both would give the
+    // same folder a different path on Firefox than on Chrome.
+    const relative = rel && rel.length > 0 ? rel.slice(rel.indexOf('/') + 1) || file.name : file.name
+    yield { file, path: rootPrefix ? `${rootPrefix}/${relative}` : relative }
   }
 }
 
@@ -275,7 +297,7 @@ export async function scan(
   source: FileSystemDirectoryHandle | FileList | File[],
   options: ScanOptions = {},
 ): Promise<ScanResult> {
-  const { onBatch, onProgress, signal } = options
+  const { onBatch, onProgress, signal, prefix = '' } = options
 
   const tracks: Track[] = []
   const albums = new Map<string, Album>()
@@ -305,8 +327,8 @@ export async function scan(
   }
 
   const walker = isDirectoryHandle(source)
-    ? walkHandle(source, signal)
-    : walkFileList(source as FileList | File[])
+    ? walkHandle(source, signal, prefix)
+    : walkFileList(source as FileList | File[], prefix)
 
   for await (const found of walker) {
     if (signal?.aborted) break

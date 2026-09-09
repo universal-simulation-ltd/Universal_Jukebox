@@ -1,7 +1,8 @@
 import { create } from 'zustand'
-import { releaseAllCovers } from '../lib/art'
+import { releaseAllCovers, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
 import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
+import { addScan, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, uniqueLabel } from '../lib/roots'
 import { hasDirectoryPicker, scan, REFUSED, type FoundImage } from '../lib/scan'
 import { applyFixes } from '../lib/tidy'
 import type { Album, Root, ScanProgress, Track } from '../lib/types'
@@ -28,6 +29,13 @@ import type { Album, Root, ScanProgress, Track } from '../lib/types'
 // `Universal_Beam/src/lib/fileSink.ts` both do exactly that), which is why
 // `canPersistFolder` is read by the landing copy.
 //
+// ⚠️ 1b. THERE CAN BE SEVERAL FOLDERS (2026-09-09). Adding one ADDS to the
+// library; it used to replace it. Every root files its tracks under its own
+// name — `Music/Nick Cave/…` — and `lib/roots.ts` owns every rule that follows
+// from that, including the path collision which had to be fixed first and the
+// one-off cost of fixing it. Read that file's header before changing anything
+// here: this store is the plumbing, and the arithmetic is all over there.
+//
 // ⚠️ 2. THE STORE HOLDS `File` OBJECTS AND MUST NOT BE PERSISTED. `filesByPath`
 // is the live handle to the actual bytes on disk. It is rebuilt on every scan
 // and deliberately not written anywhere — a `File` outlives its permission by
@@ -49,8 +57,6 @@ interface LibraryState {
   /** Directory → the images found in it, for the tidy-up. Never persisted. */
   folderImages: Map<string, FoundImage[]>
   canPersistFolder: boolean
-  /** Set when the stored folder needs its permission re-granted. */
-  needsRegrant: boolean
 
   /** True once a scan has been stopped early, so the UI can say what it kept. */
   stoppedEarly: boolean
@@ -58,15 +64,53 @@ interface LibraryState {
   hydrate(): Promise<void>
   /** Stop a running scan, keeping everything found so far. */
   stopScan(): void
+  /** Choose a folder and ADD it to the library. */
   pickFolder(): Promise<void>
+  /** The Firefox/Safari path, and "pick individual files". Also adds. */
   addFiles(files: FileList | File[], label?: string): Promise<void>
   /** Fill the library with the generated example records — see `lib/exampleLibrary.ts`. */
   loadExample(): Promise<void>
-  regrant(): Promise<void>
-  rescan(): Promise<void>
+  /** Re-ask for one folder's permission and re-read it. */
+  regrantFolder(id: string): Promise<void>
+  /** Re-read one folder, picking up anything new inside it. */
+  rescanFolder(id: string): Promise<void>
+  /** Take one folder out of the library, leaving the others alone. */
+  removeFolder(id: string): Promise<void>
+  /** Forget the lot. */
   clear(): Promise<void>
   fileFor(track: Track): File | null
   dismissError(): void
+}
+
+/**
+ * The roots that cannot be played right now — each needs its folder back.
+ *
+ * ⚠️ DERIVED, not stored, and that is the multi-folder change in one line:
+ * `needsRegrant` was a boolean about the whole library, and with several folders
+ * the answer genuinely differs between them. Reading it from the live `File` map
+ * means it is right the moment a folder is re-granted, with nothing having to
+ * remember to clear a flag.
+ *
+ * ⚠️ TAKES ITS INPUTS, and is NOT a zustand selector. It was one — 
+ * `useLibraryStore(needAccess)` — and that is an infinite render loop: a
+ * selector returning a NEW ARRAY every call never compares equal to the last
+ * one under `Object.is`, so the store re-renders the subscriber, which calls the
+ * selector, which returns another new array. React stops it with "Maximum
+ * update depth exceeded" and the app is dead on the landing page, before there
+ * is even a library to check. Callers subscribe to the three pieces and
+ * `useMemo` this.
+ */
+export function needAccessFrom(
+  roots: Root[],
+  tracks: Track[],
+  filesByPath: Map<string, File>,
+): Root[] {
+  return rootsNeedingAccess(roots, tracks, filesByPath, isGenerated)
+}
+
+/** The example library's records are made on demand — no folder, ever. */
+function isGenerated(root: Root): boolean {
+  return root.id === EXAMPLE_ROOT_ID
 }
 
 /** Tracks in the order an album should play: disc, then track, then title. */
@@ -93,7 +137,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   filesByPath: new Map(),
   folderImages: new Map(),
   canPersistFolder: hasDirectoryPicker(),
-  needsRegrant: false,
   stoppedEarly: false,
 
   /**
@@ -111,20 +154,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       albums,
       roots,
       status: tracks.length > 0 ? 'ready' : 'empty',
-      // ⚠️ Whenever there is a library but no live `File` handles, which after a
-      // reload is ALWAYS — and on BOTH browser paths, not just the Chromium one.
-      //
-      // This used to be gated on a stored directory handle existing, which meant
-      // Firefox and Safari (where there never is one) reloaded to a library that
-      // looked completely normal and played nothing: every click produced "that
-      // file isn't reachable any more" with no way offered to fix it. The two
-      // paths need different WORDING, not different silence — `ScanBanner`
-      // branches on `roots[0].handle` for that.
-      // ⚠️ …EXCEPT for the example library, which has no folder to re-grant.
-      // Its audio is generated from the track paths, so it comes back off a
-      // reload fully playable — and telling somebody their example library
-      // needs a folder chosen would be an error message about nothing.
-      needsRegrant: tracks.length > 0 && roots[0]?.id !== EXAMPLE_ROOT_ID,
+      // ⚠️ NOTHING sets a "needs permission" flag any more. Which folders are
+      // unreachable is DERIVED, by `needAccess`, from the live `File` map —
+      // which after a reload is empty, so every real folder needs its
+      // permission back, and the example library never does because its audio
+      // is generated rather than read. A stored flag was fine while there was
+      // one folder and became a lie the moment there were two: re-granting one
+      // of three would have cleared it for all of them.
     })
   },
 
@@ -148,24 +184,25 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
    * ⚠️ It goes into IndexedDB like a real one, and that is deliberate: the demo
    * then survives a reload exactly as a real library does, and the tracks still
    * play afterwards because their audio is regenerated from their paths rather
-   * than read from a disk. The one thing that must NOT follow is the
-   * folder-permission banner — there is no folder — which is why `hydrate`
-   * checks the root id.
+   * than read from a disk. It never asks for a folder, because it has none —
+   * `needAccess` skips it by id.
    *
-   * ⚠️ It REPLACES whatever is there, like every other way of loading a
-   * library. Only offered from the landing page, which is only shown when there
-   * is nothing to replace.
+   * ⚠️ It REPLACES everything, unlike adding a folder. It is offered only from
+   * the landing page, which is only shown when there is nothing to replace, and
+   * a demo that merged itself into somebody's real library would be a mess to
+   * pick apart afterwards.
    */
   async loadExample() {
     releaseAllCovers()
     scanAbort?.abort()
     await db.clearLibrary()
-    set({ status: 'scanning', tracks: [], albums: [], error: null, needsRegrant: false, stoppedEarly: false, refusals: [], progress: null })
+    set({ status: 'scanning', tracks: [], albums: [], roots: [], error: null, stoppedEarly: false, refusals: [], progress: null })
 
     const { tracks, albums } = await buildExampleLibrary()
     const root: Root = {
       id: EXAMPLE_ROOT_ID,
       label: EXAMPLE_LABEL,
+      prefix: EXAMPLE_LABEL,
       handle: null,
       scannedAt: Date.now(),
       trackCount: tracks.length,
@@ -180,7 +217,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       // Nothing to hold: the audio is made on demand by `fileFor` below.
       filesByPath: new Map(),
       folderImages: new Map(),
-      needsRegrant: false,
     })
   },
 
@@ -195,14 +231,20 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   /**
-   * Re-ask for the stored folder's permission.
+   * Re-ask for ONE folder's permission, then re-read it.
    *
    * ⚠️ Must be called from a user gesture — a click handler, not an effect. The
    * browser drops a permission request that has no gesture behind it, and it
    * does so silently, which presents as a button that does nothing at all.
+   *
+   * ⚠️ ONE folder per press, deliberately. Permission is per handle, so three
+   * folders is three prompts — and a loop over them fires those prompts inside
+   * a single user gesture, which browsers may collapse to one grant and drop
+   * the rest with no error. A button per folder is honest about the cost and
+   * cannot half-work.
    */
-  async regrant() {
-    const root = get().roots.find((r) => r.handle !== null)
+  async regrantFolder(id) {
+    const root = get().roots.find((r) => r.id === id)
     if (!root?.handle) return
     const handle = root.handle as FileSystemDirectoryHandle & {
       queryPermission?(d: { mode: 'read' }): Promise<PermissionState>
@@ -212,18 +254,18 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       let state = (await handle.queryPermission?.({ mode: 'read' })) ?? 'granted'
       if (state !== 'granted') state = (await handle.requestPermission?.({ mode: 'read' })) ?? 'denied'
       if (state !== 'granted') {
-        set({ error: 'Without access to the folder the tracks cannot be played. Nothing was lost — the library is still here.' })
+        set({ error: `Without access to ${root.label} its tracks cannot be played. Nothing was lost — the library is still here.` })
         return
       }
     } catch {
-      set({ error: 'That folder could not be opened. It may have been moved, renamed, or be on a drive that is no longer connected.' })
+      set({ error: `${root.label} could not be opened. It may have been moved, renamed, or be on a drive that is no longer connected.` })
       return
     }
-    await runScan(set, get, root.handle, root.label, root.handle)
+    await runScan(set, get, root.handle, root.label, root.handle, root.id)
   },
 
-  async rescan() {
-    const root = get().roots[0]
+  async rescanFolder(id) {
+    const root = get().roots.find((r) => r.id === id)
     if (!root) return
     // The example library has no folder — "rescan" is simply "build it again".
     if (root.id === EXAMPLE_ROOT_ID) {
@@ -231,13 +273,55 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return
     }
     if (root.handle) {
-      await get().regrant()
+      await get().regrantFolder(id)
       return
     }
     // No handle means no way back to the folder without the picker. Say so
     // rather than pretending to rescan.
     set({
-      error: 'This browser can’t reopen a folder on its own — choose it again to rescan. Your library and covers are kept, so it will be quick.',
+      error: `This browser can’t reopen a folder on its own — choose ${root.label} again to rescan it. Your library and covers are kept, so it will be quick.`,
+    })
+  },
+
+  /**
+   * Take one folder out, leaving the others exactly as they were.
+   *
+   * ⚠️ Everything about which tracks belong to it comes from the path prefix
+   * (`lib/roots.ts`), which is the whole reason the prefix exists. The database
+   * is then rewritten to match the merged result rather than diffed — see
+   * `db.replaceLibrary` for why.
+   */
+  async removeFolder(id) {
+    const root = get().roots.find((r) => r.id === id)
+    if (!root) return
+    const prefix = prefixOf(root)
+    const merged = removeRoot({ tracks: get().tracks, albums: get().albums }, prefix)
+    const roots = get().roots.filter((r) => r.id !== id)
+
+    // ⚠️ Only the covers of albums that have actually gone. `releaseAllCovers`
+    // would drop every object URL in the app, including those of the records
+    // still in the library and possibly the one playing.
+    const surviving = new Set(merged.albums.map((a) => a.id))
+    for (const album of get().albums) {
+      if (!surviving.has(album.id)) releaseCover(album.id)
+    }
+
+    const files = new Map(get().filesByPath)
+    for (const path of [...files.keys()]) {
+      if (pathUnder(path, prefix)) files.delete(path)
+    }
+
+    await Promise.all([
+      db.replaceLibrary(merged.tracks, merged.albums),
+      db.deleteRoot(id),
+    ])
+    set({
+      tracks: merged.tracks,
+      albums: merged.albums,
+      roots,
+      filesByPath: files,
+      status: merged.tracks.length > 0 ? 'ready' : 'empty',
+      error: null,
     })
   },
 
@@ -260,7 +344,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({
       status: 'empty', tracks: [], albums: [], roots: [], progress: null,
       refusals: [], filesByPath: new Map(), folderImages: new Map(),
-      needsRegrant: false, error: null,
+      error: null,
       stoppedEarly: false,
     })
   },
@@ -304,21 +388,49 @@ async function runScan(
   source: FileSystemDirectoryHandle | FileList | File[],
   label: string,
   handle: FileSystemDirectoryHandle | null,
+  /** Re-scanning an existing root, rather than adding a new one. */
+  existingId?: string,
 ) {
-  releaseAllCovers()
-  await db.clearScanned()
-
   // A second scan started while one is running aborts the first, or the two
   // walks interleave into one library and the progress count runs backwards.
   scanAbort?.abort()
   const abort = new AbortController()
   scanAbort = abort
 
-  const tracks: Track[] = []
-  const albums = new Map<string, Album>()
+  // ⚠️ THE EXAMPLE LIBRARY STEPS ASIDE FOR REAL MUSIC. Adding a folder now ADDS,
+  // which for every real folder is the point — and for the demo would mean
+  // eleven records by four artists who do not exist quietly mixed in among
+  // somebody's own albums, indistinguishable in the grid and removable only by
+  // knowing which names were fake. It is a demo; the moment there is real music
+  // it has done its job.
+  if (get().roots.some((r) => r.id === EXAMPLE_ROOT_ID)) {
+    await get().removeFolder(EXAMPLE_ROOT_ID)
+  }
+
+  /**
+   * What this root is called, and therefore what its tracks are filed under.
+   *
+   * ⚠️ Re-scanning keeps the root's existing prefix, come what may. Deriving it
+   * again from the folder's name would rename the root — and since the prefix
+   * IS the identity, a renamed root is a second root: the library would end up
+   * holding the same music twice, under two names, from one press of "rescan".
+   */
+  const existing = existingId ? get().roots.find((r) => r.id === existingId) : undefined
+  const taken = get().roots.filter((r) => r.id !== existingId).map((r) => prefixOf(r))
+  const prefix = existing ? prefixOf(existing) : uniqueLabel(label, taken)
+  const rootId = existing?.id ?? prefix
+
+  // ⚠️ The library that is already loaded, captured BEFORE the scan starts.
+  // Everything below merges into this snapshot rather than into `get()`, so a
+  // batch arriving mid-walk cannot fold itself into a library that already
+  // contains the previous batch.
+  const before = { tracks: get().tracks, albums: get().albums }
+  const scanned: Track[] = []
+  const scannedAlbums = new Map<string, Album>()
 
   set({
-    status: 'scanning', tracks: [], albums: [], error: null, needsRegrant: false,
+    status: 'scanning',
+    error: null,
     stoppedEarly: false,
     progress: { seen: 0, added: 0, skipped: 0, where: '', done: false },
   })
@@ -326,12 +438,17 @@ async function runScan(
   let result
   try {
     result = await scan(source, {
+      prefix,
       onBatch: (newTracks, newAlbums) => {
-        for (const t of newTracks) tracks.push(t)
-        for (const a of newAlbums) albums.set(a.id, a)
+        for (const t of newTracks) scanned.push(t)
+        for (const a of newAlbums) scannedAlbums.set(a.id, a)
+        // ⚠️ The GRID fills in from the merge, not from the batch. Setting the
+        // batch alone was right when a scan replaced the library and would now
+        // make the other folders vanish for the length of the walk.
+        const merged = addScan(before, prefix, { tracks: scanned, albums: [...scannedAlbums.values()] })
         void db.putTracks(newTracks)
         void db.putAlbums(newAlbums)
-        set({ tracks: [...tracks], albums: [...albums.values()] })
+        set({ tracks: merged.tracks, albums: merged.albums })
       },
       onProgress: (progress) => set({ progress }),
       signal: abort.signal,
@@ -345,49 +462,64 @@ async function runScan(
     return
   }
 
+  const stopped = abort.signal.aborted
+  if (scanAbort === abort) scanAbort = null
+
+  // ⚠️ Fold the user's tidy-up back in, because a scan has just rebuilt this
+  // folder from the files and thrown its corrections away. Fixes are keyed by
+  // album id and track id — both derived from the files themselves — so a
+  // rescan of unchanged music reproduces exactly the ids they refer to. Without
+  // this, tidying would last until the next time somebody added an album, which
+  // is worse than not offering it.
+  //
+  // ⚠️ Applied to the WHOLE merged library, not to this scan's tracks: a fix
+  // can move a track into an album that lives in a different folder, and
+  // `applyFixes` drops any fix whose target album it cannot see.
+  const merged = addScan(before, prefix, {
+    tracks: result.tracks,
+    albums: result.albums,
+  })
+  const fixes = await db.allFixes()
+  const fixed = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
+
   const root: Root = {
-    id: 'primary',
-    label,
+    id: rootId,
+    label: prefix,
+    prefix,
     handle,
     scannedAt: Date.now(),
     trackCount: result.tracks.length,
   }
-  await db.putRoot(root)
+
+  // The whole picture, written in one go — see `db.replaceLibrary` for why this
+  // is a rewrite rather than a diff.
+  await Promise.all([db.replaceLibrary(fixed.tracks, fixed.albums), db.putRoot(root)])
 
   const refusals = [...result.refused.entries()]
     .map(([ext, count]) => ({ ext, count, why: REFUSED[ext] ?? '' }))
     .filter((r) => r.why)
     .sort((a, b) => b.count - a.count)
 
-  const stopped = abort.signal.aborted
-  if (scanAbort === abort) scanAbort = null
-
-  // ⚠️ Fold the user's tidy-up back in, because a scan has just rebuilt the
-  // library from the files and thrown every correction away. Fixes are keyed by
-  // album id and track id — both derived from the files themselves — so a
-  // rescan of unchanged music reproduces exactly the ids they refer to. Without
-  // this, tidying would last until the next time somebody added an album, which
-  // is worse than not offering it.
-  const fixes = await db.allFixes()
-  let fixedTracks = result.tracks
-  let fixedAlbums = result.albums
-  if (fixes.length > 0) {
-    const applied = applyFixes(result.tracks, result.albums, fixes)
-    fixedTracks = applied.tracks
-    fixedAlbums = applied.albums
-    await Promise.all([db.putTracks(fixedTracks), db.putAlbums(fixedAlbums)])
+  // The files of every OTHER folder survive: adding a second folder must not
+  // make the first one unplayable.
+  const files = new Map(get().filesByPath)
+  for (const path of [...files.keys()]) {
+    if (pathUnder(path, prefix)) files.delete(path)
   }
+  for (const [path, file] of result.files) files.set(path, file)
+
+  const images = new Map(get().folderImages)
+  for (const [dir, found] of result.images) images.set(dir, found)
 
   set({
-    status: fixedTracks.length > 0 ? 'ready' : 'empty',
-    tracks: fixedTracks,
-    albums: fixedAlbums,
-    roots: [root],
-    filesByPath: result.files,
-    folderImages: result.images,
+    status: fixed.tracks.length > 0 ? 'ready' : 'empty',
+    tracks: fixed.tracks,
+    albums: fixed.albums,
+    roots: [...get().roots.filter((r) => r.id !== rootId), root],
+    filesByPath: files,
+    folderImages: images,
     refusals,
     progress: null,
-    needsRegrant: false,
     stoppedEarly: stopped,
     // ⚠️ A stopped scan is not an error, so it does not get the error slot. It
     // is a library that is complete as far as it goes, and `ScanBanner` says so
@@ -395,6 +527,6 @@ async function runScan(
     // their music is broken when what actually happened is that they asked.
     error: stopped || result.tracks.length > 0
       ? null
-      : `Nothing playable in that folder — checked ${result.refused.size > 0 ? 'every file' : 'the whole folder'}.`,
+      : `Nothing playable in ${prefix} — checked ${result.refused.size > 0 ? 'every file' : 'the whole folder'}.`,
   })
 }

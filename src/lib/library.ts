@@ -191,6 +191,42 @@ export async function deleteAlbum(id: string): Promise<void> {
   await tx(STORE_ALBUMS, 'readwrite', (s) => s.delete(id))
 }
 
+/**
+ * Replace the whole tracks+albums picture in one go.
+ *
+ * ⚠️ Used after a MERGE — adding a folder, removing one — where the result is
+ * computed in memory from what was there plus what just arrived (`lib/roots.ts`)
+ * and the database's job is simply to end up matching. Deleting the rows that
+ * went away one id at a time is the obvious alternative and it is worse: the
+ * set of removed ids is exactly the thing the merge does not compute, so it
+ * would have to be derived by diffing, and a diff that is wrong leaves orphan
+ * tracks that appear in the library and cannot be played.
+ *
+ * Clear-then-write in ONE transaction, so a failure halfway cannot leave the
+ * library empty.
+ */
+export async function replaceLibrary(tracks: Track[], albums: Album[]): Promise<void> {
+  const db = await open()
+  if (!db) return
+  await new Promise<void>((resolve) => {
+    let t: IDBTransaction
+    try {
+      t = db.transaction([STORE_TRACKS, STORE_ALBUMS], 'readwrite')
+    } catch {
+      return resolve()
+    }
+    const trackStore = t.objectStore(STORE_TRACKS)
+    const albumStore = t.objectStore(STORE_ALBUMS)
+    trackStore.clear()
+    albumStore.clear()
+    for (const track of tracks) trackStore.put(track)
+    for (const album of albums) albumStore.put(album)
+    t.oncomplete = () => resolve()
+    t.onerror = () => resolve()
+    t.onabort = () => resolve()
+  })
+}
+
 // ── Roots ────────────────────────────────────────────────────────────────────
 
 export async function allRoots(): Promise<Root[]> {

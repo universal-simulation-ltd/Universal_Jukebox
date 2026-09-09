@@ -38,17 +38,64 @@ Each of these is named on screen with a sentence.
 | `.wma`, `.ape`, `.wv` | No browser ships a decoder. [Universal Converter](https://opensource.unisim.co.uk/converter) turns them into something this plays, also without uploading. |
 | `.mid` / `.midi` | A score, not a recording — there is no audio in the file. |
 
-## One folder — chosen, rescanned, forgotten
+## Several folders — added, rescanned, removed
 
-**There is no "add to library".** The three library actions in the app menu are
-the folder you **chose**, **rescan** it, and **forget** it, and that is not a
-gap waiting to be filled: a scan REPLACES the library (`runScan` in
-`libraryStore` clears the stores and rebuilds from the walk), there is one root,
-and every id is derived from the files themselves so a rescan reproduces exactly
-what was there plus whatever is new. An "add" that quietly meant "replace" would
-be the worst kind of button, and a real one needs a second root, merge rules and
-a way to un-add — none of which exist. Choosing a different folder therefore
-says out loud that it replaces this one.
+**Adding a folder ADDS to your library** (2026-09-09). Before that it replaced
+it, and this section said at length why that was right; the reason it gave was a
+real standard rather than an excuse, and the feature had to meet it.
+
+The app menu lists every folder with its own track count, **Rescan** and
+**Remove**, plus **Add a folder…**. Removing one takes its tracks and leaves the
+others untouched. Rescanning one is a replacement *of that folder*, so an album
+you deleted on disk disappears and a renamed file does not turn up twice.
+
+### ⚠️ The path collision that blocked it for a day
+
+`trackKey` is path + size + mtime, and the paths a scan produced used to be
+relative to the chosen folder with nothing in front of them. Two folders both
+holding `Nick Cave/Let Love In/01 Do You Love Me.mp3` — an original and a
+backup — therefore minted the **same track id** and the same `filesByPath` key.
+One silently overwrote the other, and which one won depended on the order the
+scans finished in. With one folder that could never happen; with two it happens
+on the first day.
+
+So every path now carries its root's name — `Music/Nick Cave/…` — which is the
+shape `webkitRelativePath` has always had, so the two walkers agree for the first
+time as well. **`Root.prefix` is the root's identity**: it is what the user sees
+in the folder list AND what every one of its tracks is filed under, which is what
+makes "remove this folder" a filter rather than a bookkeeping exercise. Prefixes
+are therefore kept unique (`Music`, then `Music (2)`), and choosing a folder you
+already have loaded means *rescan that one* rather than *add a second copy*.
+
+⚠️ **A cost, paid once:** track ids changed shape, so a stored `album` fix from
+the tidy-up — which is keyed by track id — no longer matches its track and is
+dropped. `applyFixes` ignores fixes it cannot place, so nothing breaks; somebody
+who had merged tracks by hand has to do it again. Cover fixes are keyed by album
+id, which comes from the tags and is unaffected.
+
+All of the arithmetic is pure and in `lib/roots.ts`, with 20 tests, because
+every failure here is **silent**: a collision overwrites rather than throwing,
+and a track count that is added up rather than recomputed is just a wrong number
+on a tile.
+
+### ⚠️ Permission is per folder, so the banner is per folder
+
+One row per unreachable folder, each with its own button, each naming the folder.
+A single "Allow access" that looped over them would fire several permission
+prompts inside one user gesture — which browsers may collapse into a single
+grant, silently leaving the rest unplayable under a banner that has just
+disappeared.
+
+Which folders are stranded is **derived** from the live `File` map
+(`needAccessFrom`), never stored. It was a `needsRegrant` boolean, and that was
+fine with one folder and a lie with two: re-granting one of three would have
+cleared it for all of them.
+
+⚠️ It is **not** a zustand selector, and must not become one: a selector that
+builds a new array on every call never compares equal to its last result, so the
+component re-renders forever — "Maximum update depth exceeded", on the landing
+page, before there is even a library. Callers subscribe to the pieces and
+`useMemo`.
 
 ## The example library
 
@@ -58,6 +105,12 @@ the browser (`lib/exampleLibrary.ts`). Not one byte of it is shipped or
 downloaded — which is the only honest way for this app to have a demo, since
 bundling real music means licensing real music, and an app whose pitch is "it
 plays your own files" should not quietly fetch somebody else's.
+
+⚠️ **It stands aside for real music.** Adding a folder ADDS to the library, and
+the one thing that must never add is the demo — eleven records by artists who do
+not exist, mixed in among somebody's own albums, indistinguishable in the grid
+and removable only by knowing which names were fake. So the first real folder
+takes its place.
 
 Three things about it are deliberate:
 
@@ -140,6 +193,7 @@ src/
 ├── lib/
 │   ├── tags.ts        # ID3v2 · MP4 ilst · Vorbis comments, + cover art. Pure, no DOM
 │   ├── keys.ts        # what counts as the same file, and the same album
+│   ├── roots.ts       # several folders: prefixes, merging, removing. Pure, tested
 │   ├── search.ts      # what the search box matches — and so the tab counts too
 │   ├── scan.ts        # the folder walk — header-only reads, streaming results
 │   ├── library.ts     # IndexedDB: tracks / albums / roots

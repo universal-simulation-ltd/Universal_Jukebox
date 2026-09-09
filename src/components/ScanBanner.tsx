@@ -1,8 +1,8 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { DropRing } from '@unisim/sdk'
 import { plural } from '../lib/format'
 import { goHome } from '../lib/route'
-import { useLibraryStore } from '../stores/libraryStore'
+import { needAccessFrom, useLibraryStore } from '../stores/libraryStore'
 
 // Live scan progress, and the two things a scan has to say afterwards: the
 // formats it had to refuse, and whether the folder needs its permission back.
@@ -37,14 +37,28 @@ function StartAgain({ onClick }: { onClick(): void }) {
 export default function ScanBanner({ showRefusals = true }: { showRefusals?: boolean }) {
   const progress = useLibraryStore((s) => s.progress)
   const refusals = useLibraryStore((s) => s.refusals)
-  const needsRegrant = useLibraryStore((s) => s.needsRegrant)
-  const regrant = useLibraryStore((s) => s.regrant)
-  const rescan = useLibraryStore((s) => s.rescan)
+  // ⚠️ Which folders are unreachable is DERIVED, not stored — see
+  // `needAccessFrom`. With several folders a single flag would be cleared by
+  // re-granting any one of them, and the other two would go quiet while still
+  // being unplayable.
+  //
+  // ⚠️ Subscribed as three pieces and MEMOISED, never as one selector. A
+  // zustand selector that builds a new array every call never compares equal to
+  // its last result, so the component re-renders forever — "Maximum update
+  // depth exceeded", on the landing page, before there is a library at all.
+  const roots = useLibraryStore((s) => s.roots)
+  const tracks = useLibraryStore((s) => s.tracks)
+  const filesByPath = useLibraryStore((s) => s.filesByPath)
+  const stranded = useMemo(
+    () => needAccessFrom(roots, tracks, filesByPath),
+    [roots, tracks, filesByPath],
+  )
+  const regrantFolder = useLibraryStore((s) => s.regrantFolder)
+  const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const stopScan = useLibraryStore((s) => s.stopScan)
   const stoppedEarly = useLibraryStore((s) => s.stoppedEarly)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const clear = useLibraryStore((s) => s.clear)
-  const roots = useLibraryStore((s) => s.roots)
   const folderInput = useRef<HTMLInputElement>(null)
 
   /**
@@ -66,10 +80,6 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
     void clear().then(goHome)
   }
 
-  // A stored handle is the ONLY thing that makes a folder reopenable — not the
-  // browser's capabilities in general, since a library built by picking files
-  // has no handle even on Chromium.
-  const canReopen = !!roots[0]?.handle
 
   return (
     <>
@@ -116,7 +126,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
           </p>
           <button
             type="button"
-            onClick={() => void rescan()}
+            onClick={() => void rescanFolder(roots[0]?.id ?? '')}
             className="shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
           >
             Scan the rest
@@ -124,66 +134,79 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
         </div>
       )}
 
-      {needsRegrant && (
-        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[13px] text-orange-900 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-200">
-          {/* ⚠️ Two different sentences, because there are two different
-              situations and only one of them can be fixed by a click.
+      {/* ⚠️ ONE ROW PER FOLDER, each with its own button. Permission is per
+          handle, so three folders is three prompts — and a single "Allow
+          access" that looped over them would fire those prompts inside one user
+          gesture, which browsers may collapse into a single grant, silently
+          leaving the other folders unplayable under a banner that has just
+          disappeared. A row each is honest about the cost and cannot half-work.
 
-              With a stored directory handle (Chromium) the browser just wants
-              the permission confirmed. WITHOUT one (Firefox, Safari, or a
-              library added by picking files) there is nothing to re-grant —
-              the folder has to be chosen again, and saying "allow access"
-              there would be a button that cannot do what it says. */}
-          {canReopen ? (
-            <>
-              <p className="min-w-0 flex-1">
-                Your library is here, but the browser needs your permission again before it
-                can read{' '}
-                {roots[0]?.label ? <strong className="font-semibold">{roots[0].label}</strong> : 'the folder'}.
-              </p>
-              <StartAgain onClick={startAgain} />
-              {/* ⚠️ This MUST be a click. A permission request with no user
-                  gesture behind it is dropped silently, which presents as a
-                  button that does nothing — so it can never move into an effect. */}
-              <button
-                type="button"
-                onClick={() => void regrant()}
-                className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
-              >
-                Allow access
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="min-w-0 flex-1">
-                Your library and its artwork are still here, but this browser can’t reopen a
-                folder on its own — choose{' '}
-                {roots[0]?.label ? <strong className="font-semibold">{roots[0].label}</strong> : 'your music folder'}{' '}
-                again to play anything. It will be quick: nothing has to be read twice.
-              </p>
-              <StartAgain onClick={startAgain} />
-              <button
-                type="button"
-                onClick={() => folderInput.current?.click()}
-                className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
-              >
-                Choose folder
-              </button>
-              <input
-                ref={folderInput}
-                type="file"
-                {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files) void addFiles(e.target.files)
-                  e.target.value = ''
-                }}
-              />
-            </>
-          )}
-        </div>
-      )}
+          It also means the copy can name the folder, which is the whole
+          difference between "your library needs permission" and "Rhianna
+          does". */}
+      {stranded.map((root) => {
+        // A stored handle is the ONLY thing that makes a folder reopenable — not
+        // the browser's capabilities in general, since a library built by
+        // picking files has no handle even on Chromium.
+        const canReopen = !!root.handle
+        return (
+          <div
+            key={root.id}
+            className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[13px] text-orange-900 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-200"
+          >
+            {canReopen ? (
+              <>
+                <p className="min-w-0 flex-1">
+                  <strong className="font-semibold">{root.label}</strong> is here, but the browser
+                  needs your permission again before it can be read.
+                </p>
+                <StartAgain onClick={startAgain} />
+                {/* ⚠️ This MUST be a click. A permission request with no user
+                    gesture behind it is dropped silently, which presents as a
+                    button that does nothing — so it can never move into an
+                    effect. */}
+                <button
+                  type="button"
+                  onClick={() => void regrantFolder(root.id)}
+                  className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
+                >
+                  Allow access
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="min-w-0 flex-1">
+                  <strong className="font-semibold">{root.label}</strong> and its artwork are still
+                  here, but this browser can’t reopen a folder on its own — choose it again to play
+                  anything from it. It will be quick: nothing has to be read twice.
+                </p>
+                <StartAgain onClick={startAgain} />
+                <button
+                  type="button"
+                  onClick={() => folderInput.current?.click()}
+                  className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
+                >
+                  Choose folder
+                </button>
+              </>
+            )}
+          </div>
+        )
+      })}
+
+      {/* Always mounted rather than inside the branch above: a ref to something
+          conditionally rendered is a click that silently does nothing. */}
+      <input
+        ref={folderInput}
+        type="file"
+        {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) void addFiles(e.target.files)
+          e.target.value = ''
+        }}
+      />
 
       {showRefusals && refusals.length > 0 && (
         <div className="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">

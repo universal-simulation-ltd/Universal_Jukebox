@@ -1,5 +1,7 @@
 import { useRef } from 'react'
 import { useLibraryStore } from '../../stores/libraryStore'
+import { trackCountFor } from '../../lib/roots'
+import { plural } from '../../lib/format'
 import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
 
@@ -19,27 +21,31 @@ import { navigate } from '../../lib/route'
 // stopped being the only preference; a dropdown that grows a settings panel
 // inside it is a settings page with worse ergonomics.
 //
-// ⚠️ THERE ARE EXACTLY THREE LIBRARY ACTIONS, AND "ADD TO LIBRARY" IS NOT ONE
-// OF THEM (James, 2026-09-08): the folder you CHOSE, RESCAN it, FORGET it.
+// ⚠️ THERE IS AN "ADD A FOLDER" NOW, AND THERE DELIBERATELY WASN'T (2026-09-09).
 //
-// That is not a shortfall to be filled in later — it is what the app actually
-// does. A scan REPLACES the library (`runScan` in `libraryStore` clears the
-// stores and rebuilds from the walk), there is one root, and every id is
-// derived from the files themselves so a rescan reproduces exactly what was
-// there plus whatever is new. An "add" that quietly meant "replace" would be
-// the worst kind of button; a real one would need a second root, merge rules
-// and a way to un-add, none of which exist. So the folder row says which folder
-// it is, and choosing a different one says out loud that it replaces this.
+// This comment used to say the opposite at length: three actions, no adding,
+// "a real one would need a second root, merge rules and a way to un-add, none
+// of which exist". All three exist as of 2026-09-09 — `lib/roots.ts` is the
+// merge rules, `Root.prefix` is the second root, and "Remove" below is the way
+// to un-add. The paragraph is kept in this shortened form because the REASON it
+// said no is still the standard the feature had to meet: an "add" that quietly
+// meant "replace" would be the worst kind of button.
+//
+// So the folder list is now a list, each row with its own rescan and remove,
+// and adding one adds. Removing the last one leaves an empty library rather
+// than a broken one.
 //
 // Tidy-up used to sit in this group and doesn't any more, for the same reason:
 // it is a page you visit, like Settings and About, not one of the three things
 // you can do to the library itself.
 
 export default function AppMenu() {
-  const rescan = useLibraryStore((s) => s.rescan)
+  const rescanFolder = useLibraryStore((s) => s.rescanFolder)
+  const removeFolder = useLibraryStore((s) => s.removeFolder)
   const clear = useLibraryStore((s) => s.clear)
   const status = useLibraryStore((s) => s.status)
   const roots = useLibraryStore((s) => s.roots)
+  const tracks = useLibraryStore((s) => s.tracks)
   const pickFolder = useLibraryStore((s) => s.pickFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
@@ -61,32 +67,50 @@ export default function AppMenu() {
       {hasLibrary && (
         <>
           <p className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
-            Library
+            {roots.length > 1 ? 'Your folders' : 'Your library'}
           </p>
-          {roots[0] && (
-            <p className="truncate px-3 pb-1.5 text-[12px] text-slate-500 dark:text-slate-400">
-              {roots[0].label}
-            </p>
-          )}
-          {/* Chosen · rescan · forget. Nothing else, and nothing that adds.
-              ⚠️ The paragraph that used to explain all three lived here and was
-              cut (James, 2026-09-09): four lines of small grey type under three
-              short rows made the menu look like a page of notes with some
-              buttons in it, and it was the first thing you read every time you
-              opened the dropdown to do something you already understood. The
-              two rows whose behaviour is not obvious from their label carry it
-              as a `title` instead — there when you hover, gone otherwise. The
-              full version is in the README and in this file's own header. */}
+          {/* One row per folder: what it is, how much of the library is its,
+              and the two things you can do to it on its own. */}
+          {roots.map((root) => (
+            <div key={root.id} className="px-3 py-1.5">
+              <p className="truncate text-[13px] font-medium text-slate-800 dark:text-slate-100">
+                {root.label}
+              </p>
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <span className="text-[11.5px] text-slate-400 dark:text-slate-500">
+                  {plural(trackCountFor(tracks, root), 'track')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void rescanFolder(root.id)}
+                  className="text-[11.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+                >
+                  Rescan
+                </button>
+                {/* ⚠️ Offered per folder even when there is only one, where it
+                    is the same thing as forgetting the library. Hiding it at
+                    one folder would mean the row's controls changed shape as
+                    soon as you added a second, which is the kind of small
+                    inconsistency that makes a menu feel unreliable. */}
+                <button
+                  type="button"
+                  onClick={() => void removeFolder(root.id)}
+                  className="text-[11.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
           <Row
             onClick={chooseFolder}
-            title="Replaces this library rather than adding to it — one folder at a time"
+            title="Adds to your library — the folders you already have stay where they are"
           >
-            Choose a different folder…
+            Add a folder…
           </Row>
-          <Row onClick={() => void rescan()} title="Picks up anything new inside it">
-            Rescan this folder
-          </Row>
-          <Row onClick={() => void clear()}>Forget this library…</Row>
+          {roots.length > 1 && (
+            <Row onClick={() => void clear()}>Forget all of them…</Row>
+          )}
           <Divider />
         </>
       )}
