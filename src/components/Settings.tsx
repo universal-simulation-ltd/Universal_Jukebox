@@ -68,182 +68,187 @@ export default function Settings() {
         Everything here is kept on this device only, like the rest of the app.
       </p>
 
-      <Section
-        title="Your library"
-        note="Where the app takes you, and what it opens on."
-      >
-        <Choice<HomeTab>
-          label="Open my library on"
-          value={s.homeTab}
-          onChange={(v) => s.set('homeTab', v)}
-          options={[
-            { value: 'albums', label: 'Albums' },
-            { value: 'artists', label: 'Artists' },
-            { value: 'tracks', label: 'Tracks' },
-          ]}
-        />
-      </Section>
+      {/* The six folds, as a stack. Adjacent cards with a small gap
+          rather than the old headings-and-panels run: shut, they read as
+          a list of what Settings CONTAINS. */}
+      <div className="mt-8 space-y-3">
+        <Section
+          title="Your library"
+          note="Where the app takes you, and what it opens on."
+        >
+          <Choice<HomeTab>
+            label="Open my library on"
+            value={s.homeTab}
+            onChange={(v) => s.set('homeTab', v)}
+            options={[
+              { value: 'albums', label: 'Albums' },
+              { value: 'artists', label: 'Artists' },
+              { value: 'tracks', label: 'Tracks' },
+            ]}
+          />
+        </Section>
 
-      {/* ⚠️ ABOVE the animation section, not inside it, and that order is the
-          argument for the whole feature: what you are playing ON comes before
-          how theatrically it starts. It also means the section below is already
-          talking about the right machine by the time you read it. */}
-      <Section
-        title="What you’re playing on"
-        note="The deck on Now Playing. It changes the picture and the sound it makes starting up — never the music."
-      >
-        <Choice<DeckSetting>
-          label="Deck"
-          value={s.deck}
-          onChange={(v) => s.set('deck', v)}
-          // ⚠️ `DECK_SETTINGS` rather than `Object.keys(DECKS)`. Both hold the
-          // same five values, but only one of them has a defined ORDER — object
-          // key order is an implementation detail, and this list has `random`
-          // deliberately last, after the four real machines.
-          options={DECK_SETTINGS.map((value) => ({
-            value,
-            label: DECKS[value].label,
-            hint: DECKS[value].hint,
-          }))}
-        />
-      </Section>
+        {/* ⚠️ ABOVE the animation section, not inside it, and that order is the
+            argument for the whole feature: what you are playing ON comes before
+            how theatrically it starts. It also means the section below is already
+            talking about the right machine by the time you read it. */}
+        <Section
+          title="What you’re playing on"
+          note="The deck on Now Playing. It changes the picture and the sound it makes starting up — never the music."
+        >
+          <Choice<DeckSetting>
+            label="Deck"
+            value={s.deck}
+            onChange={(v) => s.set('deck', v)}
+            // ⚠️ `DECK_SETTINGS` rather than `Object.keys(DECKS)`. Both hold the
+            // same five values, but only one of them has a defined ORDER — object
+            // key order is an implementation detail, and this list has `random`
+            // deliberately last, after the four real machines.
+            options={DECK_SETTINGS.map((value) => ({
+              value,
+              label: DECKS[value].label,
+              hint: DECKS[value].hint,
+            }))}
+          />
+        </Section>
 
-      <Section title={deck.startTitle} note={deck.startNote}>
-        {/* ⚠️ A SLIDER, not the radios this used to be (James asked for one,
-            2026-09-09). The five settings are a frequency ladder — every track,
-            every record, every artist, once a visit, never — and a ladder is
-            what a slider is for: you can see where you are on it and which
-            direction is "more". The radios' one advantage was that every
-            option's sentence was visible at once; `<Ladder>` keeps that by
-            showing the sentence for wherever the handle is. */}
-        <Ladder
-          label={`Show the ${deck.noun}-changing animation`}
-          hint={`Also how often you hear the ${deck.soundLabel.toLowerCase()} — the two are the same event.`}
-          value={s.ceremonyMode}
-          onChange={(v) => s.set('ceremonyMode', v)}
-          copy={{
-            always: {
-              label: 'Every track',
-              hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.pickup} put back.`,
-            },
-            album: {
-              label: 'When the album changes',
-              hint: `Only when a different ${deck.noun} goes on. Tracks within one album blend into each other quietly.`,
-            },
-            artist: {
-              label: 'When the artist changes',
-              hint: 'Only when somebody new comes on — a whole discography plays through without interruption.',
-            },
-            first: {
-              label: 'Once per visit',
-              hint: 'Only the first time you press play after opening the app.',
-            },
-            off: {
-              label: 'Never',
-              hint: 'Music starts immediately, every time. Tracks on one album still run into each other with no gap — that is the crossfade, not the animation.',
-            },
-          }}
-        />
-        <Toggle
-          label={deck.soundLabel}
-          hint={deck.soundHint}
-          checked={s.needleDrop}
-          onChange={(v) => s.set('needleDrop', v)}
-        />
-        {/* ⚠️ `onCommit` plays it. A loudness control you cannot hear while you
-            set it is a control you set once, wrongly, and never touch again —
-            and this one is for an effect that lasts under a second and happens
-            when you are looking somewhere else. Firing on release rather than
-            on every input event is what keeps dragging the slider from becoming
-            a stack of forty overlapping thunks.
+        <Section title={deck.startTitle} note={deck.startNote}>
+          {/* ⚠️ A SLIDER, not the radios this used to be (James asked for one,
+              2026-09-09). The five settings are a frequency ladder — every track,
+              every record, every artist, once a visit, never — and a ladder is
+              what a slider is for: you can see where you are on it and which
+              direction is "more". The radios' one advantage was that every
+              option's sentence was visible at once; `<Ladder>` keeps that by
+              showing the sentence for wherever the handle is. */}
+          <Ladder
+            label={`Show the ${deck.noun}-changing animation`}
+            hint={`Also how often you hear the ${deck.soundLabel.toLowerCase()} — the two are the same event.`}
+            value={s.ceremonyMode}
+            onChange={(v) => s.set('ceremonyMode', v)}
+            copy={{
+              always: {
+                label: 'Every track',
+                hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.pickup} put back.`,
+              },
+              album: {
+                label: 'When the album changes',
+                hint: `Only when a different ${deck.noun} goes on. Tracks within one album blend into each other quietly.`,
+              },
+              artist: {
+                label: 'When the artist changes',
+                hint: 'Only when somebody new comes on — a whole discography plays through without interruption.',
+              },
+              first: {
+                label: 'Once per visit',
+                hint: 'Only the first time you press play after opening the app.',
+              },
+              off: {
+                label: 'Never',
+                hint: 'Music starts immediately, every time. Tracks on one album still run into each other with no gap — that is the crossfade, not the animation.',
+              },
+            }}
+          />
+          <Toggle
+            label={deck.soundLabel}
+            hint={deck.soundHint}
+            checked={s.needleDrop}
+            onChange={(v) => s.set('needleDrop', v)}
+          />
+          {/* ⚠️ `onCommit` plays it. A loudness control you cannot hear while you
+              set it is a control you set once, wrongly, and never touch again —
+              and this one is for an effect that lasts under a second and happens
+              when you are looking somewhere else. Firing on release rather than
+              on every input event is what keeps dragging the slider from becoming
+              a stack of forty overlapping thunks.
 
-            ⚠️ The slider speaks STEPS (-5…+5) and the store speaks multipliers;
-            `stepToLevel` is the only crossing point. See `settingsStore`. */}
-        <Slider
-          label={`${deck.soundLabel} volume`}
-          hint="0 is the level it has always been. Drag it to hear it — it still rides your main volume, so turning the music down turns this down with it."
-          value={levelToStep(s.needleDropLevel)}
-          min={NEEDLE_STEP_MIN}
-          max={NEEDLE_STEP_MAX}
-          step={1}
-          disabled={!s.needleDrop}
-          disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
-          format={(v) => (v === 0 ? '0' : v > 0 ? `+${v}` : String(v))}
-          onChange={(v) => s.set('needleDropLevel', stepToLevel(v))}
-          // ⚠️ Resolved against the cursor, so under Random the demonstration is
-          // the machine currently on the deck rather than always the first of
-          // the rotation. `playTransportCue` takes a `DeckStyle` and this store
-          // holds a `DeckSetting`, so the compiler insists on the crossing.
-          onCommit={(v) => {
-            const player = usePlayerStore.getState()
-            playTransportCue(resolveDeck(s.deck, player.cursor), player.volume, stepToLevel(v))
-          }}
-        />
-      </Section>
+              ⚠️ The slider speaks STEPS (-5…+5) and the store speaks multipliers;
+              `stepToLevel` is the only crossing point. See `settingsStore`. */}
+          <Slider
+            label={`${deck.soundLabel} volume`}
+            hint="0 is the level it has always been. Drag it to hear it — it still rides your main volume, so turning the music down turns this down with it."
+            value={levelToStep(s.needleDropLevel)}
+            min={NEEDLE_STEP_MIN}
+            max={NEEDLE_STEP_MAX}
+            step={1}
+            disabled={!s.needleDrop}
+            disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
+            format={(v) => (v === 0 ? '0' : v > 0 ? `+${v}` : String(v))}
+            onChange={(v) => s.set('needleDropLevel', stepToLevel(v))}
+            // ⚠️ Resolved against the cursor, so under Random the demonstration is
+            // the machine currently on the deck rather than always the first of
+            // the rotation. `playTransportCue` takes a `DeckStyle` and this store
+            // holds a `DeckSetting`, so the compiler insists on the crossing.
+            onCommit={(v) => {
+              const player = usePlayerStore.getState()
+              playTransportCue(resolveDeck(s.deck, player.cursor), player.volume, stepToLevel(v))
+            }}
+          />
+        </Section>
 
-      <Section
-        title="Sound"
-        note="Applied as the music plays. Nothing here changes your files."
-      >
-        <Slider
-          label="Volume boost"
-          hint="Extra gain on top of the volume slider, for quietly-mastered albums. Above about 2× a loud record will start to distort — that is the recording clipping, not a fault."
-          value={s.volumeBoost}
-          min={1}
-          max={MAX_BOOST}
-          step={0.1}
-          disabled={boostBroken}
-          disabledHint="This browser wouldn’t give the app the audio graph a boost needs. Everything else still works."
-          format={(v) => (v <= 1.001 ? 'Off' : `${v.toFixed(1)}×`)}
-          onChange={(v) => s.set('volumeBoost', v)}
-        />
-        <Slider
-          label="Fade in"
-          hint="Each track rises from silence when it starts."
-          value={s.fadeInSec}
-          min={0}
-          max={MAX_FADE_SEC}
-          step={0.5}
-          format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
-          onChange={(v) => s.set('fadeInSec', v)}
-        />
-        <Slider
-          label="Fade out"
-          hint="Each track falls away before it ends — including the last one of an album. Two tracks of the SAME record already blend into each other; this is for the ends of things."
-          value={s.fadeOutSec}
-          min={0}
-          max={MAX_FADE_SEC}
-          step={0.5}
-          format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
-          onChange={(v) => s.set('fadeOutSec', v)}
-        />
-      </Section>
+        <Section
+          title="Sound"
+          note="Applied as the music plays. Nothing here changes your files."
+        >
+          <Slider
+            label="Volume boost"
+            hint="Extra gain on top of the volume slider, for quietly-mastered albums. Above about 2× a loud record will start to distort — that is the recording clipping, not a fault."
+            value={s.volumeBoost}
+            min={1}
+            max={MAX_BOOST}
+            step={0.1}
+            disabled={boostBroken}
+            disabledHint="This browser wouldn’t give the app the audio graph a boost needs. Everything else still works."
+            format={(v) => (v <= 1.001 ? 'Off' : `${v.toFixed(1)}×`)}
+            onChange={(v) => s.set('volumeBoost', v)}
+          />
+          <Slider
+            label="Fade in"
+            hint="Each track rises from silence when it starts."
+            value={s.fadeInSec}
+            min={0}
+            max={MAX_FADE_SEC}
+            step={0.5}
+            format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
+            onChange={(v) => s.set('fadeInSec', v)}
+          />
+          <Slider
+            label="Fade out"
+            hint="Each track falls away before it ends — including the last one of an album. Two tracks of the SAME record already blend into each other; this is for the ends of things."
+            value={s.fadeOutSec}
+            min={0}
+            max={MAX_FADE_SEC}
+            step={0.5}
+            format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
+            onChange={(v) => s.set('fadeOutSec', v)}
+          />
+        </Section>
 
-      <Section
-        title="Lyrics"
-        note="Jukebox reads the lyrics your files were tagged with. Most files have none."
-      >
-        <Toggle
-          label="Look up missing lyrics online"
-          hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
-          checked={s.lyricsOnline}
-          onChange={(v) => s.set('lyricsOnline', v)}
-        />
-        <DownloadedLyrics />
-      </Section>
+        <Section
+          title="Lyrics"
+          note="Jukebox reads the lyrics your files were tagged with. Most files have none."
+        >
+          <Toggle
+            label="Look up missing lyrics online"
+            hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
+            checked={s.lyricsOnline}
+            onChange={(v) => s.set('lyricsOnline', v)}
+          />
+          <DownloadedLyrics />
+        </Section>
 
-      <Section title="Appearance">
-        <Choice<ThemePref>
-          label="Theme"
-          value={themePref}
-          onChange={setTheme}
-          options={[
-            { value: 'light', label: 'Light' },
-            { value: 'dark', label: 'Dark' },
-            { value: 'system', label: 'Match my device' },
-          ]}
-        />
-      </Section>
+        <Section title="Appearance">
+          <Choice<ThemePref>
+            label="Theme"
+            value={themePref}
+            onChange={setTheme}
+            options={[
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
+              { value: 'system', label: 'Match my device' },
+            ]}
+          />
+        </Section>
+      </div>
 
       <div className="mt-10 border-t border-slate-200 pt-6 dark:border-slate-800">
         <button
@@ -307,19 +312,51 @@ function DownloadedLyrics() {
 
 // ── The row kit ──────────────────────────────────────────────────────────────
 
+/**
+ * One category of settings, shut until you open it.
+ *
+ * ⚠️ Every section starts CLOSED (James, 2026-09-09). Open, the page was six
+ * screens of controls to scroll past to reach the one you came for; shut, the
+ * whole of Settings is a list of six headings you can see at once. The titles
+ * and their notes stay OUTSIDE the fold precisely so that closing them costs
+ * nothing to scan — what folds away is the controls, never the sentence telling
+ * you what is in there.
+ *
+ * ⚠️ A real `<details>`, not a div with a click handler. That is the keyboard,
+ * the screen reader's "collapsed"/"expanded", and browser find-in-page reaching
+ * inside a shut fold, all for free — and it is also what the SDK's suite-wide
+ * reveal-on-expand listens for, so opening the last section scrolls it into
+ * view without this file knowing anything about it.
+ */
 function Section({
   title, note, children,
 }: { title: string; note?: string; children: React.ReactNode }) {
   return (
-    <section className="mt-9">
-      <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-        {title}
-      </h2>
-      {note && <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{note}</p>}
-      <div className="mt-3 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+    <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      {/* `list-none` plus the webkit marker rule: without BOTH, one engine keeps
+          its own triangle and the row ends up with two disclosure arrows. */}
+      <summary className="flex cursor-pointer list-none items-start gap-3 px-5 py-4 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-orange-600 dark:hover:bg-slate-800/50 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+            {title}
+          </span>
+          {note && (
+            <span className="mt-1 block text-[13px] text-slate-500 dark:text-slate-400">{note}</span>
+          )}
+        </span>
+        <svg
+          viewBox="0 0 20 20"
+          className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180 dark:text-slate-500"
+          fill="currentColor"
+          aria-hidden
+        >
+          <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.58l3.3-3.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.42Z" />
+        </svg>
+      </summary>
+      <div className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
         {children}
       </div>
-    </section>
+    </details>
   )
 }
 
