@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { coverUrl } from '../lib/art'
-import { playNeedleDrop } from '../lib/crackle'
+import { playTransportCue } from '../lib/crackle'
 import * as audio from '../lib/audio'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
@@ -526,18 +526,19 @@ function needleChange(
 }
 
 /**
- * The needle drop, with both of its settings applied in one place.
+ * The start-up sound, with all three of its settings applied in one place.
  *
  * ⚠️ Three callers — the ceremony's landing, the handover between tracks, and a
  * preview — and they must not each remember to check the toggle AND pass the
- * level. The version of this that was inlined at all three sites is exactly how
- * a fourth caller would ship with the effect stuck at full whatever the slider
- * said.
+ * level AND look up which deck is showing. The version of this that was inlined
+ * at all three sites is exactly how a fourth caller would ship with the effect
+ * stuck at full whatever the slider said — and, now, with a cassette on screen
+ * making the noise of a needle.
  */
 function needleDrop(volume: number): void {
-  const { needleDrop: on, needleDropLevel } = settings()
+  const { needleDrop: on, needleDropLevel, deck } = settings()
   if (!on) return
-  playNeedleDrop(volume, needleDropLevel)
+  playTransportCue(deck, volume, needleDropLevel)
 }
 
 function prefersReducedMotion(): boolean {

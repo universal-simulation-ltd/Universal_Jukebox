@@ -33,6 +33,23 @@ export type CeremonyMode = 'always' | 'album' | 'first' | 'off'
 /** Which library tab the front door opens on. */
 export type HomeTab = 'albums' | 'artists' | 'tracks'
 
+/**
+ * What the thing turning on Now Playing is.
+ *
+ * - `vinyl`    — a record, a tonearm creeping inward (the default, and what the
+ *                app was before this setting existed).
+ * - `cd`       — a disc under a Discman-style laser sled, tracking outward.
+ * - `cassette` — a Walkman-style shell, the tape spooling left to right.
+ *
+ * ⚠️ This changes the PICTURE and the start-up sound, and nothing else. The
+ * ceremony's beats, the progress it is driven by, and every rule in
+ * `lib/ceremony.ts` are identical for all three — see `components/Deck.tsx`.
+ * The temptation with a setting like this is to let each medium have its own
+ * timing "because a CD is quicker"; don't. One timeline, three skins, or the
+ * ceremony tests stop covering two thirds of the app.
+ */
+export type DeckStyle = 'vinyl' | 'cd' | 'cassette'
+
 export interface Settings {
   ceremonyMode: CeremonyMode
   /**
@@ -42,7 +59,16 @@ export interface Settings {
    * starring Tracks would make the Albums tab unreachable by its own button.
    */
   homeTab: HomeTab
-  /** The synthesised thunk and surface noise as the arm lands. */
+  /**
+   * Which player the deck draws, and which start-up sound it makes.
+   *
+   * ⚠️ Vinyl is the default and must stay it: an existing user's stored blob
+   * has no `deck` key, and the field-by-field fallback below has to give them
+   * back exactly the app they had.
+   */
+  deck: DeckStyle
+  /** The synthesised start-up sound: the needle landing, the disc spinning up,
+   *  or the play key latching, whichever deck is showing. */
   needleDrop: boolean
   /**
    * How loud that thunk and crackle are, 0.25–2× the synth's own level.
@@ -72,6 +98,7 @@ export interface Settings {
 export const DEFAULTS: Settings = {
   ceremonyMode: 'always',
   homeTab: 'albums',
+  deck: 'vinyl',
   needleDrop: true,
   needleDropLevel: 1,
   volumeBoost: 1,
@@ -124,12 +151,14 @@ function read(): Settings {
 
   const mode = stored.ceremonyMode
   const tab = stored.homeTab
+  const deck = stored.deck
   return {
     ceremonyMode:
       mode === 'always' || mode === 'album' || mode === 'first' || mode === 'off'
         ? mode
         : DEFAULTS.ceremonyMode,
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' ? tab : DEFAULTS.homeTab,
+    deck: deck === 'vinyl' || deck === 'cd' || deck === 'cassette' ? deck : DEFAULTS.deck,
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
@@ -178,6 +207,7 @@ function persist(state: Settings) {
   const blob: Settings = {
     ceremonyMode: state.ceremonyMode,
     homeTab: state.homeTab,
+    deck: state.deck,
     needleDrop: state.needleDrop,
     needleDropLevel: state.needleDropLevel,
     volumeBoost: state.volumeBoost,

@@ -1,5 +1,6 @@
 import { graphUnavailable } from '../lib/audioGraph'
-import { playNeedleDrop } from '../lib/crackle'
+import { playTransportCue } from '../lib/crackle'
+import { DECKS, deckCopy } from '../lib/decks'
 import { goHome } from '../lib/route'
 import { usePlayerStore } from '../stores/playerStore'
 import {
@@ -9,6 +10,7 @@ import {
   MIN_NEEDLE_LEVEL,
   useSettingsStore,
   type CeremonyMode,
+  type DeckStyle,
   type HomeTab,
 } from '../stores/settingsStore'
 import { useThemeStore, type ThemePref } from '../stores/themeStore'
@@ -35,6 +37,9 @@ export default function Settings() {
   // Web Audio graph, and a browser can refuse us one. Saying so is better than
   // a slider that does nothing.
   const boostBroken = graphUnavailable()
+
+  // Every string below that would otherwise say "record" at a cassette owner.
+  const deck = deckCopy(s.deck)
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -72,24 +77,41 @@ export default function Settings() {
         />
       </Section>
 
+      {/* ⚠️ ABOVE the animation section, not inside it, and that order is the
+          argument for the whole feature: what you are playing ON comes before
+          how theatrically it starts. It also means the section below is already
+          talking about the right machine by the time you read it. */}
       <Section
-        title="Putting a record on"
-        note="The turntable animation, the countdown, and the sound of the needle landing."
+        title="What you’re playing on"
+        note="The deck on Now Playing. It changes the picture and the sound it makes starting up — never the music."
       >
+        <Choice<DeckStyle>
+          label="Deck"
+          value={s.deck}
+          onChange={(v) => s.set('deck', v)}
+          options={(Object.keys(DECKS) as DeckStyle[]).map((value) => ({
+            value,
+            label: DECKS[value].label,
+            hint: DECKS[value].hint,
+          }))}
+        />
+      </Section>
+
+      <Section title={deck.startTitle} note={deck.startNote}>
         <Choice<CeremonyMode>
-          label="Show the record-changing animation"
+          label={`Show the ${deck.noun}-changing animation`}
           value={s.ceremonyMode}
           onChange={(v) => s.set('ceremonyMode', v)}
           options={[
-            { value: 'always', label: 'Every time I press play', hint: 'Any play — a track, an album, a search result — goes to the deck and cues the arm.' },
-            { value: 'album', label: 'Only on a new album', hint: 'Just when you put a different record on, and never twice for the same one.' },
+            { value: 'always', label: 'Every time I press play', hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}.` },
+            { value: 'album', label: 'Only on a new album', hint: 'Just when you start a different album, and never twice for the same one.' },
             { value: 'first', label: 'Once per visit', hint: 'Only the first time you press play after opening the app.' },
-            { value: 'off', label: 'Never', hint: 'Music starts immediately, every time — and tracks run into each other with no pause for the needle.' },
+            { value: 'off', label: 'Never', hint: 'Music starts immediately, every time — and tracks run into each other with no pause between them.' },
           ]}
         />
         <Toggle
-          label="Needle-drop sound"
-          hint="A low thunk and a second of surface noise as the arm lands — putting a record on, changing track, and previewing one. Rides your volume, and never plays on its own."
+          label={deck.soundLabel}
+          hint={deck.soundHint}
           checked={s.needleDrop}
           onChange={(v) => s.set('needleDrop', v)}
         />
@@ -100,17 +122,17 @@ export default function Settings() {
             on every input event is what keeps dragging the slider from becoming
             a stack of forty overlapping thunks. */}
         <Slider
-          label="Needle-drop volume"
-          hint="How loud the thunk and crackle are. Drag it to hear it. Still rides your main volume, so turning the music down turns this down with it."
+          label={`${deck.soundLabel} volume`}
+          hint="How loud it is. Drag it to hear it. Still rides your main volume, so turning the music down turns this down with it."
           value={s.needleDropLevel}
           min={MIN_NEEDLE_LEVEL}
           max={MAX_NEEDLE_LEVEL}
           step={0.25}
           disabled={!s.needleDrop}
-          disabledHint="Turn the needle-drop sound on to set how loud it is."
+          disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
           format={(v) => `${Math.round(v * 100)}%`}
           onChange={(v) => s.set('needleDropLevel', v)}
-          onCommit={(v) => playNeedleDrop(usePlayerStore.getState().volume, v)}
+          onCommit={(v) => playTransportCue(s.deck, usePlayerStore.getState().volume, v)}
         />
       </Section>
 
