@@ -31,7 +31,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 
-import { readTags } from '../src/lib/tags.ts'
+import { readLyrics, readTags } from '../src/lib/tags.ts'
 import { albumKey, trackKey } from '../src/lib/keys.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -160,6 +160,74 @@ console.log('\nMP4 ilst — M4A')
       `cover differs: got ${t.picture.bytes.length} bytes, wrote ${JPEG.length}`)
   })
 }
+
+// ── Lyrics ───────────────────────────────────────────────────────────────────
+//
+// The doggerel `make-fixtures.py` wrote, which is the only text that can be
+// asserted on byte for byte in a public repository.
+const LRC_SHEET = [
+  '[ar:The Tone Arms]',
+  '[ti:Needle Drop]',
+  '[offset:+500]',
+  '[00:01.00]The arm comes down',
+  '[00:04.50]and the dust begins to sing',
+  '[00:09.25][00:21.25]Round and round and round',
+  '[00:14.00]',
+  '[00:16.75]Side two is where the quiet is',
+].join('\n')
+
+const PLAIN_SHEET = [
+  'The arm comes down',
+  'and the dust begins to sing',
+  '',
+  'Side two is where the quiet is',
+].join('\n')
+
+console.log('\nLyrics, read on demand')
+
+check('ID3 USLT comes back exactly as it went in, timestamps and all', () => {
+  assert.equal(readLyrics(read('id3v23.mp3')), LRC_SHEET)
+})
+
+// The USLT twin of the APIC trap the fixture next door exists for: the
+// descriptor before the words terminates with a DOUBLE NUL under UTF-16, and a
+// reader scanning for one zero byte starts the sheet inside its own first
+// character. The symptom is a lyric sheet that is subtly truncated, which reads
+// as a badly tagged file rather than as a bug.
+check('a UTF-16 USLT descriptor does not eat the start of the sheet', () => {
+  assert.equal(readLyrics(read('id3v23-utf16.mp3')), PLAIN_SHEET)
+})
+
+check('TXXX:LYRICS is read when there is no USLT — and TXXX:LYRICIST is not', () => {
+  const found = readLyrics(read('id3v24.mp3'))
+  assert.equal(found, PLAIN_SHEET)
+  assert.ok(!found.includes('A. Nother'), 'read the lyricist as the lyrics')
+})
+
+check('Vorbis UNSYNCEDLYRICS is read and LYRICIST is left alone', () => {
+  const found = readLyrics(read('vorbis.flac'))
+  assert.equal(found, PLAIN_SHEET)
+  assert.ok(!found.includes('A. Nother'), 'read the lyricist as the lyrics')
+})
+
+check('the MP4 lyrics atom is read', () => {
+  assert.equal(readLyrics(read('mp4.m4a')), PLAIN_SHEET)
+})
+
+check('a file with no lyrics says so rather than returning empty text', () => {
+  assert.equal(readLyrics(read('untagged.mp3')), undefined)
+})
+
+// ⚠️ The guard on the whole design. Lyrics are a few KB per track and a scan
+// touches every file in the library, so a sheet arriving in `readTags` by
+// default is 15 MB of strings in the store and in IndexedDB for text nobody has
+// asked to see. If this check ever fails, the memory cost came back.
+check('a scan does not pay for lyrics — they need asking for', () => {
+  for (const name of ['id3v23.mp3', 'id3v24.mp3', 'vorbis.flac', 'mp4.m4a']) {
+    assert.equal(readTags(read(name), true).lyrics, undefined, `${name} carried lyrics into a scan`)
+    assert.ok(readTags(read(name), false, true).lyrics, `${name} withheld them when asked`)
+  }
+})
 
 console.log('\nThe cases that must not throw')
 

@@ -31,7 +31,7 @@ import zlib
 
 from mutagen.flac import FLAC, Picture
 from mutagen.id3 import (
-    APIC, ID3, TALB, TCON, TDRC, TIT2, TPE1, TPE2, TPOS, TRCK,
+    APIC, ID3, TALB, TCON, TDRC, TIT2, TPE1, TPE2, TPOS, TRCK, TXXX, USLT,
 )
 from mutagen.mp4 import MP4, MP4Cover
 from PIL import Image
@@ -49,6 +49,38 @@ TRACK, TRACK_TOTAL = 7, 12
 DISC, DISC_TOTAL = 2, 2
 YEAR = 1997
 GENRE = "Shoegaze"
+
+# ── The lyric sheets ─────────────────────────────────────────────────────────
+#
+# Doggerel written for this file, about the app, and deliberately so: a fixture
+# needs to assert on an exact string, and the only text that can be checked into
+# a public repository and compared byte for byte is text nobody owns. It also
+# makes a failure obvious — nothing here can be mistaken for a real song.
+#
+# LRC_SHEET carries the three things the parser has to survive: metadata tags at
+# the top, an `[offset:]` (whose SIGN is the trap — see `lyrics.ts`), and a line
+# stamped TWICE, which is how every LRC writer stores a repeated chorus.
+LRC_SHEET = "\n".join([
+    "[ar:The Tone Arms]",
+    "[ti:Needle Drop]",
+    "[offset:+500]",
+    "[00:01.00]The arm comes down",
+    "[00:04.50]and the dust begins to sing",
+    "[00:09.25][00:21.25]Round and round and round",
+    "[00:14.00]",
+    "[00:16.75]Side two is where the quiet is",
+])
+
+PLAIN_SHEET = "\n".join([
+    "The arm comes down",
+    "and the dust begins to sing",
+    "",
+    "Side two is where the quiet is",
+])
+
+# The name of a person, in the field next door. It must never be read as a
+# lyric — see `LYRIC_KEYS` in `tags.ts`.
+LYRICIST = "A. Nother"
 
 
 def cover(fmt: str, rgb=(224, 85, 4)) -> bytes:
@@ -136,6 +168,17 @@ def write_mp3(path: str, version: int) -> None:
     tag.add(TCON(encoding=3, text=GENRE))
     tag.add(APIC(encoding=3, mime="image/jpeg", type=3,
                  desc="Front cover", data=cover("JPEG")))
+    if version == 3:
+        # v2.3 gets the sheet where it belongs: USLT, timed.
+        tag.add(USLT(encoding=3, lang="eng", desc="", text=LRC_SHEET))
+    else:
+        # v2.4 gets it in the place SOME taggers put it instead. A file written
+        # this way shows no lyrics at all to a reader that only knows USLT, and
+        # there is nothing about it that looks wrong.
+        tag.add(TXXX(encoding=3, desc="LYRICS", text=PLAIN_SHEET))
+        # ...next to a field that is one letter away from it and is a person's
+        # name. Reading this as the words would be silent and wrong.
+        tag.add(TXXX(encoding=3, desc="LYRICIST", text=LYRICIST))
     tag.save(path, v2_version=version)
 
 
@@ -155,6 +198,11 @@ def write_mp3_utf16_desc(path: str) -> None:
     tag.add(TALB(encoding=1, text=ALBUM))
     tag.add(APIC(encoding=1, mime="image/png", type=3,
                  desc="Sleeve", data=cover("PNG")))
+    # The same double-NUL trap, on the frame next door: USLT's descriptor
+    # terminates the same way APIC's does, and a reader that gets APIC right by
+    # hand and USLT wrong reads the sheet from a few bytes into itself. A
+    # non-empty descriptor, because an empty one is only two bytes and hides it.
+    tag.add(USLT(encoding=1, lang="eng", desc="Sleeve notes", text=PLAIN_SHEET))
     tag.save(path, v2_version=3)
 
 
@@ -170,6 +218,10 @@ def write_flac(path: str) -> None:
     tag["DISCNUMBER"] = str(DISC)
     tag["DATE"] = f"{YEAR}-08-04"        # a full date, not a bare year
     tag["GENRE"] = GENRE
+    # The Vorbis spelling most taggers use, beside the field it must not be
+    # confused with.
+    tag["UNSYNCEDLYRICS"] = PLAIN_SHEET
+    tag["LYRICIST"] = LYRICIST
     pic = Picture()
     pic.type = 3
     pic.mime = "image/png"
@@ -192,6 +244,7 @@ def write_m4a(path: str) -> None:
     tag["disk"] = [(DISC, DISC_TOTAL)]
     tag["\xa9day"] = [str(YEAR)]
     tag["\xa9gen"] = [GENRE]
+    tag["\xa9lyr"] = [PLAIN_SHEET]
     tag["covr"] = [MP4Cover(cover("JPEG"), imageformat=MP4Cover.FORMAT_JPEG)]
     tag.save()
 

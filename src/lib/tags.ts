@@ -6,8 +6,8 @@
 // Converter's copy is the original: it reads title/artist/album so they survive
 // a conversion, and it also writes ID3v2.3. This copy drops the writing (Jukebox
 // never edits a file — see the refusals in README) and adds everything a LIBRARY
-// needs that a converter doesn't: cover art, track and disc numbers, year, genre
-// and the album artist.
+// needs that a converter doesn't: cover art, track and disc numbers, year, genre,
+// the album artist, and the LYRICS the file was tagged with.
 //
 // The rule-of-two says copy and the rule-of-three says extract. This is the
 // second consumer, so it is a copy — but it is a copy with its eyes open, and
@@ -48,6 +48,19 @@ export interface Picture {
 
 export interface TagsAndArt extends Tags {
   picture?: Picture
+  /**
+   * The lyric sheet the file was tagged with, exactly as it was stored — which
+   * may be plain text or may be LRC, with a timestamp at the head of each line.
+   * `lib/lyrics.ts` is what tells the two apart; this file only fetches bytes.
+   *
+   * ⚠️ NOT part of `Tags`, and never read during a scan. A lyric sheet is a few
+   * kilobytes of text, so a 5,000-track library that carried one per `Track`
+   * would hold ~15 MB of strings in the store and write them all to IndexedDB —
+   * for text that is only ever looked at one track at a time. It is read on
+   * demand for the track on the deck instead, which is one range read when
+   * somebody opens the panel. Same reasoning as `wantArt`, same shape.
+   */
+  lyrics?: string
 }
 
 export function hasTags(tags: Tags): boolean {
@@ -67,18 +80,30 @@ export function hasTags(tags: Tags): boolean {
  *
  * `wantArt` is not an optimisation detail, it is a memory decision. Art is
  * extracted once per ALBUM (see `art.ts`); asking for it on every track of a
- * 5,000-file library is how you hold 2.5 GB of JPEG.
+ * 5,000-file library is how you hold 2.5 GB of JPEG. `wantLyrics` is the same
+ * decision about a smaller thing — see the field on `TagsAndArt`. Both default
+ * to off, so the scan pays for neither.
  */
-export function readTags(bytes: Uint8Array, wantArt = false): TagsAndArt {
+export function readTags(bytes: Uint8Array, wantArt = false, wantLyrics = false): TagsAndArt {
   try {
-    if (startsWith(bytes, 'ID3')) return readId3(bytes, wantArt)
-    if (startsWith(bytes, 'fLaC')) return readFlac(bytes, wantArt)
-    if (startsWith(bytes, 'OggS')) return readOggOpusTags(bytes)
-    if (bytes.length > 12 && ascii(bytes, 4, 4) === 'ftyp') return readMp4Tags(bytes, wantArt)
+    if (startsWith(bytes, 'ID3')) return readId3(bytes, wantArt, wantLyrics)
+    if (startsWith(bytes, 'fLaC')) return readFlac(bytes, wantArt, wantLyrics)
+    if (startsWith(bytes, 'OggS')) return readOggOpusTags(bytes, wantLyrics)
+    if (bytes.length > 12 && ascii(bytes, 4, 4) === 'ftyp') return readMp4Tags(bytes, wantArt, wantLyrics)
     return {}
   } catch {
     return {}
   }
+}
+
+/**
+ * Just the lyric sheet, for the one track somebody is looking at.
+ *
+ * The whole tag walk runs anyway — it is the same pass — but nothing else it
+ * finds is kept, which makes the caller's intent unmistakable at the call site.
+ */
+export function readLyrics(bytes: Uint8Array): string | undefined {
+  return readTags(bytes, false, true).lyrics
 }
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -180,9 +205,56 @@ function picture(declaredMime: string | undefined, bytes: Uint8Array): Picture |
   return { mime, bytes }
 }
 
+// ── Which of two lyric sheets to keep ────────────────────────────────────────
+
+/**
+ * A cheap "does this look like LRC" test — a `[mm:ss` at the start of any line.
+ *
+ * ⚠️ Deliberately NOT the parser. `lib/lyrics.ts` decides what a lyric sheet
+ * actually is, with a proportion rule and an offset and everything else; this
+ * regex exists only to answer the one question this file has to answer, which
+ * is which of two candidate frames to keep. Kept here rather than imported so
+ * that this file goes on depending on nothing, which is what lets
+ * `scripts/selftest.mjs` run it under Node.
+ */
+const LOOKS_SYNCED = /^\s*\[\d{1,3}:\d{2}/m
+
+/**
+ * Keep the better of two sheets: a timed one beats an untimed one, and
+ * otherwise the first one found wins.
+ *
+ * A file quite often carries both — a tagger that fetches synced lyrics tends
+ * to leave the plain sheet it replaced sitting in a second frame — and which
+ * one the walk meets first is an accident of how the tag was written. Without
+ * this the same track shows timed lyrics or untimed lyrics depending on the
+ * order two frames happen to sit in.
+ */
+function preferLyrics(current: string | undefined, next: string): string | undefined {
+  const trimmed = next.trim()
+  if (!trimmed) return current
+  if (!current) return trimmed
+  if (!LOOKS_SYNCED.test(current) && LOOKS_SYNCED.test(trimmed)) return trimmed
+  return current
+}
+
+/**
+ * The field names that hold a lyric sheet — as a Vorbis comment key, or as the
+ * description of an ID3 `TXXX` frame.
+ *
+ * ⚠️ `LYRICIST` is a different field and must never match: it holds the name of
+ * the person who wrote the words, so accepting it puts a songwriter's name on
+ * screen where a song should be. Membership of this set, not a prefix test.
+ */
+const LYRIC_KEYS = new Set(['LYRICS', 'UNSYNCEDLYRICS', 'SYNCEDLYRICS'])
+
+/** Tag writers vary the spacing and the case — "Unsynced Lyrics", "unsyncedlyrics". */
+function isLyricKey(key: string): boolean {
+  return LYRIC_KEYS.has(key.toUpperCase().replace(/[\s_-]+/g, ''))
+}
+
 // ── ID3v2 (MP3, and often AIFF) ──────────────────────────────────────────────
 
-function readId3(bytes: Uint8Array, wantArt: boolean): TagsAndArt {
+function readId3(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): TagsAndArt {
   const major = bytes[3]
   const size = synchsafe(bytes, 6)
   const end = Math.min(bytes.length, 10 + size)
@@ -202,6 +274,9 @@ function readId3(bytes: Uint8Array, wantArt: boolean): TagsAndArt {
         TRCK: 'trackNo', TPOS: 'discNo', TYER: 'year', TDRC: 'year', TCON: 'genre',
       }
   const artFrame = major <= 2 ? 'PIC' : 'APIC'
+  // v2.2's three-character names for the same two frames.
+  const lyricFrame = major <= 2 ? 'ULT' : 'USLT'
+  const userFrame = major <= 2 ? 'TXX' : 'TXXX'
 
   let at = 10
   while (at + headerLength <= end) {
@@ -224,6 +299,12 @@ function readId3(bytes: Uint8Array, wantArt: boolean): TagsAndArt {
       else if (value) out[field] = value as never
     } else if (wantArt && id === artFrame && !out.picture) {
       out.picture = major <= 2 ? readPicFrame(body) : readApicFrame(body)
+    } else if (wantLyrics && id === lyricFrame) {
+      const value = readUsltFrame(body)
+      if (value) out.lyrics = preferLyrics(out.lyrics, value)
+    } else if (wantLyrics && id === userFrame) {
+      const pair = readTxxxFrame(body)
+      if (pair && isLyricKey(pair.description)) out.lyrics = preferLyrics(out.lyrics, pair.value)
     }
     at += headerLength + frameSize
   }
@@ -304,6 +385,47 @@ function readPicFrame(body: Uint8Array): Picture | undefined {
   return picture(format, body.subarray(dataStart))
 }
 
+/**
+ * USLT (v2.2: ULT), the unsynchronised lyric frame: encoding byte, a
+ * THREE-BYTE language code, a NUL-terminated content descriptor in that
+ * encoding, then the sheet itself — newlines and all — to the end of the frame.
+ *
+ * ⚠️ The language bytes are three regardless of encoding. They are raw ASCII
+ * ("eng", "und", and quite often three NULs or three spaces from a lazy
+ * tagger), NOT text in the frame's encoding, so the descriptor scan starts at
+ * 4 and a UTF-16 descriptor is still even-aligned from there.
+ *
+ * ⚠️ A file may hold SEVERAL of these — one per language, which is what the
+ * spec intends, and in practice one plain and one LRC from two different
+ * taggers. The walk keeps whichever `preferLyrics` says is better rather than
+ * the first, because the order they sit in means nothing.
+ */
+function readUsltFrame(body: Uint8Array): string | undefined {
+  if (body.length < 5) return undefined
+  const encoding = body[0]
+  const textStart = afterTerminator(body, 4, encoding)
+  if (textStart >= body.length) return undefined
+  return decodeId3String(encoding, body.subarray(textStart)) || undefined
+}
+
+/**
+ * TXXX (v2.2: TXX), the user-defined text frame: encoding, a NUL-terminated
+ * description, then the value. Only interesting here because some taggers put
+ * the sheet in `TXXX:LYRICS` instead of `USLT` — Picard and a handful of
+ * scripts do — and a file tagged that way otherwise shows nothing at all.
+ */
+function readTxxxFrame(body: Uint8Array): { description: string; value: string } | undefined {
+  if (body.length < 3) return undefined
+  const encoding = body[0]
+  const valueStart = afterTerminator(body, 1, encoding)
+  if (valueStart >= body.length) return undefined
+  const terminatorLength = encoding === 1 || encoding === 2 ? 2 : 1
+  const description = decodeId3String(encoding, body.subarray(1, Math.max(1, valueStart - terminatorLength)))
+  const value = decodeId3String(encoding, body.subarray(valueStart))
+  if (!description || !value) return undefined
+  return { description, value }
+}
+
 // ── FLAC ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -314,7 +436,7 @@ function readPicFrame(body: Uint8Array): Picture | undefined {
  * Walked once for both rather than twice, because the chain is a linked list —
  * finding the second block means walking past the first anyway.
  */
-function readFlac(bytes: Uint8Array, wantArt: boolean): TagsAndArt {
+function readFlac(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): TagsAndArt {
   let out: TagsAndArt = {}
   let at = 4
   while (at + 4 <= bytes.length) {
@@ -324,8 +446,8 @@ function readFlac(bytes: Uint8Array, wantArt: boolean): TagsAndArt {
     const bodyStart = at + 4
 
     if (type === 4) {
-      const tags = readVorbisComment(bytes, bodyStart, wantArt)
-      out = { ...tags, ...out, picture: out.picture ?? tags.picture }
+      const tags = readVorbisComment(bytes, bodyStart, wantArt, wantLyrics)
+      out = { ...tags, ...out, picture: out.picture ?? tags.picture, lyrics: out.lyrics ?? tags.lyrics }
     } else if (type === 6 && wantArt && !out.picture) {
       out.picture = readFlacPicture(bytes.subarray(bodyStart, Math.min(bytes.length, bodyStart + length)))
     }
@@ -363,7 +485,7 @@ function readFlacPicture(block: Uint8Array): Picture | undefined {
 
 // ── Vorbis comments (FLAC, Ogg, Opus) ────────────────────────────────────────
 
-function readVorbisComment(bytes: Uint8Array, offset: number, wantArt: boolean): TagsAndArt {
+function readVorbisComment(bytes: Uint8Array, offset: number, wantArt: boolean, wantLyrics = false): TagsAndArt {
   if (offset < 0) return {}
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let at = offset
@@ -394,6 +516,7 @@ function readVorbisComment(bytes: Uint8Array, offset: number, wantArt: boolean):
     else if (key === 'DISCNUMBER') out.discNo ??= leadingNumber(value)
     else if (key === 'DATE' || key === 'YEAR') date ??= value
     else if (key === 'GENRE') out.genre ??= value
+    else if (wantLyrics && isLyricKey(key)) out.lyrics = preferLyrics(out.lyrics, value)
     else if (wantArt && key === 'METADATA_BLOCK_PICTURE' && !out.picture) {
       // An Ogg file has no PICTURE block, so the whole block is base64'd into a
       // comment. Decoding it costs a full copy of the image as a string first,
@@ -431,10 +554,10 @@ function base64ToBytes(text: string): Uint8Array {
 }
 
 /** Ogg/Opus: the comment packet is `OpusTags` + a Vorbis comment body. */
-function readOggOpusTags(bytes: Uint8Array): TagsAndArt {
+function readOggOpusTags(bytes: Uint8Array, wantLyrics = false): TagsAndArt {
   for (let at = 0; at + 8 < Math.min(bytes.length, 65_536); at++) {
-    if (ascii(bytes, at, 8) === 'OpusTags') return readVorbisComment(bytes, at + 8, false)
-    if (ascii(bytes, at, 7) === '\x03vorbis') return readVorbisComment(bytes, at + 7, false)
+    if (ascii(bytes, at, 8) === 'OpusTags') return readVorbisComment(bytes, at + 8, false, wantLyrics)
+    if (ascii(bytes, at, 7) === '\x03vorbis') return readVorbisComment(bytes, at + 7, false, wantLyrics)
   }
   return {}
 }
@@ -451,7 +574,7 @@ function readOggOpusTags(bytes: Uint8Array): TagsAndArt {
  * slice it was handed; it just won't find an `ilst` in the wrong one, and
  * returns `{}` rather than failing.
  */
-function readMp4Tags(bytes: Uint8Array, wantArt: boolean): TagsAndArt {
+function readMp4Tags(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): TagsAndArt {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let ilst = -1
   for (let at = 0; at + 8 <= bytes.length; at++) {
@@ -498,6 +621,11 @@ function readMp4Tags(bytes: Uint8Array, wantArt: boolean): TagsAndArt {
         if (name === 'trkn') out.trackNo ??= n
         else out.discNo ??= n
       }
+    } else if (wantLyrics && name === '©lyr' && size > 24) {
+      // The one text atom that is not in the map above, because it must not be
+      // read on a scan — see `lyrics` on `TagsAndArt`.
+      const value = new TextDecoder('utf-8').decode(bytes.subarray(at + 24, at + size)).replace(/\0+$/, '')
+      out.lyrics = preferLyrics(out.lyrics, value)
     } else if (wantArt && name === 'covr' && size > 24 && !out.picture) {
       // The `data` box's type word says 13 = JPEG, 14 = PNG. Both are sniffed
       // anyway; the declared value is only a hint.

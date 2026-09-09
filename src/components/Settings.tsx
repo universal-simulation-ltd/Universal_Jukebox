@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
 import { graphUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck } from '../lib/decks'
+import { clearLyrics, countLyrics } from '../lib/library'
 import { goHome } from '../lib/route'
+import { useLyricsStore } from '../stores/lyricsStore'
 import { usePlayerStore } from '../stores/playerStore'
 import {
   CEREMONY_LADDER,
@@ -216,6 +219,19 @@ export default function Settings() {
         />
       </Section>
 
+      <Section
+        title="Lyrics"
+        note="Jukebox reads the lyrics your files were tagged with. Most files have none."
+      >
+        <Toggle
+          label="Look up missing lyrics online"
+          hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
+          checked={s.lyricsOnline}
+          onChange={(v) => s.set('lyricsOnline', v)}
+        />
+        <DownloadedLyrics />
+      </Section>
+
       <Section title="Appearance">
         <Choice<ThemePref>
           label="Theme"
@@ -241,6 +257,50 @@ export default function Settings() {
           Puts everything on this page back to its default. Your library and your theme are left alone.
         </p>
       </div>
+    </div>
+  )
+}
+
+/**
+ * What has been downloaded, and the way to undo it.
+ *
+ * ⚠️ The count is the honest part. "Answers are kept on this device" above is a
+ * claim, and a claim about stored data that the person cannot check or reverse
+ * is worth very little — so the number of them is on screen and there is one
+ * button that removes the lot. It counts the "nobody has this one" answers too,
+ * because those are stored as well and pretending otherwise would make the
+ * number quietly wrong.
+ */
+function DownloadedLyrics() {
+  const [count, setCount] = useState<number | null>(null)
+  const forget = useLyricsStore((l) => l.forget)
+
+  useEffect(() => {
+    let live = true
+    void countLyrics().then((n) => { if (live) setCount(n) })
+    return () => { live = false }
+  }, [])
+
+  if (count === null || count === 0) return null
+  return (
+    <div className="px-1 py-3">
+      <p className="text-[13px] text-slate-600 dark:text-slate-300">
+        {count === 1 ? '1 track has been looked up' : `${count} tracks have been looked up`} on
+        lrclib.net.
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          void clearLyrics().then(() => {
+            setCount(0)
+            // The panel may be showing one of the sheets that just went.
+            forget()
+          })
+        }}
+        className="mt-1.5 text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+      >
+        Forget them
+      </button>
     </div>
   )
 }

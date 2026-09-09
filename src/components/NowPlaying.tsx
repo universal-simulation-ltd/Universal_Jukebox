@@ -7,6 +7,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import Deck, { CeremonyCount } from './Deck'
 import type { Album } from '../lib/types'
+import Lyrics from './Lyrics'
 import Queue from './Queue'
 import UpNextReel from './UpNextReel'
 import Visualiser from './Visualiser'
@@ -125,6 +126,8 @@ export default function NowPlaying() {
           {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
         </p>
 
+        <LyricsToggle />
+
         {/* Hidden below 560px (T5) — the first thing to go from the words
             column, because it is the only part of it that is decoration. */}
         <div className="mt-5 hidden sm:block">
@@ -132,6 +135,9 @@ export default function NowPlaying() {
         </div>
       </div>
     </div>
+    {/* The words, directly under the deck and above everything about what
+        comes NEXT — because they are about the track that is on. */}
+    <Lyrics />
     {/* The records waiting their turn, as pictures. Between the stage and the
         list on purpose: it belongs to the deck (it is the same medium, in the
         order it will go on) and it introduces the queue underneath, which is
@@ -139,6 +145,37 @@ export default function NowPlaying() {
     <UpNextReel />
     <Queue />
     </>
+  )
+}
+
+/**
+ * The way into the lyrics panel.
+ *
+ * ⚠️ It says "Lyrics" whether or not this track has any, and that is
+ * deliberate: knowing would mean reading every file on the deck before the
+ * button could be drawn, which is a range read per track change for a button
+ * most people never press. Pressing it and being told there are none is one
+ * click; a button that appears and disappears between tracks is a control
+ * nobody can learn.
+ */
+function LyricsToggle() {
+  const show = useSettingsStore((s) => s.showLyrics)
+  const setSetting = useSettingsStore((s) => s.set)
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        setSetting('showLyrics', !show)
+      }}
+      aria-pressed={show}
+      className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
+    >
+      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+        <path d="M4 3h9a1 1 0 0 1 1 1v11.5a.5.5 0 0 1-.79.4L9 13.6l-4.21 2.3A.5.5 0 0 1 4 15.5V4a1 1 0 0 1 1-1Zm2 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5H6Zm0 3a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Z" />
+      </svg>
+      {show ? 'Hide lyrics' : 'Lyrics'}
+    </button>
   )
 }
 

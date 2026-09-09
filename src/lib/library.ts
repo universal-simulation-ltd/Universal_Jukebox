@@ -17,7 +17,8 @@ import type { Album, Root, Track } from './types'
 
 const DB_NAME = 'unisim-jukebox'
 /**
- * ⚠️ Bumped to 2 for the `fixes` store (2026-09-08).
+ * ⚠️ Bumped to 2 for the `fixes` store (2026-09-08), and to 3 for the `lyrics`
+ * cache (2026-09-09).
  *
  * `onupgradeneeded` below creates only what is missing, so it runs correctly
  * for a brand-new database AND for one already holding somebody's library —
@@ -25,12 +26,13 @@ const DB_NAME = 'unisim-jukebox'
  * five thousand files, which is the sort of thing a version bump does when
  * nobody thinks about it.
  */
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 export const STORE_TRACKS = 'tracks'
 export const STORE_ALBUMS = 'albums'
 export const STORE_ROOTS = 'roots'
 export const STORE_FIXES = 'fixes'
+export const STORE_LYRICS = 'lyrics'
 
 let dbPromise: Promise<IDBDatabase | null> | null = null
 
@@ -70,6 +72,18 @@ function open(): Promise<IDBDatabase | null> {
       // they survive and are re-applied.
       if (!db.objectStoreNames.contains(STORE_FIXES)) {
         db.createObjectStore(STORE_FIXES, { keyPath: 'id' })
+      }
+      // Lyric sheets fetched from LRCLIB, and only those.
+      //
+      // ⚠️ Nothing read out of the user's OWN files is ever written here. A
+      // sheet embedded in a tag is one range read away and always right; a
+      // cache of it would be a second copy of the user's data in a place they
+      // did not put it, kept in step by nothing. What this store is for is the
+      // opposite problem: an online answer is slow, and asking for it again on
+      // every play is both rude to a free service and a repeat of the one
+      // privacy cost the feature has.
+      if (!db.objectStoreNames.contains(STORE_LYRICS)) {
+        db.createObjectStore(STORE_LYRICS, { keyPath: 'id' })
       }
     }
     request.onsuccess = () => {
@@ -277,6 +291,42 @@ export async function clearFixes(): Promise<void> {
   await tx(STORE_FIXES, 'readwrite', (s) => s.clear())
 }
 
+// ── Lyrics fetched online ────────────────────────────────────────────────────
+
+/**
+ * One answer from LRCLIB, kept so it is only asked for once.
+ *
+ * ⚠️ `raw` is null for "we asked, and there is no sheet for this track". That
+ * is a real answer and it has to be stored, or every play of a track nobody has
+ * transcribed sends the same request again — which is the whole cost of the
+ * feature, repeated indefinitely, for no result.
+ */
+export interface LyricRecord {
+  /** The track id, which is stable across a rescan of unchanged files. */
+  id: string
+  raw: string | null
+  /** True when LRCLIB says the track has no words at all. */
+  instrumental?: boolean
+  at: number
+}
+
+export async function getLyricRecord(trackId: string): Promise<LyricRecord | null> {
+  return (await tx<LyricRecord>(STORE_LYRICS, 'readonly', (s) => s.get(trackId))) ?? null
+}
+
+export async function putLyricRecord(record: LyricRecord): Promise<void> {
+  await tx(STORE_LYRICS, 'readwrite', (s) => s.put(record))
+}
+
+/** "Forget the lyrics I've downloaded" — offered on the Settings page. */
+export async function clearLyrics(): Promise<void> {
+  await tx(STORE_LYRICS, 'readwrite', (s) => s.clear())
+}
+
+export async function countLyrics(): Promise<number> {
+  return (await tx<number>(STORE_LYRICS, 'readonly', (s) => s.count())) ?? 0
+}
+
 // ── Wholesale ────────────────────────────────────────────────────────────────
 
 /**
@@ -292,17 +342,19 @@ export async function clearLibrary(): Promise<void> {
   await new Promise<void>((resolve) => {
     let t: IDBTransaction
     try {
-      t = db.transaction([STORE_TRACKS, STORE_ALBUMS, STORE_ROOTS, STORE_FIXES], 'readwrite')
+      t = db.transaction([STORE_TRACKS, STORE_ALBUMS, STORE_ROOTS, STORE_FIXES, STORE_LYRICS], 'readwrite')
     } catch {
       return resolve()
     }
     t.objectStore(STORE_TRACKS).clear()
     t.objectStore(STORE_ALBUMS).clear()
     t.objectStore(STORE_ROOTS).clear()
-    // ⚠️ Fixes go too, but ONLY here. "Forget this library" means forget it;
-    // `clearScanned` (which a rescan uses) deliberately leaves them, because
-    // that is the whole reason they are stored separately.
+    // ⚠️ Fixes and downloaded lyrics go too, but ONLY here. "Forget this
+    // library" means forget it; `clearScanned` (which a rescan uses)
+    // deliberately leaves them, because that is the whole reason they are
+    // stored separately.
     t.objectStore(STORE_FIXES).clear()
+    t.objectStore(STORE_LYRICS).clear()
     t.oncomplete = () => resolve()
     t.onerror = () => resolve()
     t.onabort = () => resolve()

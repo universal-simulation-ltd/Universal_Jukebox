@@ -151,6 +151,27 @@ export interface Settings {
   fadeInSec: number
   /** Seconds of fade before the end of a track. 0 = straight out. */
   fadeOutSec: number
+  /**
+   * Whether the lyrics panel is open on Now Playing.
+   *
+   * ⚠️ A SETTING rather than component state, because it is a way of listening
+   * and not a thing you do to one track. Somebody who opens the lyrics wants
+   * them for the next track too, and having the panel shut itself on every
+   * change-over is the version of this that gets turned off after ten minutes.
+   */
+  showLyrics: boolean
+  /**
+   * Whether a track with no lyrics in its own tags may be looked up on
+   * lrclib.net.
+   *
+   * ⚠️ FALSE BY DEFAULT AND THE ONLY SETTING THAT REACHES THE NETWORK. The app
+   * says "nothing is uploaded" on its front page and means it; this is the one
+   * qualification, and it is a qualification precisely because it is off until
+   * somebody reads the sentence beside it and turns it on. Every rule that
+   * follows from that is written down in `lib/lrclib.ts` — read that file
+   * before changing this one.
+   */
+  lyricsOnline: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -162,6 +183,8 @@ export const DEFAULTS: Settings = {
   volumeBoost: 1,
   fadeInSec: 0,
   fadeOutSec: 0,
+  showLyrics: false,
+  lyricsOnline: false,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -257,6 +280,12 @@ function read(): Settings {
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
     fadeOutSec: clamp(stored.fadeOutSec, 0, MAX_FADE_SEC, DEFAULTS.fadeOutSec),
+    showLyrics: typeof stored.showLyrics === 'boolean' ? stored.showLyrics : DEFAULTS.showLyrics,
+    // ⚠️ `=== true`, not a truthy read. A stored value of anything other than
+    // an explicit `true` — a string, a 1, a blob written by some future
+    // version — has to mean off, because "off unless someone chose otherwise"
+    // is the entire guarantee this setting makes.
+    lyricsOnline: stored.lyricsOnline === true,
   }
 }
 
@@ -306,6 +335,8 @@ function persist(state: Settings) {
     volumeBoost: state.volumeBoost,
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
+    showLyrics: state.showLyrics,
+    lyricsOnline: state.lyricsOnline,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

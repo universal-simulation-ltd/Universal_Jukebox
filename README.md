@@ -8,6 +8,13 @@ Nothing is uploaded. There is no account. **It is not a streaming service and
 has no catalogue of its own** — it plays files you already have, and it cannot
 reach music that is anywhere else.
 
+> **One qualification, and only one.** If you switch on the lyrics lookup, the
+> app asks lrclib.net for the words to a track whose own tags carry none —
+> sending that track's artist, title, album and length, and nothing else. It is
+> off until you turn it on, no audio ever leaves the device either way, and it
+> is the only feature in the app that opens a connection. See
+> [Lyrics](#lyrics).
+
 Live at **<https://opensource.unisim.co.uk/jukebox>**.
 
 > **On the name.** "Universal" is the prefix every app in this suite carries, and
@@ -191,6 +198,12 @@ that silently rejected any cover under 100 bytes, and an MP4 `disk` atom floor
 that accepted `trkn` and dropped `disk` from the same file — presenting as "my
 library has no disc numbers" rather than as any kind of error.
 
+The lyric frames are in the same fixtures for the same reason, and the text in
+them is **doggerel written for `make-fixtures.py`**: a fixture has to assert on
+an exact string, and the only words that can be committed to a public repository
+and compared byte for byte are words nobody owns. It also makes a failure
+obvious, since nothing in them could be mistaken for a real song.
+
 ---
 
 ## How it is put together
@@ -203,7 +216,9 @@ src/
 │   ├── roots.ts       # several folders: prefixes, merging, removing. Pure, tested
 │   ├── search.ts      # what the search box matches — and so the tab counts too
 │   ├── scan.ts        # the folder walk — header-only reads, streaming results
-│   ├── library.ts     # IndexedDB: tracks / albums / roots
+│   ├── library.ts     # IndexedDB: tracks / albums / roots / fixes / lyrics
+│   ├── lyrics.ts      # LRC in, timed lines out — + the on-demand read. Pure, tested
+│   ├── lrclib.ts      # ⚠️ THE ONLY FILE THAT TOUCHES THE NETWORK. Off by default
 │   ├── art.ts         # extract → downscale → cache → object URLs (bounded)
 │   ├── audio.ts       # two <audio> decks, the crossfade, a real shuffle, the fades
 │   ├── audioGraph.ts  # the OPTIONAL Web Audio graph — boost + analyser. Read it first
@@ -216,10 +231,10 @@ src/
 │   ├── applySettings.ts # the one place settings become audible
 │   └── mediaSession.ts
 ├── stores/            # playerStore (owns the ceremony timeline) · libraryStore
-│                      # · settingsStore · tidyStore · themeStore
+│                      # · settingsStore · tidyStore · themeStore · lyricsStore
 └── components/        # Landing · AlbumGrid · AlbumView · CoverFan · OpenGroup
                        # · Deck (the frame) · decks/ (Vinyl · Cd · Cassette · Jukebox)
-                       # · NowPlaying · UpNextReel · PlayerBar
+                       # · NowPlaying · UpNextReel · PlayerBar · Lyrics
                        # · PreviewButton · Settings · Tidy
 ```
 
@@ -371,13 +386,22 @@ not a preview.
   in the same folder under different artist spellings, and tracks with no album
   tag sitting in an album's folder.
 
-### ⚠️ There is no lookup, and there never will be
+### ⚠️ There is no artwork lookup, and there never will be
 
 Every other player fixes missing artwork by asking MusicBrainz or the Cover Art
 Archive, which means sending someone's album and artist names to a server. This
 app's whole claim is that nothing leaves the machine, and *"we only send the
 metadata"* is exactly the sentence people say when they have quietly started
 sending something. If the art is not on the disk, the app says so.
+
+> **⚠️ This heading used to say "there is no lookup", and the lyrics panel broke
+> it.** Read [Lyrics](#lyrics) before deciding this section is merely out of
+> date. The paragraph above was written as a warning about a sentence, and the
+> Settings page now says almost that exact sentence — so the difference has to
+> be argued rather than assumed, and it is argued there. What has **not**
+> changed: the tidy-up still asks nothing of anybody, artwork is still never
+> looked up, and nothing here is a precedent for the next feature that would
+> find a server convenient.
 
 ### ⚠️ Everything is a proposal, and the refusals are the feature
 
@@ -404,6 +428,79 @@ derived from the files themselves — so **a rescan re-applies them** rather tha
 undoing them. That is the whole reason they are stored apart from the library
 they correct: a tidy-up you have to redo after every new album is worse than
 none, because you have to remember whether you did it.
+
+---
+
+## Lyrics
+
+The **Lyrics** button on Now Playing. The words come from one of two places, and
+the order is the whole design:
+
+1. **The file's own tags, always first.** ID3 `USLT` (and `TXXX:LYRICS`, which
+   is where some taggers put it instead), the Vorbis `LYRICS` /
+   `UNSYNCEDLYRICS` comment, and MP4's `©lyr`. This costs one range read, works
+   with the network unplugged, and is right even when it disagrees with the
+   internet, because it is the user's own data.
+2. **lrclib.net, only if you turn it on.** Off by default. See below.
+
+Where the sheet is **LRC** — a `[mm:ss.xx]` at the head of each line — the panel
+follows the music, and clicking a line seeks to it. Most tagged sheets are plain
+text and show as plain text; nothing pretends to follow a sheet that has no
+times in it.
+
+### ⚠️ Lyrics are read on demand, never during a scan
+
+`readTags` will not give you lyrics unless you ask (`wantLyrics`), the same way
+it will not give you a cover. A sheet is a few kilobytes; carried on every
+`Track` in a 5,000-file library that is ~15 MB of strings held in the store and
+written to IndexedDB, for text that is only ever looked at one track at a time.
+Instead the file for the track on the deck is re-read when the panel opens.
+There is a check in `scripts/selftest.mjs` that fails if lyrics ever start
+arriving by default — it is guarding the memory decision, not the parser.
+
+### ⚠️ The online lookup, and why it is a real exception
+
+This is the only part of the app that touches the network, and it contradicts a
+heading three sections up. It is worth being exact about what makes it
+different, because "it's fine, it's opt-in" is not by itself an argument:
+
+- **It is off until somebody turns it on**, having read one sentence saying what
+  will be sent. The artwork lookup this app refuses is the kind that is simply
+  *on*.
+- **The browser talks to lrclib.net directly.** There is no key to hide, so
+  there is no reason for a Worker of ours in the middle — and if there were one,
+  UNI·SIM would hold a log of what everybody listens to, which is worse than the
+  thing being avoided. This is also why LRCLIB rather than Musixmatch: a
+  licensed API needs a secret, a secret needs a server, and the server is the
+  part that cannot be made private.
+- **Artist, title, album and length. Nothing else** — not the path, not the
+  library, not an id for the person or the device.
+- **Once per track, ever.** The answer, including "nobody has this one", goes in
+  the `lyrics` IndexedDB store. Settings shows how many tracks have been looked
+  up and has one button that forgets the lot.
+
+**On the licensing.** LRCLIB is free, key-less and community-contributed, and it
+is what open-source players use because every licensed alternative (Musixmatch,
+LyricFind) is a commercial contract — Genius's API does not serve lyric text at
+all. It is **not** a licensed source. James took that call knowingly on
+2026-09-09; this paragraph exists so that whoever reads it next knows it was a
+decision and not an oversight.
+
+### The four ways this goes wrong quietly
+
+All four are covered by `lyrics.test.ts`, and none of them look like a bug on
+screen — they look like somebody else's badly made lyric file:
+
+| Trap | What it looks like |
+|---|---|
+| A line stamped **twice** (`[00:09][02:17]`) read once | The chorus never comes back; the sheet is stuck three minutes from the end |
+| `[offset:+500]` applied with the **wrong sign** | The sheet is a second out instead of correct — the correction doubles the error |
+| A plain sheet with **one** stray `[00:00.00]` treated as timed | One line highlighted for the whole song |
+| A **half**-timed sheet shown as synced | Every untimed line silently missing |
+
+A fifth lives in `tags.ts`: `LYRICIST` is a person's name, one letter from
+`LYRICS`, and reading it would put a songwriter's name on screen where a song
+should be. The FLAC and v2.4 fixtures both carry one, next to the real field.
 
 ---
 

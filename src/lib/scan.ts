@@ -28,7 +28,7 @@ import type { Album, ScanProgress, Track } from './types'
  * overwhelming majority of real files including their art; a tag bigger than
  * this yields text but no cover, which is the right way round to fail.
  */
-const HEAD_BYTES = 512 * 1024
+export const HEAD_BYTES = 512 * 1024
 
 /**
  * ...and off the back, for MP4 only.
@@ -41,7 +41,7 @@ const HEAD_BYTES = 512 * 1024
  * is a known cost, not a surprise: it is one extra range read, and only for MP4s
  * whose head came back without an `ilst`.
  */
-const TAIL_BYTES = 512 * 1024
+export const TAIL_BYTES = 512 * 1024
 
 /**
  * Image files worth remembering as we walk past them.
@@ -220,7 +220,16 @@ function* walkFileList(files: FileList | File[], rootPrefix = ''): Generator<Fou
 
 // ── Reading one file ─────────────────────────────────────────────────────────
 
-async function readSlice(file: File, start: number, end: number): Promise<Uint8Array> {
+/**
+ * A range read off disk.
+ *
+ * ⚠️ Exported so that `lib/lyrics.ts` can re-read one file without reinventing
+ * this, which is the only way THE ONE RULE at the top of this file stays true.
+ * A second copy of "read a bit of a file" elsewhere in the app is exactly how
+ * somebody eventually writes `file.arrayBuffer()` and turns a 40 GB library
+ * into an out-of-memory crash.
+ */
+export async function readSlice(file: File, start: number, end: number): Promise<Uint8Array> {
   const clampedStart = Math.max(0, Math.min(start, file.size))
   const clampedEnd = Math.max(clampedStart, Math.min(end, file.size))
   if (clampedEnd <= clampedStart) return new Uint8Array(0)
