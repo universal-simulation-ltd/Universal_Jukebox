@@ -72,10 +72,37 @@ export default function AlbumView({ albumId }: { albumId: string }) {
 
       {/* Stacks to one column below 980px (tier T3): deck above, words below. */}
       <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-        <Cover
-          album={album}
-          className="aspect-square w-full max-w-[260px] shadow-md ring-1 ring-slate-900/5 md:w-[260px] dark:ring-white/10"
-        />
+        {/* ⚠️ The cover IS a button (James, 2026-09-09). It was a picture, and a
+            260px picture of a record with a Play button beside it is a thing
+            people click — and nothing happened, on the one element the page is
+            built around. It does exactly what Play does, which is also the only
+            honest thing it can do: putting a record on is what takes you to the
+            deck, so "go to the animation" and "play this" are one action, not
+            two. The label says so on hover rather than leaving you to find out.
+
+            ⚠️ `disabled` when the album somehow has no tracks, or the overlay
+            would invite a click that cannot do anything. */}
+        <button
+          type="button"
+          onClick={() => playTracks(tracks, 0)}
+          disabled={tracks.length === 0}
+          aria-label={`Play ${album.title} on the deck`}
+          className="group relative block w-full max-w-[260px] shrink-0 rounded-xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] disabled:cursor-default md:w-[260px]"
+        >
+          <Cover
+            album={album}
+            className="aspect-square w-full shadow-md ring-1 ring-slate-900/5 transition group-enabled:group-hover:shadow-lg dark:ring-white/10"
+          />
+          {/* The invitation, on hover and on keyboard focus. `group-focus-visible`
+              as well as `group-hover` — an overlay that only exists under a
+              pointer is not there at all for somebody tabbing through. */}
+          <span className="pointer-events-none absolute inset-0 flex items-end justify-center rounded-xl bg-gradient-to-t from-slate-900/75 via-slate-900/10 to-transparent opacity-0 transition-opacity group-enabled:group-hover:opacity-100 group-enabled:group-focus-visible:opacity-100">
+            <span className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3.5 py-1.5 text-[12.5px] font-semibold text-slate-900 shadow-sm">
+              <PlayGlyph />
+              Click to open jukebox
+            </span>
+          </span>
+        </button>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
             {album.title}

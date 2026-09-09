@@ -68,14 +68,25 @@ export default function AppMenu() {
               {roots[0].label}
             </p>
           )}
-          {/* Chosen · rescan · forget. Nothing else, and nothing that adds. */}
-          <Row onClick={chooseFolder}>Choose a different folder…</Row>
-          <Row onClick={() => void rescan()}>Rescan this folder</Row>
+          {/* Chosen · rescan · forget. Nothing else, and nothing that adds.
+              ⚠️ The paragraph that used to explain all three lived here and was
+              cut (James, 2026-09-09): four lines of small grey type under three
+              short rows made the menu look like a page of notes with some
+              buttons in it, and it was the first thing you read every time you
+              opened the dropdown to do something you already understood. The
+              two rows whose behaviour is not obvious from their label carry it
+              as a `title` instead — there when you hover, gone otherwise. The
+              full version is in the README and in this file's own header. */}
+          <Row
+            onClick={chooseFolder}
+            title="Replaces this library rather than adding to it — one folder at a time"
+          >
+            Choose a different folder…
+          </Row>
+          <Row onClick={() => void rescan()} title="Picks up anything new inside it">
+            Rescan this folder
+          </Row>
           <Row onClick={() => void clear()}>Forget this library…</Row>
-          <p className="px-3 pt-1 pb-2 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
-            One folder at a time — choosing another replaces this library rather
-            than adding to it. Rescanning picks up anything new inside it.
-          </p>
           <Divider />
         </>
       )}
@@ -125,11 +136,14 @@ export default function AppMenu() {
   )
 }
 
-function Row({ onClick, children }: { onClick(): void; children: React.ReactNode }) {
+function Row({
+  onClick, title, children,
+}: { onClick(): void; title?: string; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className="block w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
     >
       {children}

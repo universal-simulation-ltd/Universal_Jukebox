@@ -85,8 +85,13 @@ export const SHAPES: Record<DeckStyle, { frame: DeckFrame; notes: NotesAnchor }>
   // A record fills its square, and it is round. The notes drift off the
   // headshell, which sits low and right.
   vinyl: { frame: { ratio: 1, radius: '50%' }, notes: { right: '4%', top: '58%' } },
-  // A disc likewise; its lens rides the lower-right radius.
-  cd: { frame: { ratio: 1, radius: '50%' }, notes: { right: '12%', top: '70%' } },
+  // ⚠️ A PORTABLE PLAYER, not a bare disc — so a rounded rectangle, slightly
+  // taller than wide to leave room for the control strip along the bottom, and
+  // NOT the `50%` circle this was until 2026-09-09. The radius here is what the
+  // focus ring and the hover target take their shape from, so a circle around a
+  // square body would put the ring nowhere near the object being aimed at. Its
+  // notes leave the lid, upper right.
+  cd: { frame: { ratio: 1.1, radius: '16%' }, notes: { right: '10%', top: '58%' } },
   // ⚠️ A shell is LANDSCAPE, so this frame is shorter than the size it is given
   // — the ratio is the frame's, not a margin inside a square one. A square
   // frame with a cassette floating in the middle puts the focus ring and the

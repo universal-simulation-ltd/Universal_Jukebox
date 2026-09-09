@@ -94,6 +94,16 @@ body {
   to   { opacity: 0; transform: translateY(-13%) scale(0.95); }
 }
 
+/* A record leaving the "waiting to go on" row because it has just gone on the
+   deck. Shrinking `max-width` rather than fading in place is what makes the
+   records behind it SLIDE ALONG into the gap — a plain opacity fade would leave
+   a hole where it was and then jump everything left when it unmounted. The
+   element sets its own starting `max-width`, so this rule works at any size. */
+@keyframes jb-reel-out {
+  from { max-width: 100px; opacity: 1; transform: translateY(0) scale(1); }
+  to   { max-width: 0px; opacity: 0; transform: translateY(-18%) scale(0.8); }
+}
+
 /* The level bars beside a playing track in a list. */
 @keyframes bars {
   0%, 100% { height: 35%; }
@@ -116,9 +126,21 @@ body {
 }
 
 /* ── Range inputs ───────────────────────────────────────────────────────────
-   The scrub bar and the volume slider. Styled by hand because a native range
-   thumb is 20px+ on every platform and sits proud of a 4px track, which on a
-   player bar reads as a bug rather than a control. */
+   The scrub bar, the volume slider and every slider on the Settings page.
+   Styled by hand because a native range thumb is 20px+ on every platform and
+   sits proud of a 4px track, which on a player bar reads as a bug rather than a
+   control.
+
+   ⚠️ THE THUMB IS ALWAYS VISIBLE (James, 2026-09-09). It used to be `opacity: 0`
+   until hover or focus, on the reasoning that "at rest the filled track IS the
+   position" — and that reasoning was simply wrong. **A range input does not
+   fill its track.** Neither engine paints the portion below the value unless
+   you style `::-webkit-slider-runnable-track` or `::-moz-range-progress`, and
+   this app styles neither. So at rest these controls showed NOTHING about their
+   value: the animation ladder was a bare grey bar whose setting you could only
+   discover by putting a pointer on it, and on a touch screen — where there is
+   no hover at all — never. Hover and focus now GROW the dot instead of
+   summoning it. */
 .jb-scrub {
   border-radius: 9999px;
 }
@@ -132,16 +154,16 @@ body {
   background: #e05504;
   border: 2px solid #fff;
   box-shadow: 0 1px 3px rgb(15 23 42 / 0.3);
-  /* The thumb only appears on hover or focus: at rest the filled track IS the
-     position, and a permanent dot on a 4px bar is visual noise on every screen
-     in the app. */
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: width 0.15s ease, height 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Bigger under a pointer or a focus ring, rather than newly existing. The
+   centre does not move, so nothing about the control appears to shift. */
 .jb-scrub:hover::-webkit-slider-thumb,
 .jb-scrub:focus-visible::-webkit-slider-thumb {
-  opacity: 1;
+  width: 15px;
+  height: 15px;
+  box-shadow: 0 1px 5px rgb(15 23 42 / 0.4);
 }
 
 .jb-scrub::-moz-range-thumb {
@@ -150,13 +172,28 @@ body {
   border-radius: 9999px;
   background: #e05504;
   border: 2px solid #fff;
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.3);
+  transition: width 0.15s ease, height 0.15s ease;
 }
 
 .jb-scrub:hover::-moz-range-thumb,
 .jb-scrub:focus-visible::-moz-range-thumb {
-  opacity: 1;
+  width: 15px;
+  height: 15px;
+}
+
+/* ⚠️ A disabled slider keeps its dot but stops pretending to be interactive.
+   Without this the Volume boost row on a browser that refused us an audio
+   graph, and the needle-drop level with the sound switched off, both show a
+   full-strength orange handle over copy explaining that they do nothing. */
+.jb-scrub:disabled::-webkit-slider-thumb {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+.jb-scrub:disabled::-moz-range-thumb {
+  background: #94a3b8;
+  box-shadow: none;
 }
 
 /* iOS Safari zooms the page in when a field under 16px takes focus, and it does

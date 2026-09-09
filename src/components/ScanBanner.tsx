@@ -1,10 +1,38 @@
 import { useRef } from 'react'
 import { DropRing } from '@unisim/sdk'
 import { plural } from '../lib/format'
+import { goHome } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 
 // Live scan progress, and the two things a scan has to say afterwards: the
 // formats it had to refuse, and whether the folder needs its permission back.
+
+/**
+ * "Start a new library" — the secondary action on the permission banner.
+ *
+ * ⚠️ Deliberately NOT a second filled pill. Two solid buttons side by side make
+ * a choice out of what is really one obvious action (get your music back) and
+ * one escape hatch, and on a banner that already reads as a warning the second
+ * pill is the one people click by mistake. Quiet, underlined, and to the LEFT
+ * of the primary, which is where a secondary belongs.
+ *
+ * It carries no confirmation, for the same reason the app menu's "Forget this
+ * library" doesn't: the library is derived from files on disk and rebuilding it
+ * is one folder-pick away. Nothing here can lose anything that isn't already
+ * somewhere else.
+ */
+function StartAgain({ onClick }: { onClick(): void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Forget this library and go back to the start"
+      className="shrink-0 text-[13px] font-medium text-orange-900/80 underline-offset-2 hover:underline dark:text-orange-200/80"
+    >
+      Start a new library
+    </button>
+  )
+}
 
 export default function ScanBanner({ showRefusals = true }: { showRefusals?: boolean }) {
   const progress = useLibraryStore((s) => s.progress)
@@ -15,8 +43,28 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   const stopScan = useLibraryStore((s) => s.stopScan)
   const stoppedEarly = useLibraryStore((s) => s.stoppedEarly)
   const addFiles = useLibraryStore((s) => s.addFiles)
+  const clear = useLibraryStore((s) => s.clear)
   const roots = useLibraryStore((s) => s.roots)
   const folderInput = useRef<HTMLInputElement>(null)
+
+  /**
+   * The way out of this banner that isn't "find that folder again".
+   *
+   * ⚠️ Both branches below assume the user still WANTS the folder they chose,
+   * and sometimes that is simply not true — the drive is gone, the folder was a
+   * mistake, or they would rather start with something else. Without this the
+   * only exits were the app menu's "Forget this library" (behind a dropdown, on
+   * a screen that is telling you something is wrong) and, on Chromium, a
+   * permission dialog for a folder they no longer care about.
+   *
+   * It forgets the library and goes home, which is the front door: choose a
+   * folder, pick files, or load the example library. `goHome` matters as much
+   * as the clear — the route survives an empty library, so somebody who was on
+   * `#/playing` would get the landing screen under a URL that says otherwise.
+   */
+  const startAgain = () => {
+    void clear().then(goHome)
+  }
 
   // A stored handle is the ONLY thing that makes a folder reopenable — not the
   // browser's capabilities in general, since a library built by picking files
@@ -93,6 +141,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
                 can read{' '}
                 {roots[0]?.label ? <strong className="font-semibold">{roots[0].label}</strong> : 'the folder'}.
               </p>
+              <StartAgain onClick={startAgain} />
               {/* ⚠️ This MUST be a click. A permission request with no user
                   gesture behind it is dropped silently, which presents as a
                   button that does nothing — so it can never move into an effect. */}
@@ -112,6 +161,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
                 {roots[0]?.label ? <strong className="font-semibold">{roots[0].label}</strong> : 'your music folder'}{' '}
                 again to play anything. It will be quick: nothing has to be read twice.
               </p>
+              <StartAgain onClick={startAgain} />
               <button
                 type="button"
                 onClick={() => folderInput.current?.click()}

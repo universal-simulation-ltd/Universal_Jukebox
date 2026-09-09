@@ -8,6 +8,7 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import Deck, { CeremonyCount } from './Deck'
 import type { Album } from '../lib/types'
 import Queue from './Queue'
+import UpNextReel from './UpNextReel'
 import Visualiser from './Visualiser'
 
 // The one screen in the suite that is genuinely pleasurable to leave open.
@@ -131,6 +132,11 @@ export default function NowPlaying() {
         </div>
       </div>
     </div>
+    {/* The records waiting their turn, as pictures. Between the stage and the
+        list on purpose: it belongs to the deck (it is the same medium, in the
+        order it will go on) and it introduces the queue underneath, which is
+        the version with names and a way to remove a row. */}
+    <UpNextReel />
     <Queue />
     </>
   )

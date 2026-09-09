@@ -156,8 +156,8 @@ src/
 ├── stores/            # playerStore (owns the ceremony timeline) · libraryStore
 │                      # · settingsStore · tidyStore · themeStore
 └── components/        # Landing · AlbumGrid · AlbumView · CoverFan · OpenGroup
-                       # · Deck · NowPlaying · PlayerBar · PreviewButton
-                       # · Settings · Tidy
+                       # · Deck · NowPlaying · UpNextReel · PlayerBar
+                       # · PreviewButton · Settings · Tidy
 ```
 
 ### Three things that are load-bearing
@@ -243,6 +243,19 @@ Four things about that are worth knowing before changing it:
   `HANDOVER.LIFT_MS`'s 420ms of silence is for. Which of the two you get is
   decided in `lib/transition.ts`, from what changed and what the animation
   slider says.
+
+**The records waiting their turn** are drawn beside the deck as a row of the
+same medium — `UpNextReel`, one item per QUEUE ENTRY rather than per album,
+because what goes on the player is a track. As each one is loaded it shrinks out
+of the row and the rest slide along to fill the gap; only as many as fit on one
+line are shown, measured from the row with a `ResizeObserver` rather than
+guessed from the viewport.
+
+⚠️ The reel draws its own small record / disc / cassette rather than reusing the
+deck faces, and that is deliberate: the faces draw the MACHINE — a tonearm, a
+laser sled, a Discman body with buttons — which at 76px is a smudge, and none of
+which is waiting to go on. It is `aria-hidden` because "Up next" underneath is
+the same queue with names and a remove button on every row.
 
 Pause **freezes** all of it where it stands: the platter's `animation-play-state`
 is paused rather than the animation being removed (removing it snaps the record

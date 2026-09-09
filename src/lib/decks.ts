@@ -54,7 +54,7 @@ export const DECKS: Record<DeckStyle, DeckCopy> = {
   },
   cd: {
     label: 'CD',
-    hint: 'A disc under a Discman-style laser, which tracks outwards from the middle — the direction a CD is actually read.',
+    hint: 'A portable CD player with the lid open, the disc in its well, and the laser tracking outwards from the middle — the direction a CD is actually read.',
     noun: 'disc',
     verb: 'spins the disc up',
     startTitle: 'Putting a disc in',
