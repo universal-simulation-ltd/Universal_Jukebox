@@ -13,8 +13,9 @@ import { needAccessFrom, useLibraryStore } from '../stores/libraryStore'
  * ⚠️ Deliberately NOT a second filled pill. Two solid buttons side by side make
  * a choice out of what is really one obvious action (get your music back) and
  * one escape hatch, and on a banner that already reads as a warning the second
- * pill is the one people click by mistake. Quiet, underlined, and to the LEFT
- * of the primary, which is where a secondary belongs.
+ * pill is the one people click by mistake. Quiet and underlined, sitting under
+ * the list rather than beside any one folder's button — it abandons the whole
+ * library, so it belongs to the banner, not to a row.
  *
  * It carries no confirmation, for the same reason the app menu's "Forget this
  * library" doesn't: the library is derived from files on disk and rebuilding it
@@ -134,65 +135,89 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
         </div>
       )}
 
-      {/* ⚠️ ONE ROW PER FOLDER, each with its own button. Permission is per
-          handle, so three folders is three prompts — and a single "Allow
-          access" that looped over them would fire those prompts inside one user
-          gesture, which browsers may collapse into a single grant, silently
-          leaving the other folders unplayable under a banner that has just
-          disappeared. A row each is honest about the cost and cannot half-work.
+      {/* ⚠️ ONE CARD, but ONE BUTTON PER FOLDER, and the difference
+          matters. Permission is per handle, so three folders is three prompts
+          — a single "Allow access" that looped over them would fire those
+          prompts inside one user gesture, which browsers may collapse into a
+          single grant, silently leaving the other folders unplayable under a
+          banner that has just disappeared. A button each is honest about the
+          cost and cannot half-work.
 
-          It also means the copy can name the folder, which is the whole
-          difference between "your library needs permission" and "Rhianna
-          does". */}
-      {stranded.map((root) => {
-        // A stored handle is the ONLY thing that makes a folder reopenable — not
-        // the browser's capabilities in general, since a library built by
-        // picking files has no handle even on Chromium.
-        const canReopen = !!root.handle
-        return (
-          <div
-            key={root.id}
-            className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[13px] text-orange-900 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-200"
-          >
-            {canReopen ? (
-              <>
-                <p className="min-w-0 flex-1">
-                  <strong className="font-semibold">{root.label}</strong> is here, but the browser
-                  needs your permission again before it can be read.
-                </p>
-                <StartAgain onClick={startAgain} />
-                {/* ⚠️ This MUST be a click. A permission request with no user
-                    gesture behind it is dropped silently, which presents as a
-                    button that does nothing — so it can never move into an
-                    effect. */}
-                <button
-                  type="button"
-                  onClick={() => void regrantFolder(root.id)}
-                  className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
-                >
-                  Allow access
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="min-w-0 flex-1">
-                  <strong className="font-semibold">{root.label}</strong> and its artwork are still
-                  here, but this browser can’t reopen a folder on its own — choose it again to play
-                  anything from it. It will be quick: nothing has to be read twice.
-                </p>
-                <StartAgain onClick={startAgain} />
-                <button
-                  type="button"
-                  onClick={() => folderInput.current?.click()}
-                  className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
-                >
-                  Choose folder
-                </button>
-              </>
-            )}
+          What was stacked — a whole warning card per folder, each repeating the
+          same explanation and its own "Start a new library" — read as several
+          separate problems and pushed the page it belongs to off screen. The
+          explanation and the escape hatch are said once; only the part that
+          genuinely differs per folder (its name, and its button) repeats.
+
+          Naming each folder is the whole difference between "your library needs
+          permission" and "Rhianna does", so the names stay. */}
+      {stranded.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[13px] text-orange-900 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-200">
+          {/* Said once, above the list, only when there is more than one folder
+              to say it about — with a single folder the row's own sentence
+              already reads as the whole banner, and a heading on top of it just
+              says the same thing twice. */}
+          {stranded.length > 1 && (
+            <p className="mb-3 font-semibold">
+              {plural(stranded.length, 'folder')} are still here, but each one has to be
+              reconnected before it can be played.
+            </p>
+          )}
+
+          <ul className="space-y-2.5">
+            {stranded.map((root) => {
+              // A stored handle is the ONLY thing that makes a folder
+              // reopenable — not the browser's capabilities in general, since a
+              // library built by picking files has no handle even on Chromium.
+              const canReopen = !!root.handle
+              // Grouped, the shared half of each sentence is already in the
+              // heading, so a row says only what is true of THIS folder.
+              const grouped = stranded.length > 1
+              return (
+                <li key={root.id} className="flex flex-wrap items-center gap-3">
+                  <p className="min-w-0 flex-1">
+                    <strong className="font-semibold">{root.label}</strong>
+                    {canReopen
+                      ? grouped
+                        // Nothing: the heading has said why, and the button says
+                        // what happens. Repeating "needs your permission again"
+                        // on every row is the noise that made the stacked
+                        // banners unreadable in the first place.
+                        ? ''
+                        : ' is here, but the browser needs your permission again before it can be read.'
+                      : grouped
+                        ? ' — this browser can’t reopen a folder on its own, so choose it again. Nothing has to be read twice.'
+                        : ' and its artwork are still here, but this browser can’t reopen a folder on its own — choose it again to play anything from it. It will be quick: nothing has to be read twice.'}
+                  </p>
+                  {/* ⚠️ This MUST be a click. A permission request with no user
+                      gesture behind it is dropped silently, which presents as a
+                      button that does nothing — so it can never move into an
+                      effect. */}
+                  <button
+                    type="button"
+                    onClick={
+                      canReopen
+                        ? () => void regrantFolder(root.id)
+                        : () => folderInput.current?.click()
+                    }
+                    className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
+                  >
+                    {canReopen ? 'Allow access' : 'Choose folder'}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* One escape hatch for the banner, not one per folder: it forgets the
+              whole library, so repeating it beside every row offered the same
+              single action several times over. Under the list, away from the
+              buttons that undo the problem rather than abandon it. */}
+          <div className="mt-3">
+            <StartAgain onClick={startAgain} />
           </div>
-        )
-      })}
+        </div>
+      )}
 
       {/* Always mounted rather than inside the branch above: a ref to something
           conditionally rendered is a click that silently does nothing. */}
