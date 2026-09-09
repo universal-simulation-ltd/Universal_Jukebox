@@ -1,4 +1,4 @@
-import type { Album, Root, Track } from './types'
+import type { Album, Root, SourceFile, Track } from './types'
 
 // More than one music folder, and the arithmetic that makes it safe.
 //
@@ -146,7 +146,7 @@ function withCounts(tracks: Track[], albums: Album[]): Album[] {
 export function rootsNeedingAccess(
   roots: Root[],
   tracks: Track[],
-  filesByPath: Map<string, File>,
+  filesByPath: Map<string, SourceFile>,
   isGenerated: (root: Root) => boolean,
 ): Root[] {
   return roots.filter((root) => {

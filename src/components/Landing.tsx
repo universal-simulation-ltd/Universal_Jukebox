@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { isNativeShell } from '../lib/nativeFile'
 import { useLibraryStore } from '../stores/libraryStore'
 
 // The front door, before there is a library.
@@ -15,14 +16,28 @@ import { useLibraryStore } from '../stores/libraryStore'
 // both feature-detect and relabel rather than failing at the moment of use). The
 // alternative — one button, discover the truth on your second visit — is how an
 // app gets a reputation for losing things.
+//
+// ⚠️ THERE IS NOW A THIRD CASE, AND IT IS NOT A BROWSER. Inside the iOS/Android
+// shell there is no folder picker to relabel: `showDirectoryPicker` is absent
+// and `webkitdirectory` is ignored, so "Choose your music folder" is a button
+// that CANNOT work, and shipping it would be the exact failure the paragraph
+// above describes. The native screen therefore does not ask for a folder at
+// all — it says where the folder already is. See `lib/nativeFile.ts`.
 
 export default function Landing() {
   const pickFolder = useLibraryStore((s) => s.pickFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
   const loadExample = useLibraryStore((s) => s.loadExample)
+  const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
+  const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
+  const importProgress = useLibraryStore((s) => s.importProgress)
   const folderInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  // Answered synchronously — see `isNativeShell`. A `useState`/`useEffect` pair
+  // would render the web copy for one frame first, which on the phone reads as
+  // the app offering a folder picker and then thinking better of it.
+  const native = isNativeShell()
   // Building it draws eleven sleeves, which is fast but not instant — and a
   // button that appears to do nothing for half a second is a button people
   // press twice.
@@ -33,26 +48,49 @@ export default function Landing() {
       <Turntable />
 
       <h1 className="mt-6 text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-        Plays your whole music library, in your browser
+        {native ? 'Plays the music on your phone' : 'Plays your whole music library, in your browser'}
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
-        Point it at a folder. It reads the tags and the real album art out of your own
-        files and plays them — MP3, M4A, FLAC and WAV. Nothing is uploaded, nothing needs
-        an account, and there is no catalogue to sign into.
+        {native ? (
+          <>
+            It reads the tags and the real album art out of your own files and plays them —
+            MP3, M4A, FLAC and WAV. Nothing is uploaded, nothing needs an account, and there
+            is no catalogue to sign into.
+          </>
+        ) : (
+          <>
+            Point it at a folder. It reads the tags and the real album art out of your own
+            files and plays them — MP3, M4A, FLAC and WAV. Nothing is uploaded, nothing needs
+            an account, and there is no catalogue to sign into.
+          </>
+        )}
       </p>
 
       <div className="mt-7 flex flex-col items-center gap-3">
         <button
           type="button"
-          onClick={() => (canPersist ? void pickFolder() : folderInput.current?.click())}
-          className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
+          disabled={importProgress !== null}
+          onClick={() =>
+            native
+              ? void scanNativeFolder()
+              : canPersist
+                ? void pickFolder()
+                : folderInput.current?.click()
+          }
+          className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60"
         >
           <FolderGlyph />
-          Choose your music folder
+          {native ? 'Scan my music folder' : 'Choose your music folder'}
         </button>
 
         <p className="max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-          {canPersist ? (
+          {native ? (
+            <>
+              Your music goes in the <strong>Universal Jukebox</strong> folder in the Files
+              app — copy it in, AirDrop it, or drag it over from a computer. Sub-folders are
+              fine. Once it’s scanned, your library is still here next time you open the app.
+            </>
+          ) : canPersist ? (
             <>
               This browser can remember the folder, so your library will still be here next
               time — you’ll just be asked to confirm access once.
@@ -67,11 +105,23 @@ export default function Landing() {
 
         <button
           type="button"
+          disabled={importProgress !== null}
           onClick={() => fileInput.current?.click()}
-          className="mt-1 text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+          className="mt-1 text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
         >
-          Or pick individual files
+          {native ? 'Or add music from this device' : 'Or pick individual files'}
         </button>
+
+        {/* ⚠️ An import COPIES, through the Capacitor bridge, so a big one is
+            genuinely slow — and a silent slow thing reads as a crash. This is
+            also why the Files app is presented above as the main route and this
+            as the convenience. */}
+        {importProgress !== null && (
+          <p className="text-[12.5px] text-slate-600 dark:text-slate-300" aria-live="polite">
+            Copying {importProgress.done + 1} of {importProgress.total}
+            {importProgress.name ? ` — ${importProgress.name}` : ''}…
+          </p>
+        )}
       </div>
 
       {/* ⚠️ Below the fold of the real thing, and visibly a side door. The app
@@ -117,6 +167,11 @@ export default function Landing() {
           e.target.value = ''
         }}
       />
+      {/* ⚠️ On native this goes to `importNativeFiles`, which COPIES into the
+          music folder, not to `addFiles`, which keeps the picked `File` objects.
+          The picker itself works fine on iOS — it is only the directory variant
+          that does not — but its files are ephemeral, so `addFiles` there would
+          give a library that plays now and is empty after a relaunch. */}
       <input
         ref={fileInput}
         type="file"
@@ -124,7 +179,10 @@ export default function Landing() {
         multiple
         className="hidden"
         onChange={(e) => {
-          if (e.target.files) void addFiles(e.target.files, 'Chosen files')
+          if (e.target.files) {
+            if (native) void importNativeFiles(e.target.files)
+            else void addFiles(e.target.files, 'Chosen files')
+          }
           e.target.value = ''
         }}
       />

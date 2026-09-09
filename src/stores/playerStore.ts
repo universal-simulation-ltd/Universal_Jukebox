@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { SourceFile } from '../lib/types'
 import { coverUrl } from '../lib/art'
 import { playTransportCue } from '../lib/crackle'
 import { resolveDeck } from '../lib/decks'
@@ -549,7 +550,7 @@ function runHandover(
   get: Get,
   plan: Handover,
   land: (fadeInSec: number | undefined) => void,
-  options: { duckFirst: boolean; crossfadeFile?: File | null; crossfadeSec?: number },
+  options: { duckFirst: boolean; crossfadeFile?: SourceFile | null; crossfadeSec?: number },
 ): void {
   clearHandover()
 

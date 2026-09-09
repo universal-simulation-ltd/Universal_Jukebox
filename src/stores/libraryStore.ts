@@ -3,9 +3,17 @@ import { releaseAllCovers, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
 import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
 import { addScan, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, uniqueLabel } from '../lib/roots'
-import { hasDirectoryPicker, scan, REFUSED, type FoundImage } from '../lib/scan'
+import { hasDirectoryPicker, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
+import {
+  NATIVE_ROOT_LABEL,
+  NATIVE_ROOT_PATH,
+  NativeFile,
+  importFilesToNativeLibrary,
+  isNativeShell,
+  walkNativeLibrary,
+} from '../lib/nativeFile'
 import { applyFixes } from '../lib/tidy'
-import type { Album, Root, ScanProgress, Track } from '../lib/types'
+import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
 
 // The library: what was found, and everything about getting it.
 //
@@ -36,10 +44,19 @@ import type { Album, Root, ScanProgress, Track } from '../lib/types'
 // one-off cost of fixing it. Read that file's header before changing anything
 // here: this store is the plumbing, and the arithmetic is all over there.
 //
-// ⚠️ 2. THE STORE HOLDS `File` OBJECTS AND MUST NOT BE PERSISTED. `filesByPath`
-// is the live handle to the actual bytes on disk. It is rebuilt on every scan
-// and deliberately not written anywhere — a `File` outlives its permission by
-// exactly nothing, and a stored one is a broken reference that looks valid.
+// ⚠️ 2. THE STORE HOLDS LIVE FILE HANDLES AND MUST NOT BE PERSISTED.
+// `filesByPath` is the live handle to the actual bytes on disk. It is rebuilt on
+// every scan and deliberately not written anywhere — a `File` outlives its
+// permission by exactly nothing, and a stored one is a broken reference that
+// looks valid.
+//
+// ⚠️ 2b. THE ENTRIES ARE `SourceFile`, NOT `File`, since the phone build
+// (2026-09-09). Inside the native shell there is no `File` for a track in the
+// app's music folder — only a path — and materialising one would mean pulling
+// the whole file across the Capacitor bridge, which is the out-of-memory crash
+// the header of `lib/scan.ts` forbids, reached from a different direction. A
+// browser `File` satisfies `SourceFile` structurally, so nothing on the web path
+// changed. See `lib/nativeFile.ts`.
 
 export type LibraryStatus = 'empty' | 'loading' | 'scanning' | 'ready'
 
@@ -52,8 +69,8 @@ interface LibraryState {
   /** Extension → sentence, for the formats found and refused in the last scan. */
   refusals: { ext: string; count: number; why: string }[]
   error: string | null
-  /** path → File, for everything currently reachable. Never persisted. */
-  filesByPath: Map<string, File>
+  /** path → the file, for everything currently reachable. Never persisted. */
+  filesByPath: Map<string, SourceFile>
   /** Directory → the images found in it, for the tidy-up. Never persisted. */
   folderImages: Map<string, FoundImage[]>
   canPersistFolder: boolean
@@ -78,7 +95,25 @@ interface LibraryState {
   removeFolder(id: string): Promise<void>
   /** Forget the lot. */
   clear(): Promise<void>
-  fileFor(track: Track): File | null
+  /**
+   * Native only: read the phone's music folder and build the library from it.
+   *
+   * The native equivalent of `pickFolder`, minus the picking — there is exactly
+   * one folder and the OS shares it with the Files app. See
+   * `lib/nativeFile.ts`.
+   */
+  scanNativeFolder(): Promise<void>
+  /**
+   * Native only: copy picked files into the music folder, then re-scan.
+   *
+   * ⚠️ NOT the same as the web's `addFiles`, which keeps the picked `File`
+   * objects and loses them on reload. This one writes them to disk first, so
+   * what it adds is permanent.
+   */
+  importNativeFiles(files: FileList | File[]): Promise<void>
+  /** How far an import has got, for something honest to show during a slow one. */
+  importProgress: { done: number; total: number; name: string } | null
+  fileFor(track: Track): SourceFile | null
   dismissError(): void
 }
 
@@ -103,7 +138,7 @@ interface LibraryState {
 export function needAccessFrom(
   roots: Root[],
   tracks: Track[],
-  filesByPath: Map<string, File>,
+  filesByPath: Map<string, SourceFile>,
 ): Root[] {
   return rootsNeedingAccess(roots, tracks, filesByPath, isGenerated)
 }
@@ -135,6 +170,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   refusals: [],
   error: null,
   filesByPath: new Map(),
+  importProgress: null,
   folderImages: new Map(),
   canPersistFolder: hasDirectoryPicker(),
   stoppedEarly: false,
@@ -162,6 +198,21 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       // one folder and became a lie the moment there were two: re-granting one
       // of three would have cleared it for all of them.
     })
+
+    // ⚠️ THE NATIVE LIBRARY COMES BACK BY ITSELF, and this is the whole payoff
+    // of scanning a fixed folder rather than a chosen one. A `Root.nativePath`
+    // is a plain string with no permission attached, so there is nothing to
+    // re-grant and nothing to ask — the files can simply be found again.
+    //
+    // ⚠️ It re-walks but does NOT re-read: a `readdir` tree walk of a few
+    // thousand files is milliseconds, while re-reading their tags is the full
+    // scan the user already sat through. The tags are in IndexedDB already;
+    // all that is missing after a relaunch is the live handles, which is
+    // exactly what this puts back. Anything the walk no longer finds is simply
+    // absent from the map, which `needAccess` already reads as unplayable.
+    if (isNativeShell() && roots.some((r) => r.nativePath != null)) {
+      await reattachNative(set, get)
+    }
   },
 
   async pickFolder() {
@@ -306,7 +357,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       if (!surviving.has(album.id)) releaseCover(album.id)
     }
 
-    const files = new Map(get().filesByPath)
+    const files = new Map<string, SourceFile>(get().filesByPath)
     for (const path of [...files.keys()]) {
       if (pathUnder(path, prefix)) files.delete(path)
     }
@@ -349,6 +400,72 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     })
   },
 
+  async scanNativeFolder() {
+    if (!isNativeShell()) return
+    set({ status: 'scanning', error: null, progress: { seen: 0, added: 0, skipped: 0, where: '', done: false } })
+    let entries
+    try {
+      entries = await walkNativeLibrary()
+    } catch (err) {
+      console.error('[jukebox] Could not read the music folder:', err)
+      set({
+        status: get().tracks.length > 0 ? 'ready' : 'empty',
+        progress: null,
+        error: 'The music folder could not be read. If the app was just installed, try opening it again.',
+      })
+      return
+    }
+    if (entries.length === 0) {
+      set({
+        status: get().tracks.length > 0 ? 'ready' : 'empty',
+        progress: null,
+        error: null,
+      })
+      return
+    }
+    // ⚠️ THE EXISTING ROOT IS FOUND BY `nativePath`, NOT BY ID, and the
+    // difference is a bug that would only show on the second scan. `runScan`
+    // derives a new root's id from its LABEL, so the first native scan creates
+    // a root whose id is "Music" — not `NATIVE_ROOT_ID`. Looking it up by that
+    // constant afterwards finds nothing, `existingId` stays undefined, and
+    // `uniqueLabel` dutifully files the same folder a second time as
+    // "Music (2)": one folder, two roots, every track in the library twice.
+    // There is exactly one native root, and `nativePath` is what marks it.
+    const existing = get().roots.find((r) => r.nativePath != null)
+    await runScan(
+      set,
+      get,
+      entries,
+      NATIVE_ROOT_LABEL,
+      null,
+      existing?.id,
+      // The music folder IS the Documents root, so its path relative to
+      // Documents — which is what `walkNativeLibrary` walks — is the empty
+      // string. Empty but NOT null: `nativePath != null` is what marks a root
+      // as the native one, above and in `hydrate`.
+      NATIVE_ROOT_PATH,
+    )
+  },
+
+  async importNativeFiles(files) {
+    const list = Array.from(files)
+    if (list.length === 0 || !isNativeShell()) return
+    set({ importProgress: { done: 0, total: list.length, name: '' }, error: null })
+    let copied = 0
+    try {
+      copied = await importFilesToNativeLibrary(list, (done, total, name) =>
+        set({ importProgress: { done, total, name } }),
+      )
+    } finally {
+      set({ importProgress: null })
+    }
+    if (copied === 0) {
+      set({ error: 'None of those files could be copied into the music folder.' })
+      return
+    }
+    await get().scanNativeFolder()
+  },
+
   fileFor(track) {
     const file = get().filesByPath.get(track.path)
     if (file) return file
@@ -382,14 +499,53 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
  */
 let scanAbort: AbortController | null = null
 
+/**
+ * Put the native music folder's live files back, without re-scanning it.
+ *
+ * The cheap half of a scan: walk the tree, match what is there against the
+ * track paths already in the library, and fill `filesByPath`. No file is read
+ * and no tag is parsed, so this costs a `readdir` per directory and nothing
+ * else.
+ *
+ * ⚠️ Matching is by PATH ALONE, deliberately, even though `trackKey` is
+ * path + size + mtime. A file that was edited in place — retagged on a desktop
+ * and re-synced — has a new size or mtime and therefore a new track id, so an
+ * id match would drop it and show the track as missing until a full re-scan.
+ * Its path has not changed and it is plainly the same track, so it plays. The
+ * stale tags in the library are what "Rescan" is for, and this app already
+ * treats everything in the database as disposable (see `lib/types.ts`).
+ */
+async function reattachNative(
+  set: (partial: Partial<LibraryState>) => void,
+  get: () => LibraryState,
+): Promise<void> {
+  const root = get().roots.find((r) => r.nativePath != null)
+  if (!root) return
+  let entries
+  try {
+    entries = await walkNativeLibrary()
+  } catch (err) {
+    console.error('[jukebox] Could not re-read the music folder on startup:', err)
+    return
+  }
+  const prefix = prefixOf(root)
+  const files = new Map<string, SourceFile>(get().filesByPath)
+  for (const entry of entries) {
+    files.set(prefix ? `${prefix}/${entry.path}` : entry.path, new NativeFile(entry))
+  }
+  set({ filesByPath: files })
+}
+
 async function runScan(
   set: (partial: Partial<LibraryState>) => void,
   get: () => LibraryState,
-  source: FileSystemDirectoryHandle | FileList | File[],
+  source: ScanSource,
   label: string,
   handle: FileSystemDirectoryHandle | null,
   /** Re-scanning an existing root, rather than adding a new one. */
   existingId?: string,
+  /** Set for the native music folder — the phone's answer to `handle`. */
+  nativePath: string | null = null,
 ) {
   // A second scan started while one is running aborts the first, or the two
   // walks interleave into one library and the progress count runs backwards.
@@ -487,6 +643,7 @@ async function runScan(
     label: prefix,
     prefix,
     handle,
+    nativePath,
     scannedAt: Date.now(),
     trackCount: result.tracks.length,
   }
@@ -502,7 +659,7 @@ async function runScan(
 
   // The files of every OTHER folder survive: adding a second folder must not
   // make the first one unplayable.
-  const files = new Map(get().filesByPath)
+  const files = new Map<string, SourceFile>(get().filesByPath)
   for (const path of [...files.keys()]) {
     if (pathUnder(path, prefix)) files.delete(path)
   }

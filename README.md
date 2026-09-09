@@ -161,15 +161,61 @@ was missing, because the drums were never affected.
 This is the honest bit, and the app is designed around it rather than
 discovering it later.
 
-| Browser | What you get |
+| Where | What you get |
 |---|---|
 | Chrome / Edge | Pick the folder **once**. The directory handle is stored, so the library is still there next launch behind one permission confirmation. |
 | Firefox / Safari | Pick the folder **every session**. Neither ships File System Access, and the permission is the thing that cannot be saved — no polyfill can invent it. |
+| iOS / Android app | **No folder is picked at all.** The app has one, and the OS shares it. |
 
-**On both, the library and the artwork survive**, cached in IndexedDB and keyed
-by path + size + mtime. What a Firefox visitor loses is a click, not their
+**On all three, the library and the artwork survive**, cached in IndexedDB and
+keyed by path + size + mtime. What a Firefox visitor loses is a click, not their
 library: the covers are already there and nothing is read twice. The button and
-the copy differ per browser rather than failing at the moment of use.
+the copy differ per platform rather than failing at the moment of use.
+
+### ⚠️ The phone has no folder picker, so it does not ask for one
+
+`showDirectoryPicker` does not exist in an iOS WebView and `webkitdirectory` is
+**ignored** by iOS Safari — an `<input>` carrying it quietly degrades to picking
+single files. A straight wrapper of this app would therefore install, launch,
+look completely correct, and have no route to a single track. The button would
+be there and it would do nothing.
+
+So the native build stops asking. `UIFileSharingEnabled` +
+`LSSupportsOpeningDocumentsInPlace` publish the app's Documents directory to the
+**Files app** as a folder called *Universal Jukebox*; music is copied,
+AirDropped, unzipped or synced into it, and the app walks that. Sub-folders are
+kept. There is also an in-app *Add music* picker — a plain multi-file `<input>`,
+which iOS does support — and it **copies** what you pick into that folder rather
+than holding the picked `File` objects, because those are ephemeral and a
+library built from them would be empty after a relaunch.
+
+⚠️ **That version is the one WITH persistence**, which is the part worth
+noticing. A path is a plain string: it survives in IndexedDB with no permission
+attached to go stale, so the phone comes back to a full library with nothing to
+confirm — the trick only Chromium manages on the web, and it manages it by
+storing a live permission-bearing object. Startup re-walks the folder to find
+the files again but re-reads no tags, so it costs a `readdir` per directory and
+nothing else.
+
+⚠️ **Music added through the Files app needs a rescan.** Nothing tells the app
+that a file appeared behind its back, so *Rescan my music folder* is in the app
+menu and is not a duplicate of *Add music*.
+
+### ⚠️ And iOS will not let an app set the volume
+
+`HTMLMediaElement.volume` is read-only in an iOS WebView: the assignment does
+not throw, it just has no effect, and reading it back gives 1. Four things here
+go through `element.volume` — the slider, mute, the fades, and the crossfade —
+and on a phone all four stop working silently.
+
+Three of them merely stop being *heard*. **The crossfade gets worse rather than
+absent**, and that is the one that had to be handled: it starts the incoming
+track *under* the outgoing one, and with no working gain "under" is full volume,
+so both records play at once for the length of the fade. `lib/volumeSupport.ts`
+probes the engine — a capability check, not an iOS sniff, so a future iOS that
+honours `volume` picks the fades back up on its own — and where volume cannot be
+set the crossfade degrades to a clean change-over and the fade sliders in
+Settings are disabled with a sentence saying why.
 
 ---
 
@@ -187,6 +233,28 @@ npm run test:tags    # the tag + cover-art reader, against real files
 npm run lint
 npm run build
 ```
+
+### The mobile builds
+
+```sh
+cd D:/Github/UNISIM/Universal_Apps/Universal_Jukebox
+npm run cap:sync         # build --mode desktop, copy into ios/ and android/, then verify
+npm run cap:open:ios     # Xcode
+npm run cap:open:android # Android Studio
+```
+
+⚠️ **`cap:sync`, never a bare `npx cap sync`.** The hosted app lives at
+`opensource.unisim.co.uk/jukebox/`, so a production build asks for
+`/jukebox/assets/…` — and Capacitor serves the copied bundle at the ROOT of its
+own origin, where no `/jukebox/` exists. Every asset 404s, no module script
+runs, and the result is a white screen that Xcode reports as BUILD SUCCEEDED.
+`--mode desktop` is the build that gets this right, and
+`scripts/verify-mobile-bundle.mjs` (which `cap:sync` runs) fails loudly if the
+wrong one was copied. This has shipped for real elsewhere in the suite.
+
+⚠️ **Android needs a JDK Gradle accepts** — Android Studio's bundled JBR 21. A
+system JDK 25 fails the Gradle sync with a bare `Unsupported class file major
+version 69`.
 
 ### The tag tests are the important ones
 

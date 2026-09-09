@@ -13,7 +13,22 @@ import pkg from './package.json' with { type: 'json' };
 // granted plays music with the network unplugged. Nothing in this app has a
 // server to be offline FROM — there is no API, no sync and no upload.
 export default defineConfig(({ mode }) => {
-  const BASE_PATH = mode === 'production' ? '/jukebox/' : '/';
+  // ⚠️ `desktop` is the CAPACITOR/native build, and the name is inherited from
+  // the rest of the suite (Universal QR, PDF, Images…) rather than chosen here.
+  // It differs from the production web build in exactly two ways, and both are
+  // load-bearing:
+  //
+  //   1. `base` is './' — relative. Capacitor serves the copied bundle from the
+  //      ROOT of `capacitor://localhost`, so the production `/jukebox/` prefix
+  //      makes every asset URL a 404, no module script runs, and the app is a
+  //      white screen that Xcode reports as BUILD SUCCEEDED. `npm run
+  //      check:mobile-bundle` exists to catch exactly that.
+  //   2. No service worker. VitePWA is skipped entirely: a worker inside the
+  //      app bundle would cache the HOSTED origin's URLs into the native app,
+  //      and its presence in the copied directory is the tell that a web build
+  //      was shipped by mistake.
+  const isDesktop = mode === 'desktop';
+  const BASE_PATH = isDesktop ? './' : mode === 'production' ? '/jukebox/' : '/';
   return {
     base: BASE_PATH,
     // 5204 is this app's slot in the registry (Docs_UNI_SIM/dev-preview.md), and
@@ -36,7 +51,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
-      VitePWA({
+      ...(isDesktop ? [] : [VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg', 'unisim-icon.png', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
         manifest: {
@@ -63,7 +78,7 @@ export default defineConfig(({ mode }) => {
           navigateFallback: `${BASE_PATH}index.html`,
         },
         devOptions: { enabled: false },
-      }),
+      })]),
     ],
   };
 });

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { makeCoverBlob, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
+import { readSlice } from '../lib/scan'
 import { readTags, type Picture } from '../lib/tags'
 import {
   findCoverGaps,
@@ -8,6 +9,7 @@ import {
   pickFolderImage,
   type MergeProposal,
 } from '../lib/tidy'
+import type { SourceFile } from '../lib/types'
 import { useLibraryStore } from './libraryStore'
 
 // Looking over the library for things that can be put right, and putting them
@@ -220,15 +222,21 @@ interface FoundPicture {
 async function findPicture(
   gap: { albumId: string; directories: string[]; trackIds: string[] },
   byId: Map<string, { path: string; name: string }>,
-  files: Map<string, File>,
-  folderImages: Map<string, { name: string; path: string; file: File }[]>,
+  files: Map<string, SourceFile>,
+  folderImages: Map<string, { name: string; path: string; file: SourceFile }[]>,
 ): Promise<FoundPicture | null> {
   // ── 1. An image sitting beside the tracks ────────────────────────────────
   for (const dir of gap.directories) {
     const image = pickFolderImage(folderImages.get(dir) ?? [])
     if (!image) continue
     try {
-      const bytes = new Uint8Array(await image.file.arrayBuffer())
+      // ⚠️ `readSlice`, not `arrayBuffer()`, even though this genuinely does
+      // want the whole file. A folder image is small and reading all of it is
+      // correct — but going through the one sanctioned read keeps THE ONE RULE
+      // at the top of `lib/scan.ts` literally true, so a search for
+      // `arrayBuffer(` still turns up nothing to argue with. It is also what
+      // lets a native file, which has no `arrayBuffer`, get here at all.
+      const bytes = await readSlice(image.file, 0, image.file.size)
       const mime = image.file.type || guessMime(image.name)
       if (bytes.byteLength > 64 && mime) {
         return { picture: { mime, bytes }, source: 'folder', label: image.path }

@@ -4,6 +4,7 @@ import { trackCountFor } from '../../lib/roots'
 import { plural } from '../../lib/format'
 import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
+import { isNativeShell } from '../../lib/nativeFile'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
 //
@@ -49,16 +50,23 @@ export default function AppMenu() {
   const pickFolder = useLibraryStore((s) => s.pickFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
+  const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
+  const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
+  const native = isNativeShell()
   const pref = useThemeStore((s) => s.pref)
   const setPref = useThemeStore((s) => s.setPref)
   const folderInput = useRef<HTMLInputElement>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
 
   const hasLibrary = status === 'ready'
 
-  // Same two paths as the landing screen: the real picker where the browser
-  // has one, and `webkitdirectory` where it hasn't.
+  // Same paths as the landing screen: the real picker where the browser has
+  // one, `webkitdirectory` where it hasn't — and inside the native shell,
+  // neither, because there is one fixed folder and it cannot be chosen. There
+  // "add" means "put files INTO it", which is the import.
   const chooseFolder = () => {
-    if (canPersist) void pickFolder()
+    if (native) fileInput.current?.click()
+    else if (canPersist) void pickFolder()
     else folderInput.current?.click()
   }
 
@@ -104,10 +112,27 @@ export default function AppMenu() {
           ))}
           <Row
             onClick={chooseFolder}
-            title="Adds to your library — the folders you already have stay where they are"
+            title={
+              native
+                ? 'Copies the files you pick into the Universal Jukebox folder, then re-scans'
+                : 'Adds to your library — the folders you already have stay where they are'
+            }
           >
-            Add a folder…
+            {native ? 'Add music…' : 'Add a folder…'}
           </Row>
+          {/* ⚠️ Native only, and it is not a duplicate of the row above. Music
+              put in through the FILES APP — copied, AirDropped, synced from a
+              computer — never touches this app, so nothing tells the library it
+              is there. Without a rescan the only way to see it would be to
+              reinstall. */}
+          {native && (
+            <Row
+              onClick={() => void scanNativeFolder()}
+              title="Picks up anything added through the Files app since the last scan"
+            >
+              Rescan my music folder
+            </Row>
+          )}
           {roots.length > 1 && (
             <Row onClick={() => void clear()}>Forget all of them…</Row>
           )}
@@ -153,6 +178,19 @@ export default function AppMenu() {
         className="hidden"
         onChange={(e) => {
           if (e.target.files) void addFiles(e.target.files)
+          e.target.value = ''
+        }}
+      />
+      {/* The native "add music" picker — plain multi-file, which iOS does
+          support, and the files are copied into the music folder so they last. */}
+      <input
+        ref={fileInput}
+        type="file"
+        accept="audio/*,.mp3,.m4a,.flac,.wav,.aiff,.ogg,.opus"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) void importNativeFiles(e.target.files)
           e.target.value = ''
         }}
       />

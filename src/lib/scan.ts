@@ -18,7 +18,8 @@
 import { readTags, type Picture } from './tags'
 import { albumKey, trackKey } from './keys'
 import { makeCoverBlob } from './art'
-import type { Album, ScanProgress, Track } from './types'
+import type { Album, ScanProgress, SourceFile, Track } from './types'
+import { NativeFile, type NativeEntry } from './nativeFile'
 
 /**
  * What we ask for off the front of a file.
@@ -85,7 +86,7 @@ export function isPlayable(name: string): boolean {
 
 /** One file found on the way round, before anything has been read from it. */
 interface Found {
-  file: File
+  file: SourceFile
   path: string
 }
 
@@ -94,7 +95,7 @@ export interface FoundImage {
   /** File name, lower-cased — `tidy.ts` matches on `cover`, `folder` and so on. */
   name: string
   path: string
-  file: File
+  file: SourceFile
 }
 
 export interface ScanResult {
@@ -115,7 +116,7 @@ export interface ScanResult {
    * ⚠️ Never persist this map. A `File` outlives its permission by exactly
    * nothing, and a stored one is a broken reference that looks valid.
    */
-  files: Map<string, File>
+  files: Map<string, SourceFile>
   /**
    * Directory → the image files sitting in it.
    *
@@ -218,6 +219,24 @@ function* walkFileList(files: FileList | File[], rootPrefix = ''): Generator<Fou
   }
 }
 
+/**
+ * The native path: a walk of the phone's music folder, already flattened.
+ *
+ * ⚠️ The entries carry ABSOLUTE native paths inside them (`uri`) and a path
+ * RELATIVE to the music folder (`path`). Only the relative one is ever put in
+ * the library, because `Track.path` is a library key that the root prefix is
+ * prepended to — a device-absolute path would embed the app's container UUID,
+ * which iOS changes on reinstall, and every track id would churn.
+ */
+function* walkNativeEntries(entries: NativeEntry[], rootPrefix = ''): Generator<Found> {
+  for (const entry of entries) {
+    yield {
+      file: new NativeFile(entry),
+      path: rootPrefix ? `${rootPrefix}/${entry.path}` : entry.path,
+    }
+  }
+}
+
 // ── Reading one file ─────────────────────────────────────────────────────────
 
 /**
@@ -229,7 +248,7 @@ function* walkFileList(files: FileList | File[], rootPrefix = ''): Generator<Fou
  * somebody eventually writes `file.arrayBuffer()` and turns a 40 GB library
  * into an out-of-memory crash.
  */
-export async function readSlice(file: File, start: number, end: number): Promise<Uint8Array> {
+export async function readSlice(file: SourceFile, start: number, end: number): Promise<Uint8Array> {
   const clampedStart = Math.max(0, Math.min(start, file.size))
   const clampedEnd = Math.max(clampedStart, Math.min(end, file.size))
   if (clampedEnd <= clampedStart) return new Uint8Array(0)
@@ -245,7 +264,7 @@ export async function readSlice(file: File, start: number, end: number): Promise
  * track met from a given album, which is what keeps the artwork cache one
  * picture per record instead of one per file.
  */
-async function readOne(file: File, wantArt: boolean) {
+async function readOne(file: SourceFile, wantArt: boolean) {
   const ext = extensionOf(file.name)
   const head = await readSlice(file, 0, HEAD_BYTES)
   let tags = readTags(head, wantArt)
@@ -303,7 +322,7 @@ export function titleFromFilename(name: string): string {
  * callback is what makes the app feel alive during.
  */
 export async function scan(
-  source: FileSystemDirectoryHandle | FileList | File[],
+  source: ScanSource,
   options: ScanOptions = {},
 ): Promise<ScanResult> {
   const { onBatch, onProgress, signal, prefix = '' } = options
@@ -311,7 +330,7 @@ export async function scan(
   const tracks: Track[] = []
   const albums = new Map<string, Album>()
   const refused = new Map<string, number>()
-  const files = new Map<string, File>()
+  const files = new Map<string, SourceFile>()
   const images = new Map<string, FoundImage[]>()
   /** Album ids we have already tried to get a cover for. */
   const artTried = new Set<string>()
@@ -337,7 +356,9 @@ export async function scan(
 
   const walker = isDirectoryHandle(source)
     ? walkHandle(source, signal, prefix)
-    : walkFileList(source as FileList | File[], prefix)
+    : isNativeEntries(source)
+      ? walkNativeEntries(source, prefix)
+      : walkFileList(source as FileList | File[], prefix)
 
   for await (const found of walker) {
     if (signal?.aborted) break
@@ -451,6 +472,20 @@ export async function scan(
 export function directoryOf(path: string): string {
   const slash = path.lastIndexOf('/')
   return slash < 0 ? '' : path.slice(0, slash)
+}
+
+/** Everything `scan()` knows how to walk. */
+export type ScanSource = FileSystemDirectoryHandle | FileList | File[] | NativeEntry[]
+
+/**
+ * ⚠️ Checked BEFORE the FileList fallback, and by a field a `File` does not
+ * have. `NativeEntry[]` and `File[]` are both arrays, so an `Array.isArray`
+ * test cannot tell them apart — and getting it wrong sends native entries
+ * through `walkFileList`, which reads `.name` off them (they have one) and
+ * produces a library of zero-byte tracks that never play.
+ */
+function isNativeEntries(source: unknown): source is NativeEntry[] {
+  return Array.isArray(source) && (source.length === 0 || typeof (source[0] as NativeEntry)?.uri === 'string')
 }
 
 function isDirectoryHandle(source: unknown): source is FileSystemDirectoryHandle {

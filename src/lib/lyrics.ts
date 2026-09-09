@@ -17,6 +17,7 @@
 
 import { extensionOf, readSlice, HEAD_BYTES, TAIL_BYTES } from './scan'
 import { readLyrics } from './tags'
+import type { SourceFile } from './types'
 
 /**
  * One line of a sheet.
@@ -196,7 +197,7 @@ export function activeLine(lines: LyricLine[], currentSec: number): number {
  * and lyrics live inside it with everything else. Returns null when the file
  * carries no sheet, which is the ordinary case and not a failure.
  */
-export async function lyricsFromFile(file: File): Promise<LyricSheet | null> {
+export async function lyricsFromFile(file: SourceFile): Promise<LyricSheet | null> {
   const head = await readSlice(file, 0, HEAD_BYTES)
   const found = readLyrics(head)
   if (found) return parseLyrics(found, 'file')

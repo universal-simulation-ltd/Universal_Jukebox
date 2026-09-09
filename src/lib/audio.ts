@@ -39,6 +39,9 @@
 // cannot be done any other way, opts into it.
 
 import { ensureRunning } from './audioGraph'
+import { releaseTrackUrl, trackUrl } from './trackSource'
+import { canSetElementVolume } from './volumeSupport'
+import type { SourceFile } from './types'
 
 /** Where playback is, as far as anything outside this file is concerned. */
 export interface AudioState {
@@ -238,7 +241,7 @@ export function setCallbacks(callbacks: {
  * duration of the assignment, and some browsers fire an `error` for it — a
  * spurious "that file wouldn't play" on a track that plays fine.
  */
-export async function load(file: File, autoplay: boolean, fadeInOverrideSec?: number): Promise<void> {
+export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSec?: number): Promise<void> {
   // A load is a decision to play THIS, now. Anything still fading out under it
   // is from a change-over the user has just overtaken.
   finishRetirement()
@@ -247,12 +250,12 @@ export async function load(file: File, autoplay: boolean, fadeInOverrideSec?: nu
   const deck = decks[index]
   const audio = element(index)
   const previous = deck.url
-  const url = URL.createObjectURL(file)
+  const url = trackUrl(file)
   deck.url = url
 
   set({ loading: true, currentSec: 0, durationSec: 0 })
   audio.src = url
-  if (previous) URL.revokeObjectURL(previous)
+  if (previous) releaseTrackUrl(previous)
   // ⚠️ The override is the needle handover's, and it is a MAXIMUM of the two —
   // never less than the fade the user asked for in Settings. Somebody who set a
   // 6-second fade-in did not ask for it to be cut to a third of a second just
@@ -292,7 +295,18 @@ export async function load(file: File, autoplay: boolean, fadeInOverrideSec?: nu
  * full-volume one — and that dip is exactly the seam a crossfade exists to
  * hide. See `rampTo`, which takes the curve.
  */
-export async function crossfade(file: File, seconds: number): Promise<void> {
+export async function crossfade(file: SourceFile, seconds: number): Promise<void> {
+  // ⚠️ A CROSSFADE WITHOUT WORKING GAIN IS NOT A CROSSFADE, IT IS TWO TRACKS AT
+  // ONCE. On iOS `element.volume` is read-only and assigning to it does nothing
+  // (see `lib/volumeSupport.ts`), so every ramp below would be a no-op and the
+  // overlap this function creates on purpose would play both records at full
+  // level for `seconds`. Degrading to a clean change-over is not as good as a
+  // crossfade; it is very much better than that.
+  if (!canSetElementVolume()) {
+    await load(file, true)
+    return
+  }
+
   // Two crossfades at once would need three decks. The one in flight is
   // finished off instantly, which is what "you pressed next during a fade"
   // should sound like anyway.
@@ -304,7 +318,7 @@ export async function crossfade(file: File, seconds: number): Promise<void> {
   const audio = element(to)
 
   const previous = incoming.url
-  const url = URL.createObjectURL(file)
+  const url = trackUrl(file)
   incoming.url = url
 
   // Silence first, then the source: assigning `src` to a deck still at full
@@ -313,7 +327,7 @@ export async function crossfade(file: File, seconds: number): Promise<void> {
   setFade(to, 0)
   set({ loading: true, currentSec: 0, durationSec: 0 })
   audio.src = url
-  if (previous) URL.revokeObjectURL(previous)
+  if (previous) releaseTrackUrl(previous)
 
   // From here the incoming deck IS the app's deck.
   active = to
@@ -366,7 +380,7 @@ function finishRetirement(): void {
     audio.volume = Math.max(0, Math.min(1, userVolume))
   }
   if (deck.url) {
-    URL.revokeObjectURL(deck.url)
+    releaseTrackUrl(deck.url)
     deck.url = null
   }
 }
@@ -632,7 +646,7 @@ export function stop(): void {
   audio.load()
   const deck = decks[active]
   if (deck.url) {
-    URL.revokeObjectURL(deck.url)
+    releaseTrackUrl(deck.url)
     deck.url = null
   }
   set({ playing: false, currentSec: 0, durationSec: 0, loading: false })
@@ -691,10 +705,10 @@ function previewElement(): HTMLAudioElement {
  * silently ignored by every engine, so the preview would start at 0:00 and
  * nothing anywhere would say why.
  */
-export function startPreview(file: File, volume: number): void {
+export function startPreview(file: SourceFile, volume: number): void {
   stopPreview()
   const audio = previewElement()
-  const url = URL.createObjectURL(file)
+  const url = trackUrl(file)
   previewUrl = url
   audio.volume = Math.max(0, Math.min(1, volume))
   audio.src = url
@@ -732,7 +746,7 @@ export function stopPreview(): void {
     previewEl.load()
   }
   if (previewUrl) {
-    URL.revokeObjectURL(previewUrl)
+    releaseTrackUrl(previewUrl)
     previewUrl = null
   }
 }

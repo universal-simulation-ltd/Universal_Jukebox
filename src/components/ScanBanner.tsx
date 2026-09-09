@@ -55,6 +55,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
     [roots, tracks, filesByPath],
   )
   const regrantFolder = useLibraryStore((s) => s.regrantFolder)
+  const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const stopScan = useLibraryStore((s) => s.stopScan)
   const stoppedEarly = useLibraryStore((s) => s.stoppedEarly)
@@ -170,6 +171,18 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               // reopenable — not the browser's capabilities in general, since a
               // library built by picking files has no handle even on Chromium.
               const canReopen = !!root.handle
+              // ⚠️ NATIVE IS A THIRD CASE and it must not fall into the one
+              // below. A native root has no `handle`, so without this it takes
+              // the "choose it again" branch — whose button opens a
+              // `webkitdirectory` picker that iOS IGNORES. That is a button
+              // which silently does nothing, on the one screen whose entire job
+              // is to get a broken library working again.
+              //
+              // The folder itself can never be unreachable here: it is the app's
+              // own Documents directory. Tracks go missing only because the
+              // files were deleted or moved in the Files app, and the honest fix
+              // for that is a rescan, not a permission.
+              const isNative = root.nativePath != null
               // Grouped, the shared half of each sentence is already in the
               // heading, so a row says only what is true of THIS folder.
               const grouped = stranded.length > 1
@@ -177,7 +190,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
                 <li key={root.id} className="flex flex-wrap items-center gap-3">
                   <p className="min-w-0 flex-1">
                     <strong className="font-semibold">{root.label}</strong>
-                    {canReopen
+                    {isNative
+                      ? ' lists tracks that aren’t in the music folder any more. Rescanning will bring the library back in line with what’s actually there.'
+                      : canReopen
                       ? grouped
                         // Nothing: the heading has said why, and the button says
                         // what happens. Repeating "needs your permission again"
@@ -196,13 +211,15 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
                   <button
                     type="button"
                     onClick={
-                      canReopen
-                        ? () => void regrantFolder(root.id)
-                        : () => folderInput.current?.click()
+                      isNative
+                        ? () => void scanNativeFolder()
+                        : canReopen
+                          ? () => void regrantFolder(root.id)
+                          : () => folderInput.current?.click()
                     }
                     className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
                   >
-                    {canReopen ? 'Allow access' : 'Choose folder'}
+                    {isNative ? 'Rescan' : canReopen ? 'Allow access' : 'Choose folder'}
                   </button>
                 </li>
               )

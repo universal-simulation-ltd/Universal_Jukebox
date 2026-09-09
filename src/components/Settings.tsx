@@ -4,6 +4,7 @@ import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck } from '../lib/decks'
 import { clearLyrics, countLyrics } from '../lib/library'
 import { goHome } from '../lib/route'
+import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { usePlayerStore } from '../stores/playerStore'
 import {
@@ -44,6 +45,14 @@ export default function Settings() {
   // Web Audio graph, and a browser can refuse us one. Saying so is better than
   // a slider that does nothing.
   const boostBroken = graphUnavailable()
+  // ⚠️ iOS makes `element.volume` read-only, so a fade is a slider that moves
+  // and changes nothing you can hear. The suite's rule for a capability gap is
+  // to say so rather than to fail at the moment of use — the boost slider right
+  // above already does exactly this. See `lib/volumeSupport.ts`.
+  const fadesBroken = !canSetElementVolume()
+  const FADE_HINT =
+    'This device doesn’t let an app set the playback volume — that belongs to the ' +
+    'hardware buttons — so a fade can’t be heard. Tracks change over cleanly instead.'
 
   // Every string below that would otherwise say "record" at a cassette owner.
   const deck = deckCopy(s.deck)
@@ -208,6 +217,8 @@ export default function Settings() {
             min={0}
             max={MAX_FADE_SEC}
             step={0.5}
+            disabled={fadesBroken}
+            disabledHint={FADE_HINT}
             format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
             onChange={(v) => s.set('fadeInSec', v)}
           />
@@ -218,6 +229,8 @@ export default function Settings() {
             min={0}
             max={MAX_FADE_SEC}
             step={0.5}
+            disabled={fadesBroken}
+            disabledHint={FADE_HINT}
             format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
             onChange={(v) => s.set('fadeOutSec', v)}
           />
