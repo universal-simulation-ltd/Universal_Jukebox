@@ -404,8 +404,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
  * screen at all (the player bar IS the app — see `useMiniMode` in App.tsx).
  * Navigating there would land on the "the player is at the bottom" note, which
  * is a worse answer than staying where you are.
+ *
+ * ⚠️ EXPORTED, for the one caller that wants the navigation WITHOUT the play:
+ * the album cover, when the record it would put on is already turning. That
+ * caller has to make the same narrow-screen exception, and a second copy of the
+ * media query is exactly the kind of rule that gets fixed in one place and not
+ * the other.
  */
-function showTheDeck(): void {
+export function showTheDeck(): void {
   try {
     if (window.matchMedia('(max-width: 429px)').matches) return
   } catch { /* no matchMedia — assume a real screen */ }
@@ -637,6 +643,44 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
+ * The track the user just chose has no file behind it any more. Say so — and
+ * STOP.
+ *
+ * ⚠️ THE STOPPING IS THE POINT (James, 2026-09-09: "it showed the track as
+ * playing but the sound was from the previous selection"). Both call sites move
+ * the cursor BEFORE they check the file, deliberately, so the message names the
+ * track that was asked for rather than the one before it — and then each of
+ * them used to set `error` and return, touching nothing else. The previous
+ * track's element was never told: the title changed, the bars beside it kept
+ * animating, the scrub bar kept moving, and a completely different song went on
+ * playing underneath an error message saying it could not be played. That reads
+ * as a bug in the MESSAGE rather than as a missing file, which is the one
+ * reading that leaves nobody able to fix it.
+ *
+ * So the whole transport comes down: the change-over and ceremony timers that
+ * would otherwise fire into the wreckage, the sound itself, and the OS card,
+ * which would otherwise still be offering play/pause for a track that is not on.
+ * `audio.stop()` also releases the file, which is right — nothing is cued.
+ */
+function unreachable(set: Set, message: string): void {
+  clearCeremony()
+  clearHandover()
+  audio.stop()
+  publishNowPlaying(null)
+  set({
+    error: message,
+    ceremony: false,
+    ceremonyCount: null,
+    handover: false,
+    armDown: false,
+    deckPhase: 'idle',
+    // `audio.stop()` silences a preview too, so the button that started one
+    // must not be left saying "stop" over nothing.
+    previewTrackId: null,
+  })
+}
+
+/**
  * Load a track and either start it or hand over to the ceremony.
  *
  * ⚠️ The ceremony loads the audio but does NOT play it — the countdown is cover
@@ -647,9 +691,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   if (!track) return
   const file = useLibraryStore.getState().fileFor(track)
   if (!file) {
-    set({
-      error: 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.',
-    })
+    unreachable(set, 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.')
     return
   }
 
@@ -764,7 +806,7 @@ function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
   const track = get().queue[order[nextCursor]]
   const file = track ? useLibraryStore.getState().fileFor(track) : null
   if (!file) {
-    set({ error: 'That file isn’t reachable any more. Choose the folder again to restore playback.' })
+    unreachable(set, 'That file isn’t reachable any more. Choose the folder again to restore playback.')
     return
   }
   publishNowPlaying(track)

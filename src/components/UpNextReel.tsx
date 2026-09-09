@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Cover from './Cover'
+import { plural } from '../lib/format'
 import { resolveDeck } from '../lib/decks'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -91,6 +92,24 @@ export default function UpNextReel() {
 
   const departing = useDeparting(order[cursor] ?? null, upcoming, reduced)
 
+  /**
+   * The last slot in the row counts what did not fit, rather than being the
+   * last record that happened to (James, 2026-09-09: "on the final 'waiting to
+   * go on' show a disk with [X] more records").
+   *
+   * ⚠️ It REPLACES a record rather than being added after them. `fits` is how
+   * many columns there is room for, so appending a thirteenth item to a row
+   * with room for twelve just pushes it under the clip — the count would be the
+   * one thing in the row nobody could see.
+   *
+   * ⚠️ And only when there is room for at least two. At `fits === 1` the choice
+   * is between showing the next record and showing a number instead of it, and
+   * "what is on next" is what the row is for.
+   */
+  const counting = fits >= 2 && upcoming.length > fits
+  const shown = upcoming.slice(0, counting ? fits - 1 : fits)
+  const more = upcoming.length - shown.length
+
   if (upcoming.length === 0 && !departing) return null
 
   return (
@@ -111,8 +130,21 @@ export default function UpNextReel() {
           ⚠️ `items-start`, not `items-center`. The titles under the drawings are
           one or two lines depending on how long they are, and centring makes
           the media themselves sit at different heights — a row of records that
-          is not level. */}
-      <div ref={box} className="flex items-start overflow-hidden" style={{ gap: GAP }}>
+          is not level.
+
+          ⚠️ `-mt-1` is not spacing — it is the other half of the HEADROOM FOR
+          THE HOVER LIFT. `overflow-hidden` clips at the padding box, so with no
+          padding anywhere the clip line fell exactly on the top of each record
+          and the 3px lift took a 3px slice off it (James, 2026-09-09: "on hover
+          it moves up correctly but the top of the record shouldn't be
+          clipped"). Each item carries `pt-1`, which moves the records 4px down
+          inside their own clip; this pulls the row 4px back up so the row lands
+          exactly where it did before and nothing else on the page moves.
+
+          ⚠️ `overflow-x-hidden` is NOT the fix, tempting as it looks: a
+          single-axis `hidden` computes the OTHER axis to `auto`, which clips
+          just the same and adds a scrollbar for it. */}
+      <div ref={box} className="-mt-1 flex items-start overflow-hidden" style={{ gap: GAP }}>
         {departing && (
           <Waiting
             key={`leaving-${departing.key}`}
@@ -122,7 +154,7 @@ export default function UpNextReel() {
             leaving
           />
         )}
-        {upcoming.slice(0, fits).map((w) => (
+        {shown.map((w) => (
           <Waiting
             key={w.key}
             item={w}
@@ -136,6 +168,7 @@ export default function UpNextReel() {
             onJump={() => jumpTo(w.orderIndex)}
           />
         ))}
+        {counting && <MoreRecords count={more} />}
       </div>
     </section>
   )
@@ -245,7 +278,10 @@ function Waiting({
 
   return (
     <div
-      className="shrink-0 overflow-hidden"
+      // ⚠️ `pt-1` for the same reason the row has it: this box clips too (the
+      // leave animation shrinks its `max-width`), and without the padding it
+      // clips the top off the record the moment the button inside it lifts.
+      className="shrink-0 overflow-hidden pt-1"
       style={{
         // The animation shrinks `max-width` to zero, and everything to the
         // right of it slides along to fill the space. Setting it here rather
@@ -274,6 +310,64 @@ function Waiting({
           {inner}
         </button>
       )}
+    </div>
+  )
+}
+
+/**
+ * The last column: a stack of records with a number on it, standing for
+ * everything that did not fit on the line.
+ *
+ * ⚠️ NOT a button, and not a link to anywhere. "Up next" underneath this row is
+ * the complete list, with names and a remove button on every entry — it is
+ * already the answer to "what are the other five?", it is three inches below
+ * this, and a control here would be a second way to reach it that behaves
+ * differently. This is a count, and a count is allowed to be just a count.
+ *
+ * ⚠️ It is drawn as a STACK — two edges peeking out behind the front disc —
+ * rather than as one more record with a number on it. Every other item in the
+ * row is exactly one record going on the deck; this one is several, and the
+ * only thing that says so at 76px is the shape.
+ */
+function MoreRecords({ count }: { count: number }) {
+  return (
+    <div className="shrink-0 pt-1 text-center" style={{ maxWidth: ITEM, width: ITEM }}>
+      <div className="mx-auto" style={{ width: MEDIA }} aria-hidden>
+        <div className="relative" style={{ height: MEDIA, width: MEDIA }}>
+          {/* The two behind, offset up and to the right so they read as edges
+              rather than as a halo. */}
+          {[2, 1].map((i) => (
+            <span
+              key={i}
+              className="absolute rounded-full bg-slate-500 dark:bg-slate-600"
+              style={{ inset: 0, transform: `translate(${i * 4}px, ${i * -3}px)`, opacity: 0.55 / i }}
+            />
+          ))}
+          {/* ⚠️ The same dark disc as a real one in this row, not a pale
+              placeholder. It sat in slate-200 for a while and read as a hole in
+              the row rather than as more records — the count in the label is
+              what says it is not one you can play, and that is enough. */}
+          <span className="absolute inset-0 rounded-full bg-slate-900 shadow-md ring-1 ring-slate-900/10 dark:bg-[#12192b]" />
+          {/* Grooves, at the same spacing as a real one in this row, so the
+              stack belongs to the same set of drawings. */}
+          <span
+            className="absolute inset-0 rounded-full opacity-[0.16]"
+            style={{
+              background:
+                'repeating-radial-gradient(circle at 50% 50%, transparent 0 2px, rgba(255,255,255,.5) 2px 3px)',
+            }}
+          />
+          <span className="absolute inset-[28%] flex items-center justify-center rounded-full bg-slate-100 text-[15px] font-semibold text-slate-600 tabular-nums ring-1 ring-white/10 dark:bg-slate-900 dark:text-slate-300">
+            +{count}
+          </span>
+        </div>
+      </div>
+      <span className="mt-2 block text-[11.5px] leading-snug font-medium text-slate-500 dark:text-slate-400">
+        {plural(count, 'more record')}
+      </span>
+      <span className="mt-0.5 block text-[10.5px] text-slate-400 dark:text-slate-500">
+        in the queue
+      </span>
     </div>
   )
 }

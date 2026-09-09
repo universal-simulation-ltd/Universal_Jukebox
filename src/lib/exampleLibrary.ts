@@ -400,7 +400,16 @@ function addTone(
     if (at2 >= out.length) break
     const t = i / RATE
     const amp = (i < attack ? i / attack : 1) * Math.exp(-t * decay)
-    if (amp < 0.0008) break
+    // ⚠️ The "this note has died away" test must not run DURING THE ATTACK, and
+    // the version without that guard silenced every melodic voice in the whole
+    // library. At `i === 0` the attack ramp is exactly 0, so an unguarded
+    // `amp < 0.0008` broke out of the loop on the first sample of every note:
+    // the pad, the bass and the lead wrote nothing at all, ever. What survived
+    // was the drums, which are not built from this function — so eight of the
+    // nine records played as a drum machine, and "Quiet Rooms" (the one record
+    // with `drums: false`) was 38 seconds of digital silence. Nothing failed;
+    // every file was the right length and played to the end.
+    if (i >= attack && amp < 0.0008) break
     const phase = step * i
     out[at2] += gain * amp * (Math.sin(phase) + env.bite * Math.sin(phase * 3))
   }

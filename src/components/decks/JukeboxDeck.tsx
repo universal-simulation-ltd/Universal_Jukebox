@@ -1,3 +1,4 @@
+import { useLevels } from '../../lib/useLevels'
 import type { DeckFaceProps } from './face'
 
 // The cabinet the app is named after: a 45 on the platter behind the glass,
@@ -52,6 +53,23 @@ const WINDOW = { left: '15%', right: '15%', top: '10%' }
 export default function JukeboxDeck({ progress, engaged, spinning, reduced, url, hue, arrival }: DeckFaceProps) {
   const trackAngle = ARM.TRACK_START + progress * ARM.TRACK_TRAVEL
 
+  /**
+   * The two pilaster tubes, as a two-band level meter: bass on the left, the
+   * mids and the top on the right.
+   *
+   * ⚠️ THIS IS THE ONE PLACE A FACE READS ANYTHING FOR ITSELF, and `face.ts`'s
+   * rule survives it. That rule is about the app's STATE — no stores, no
+   * ceremony timing, no deciding for itself what a track change means — and
+   * this is none of those: it is the sound in the room, which no other face
+   * wants and which the frame cannot usefully pass down as a number without
+   * re-rendering the whole deck sixty times a second. See `lib/useLevels.ts`.
+   *
+   * ⚠️ Fed `spinning`, not `engaged`. The lights belong to the machine being on,
+   * and during the ceremony the platter is up to speed with the arm still
+   * parked — which is exactly when a jukebox is at its most lit.
+   */
+  const tubes = useLevels<HTMLSpanElement>(2, spinning && !reduced)
+
   return (
     <>
       {/* ── The cabinet ────────────────────────────────────────────────── */}
@@ -77,19 +95,37 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
         />
 
         {/* The two lit pilaster tubes down the sides of the arch — the single
-            detail that says "jukebox" before anything else is read.
+            detail that says "jukebox" before anything else is read, and now the
+            equalisers as well (James, 2026-09-09: "use the side lights as
+            equalisers").
 
-            ⚠️ They brighten when the needle is DOWN rather than pulsing on a
-            loop. A cabinet whose lights cycle regardless is a decoration; one
-            that comes up as the record starts is the machine reporting its own
-            state, and it costs a transition rather than an animation. */}
+            ⚠️ TWO ELEMENTS PER TUBE, and the split is the whole design. The
+            outer one is the GLASS: it is always there, it dims when the needle
+            is up, and it never moves. The inner one is the LIGHT INSIDE IT,
+            filling from the bottom to whatever its band of the spectrum is
+            doing. A single element scaling itself would have to shrink the
+            glass too, and a tube that changes length is a cabinet coming apart
+            rather than a light going up and down inside one.
+
+            ⚠️ The fill's height reads `--jb-level` WITH A FALLBACK OF 1, and
+            that fallback is what the whole thing rests on: `useLevels` removes
+            the property whenever it is not metering — nothing playing, reduced
+            motion, or a browser that would not give us an analyser — so the
+            tube goes back to being the solid lit bar it has always been rather
+            than to an empty one. Nothing here needs to know which of those
+            happened.
+
+            ⚠️ No CSS transition on that height. The value is already smoothed
+            twice (the analyser's own constant, and the fall-off in
+            `useLevels`), and a transition on top of a per-frame write is a
+            meter that lags a beat behind the music it is supposed to be. */}
         {[
           { side: 'left' as const, from: '#fb923c', to: '#f43f5e' },
           { side: 'right' as const, from: '#fb923c', to: '#f43f5e' },
-        ].map((tube) => (
+        ].map((tube, band) => (
           <span
             key={tube.side}
-            className="absolute block rounded-full transition-opacity duration-700"
+            className="absolute block overflow-hidden rounded-full transition-opacity duration-700"
             style={{
               // Written out rather than as a computed `[tube.side]` key: a
               // computed key off a union widens the object to an index
@@ -101,12 +137,24 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
               height: '46%',
               width: '4.5%',
               opacity: engaged ? 1 : 0.45,
-              background: `linear-gradient(180deg, ${tube.from}, ${tube.to})`,
-              boxShadow: engaged
-                ? '0 0 10px rgba(251,146,60,.8), inset 0 0 4px rgba(255,255,255,.55)'
-                : 'inset 0 0 4px rgba(255,255,255,.3)',
+              // The unlit glass: the same colours, way down, so an empty tube
+              // is a dark tube rather than a hole in the cabinet.
+              background: `linear-gradient(180deg, ${tube.from}22, ${tube.to}33)`,
+              boxShadow: 'inset 0 0 4px rgba(255,255,255,.3)',
             }}
-          />
+          >
+            <span
+              ref={tubes[band]}
+              className="absolute inset-x-0 bottom-0 block rounded-full"
+              style={{
+                height: 'calc(var(--jb-level, 1) * 100%)',
+                background: `linear-gradient(180deg, ${tube.from}, ${tube.to})`,
+                boxShadow: engaged
+                  ? '0 0 10px rgba(251,146,60,.8), inset 0 0 4px rgba(255,255,255,.55)'
+                  : 'inset 0 0 4px rgba(255,255,255,.3)',
+              }}
+            />
+          </span>
         ))}
 
         {/* ── The selection panel ──────────────────────────────────────────

@@ -4,7 +4,7 @@ import PreviewButton from './PreviewButton'
 import { clock, plural, totalTime } from '../lib/format'
 import { navigate } from '../lib/route'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
-import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
 
 // One album: the cover big, the tracks in running order, and the two buttons
 // that matter.
@@ -57,6 +57,31 @@ export default function AlbumView({ albumId }: { albumId: string }) {
     playTracks(tracks, 0)
   }
 
+  /**
+   * Is this record already on?
+   *
+   * ⚠️ The ALBUM, not the track — "if a track from that album is already playing
+   * when I click open jukebox" (James, 2026-09-09). Six tracks in, the cover is
+   * still the picture of what is turning, so pressing it is a request to go and
+   * look at it.
+   */
+  const onTheDeck = nowPlaying?.albumId === albumId
+
+  /**
+   * The cover opens the jukebox. It only PUTS THE RECORD ON if the record is
+   * not already on.
+   *
+   * ⚠️ It used to call `playTracks` unconditionally, which re-cued the album
+   * from track 1 — so the way to go and watch the deck was also the way to lose
+   * your place on it, and pressing it six tracks in threw away six tracks. The
+   * button's own label says "open jukebox", and that is now all it does when
+   * there is a jukebox to open.
+   */
+  const openTheJukebox = () => {
+    if (onTheDeck) showTheDeck()
+    else playTracks(tracks, 0)
+  }
+
   return (
     <div>
       <button
@@ -75,18 +100,22 @@ export default function AlbumView({ albumId }: { albumId: string }) {
         {/* ⚠️ The cover IS a button (James, 2026-09-09). It was a picture, and a
             260px picture of a record with a Play button beside it is a thing
             people click — and nothing happened, on the one element the page is
-            built around. It does exactly what Play does, which is also the only
-            honest thing it can do: putting a record on is what takes you to the
-            deck, so "go to the animation" and "play this" are one action, not
-            two. The label says so on hover rather than leaving you to find out.
+            built around. It does what Play does, because putting a record on is
+            what takes you to the deck: "go to the animation" and "play this"
+            are one action rather than two. The label says so on hover rather
+            than leaving you to find out.
+
+            ⚠️ EXCEPT when this album is already playing — see `openTheJukebox`.
+            Then it is only the first half, because the second half would throw
+            away where you are in the record you asked to go and look at.
 
             ⚠️ `disabled` when the album somehow has no tracks, or the overlay
             would invite a click that cannot do anything. */}
         <button
           type="button"
-          onClick={() => playTracks(tracks, 0)}
+          onClick={openTheJukebox}
           disabled={tracks.length === 0}
-          aria-label={`Play ${album.title} on the deck`}
+          aria-label={onTheDeck ? `Open the jukebox — ${album.title} is on` : `Play ${album.title} on the deck`}
           className="group relative block w-full max-w-[260px] shrink-0 rounded-xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] disabled:cursor-default md:w-[260px]"
         >
           <Cover
