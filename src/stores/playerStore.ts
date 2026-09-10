@@ -73,16 +73,16 @@ interface PlayerState {
 
   /**
    * The first-play ceremony (§22.9 of next-products.md): the platter spins up,
-   * the arm comes down, 3·2·1 counts beside the deck, and the track starts.
+   * the arm comes down, 2·1 counts beside the deck, and the track starts.
    *
-   * ⚠️ ONCE PER SESSION, on the FIRST play only. A three-second ceremony before
+   * ⚠️ ONCE PER SESSION, on the FIRST play only. A ceremony before
    * every track is an app you close. `ceremonyDone` is deliberately NOT
    * persisted — it resets with the tab, because the ceremony is an arrival and
    * arriving happens once per visit, not once ever.
    */
   ceremony: boolean
   ceremonyDone: boolean
-  /** 3, 2, 1 — or null when no countdown is running. */
+  /** 2, 1 — or null when no countdown is running. */
   ceremonyCount: number | null
   /** Whether the tonearm is down. True whenever a ceremony is not running. */
   armDown: boolean
@@ -505,7 +505,14 @@ type Get = () => PlayerState
  * watching, and the Deck is left to do what a view should: read the phase and
  * draw it.
  */
-const BEATS = { two: 780, one: 1560, land: 1830, start: 2340 }
+//
+// ⚠️ TWO, ONE — NOT THREE, TWO, ONE (James, 2026-09-10: "Instead of 3,2,1 do
+// just 2,1"). The first 780ms beat is simply gone and everything after it moved
+// up by the same amount, so the spacing people had got used to is unchanged:
+// a numeral every 780ms (Deck's `jb-count` animation is that long), the needle
+// 270ms after the last one, the sound 510ms after the needle. The record's
+// arrival (`jb-deck-in`, 700ms) still lands before the needle does.
+const BEATS = { one: 780, land: 1050, start: 1560 }
 
 /**
  * The change-over between two tracks (§ James, 2026-09-08 and 2026-09-09).
@@ -829,7 +836,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
 
   set({
     ceremony: true,
-    ceremonyCount: 3,
+    ceremonyCount: 2,
     armDown: false,
     // ⚠️ The medium comes IN as the countdown runs (James, 2026-09-09: "load the
     // record player with an animation, e.g. the disc fading in from just above
@@ -848,7 +855,6 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   const at = (ms: number, fn: () => void) => {
     ceremonyTimers.push(setTimeout(fn, ms) as unknown as number)
   }
-  at(BEATS.two, () => set({ ceremonyCount: 2 }))
   at(BEATS.one, () => set({ ceremonyCount: 1 }))
   at(BEATS.land, () => {
     set({ armDown: true, deckPhase: 'idle' })

@@ -24,5 +24,17 @@ class JukeboxViewController: CAPBridgeViewController {
         // so both are in `PluginHeaders` before the first render reads them.
         bridge?.registerPluginInstance(AppleMusicPlugin())
         bridge?.registerPluginInstance(FileImportPlugin())
+
+        // ⚠️ THE EDGE SWIPE BACK (James, 2026-09-10: "Mobile should also have
+        // the edge of screen side swipe to go back instead of having to use
+        // navigation"). WKWebView ships the gesture and leaves it OFF; Capacitor
+        // never turns it on. It walks the web view's own history — and every
+        // screen change in this app is a `history.pushState` (`lib/route.ts`),
+        // so a swipe is exactly the browser's Back: it pops the entry, the page
+        // hears `popstate`, and `useRoute` in `App.tsx` moves the screen. No
+        // gesture code of our own, and the on-screen "Back to your library"
+        // links still work as before.
+        // Set here because `loadView` has created the web view by now.
+        webView?.allowsBackForwardNavigationGestures = true
     }
 }

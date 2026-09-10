@@ -41,6 +41,9 @@ export const CONTAINER = 'mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8'
 
 const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_Jukebox'
 
+/** Screens that are a PAGE of their own, and so open at their top. */
+const PAGE_VIEWS = new Set<View>(['playing', 'album', 'settings', 'about', 'tidy'])
+
 /** The views the skipped-files report belongs on: the library itself. */
 const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'album'])
 
@@ -114,6 +117,18 @@ function useMiniMode(): boolean {
 export default function App() {
   const route = useRoute()
   const mini = useMiniMode()
+
+  // ⚠️ A NEW SCREEN OPENS AT ITS TOP (James, 2026-09-10: "when it goes to the
+  // now playing / animation page, it should load at the top of the page to see
+  // the animation not in the position it was"). This is one document, and a
+  // hash change does not move the window — so pressing play halfway down a
+  // long track list landed on Now Playing scrolled halfway down it, with the
+  // record and its countdown above the fold. The library tabs are left where
+  // they are: they are the same list seen differently, and a tab switch that
+  // threw you back to the top would lose your place for nothing.
+  useEffect(() => {
+    if (PAGE_VIEWS.has(route.view)) window.scrollTo(0, 0)
+  }, [route.view, route.albumId])
   const theme = useThemeStore((s) => s.effective)
 
   const status = useLibraryStore((s) => s.status)

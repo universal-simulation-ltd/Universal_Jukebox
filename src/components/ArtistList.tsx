@@ -1,4 +1,5 @@
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { revealExpanded } from '@unisim/sdk'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
 import OpenGroup from './OpenGroup'
@@ -26,12 +27,36 @@ import type { Album } from '../lib/types'
 export default function ArtistList({ query }: { query: string }) {
   const albums = useLibraryStore((s) => s.albums)
   const [openArtist, setOpenArtist] = useState<string | null>(null)
-  // The drawer's id, for the cards' `aria-controls`. ⚠️ That attribute is what
-  // lets the SDK's reveal-on-expand find the drawer: it watches `aria-expanded`
-  // flip to true and scrolls to whatever `aria-controls` names. With `aria-expanded`
-  // alone it deliberately does nothing — and the drawer opens BELOW the whole
-  // grid, which on a long list is off the bottom of the screen.
-  const drawerId = useId()
+  const drawer = useRef<HTMLElement>(null)
+  /** Each artist's card, so "Close" can bring you back to the one you opened. */
+  const cards = useRef(new Map<string, HTMLButtonElement>())
+
+  // ⚠️ THE DRAWER IS REVEALED HERE, BY HAND, AND NOT BY THE SDK — and the cards
+  // deliberately carry NO `aria-controls`, which is what keeps the SDK out.
+  //
+  // They used to carry one, so that the SDK's reveal-on-expand would scroll the
+  // drawer into view. But that reveal brings the panel into view TOGETHER WITH
+  // the button that opened it, under a rule that the button never leaves the
+  // top of the screen — and this drawer sits below the WHOLE grid. With a real
+  // library that span is taller than a phone, the rule caps the scroll at almost
+  // nothing, and the drawer stays off the bottom of the page. Found on the first
+  // day of the iPhone's Music library (James, 2026-09-10: "you click it and it
+  // says 'open' but it doesn't show them"). The card changed to "Showing 3
+  // albums" and the albums were a long scroll away.
+  //
+  // `revealExpanded(drawer, null)` is the same SDK routine asked about the
+  // drawer ALONE: it still knows about the sticky navbar, and it still stands
+  // down the moment you scroll yourself.
+  useEffect(() => {
+    if (openArtist && drawer.current) revealExpanded(drawer.current, null)
+  }, [openArtist])
+
+  /** Shut the drawer and put the artist you opened back on screen. */
+  const close = () => {
+    const card = openArtist ? cards.current.get(openArtist) : undefined
+    setOpenArtist(null)
+    if (card) revealExpanded(card, null)
+  }
 
   const artists = useMemo(() => {
     const byArtist = new Map<string, Album[]>()
@@ -79,8 +104,11 @@ export default function ArtistList({ query }: { query: string }) {
                     ? setOpenArtist((prev) => (prev === artist.name ? null : artist.name))
                     : navigate({ view: 'album', albumId: artist.albums[0].id })
                 }
+                ref={(el) => {
+                  if (el) cards.current.set(artist.name, el)
+                  else cards.current.delete(artist.name)
+                }}
                 aria-expanded={many ? openArtist === artist.name : undefined}
-                aria-controls={many ? drawerId : undefined}
                 className="group w-full text-left focus:outline-none"
               >
                 {/* ⚠️ Open, the fan becomes the sleeve — the same card the
@@ -132,7 +160,7 @@ export default function ArtistList({ query }: { query: string }) {
           the grid leaves the grid still. */}
       {open && (
         <section
-          id={drawerId}
+          ref={drawer}
           aria-label={`${open.name}’s albums`}
           className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800"
         >
@@ -142,7 +170,7 @@ export default function ArtistList({ query }: { query: string }) {
             </h2>
             <button
               type="button"
-              onClick={() => setOpenArtist(null)}
+              onClick={close}
               className="shrink-0 text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
             >
               Close

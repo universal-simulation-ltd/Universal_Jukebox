@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Lets every Universal Suite app read the same signed-in session from the
+	     Keychain, so signing in on one leaves you signed in on the others. Read
+	     by @unisim/sdk's UnisimSuiteAuth plugin; the team prefix is expanded by
+	     Xcode here and resolved at runtime by the plugin.
+	     ⚠️ Jukebox shipped to the phone WITHOUT this file (2026-09-09) and the
+	     only symptom was a console line: "Keychain read failed: OSStatus -34018
+	     (A required entitlement isn't present.)", after which the SDK quietly
+	     fell back to app-local storage — sign-in simply stopped carrying across
+	     the suite on that device. Identical to the other seven apps' copies. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)co.uk.unisim.suite</string>
+	</array>
+</dict>
+</plist>
