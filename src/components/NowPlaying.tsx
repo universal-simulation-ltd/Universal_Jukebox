@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { coverUrl } from '../lib/art'
 import { plural } from '../lib/format'
 import { goHome, navigate } from '../lib/route'
@@ -11,6 +11,8 @@ import Lyrics from './Lyrics'
 import Queue from './Queue'
 import UpNextReel from './UpNextReel'
 import Visualiser from './Visualiser'
+import { useLyricsStore } from '../stores/lyricsStore'
+import { requestLyricsReveal } from '../lib/lyricsReveal'
 
 // The one screen in the suite that is genuinely pleasurable to leave open.
 //
@@ -25,6 +27,10 @@ import Visualiser from './Visualiser'
 
 export default function NowPlaying() {
   const track = usePlayerStore(currentTrack)
+  // Every visit to Now Playing starts with the lyrics closed (James, 2026-09-10):
+  // leaving closes them. They stay open across songs while you stay — see
+  // `shownFor` for why.
+  useEffect(() => () => useLyricsStore.getState().hideLyrics(), [])
   const ceremony = usePlayerStore((s) => s.ceremony)
   const skipCeremony = usePlayerStore((s) => s.skipCeremony)
   const setSetting = useSettingsStore((s) => s.set)
@@ -159,14 +165,24 @@ export default function NowPlaying() {
  * nobody can learn.
  */
 function LyricsToggle() {
-  const show = useSettingsStore((s) => s.showLyrics)
-  const setSetting = useSettingsStore((s) => s.set)
+  const track = usePlayerStore(currentTrack)
+  const shownFor = useLyricsStore((s) => s.shownFor)
+  const showFor = useLyricsStore((s) => s.showFor)
+  const hideLyrics = useLyricsStore((s) => s.hideLyrics)
+  const show = !!track && shownFor !== null
   return (
     <button
       type="button"
       onClick={(e) => {
         e.stopPropagation()
-        setSetting('showLyrics', !show)
+        if (!track) return
+        if (show) {
+          hideLyrics()
+          return
+        }
+        // Opening them scrolls down to them — see `lib/lyricsReveal.ts`.
+        requestLyricsReveal()
+        showFor(track.id)
       }}
       aria-pressed={show}
       className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
@@ -174,7 +190,7 @@ function LyricsToggle() {
       <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
         <path d="M4 3h9a1 1 0 0 1 1 1v11.5a.5.5 0 0 1-.79.4L9 13.6l-4.21 2.3A.5.5 0 0 1 4 15.5V4a1 1 0 0 1 1-1Zm2 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5H6Zm0 3a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Z" />
       </svg>
-      {show ? 'Hide lyrics' : 'Lyrics'}
+      {show ? 'Hide lyrics' : 'Show lyrics'}
     </button>
   )
 }

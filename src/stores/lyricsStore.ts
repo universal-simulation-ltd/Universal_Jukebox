@@ -44,6 +44,27 @@ interface LyricsState {
   /** Look again — after turning the online lookup on, or after a failure. */
   reload(track: Track): void
   forget(): void
+
+  /**
+   * The track the lyrics panel was OPENED on, or null when it is closed.
+   *
+   * ⚠️ In memory, not in Settings, and cleared whenever Now Playing is left —
+   * so every VISIT starts closed, with a "Show lyrics" button (James,
+   * 2026-09-10: "hide lyrics by default so everytime there's a show lyrics
+   * button"). It used to be the persisted `showLyrics` setting, so once opened
+   * the panel was there on every visit, below the fold, where nobody had just
+   * asked for it.
+   *
+   * ⚠️ But NOT closed on every new song while you stay on the screen. The old
+   * setting's reasoning still holds for that: "somebody who opens the lyrics
+   * wants them for the next track too, and having the panel shut itself on
+   * every change-over is the version of this that gets turned off after ten
+   * minutes". Open means `!== null`; the id is kept only so it is clear which
+   * song the panel was opened on.
+   */
+  shownFor: string | null
+  showFor(trackId: string): void
+  hideLyrics(): void
 }
 
 /**
@@ -63,6 +84,15 @@ export const useLyricsStore = create<LyricsState>((set, get) => ({
   sheet: null,
   message: null,
   askedOnline: false,
+  shownFor: null,
+
+  showFor(trackId) {
+    set({ shownFor: trackId })
+  },
+
+  hideLyrics() {
+    if (get().shownFor !== null) set({ shownFor: null })
+  },
 
   load(track) {
     const state = get()

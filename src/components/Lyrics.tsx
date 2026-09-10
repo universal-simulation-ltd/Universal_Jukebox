@@ -1,5 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { revealExpanded } from '@unisim/sdk'
+import SingingMic from './SingingMic'
 import { activeLine } from '../lib/lyrics'
+import { takeLyricsReveal } from '../lib/lyricsReveal'
+import { micPhase, nextSungLine } from '../lib/singing'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -14,12 +18,14 @@ import { navigate } from '../lib/route'
 // "Lyrics" over a blank box reads as an app that is broken rather than as a
 // file that was never tagged.
 //
-// ⚠️ The panel is opened from Now Playing and remembers itself across tracks —
-// see `showLyrics` in `settingsStore`.
+// ⚠️ Closed by default on every visit to Now Playing, and opened from its
+// "Show lyrics" button — see `shownFor` in `stores/lyricsStore.ts`.
 
 export default function Lyrics() {
   const track = usePlayerStore(currentTrack)
-  const show = useSettingsStore((s) => s.showLyrics)
+  const shownFor = useLyricsStore((s) => s.shownFor)
+  // Open for this VISIT to Now Playing — see `shownFor`.
+  const show = !!track && shownFor !== null
   const load = useLyricsStore((s) => s.load)
 
   // ⚠️ Nothing is read, and nothing is asked, until the panel is open. The
@@ -29,9 +35,30 @@ export default function Lyrics() {
     if (show && track) load(track)
   }, [show, track, load])
 
+  // Opened with "Show lyrics": scroll down until the WHOLE box is on screen
+  // (James, 2026-09-10) — `lib/lyricsReveal.ts` for why only then.
+  //
+  // ⚠️ TWICE, AND THE SECOND ONE IS THE ONE THAT MATTERS. The panel opens as a
+  // one-line "Looking…" and grows to its full height only when the words
+  // arrive — a file read, or lrclib, which can take seconds. One reveal at the
+  // moment of opening scrolled to the small box and was over long before the
+  // big one existed, leaving most of it below the fold. So it reveals on
+  // opening, and again whenever the lookup's status moves, until the lookup is
+  // done. The SDK still stands down the instant the person scrolls themselves.
+  const section = useRef<HTMLElement>(null)
+  const status = useLyricsStore((s) => s.status)
+  const revealing = useRef(false)
+  useEffect(() => {
+    if (!show || !section.current) return
+    if (takeLyricsReveal()) revealing.current = true
+    if (!revealing.current) return
+    revealExpanded(section.current, null, { settleMs: 1200 })
+    if (status !== 'idle' && status !== 'loading') revealing.current = false
+  }, [show, status])
+
   if (!show || !track) return null
   return (
-    <section className="mt-10">
+    <section ref={section} className="mt-10">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
           Lyrics
@@ -60,9 +87,12 @@ function Body() {
   const status = useLyricsStore((s) => s.status)
   const sheet = useLyricsStore((s) => s.sheet)
   const message = useLyricsStore((s) => s.message)
+  const trackId = useLyricsStore((s) => s.trackId)
 
   if (status === 'loading') return <Note>Looking…</Note>
-  if (status === 'ready' && sheet) return sheet.synced ? <Synced /> : <Plain />
+  // Keyed by track, so every song's sheet starts LOCKED and following — the
+  // default James asked for — rather than inheriting the last song's unlock.
+  if (status === 'ready' && sheet) return sheet.synced ? <Synced key={trackId ?? ''} /> : <Plain />
   if (status === 'instrumental') {
     return <Note>lrclib.net has this one down as an instrumental — there are no words to show.</Note>
   }
@@ -82,54 +112,112 @@ function Body() {
 /**
  * A timed sheet, following the music.
  *
- * ⚠️ Scrolled by setting `scrollTop` on the panel itself rather than by
+ * ⚠️ Scrolled by setting the panel's OWN scroll position rather than by
  * `scrollIntoView`. The latter walks up to the nearest scrollable ancestor and
  * then keeps going — so on a short window it scrolls the PAGE as well, which
  * drags the deck out of view every few seconds while somebody is watching it.
+ *
+ * ⚠️ AND THE PANEL IS `relative`, WHICH IS WHAT MAKES THE CENTRING TRUE. A
+ * line's `offsetTop` is measured from its offset parent; without `relative`
+ * here that parent was an ancestor further up the page, so every target was
+ * off by however far down the page the panel sat — reported as "the autoscroll
+ * doesn't match up to showing the lyrics in that view" (James, 2026-09-10).
+ * The half-height padding at each end is what lets the FIRST and LAST lines be
+ * centred too, instead of pinned to an edge.
+ *
+ * ⚠️ LOCKED BY DEFAULT (James, same day). Locked, the current line sits at the
+ * middle and the panel cannot be scrolled by hand — a swipe over it scrolls the
+ * page instead, which is what a thumb on a phone wants. Unlocked, it scrolls
+ * freely and stops following. Locking again goes straight back to the line
+ * being sung.
  */
 function Synced() {
   const sheet = useLyricsStore((s) => s.sheet)
   const currentSec = usePlayerStore((s) => s.currentSec)
+  const playing = usePlayerStore((s) => s.playing)
   const seekTo = usePlayerStore((s) => s.seekTo)
   const reduced = usePrefersReducedMotion()
   const box = useRef<HTMLDivElement>(null)
-  const lines = sheet?.lines ?? []
+  const rows = useRef<(HTMLButtonElement | null)[]>([])
+  const [locked, setLocked] = useState(true)
+  const lines = useMemo(() => sheet?.lines ?? [], [sheet])
   const active = activeLine(lines, currentSec)
+  // The next thing to SING, in black but not bold, so it can be read before it
+  // arrives. During the intro that is the first line.
+  const next = nextSungLine(lines, active)
+  const phase = micPhase(lines, active, currentSec, playing)
 
   useEffect(() => {
+    if (!locked) return
     const container = box.current
-    if (!container || active < 0) return
-    const line = container.children[active] as HTMLElement | undefined
-    if (!line) return
-    const target = line.offsetTop - container.clientHeight / 2 + line.clientHeight / 2
+    // Before the first line the FIRST line waits at the centre, rather than the
+    // top of an empty panel.
+    const line = rows.current[Math.max(0, active)]
+    if (!container || !line) return
+    const target = line.offsetTop - (container.clientHeight - line.offsetHeight) / 2
     container.scrollTo({ top: Math.max(0, target), behavior: reduced ? 'auto' : 'smooth' })
-  }, [active, reduced])
+  }, [active, locked, reduced])
 
   return (
-    <div
-      ref={box}
-      className="max-h-[42vh] overflow-y-auto rounded-lg border border-slate-200 bg-white/40 px-4 py-6 dark:border-slate-800 dark:bg-slate-900/30"
-    >
-      {lines.map((line, i) => (
+    <div className="rounded-lg border border-slate-200 bg-white/40 dark:border-slate-800 dark:bg-slate-900/30">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
+        <SingingMic phase={phase} reduced={reduced} />
         <button
-          key={`${line.timeSec}-${i}`}
           type="button"
-          // A timed line knows where it is in the track, so it may as well be a
-          // way of getting there. Free, and it is what anybody tries once they
-          // realise the sheet is following the music.
-          onClick={() => line.timeSec !== null && seekTo(line.timeSec)}
-          className={`block w-full py-1.5 text-left text-[15px] leading-relaxed text-balance transition-colors ${
-            i === active
-              ? 'font-semibold text-slate-900 dark:text-slate-50'
-              : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+          onClick={() => setLocked((was) => !was)}
+          aria-pressed={locked}
+          title={locked ? 'Following the song — unlock to scroll the lyrics yourself' : 'Scrolling freely — lock to follow the song again'}
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
+            locked
+              ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+              : 'bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-300'
           }`}
         >
-          {/* An empty timed line is an instrumental gap, and it has to keep its
-              height or the highlight jumps a verse ahead during the solo. */}
-          {line.text || ' '}
+          <LockGlyph locked={locked} />
+          {locked ? 'Following' : 'Free scroll'}
         </button>
-      ))}
+      </div>
+      <div
+        ref={box}
+        className={`relative h-[42vh] px-4 ${locked ? 'overflow-hidden' : 'overflow-y-auto'}`}
+        style={{ paddingTop: 'calc(21vh - 1.25rem)', paddingBottom: 'calc(21vh - 1.25rem)' }}
+      >
+        {lines.map((line, i) => (
+          <button
+            key={`${line.timeSec}-${i}`}
+            ref={(el) => {
+              rows.current[i] = el
+            }}
+            type="button"
+            // A timed line knows where it is in the track, so it may as well be a
+            // way of getting there. Free, and it is what anybody tries once they
+            // realise the sheet is following the music.
+            onClick={() => line.timeSec !== null && seekTo(line.timeSec)}
+            className={`block w-full py-1.5 text-left text-[15px] leading-relaxed text-balance transition-colors ${
+              i === active
+                ? 'font-bold text-slate-900 dark:text-slate-50'
+                : i === next
+                  ? 'font-normal text-slate-900 dark:text-slate-100'
+                  : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+            }`}
+          >
+            {/* An empty timed line is an instrumental gap, and it has to keep its
+                height or the highlight jumps a verse ahead during the solo. */}
+            {line.text || '\u00a0'}
+          </button>
+        ))}
+      </div>
     </div>
+  )
+}
+
+/** A padlock, shut or open. */
+function LockGlyph({ locked }: { locked: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <rect x="4" y="9" width="12" height="8.5" rx="2" fill="currentColor" stroke="none" />
+      <path d={locked ? 'M6.5 9V6.5a3.5 3.5 0 0 1 7 0V9' : 'M6.5 9V6.5a3.5 3.5 0 0 1 6.6-1.6'} strokeLinecap="round" />
+    </svg>
   )
 }
 

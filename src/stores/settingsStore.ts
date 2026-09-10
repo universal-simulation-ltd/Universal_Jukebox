@@ -152,15 +152,6 @@ export interface Settings {
   /** Seconds of fade before the end of a track. 0 = straight out. */
   fadeOutSec: number
   /**
-   * Whether the lyrics panel is open on Now Playing.
-   *
-   * ⚠️ A SETTING rather than component state, because it is a way of listening
-   * and not a thing you do to one track. Somebody who opens the lyrics wants
-   * them for the next track too, and having the panel shut itself on every
-   * change-over is the version of this that gets turned off after ten minutes.
-   */
-  showLyrics: boolean
-  /**
    * Whether a track with no lyrics in its own tags may be looked up on
    * lrclib.net.
    *
@@ -183,7 +174,6 @@ export const DEFAULTS: Settings = {
   volumeBoost: 1,
   fadeInSec: 0,
   fadeOutSec: 0,
-  showLyrics: false,
   lyricsOnline: false,
 }
 
@@ -280,7 +270,6 @@ function read(): Settings {
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
     fadeOutSec: clamp(stored.fadeOutSec, 0, MAX_FADE_SEC, DEFAULTS.fadeOutSec),
-    showLyrics: typeof stored.showLyrics === 'boolean' ? stored.showLyrics : DEFAULTS.showLyrics,
     // ⚠️ `=== true`, not a truthy read. A stored value of anything other than
     // an explicit `true` — a string, a 1, a blob written by some future
     // version — has to mean off, because "off unless someone chose otherwise"
@@ -335,7 +324,6 @@ function persist(state: Settings) {
     volumeBoost: state.volumeBoost,
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
-    showLyrics: state.showLyrics,
     lyricsOnline: state.lyricsOnline,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }

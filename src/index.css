@@ -118,6 +118,38 @@ body {
   50%      { height: 100%; }
 }
 
+/* The microphone above the lyrics (`SingingMic.tsx`). Every transform here is
+   the WHOLE transform — the resting poses in the component are the same
+   strings, so an animation that ends lands exactly on the pose that follows. */
+@keyframes jb-mic-pickup {
+  0%   { transform: translateY(12px) rotate(-90deg); }
+  55%  { transform: translateY(-3px) rotate(-6deg); }
+  78%  { transform: translateY(0) rotate(-19deg); }
+  100% { transform: rotate(-15deg); }
+}
+@keyframes jb-mic-sing {
+  0%   { transform: translateY(0) rotate(-19deg); }
+  100% { transform: translateY(-1.2px) rotate(-10deg); }
+}
+@keyframes jb-mic-drop {
+  0%   { transform: rotate(-15deg); }
+  16%  { transform: translateY(-4px) rotate(-28deg); }
+  58%  { transform: translateY(12px) rotate(96deg); }
+  72%  { transform: translateY(8px) rotate(86deg); }
+  86%  { transform: translateY(12px) rotate(94deg); }
+  100% { transform: translateY(12px) rotate(92deg); }
+}
+@keyframes jb-mic-wave {
+  0%   { opacity: 0; transform: scale(0.55); }
+  30%  { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+@keyframes jb-mic-thud {
+  0%, 55% { opacity: 0; transform: scaleX(0.4); }
+  70%     { opacity: 1; transform: scaleX(1); }
+  100%    { opacity: 0; transform: scaleX(1.4); }
+}
+
 /* ⚠️ Every one of the above is decoration, and `prefers-reduced-motion` stops
    all of it. The components also branch on the same query where the END STATE
    differs (the tonearm is DOWN rather than mid-swing) — CSS alone can only stop
