@@ -47,6 +47,13 @@ import { noteEvent } from './bgLog'
  * can be told apart. See the `pause` listener below.
  */
 let ownPauseAt = 0
+/**
+ * A pause from outside that came while the page was still VISIBLE, kept for a
+ * moment in case the page goes hidden right after it. On the phone the music
+ * stopped about 0.3 s BEFORE the page went hidden, so the rescue in the pause
+ * listener (which waits for `document.hidden`) never ran.
+ */
+let lastOutsidePause: { at: number; index: 0 | 1 } | null = null
 function markOwnPause(): void {
   ownPauseAt = Date.now()
 }
@@ -156,6 +163,7 @@ function element(index: 0 | 1): HTMLAudioElement {
     // itself, so a person pausing from there is never fought.
     const external = Date.now() - ownPauseAt > 400
     noteEvent('pause', { deck: audio.dataset.jukeboxAudio, external, sec: audio.currentTime })
+    if (external && !document.hidden && mine()) lastOutsidePause = { at: Date.now(), index }
     if (external && document.hidden && mine()) {
       audio
         .play()
@@ -434,12 +442,33 @@ export async function play(): Promise<void> {
   }
 }
 
-export function pause(): void {
+export function pause(reason = 'app'): void {
   // A pause during a crossfade has to stop BOTH, or the outgoing track carries
   // on playing under a paused player — the one bug a second element makes
   // possible that a single element could not.
   finishRetirement()
+  noteEvent('pause-call', { reason })
+  markOwnPause()
   el().pause()
+}
+
+// The other half of `lastOutsidePause`: the page has just gone hidden, and
+// something outside paused the music a moment before — try once to carry on.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    const recent = lastOutsidePause
+    lastOutsidePause = null
+    if (!document.hidden || !recent) return
+    if (Date.now() - recent.at > 1500 || recent.index !== active) return
+    const audio = decks[recent.index].el
+    if (!audio || !audio.paused) return
+    audio
+      .play()
+      .then(() => noteEvent('rescue', { ok: true, late: true }))
+      .catch((error: unknown) => {
+        noteEvent('rescue', { ok: false, late: true, why: error instanceof Error ? error.name : String(error) })
+      })
+  })
 }
 
 export function seek(seconds: number): void {

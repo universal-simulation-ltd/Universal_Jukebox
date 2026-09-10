@@ -229,7 +229,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       get().skipCeremony()
       return
     }
-    if (playing) audio.pause()
+    if (playing) audio.pause('button')
     else void audio.play()
   },
 
@@ -347,7 +347,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       })
       return
     }
-    audio.pause()
+    audio.pause('preview')
     audio.stopPreview()
     set({ previewTrackId: track.id, error: null, missingTrack: null })
     audio.startPreview(file, get().muted ? 0 : get().volume)
@@ -899,7 +899,7 @@ function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
       // The end of the queue. Stop rather than wrapping silently — and take the
       // needle off, since nothing is going to follow it.
       clearHandover()
-      audio.pause()
+      audio.pause('end of queue')
       audio.seek(0)
       set({ playing: false, handover: false })
       return
@@ -1157,7 +1157,7 @@ audio.setCallbacks({
 
 ms.setHandlers({
   onPlay: () => void audio.play(),
-  onPause: () => audio.pause(),
+  onPause: () => audio.pause('lock screen'),
   onStop: () => usePlayerStore.getState().clearQueue(),
   onNext: () => usePlayerStore.getState().next(),
   onPrevious: () => usePlayerStore.getState().previous(),
