@@ -60,6 +60,50 @@ export default function Settings() {
   // Every string below that would otherwise say "record" at a cassette owner.
   const deck = deckCopy(s.deck)
 
+  // Hoisted out of the `<Ladder>` below so the fold's summary reads the SAME
+  // label the handle shows — a second copy of "Every track" is a copy that can
+  // drift.
+  const ladderCopy: Record<CeremonyMode, { label: string; hint: string }> = {
+    always: {
+      label: 'Every track',
+      hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.pickup} put back.`,
+    },
+    album: {
+      label: 'When the album changes',
+      hint: `Only when a different ${deck.noun} goes on. Tracks within one album blend into each other quietly.`,
+    },
+    artist: {
+      label: 'When the artist changes',
+      hint: 'Only when somebody new comes on — a whole discography plays through without interruption.',
+    },
+    first: {
+      label: 'Once per visit',
+      hint: 'Only the first time you press play after opening the app.',
+    },
+    off: {
+      label: 'Never',
+      hint: 'Music starts immediately, every time. Tracks on one album still run into each other with no gap — that is the crossfade, not the animation.',
+    },
+  }
+
+  // ⚠️ What each SHUT fold says it is set to. One hand-written line per
+  // section, but every value in it comes from the store through the same
+  // labels and formatters the controls themselves display — so a fold can never
+  // say "1.5s" over a slider reading 2.0s.
+  const summaries = {
+    library: `Opens on ${labelOf(HOME_OPTIONS, s.homeTab)}`,
+    deck: DECKS[s.deck].label,
+    start: `${ladderCopy[s.ceremonyMode].label}, ${deck.soundLabel.toLowerCase()} ${
+      !s.needleDrop ? 'off' : levelToStep(s.needleDropLevel) === 0 ? 'on' : `at ${formatStep(levelToStep(s.needleDropLevel))}`
+    }`,
+    sound: sentence([
+      boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
+      fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
+    ]),
+    lyrics: s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only',
+    appearance: labelOf(THEME_OPTIONS, themePref),
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <button
@@ -87,16 +131,13 @@ export default function Settings() {
         <Section
           title="Your library"
           note="Where the app takes you, and what it opens on."
+          summary={summaries.library}
         >
           <Choice<HomeTab>
             label="Open my library on"
             value={s.homeTab}
             onChange={(v) => s.set('homeTab', v)}
-            options={[
-              { value: 'albums', label: 'Albums' },
-              { value: 'artists', label: 'Artists' },
-              { value: 'tracks', label: 'Tracks' },
-            ]}
+            options={HOME_OPTIONS}
           />
         </Section>
 
@@ -107,6 +148,7 @@ export default function Settings() {
         <Section
           title="What you’re playing on"
           note="The deck on Now Playing. It changes the picture and the sound it makes starting up — never the music."
+          summary={summaries.deck}
         >
           <Choice<DeckSetting>
             label="Deck"
@@ -124,7 +166,7 @@ export default function Settings() {
           />
         </Section>
 
-        <Section title={deck.startTitle} note={deck.startNote}>
+        <Section title={deck.startTitle} note={deck.startNote} summary={summaries.start}>
           {/* ⚠️ A SLIDER, not the radios this used to be (James asked for one,
               2026-09-09). The five settings are a frequency ladder — every track,
               every record, every artist, once a visit, never — and a ladder is
@@ -137,28 +179,7 @@ export default function Settings() {
             hint={`Also how often you hear the ${deck.soundLabel.toLowerCase()} — the two are the same event.`}
             value={s.ceremonyMode}
             onChange={(v) => s.set('ceremonyMode', v)}
-            copy={{
-              always: {
-                label: 'Every track',
-                hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.pickup} put back.`,
-              },
-              album: {
-                label: 'When the album changes',
-                hint: `Only when a different ${deck.noun} goes on. Tracks within one album blend into each other quietly.`,
-              },
-              artist: {
-                label: 'When the artist changes',
-                hint: 'Only when somebody new comes on — a whole discography plays through without interruption.',
-              },
-              first: {
-                label: 'Once per visit',
-                hint: 'Only the first time you press play after opening the app.',
-              },
-              off: {
-                label: 'Never',
-                hint: 'Music starts immediately, every time. Tracks on one album still run into each other with no gap — that is the crossfade, not the animation.',
-              },
-            }}
+            copy={ladderCopy}
           />
           <Toggle
             label={deck.soundLabel}
@@ -184,7 +205,7 @@ export default function Settings() {
             step={1}
             disabled={!s.needleDrop}
             disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
-            format={(v) => (v === 0 ? '0' : v > 0 ? `+${v}` : String(v))}
+            format={formatStep}
             onChange={(v) => s.set('needleDropLevel', stepToLevel(v))}
             // ⚠️ Resolved against the cursor, so under Random the demonstration is
             // the machine currently on the deck rather than always the first of
@@ -200,6 +221,7 @@ export default function Settings() {
         <Section
           title="Sound"
           note="Applied as the music plays. Nothing here changes your files."
+          summary={summaries.sound}
         >
           <Slider
             label="Volume boost"
@@ -210,7 +232,7 @@ export default function Settings() {
             step={0.1}
             disabled={boostBroken}
             disabledHint="This browser wouldn’t give the app the audio graph a boost needs. Everything else still works."
-            format={(v) => (v <= 1.001 ? 'Off' : `${v.toFixed(1)}×`)}
+            format={formatBoost}
             onChange={(v) => s.set('volumeBoost', v)}
           />
           <Slider
@@ -222,7 +244,7 @@ export default function Settings() {
             step={0.5}
             disabled={fadesBroken}
             disabledHint={FADE_HINT}
-            format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
+            format={formatFade}
             onChange={(v) => s.set('fadeInSec', v)}
           />
           <Slider
@@ -234,7 +256,7 @@ export default function Settings() {
             step={0.5}
             disabled={fadesBroken}
             disabledHint={FADE_HINT}
-            format={(v) => (v === 0 ? 'Off' : `${v.toFixed(1)}s`)}
+            format={formatFade}
             onChange={(v) => s.set('fadeOutSec', v)}
           />
         </Section>
@@ -242,6 +264,7 @@ export default function Settings() {
         <Section
           title="Lyrics"
           note="Jukebox reads the lyrics your files were tagged with. Most files have none."
+          summary={summaries.lyrics}
         >
           <Toggle
             label="Look up missing lyrics online"
@@ -252,16 +275,12 @@ export default function Settings() {
           <DownloadedLyrics />
         </Section>
 
-        <Section title="Appearance">
+        <Section title="Appearance" summary={summaries.appearance}>
           <Choice<ThemePref>
             label="Theme"
             value={themePref}
             onChange={setTheme}
-            options={[
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' },
-              { value: 'system', label: 'Match my device' },
-            ]}
+            options={THEME_OPTIONS}
           />
         </Section>
       </div>
@@ -326,6 +345,57 @@ function DownloadedLyrics() {
   )
 }
 
+// ── Labels and formats, shared by the controls and the fold summaries ────────
+
+const HOME_OPTIONS: Option<HomeTab>[] = [
+  { value: 'albums', label: 'Albums' },
+  { value: 'artists', label: 'Artists' },
+  { value: 'tracks', label: 'Tracks' },
+]
+
+const THEME_OPTIONS: Option<ThemePref>[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'Match my device' },
+]
+
+function labelOf<T extends string>(options: Option<T>[], value: T): string {
+  return options.find((o) => o.value === value)?.label ?? String(value)
+}
+
+/** The ±5 needle-drop step, as its slider shows it. */
+function formatStep(v: number): string {
+  return v === 0 ? '0' : v > 0 ? `+${v}` : String(v)
+}
+
+/** The boost multiplier, as its slider shows it. */
+function formatBoost(v: number): string {
+  return v <= 1.001 ? 'Off' : `${v.toFixed(1)}×`
+}
+
+/** A fade length, as its slider shows it. */
+function formatFade(v: number): string {
+  return v === 0 ? 'Off' : `${v.toFixed(1)}s`
+}
+
+/** "no fades", "1.5s fades", or the two named separately when they differ. */
+function describeFades(fadeIn: number, fadeOut: number): string {
+  if (fadeIn === 0 && fadeOut === 0) return 'no fades'
+  if (fadeIn === fadeOut) return `${formatFade(fadeIn)} fades`
+  return [
+    fadeIn > 0 ? `${formatFade(fadeIn)} fade in` : null,
+    fadeOut > 0 ? `${formatFade(fadeOut)} fade out` : null,
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
+
+/** Comma-joined, with the first letter raised: "Boost off, no fades". */
+function sentence(parts: string[]): string {
+  const text = parts.join(', ')
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 // ── The row kit ──────────────────────────────────────────────────────────────
 
 /**
@@ -343,18 +413,34 @@ function DownloadedLyrics() {
  * inside a shut fold, all for free — and it is also what the SDK's suite-wide
  * reveal-on-expand listens for, so opening the last section scrolls it into
  * view without this file knowing anything about it.
+ *
+ * ⚠️ `summary` is what the section is SET TO, shown on the title line while it
+ * is shut — "Sound: Boost off, 1.5s fades" — so the list of six headings is also
+ * a list of six answers, and nobody opens a fold just to find out it says what
+ * they thought. It hides once the fold is open, where the controls say it
+ * themselves. What it does NOT do is remember which folds were open: every
+ * section still starts shut on every visit, and that was decided, not missed.
  */
 function Section({
-  title, note, children,
-}: { title: string; note?: string; children: React.ReactNode }) {
+  title, note, summary, children,
+}: { title: string; note?: string; summary?: string; children: React.ReactNode }) {
   return (
     <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       {/* `list-none` plus the webkit marker rule: without BOTH, one engine keeps
           its own triangle and the row ends up with two disclosure arrows. */}
       <summary className="flex cursor-pointer list-none items-start gap-3 px-5 py-4 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-orange-600 dark:hover:bg-slate-800/50 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            {title}
+          <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+            <span className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              {title}
+            </span>
+            {summary && (
+              <span className="text-[13px] font-medium text-slate-800 group-open:hidden dark:text-slate-200">
+                {/* Read as "Sound: boost off…", not as one run-on phrase. */}
+                <span className="sr-only">: </span>
+                {summary}
+              </span>
+            )}
           </span>
           {note && (
             <span className="mt-1 block text-[13px] text-slate-500 dark:text-slate-400">{note}</span>

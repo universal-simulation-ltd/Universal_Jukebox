@@ -700,6 +700,13 @@ nothing here is a form.
 one `<Choice>` / `<Slider>` / `<Toggle>` in `components/Settings.tsx`. The page
 is a list of sections of rows precisely so that stays true.
 
+Every section starts **shut**, and a shut section says what it is set to —
+*Sound: Boost off, 1.5s fades* — through its `summary`. That line is written by
+hand per section but built from the store with the same labels and formatters
+the controls display, so it cannot say one thing while the slider says another.
+A new setting that matters at a glance belongs in its section's summary too.
+The folds deliberately do **not** remember which were open.
+
 ### Four decks, and a fifth option that is not a machine
 
 **Vinyl · CD · Cassette · Jukebox.** One timeline, four skins: the ceremony's
