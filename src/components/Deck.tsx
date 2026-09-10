@@ -12,6 +12,8 @@ import CdDeck from './decks/CdDeck'
 import JukeboxDeck from './decks/JukeboxDeck'
 import VinylDeck from './decks/VinylDeck'
 import PocketDeck from './decks/PocketDeck'
+import Tip from './Tip'
+import { markTipSeen } from '../lib/tips'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
 // the pickup engaging when you put something on, and the pickup — or the reels
@@ -149,6 +151,7 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
         : 'jb-label-out 420ms ease-in both'
 
   const openAlbum = () => {
+    if (ceremonial) markTipSeen('record')
     if (album) navigate({ view: 'album', albumId: album.id })
   }
 
@@ -188,6 +191,9 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
             the headshell, the lens or the tape head rather than from wherever
             the record player happened to put them. */}
         {spinning && !reduced && <Notes at={notes} />}
+
+        {/* First run: "Tap here" on the record — tapping it opens the album. */}
+        {ceremonial && <Tip id="record" detail="to see the album" />}
       </div>
 
       {/* The affordance, kept quiet: the deck is also the thing you are meant to

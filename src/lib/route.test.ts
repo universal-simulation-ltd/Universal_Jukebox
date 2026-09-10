@@ -55,6 +55,22 @@ describe('planNavigation', () => {
   })
 })
 
+describe('artist pages', () => {
+  const ART = '#/artist/Bob%20Marley'
+  it('sit between the library and an album', () => {
+    expect(levelOf(ART)).toBe(0.5)
+  })
+  it('are UP from an album — back from the artist is the library', () => {
+    expect(planNavigation([LIB, A], ART)).toEqual({ back: 0, then: 'replace' })
+  })
+  it('stay under an album opened from them', () => {
+    expect(planNavigation([LIB, ART], B)).toEqual({ back: 0, then: 'push' })
+  })
+  it('read the name back, spaces and all', () => {
+    expect(routeFromHash(ART)).toEqual({ view: 'artist', artist: 'Bob Marley' })
+  })
+})
+
 describe('routeFromHash', () => {
   it('still reads every view, and an album id with spaces', () => {
     expect(routeFromHash('#/album/Nick%20Cave%20Let%20Love%20In')).toEqual({ view: 'album', albumId: 'Nick Cave Let Love In' })

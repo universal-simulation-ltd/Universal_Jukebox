@@ -6,6 +6,7 @@ import OpenGroup from './OpenGroup'
 import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
+import { seededOrder, type LibraryOrder } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Album } from '../lib/types'
 
@@ -24,7 +25,7 @@ import type { Album } from '../lib/types'
 // an artist with one album still took the full width. Artists now flow one
 // after another, several to a row, and open out in place.
 
-export default function ArtistList({ query }: { query: string }) {
+export default function ArtistList({ query, order }: { query: string; order: LibraryOrder }) {
   const albums = useLibraryStore((s) => s.albums)
   const [openArtist, setOpenArtist] = useState<string | null>(null)
   const drawer = useRef<HTMLElement>(null)
@@ -68,14 +69,17 @@ export default function ArtistList({ query }: { query: string }) {
     // ⚠️ The same name test the tab count runs, so "Artists (2)" is always the
     // length of this list.
     const matching = new Set(matchArtistNames(albums, query))
-    return [...byArtist.entries()]
-      .filter(([name]) => matching.has(name))
-      .sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' }))
+    const entries = [...byArtist.entries()].filter(([name]) => matching.has(name))
+    const ordered =
+      order.kind === 'random'
+        ? seededOrder(entries, ([name]) => name, order.seed)
+        : entries.sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' }))
+    return ordered
       .map(([name, list]) => ({
         name,
         albums: [...list].sort((x, y) => (x.year ?? 9999) - (y.year ?? 9999)),
       }))
-  }, [albums, query])
+  }, [albums, query, order])
 
   if (artists.length === 0) {
     return (

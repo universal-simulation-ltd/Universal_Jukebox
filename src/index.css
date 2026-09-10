@@ -273,3 +273,16 @@ body {
     font-size: max(16px, 1em) !important;
   }
 }
+
+/* "Added" on Add to queue: a small pop as the button turns green. */
+@keyframes jb-added-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* The first-run tips' "Tap here", bobbing towards what to tap. */
+@keyframes jb-tip-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}

@@ -111,6 +111,10 @@ export type DeckSetting = DeckStyle | 'automatic'
  */
 export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'jukebox', 'pocket', 'automatic']
 
+/** The first-run tips — see `components/Tip.tsx`. */
+export type TipId = 'record' | 'cover'
+export const TIP_IDS: TipId[] = ['record', 'cover']
+
 export interface Settings {
   ceremonyMode: CeremonyMode
   /**
@@ -169,6 +173,14 @@ export interface Settings {
    * before changing this one.
    */
   lyricsOnline: boolean
+  /** "Full albums only" on the Albums tab — see `isFullAlbum` in `lib/libraryView.ts`. */
+  fullAlbumsOnly: boolean
+  /**
+   * The first-run tips already tapped (`components/Tip.tsx`). A tip goes for
+   * good once its target has been tapped; "Show the tips again" in the Actions
+   * menu empties this.
+   */
+  tipsSeen: TipId[]
 }
 
 export const DEFAULTS: Settings = {
@@ -182,6 +194,8 @@ export const DEFAULTS: Settings = {
   fadeInSec: 0,
   fadeOutSec: 0,
   lyricsOnline: false,
+  fullAlbumsOnly: false,
+  tipsSeen: [],
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -285,6 +299,10 @@ function read(): Settings {
     // version — has to mean off, because "off unless someone chose otherwise"
     // is the entire guarantee this setting makes.
     lyricsOnline: stored.lyricsOnline === true,
+    fullAlbumsOnly: stored.fullAlbumsOnly === true,
+    tipsSeen: Array.isArray(stored.tipsSeen)
+      ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
+      : [],
   }
 }
 
@@ -336,6 +354,8 @@ function persist(state: Settings) {
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
     lyricsOnline: state.lyricsOnline,
+    fullAlbumsOnly: state.fullAlbumsOnly,
+    tipsSeen: state.tipsSeen,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

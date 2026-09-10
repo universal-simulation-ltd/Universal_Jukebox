@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import PreviewButton from './PreviewButton'
 import { clock } from '../lib/format'
 import { matchTracks } from '../lib/search'
+import { seededOrder, type LibraryOrder } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
@@ -19,7 +20,7 @@ import type { Track } from '../lib/types'
 // that makes the cap acceptable rather than a lie.
 const CAP = 400
 
-export default function TrackList({ query }: { query: string }) {
+export default function TrackList({ query, order }: { query: string; order: LibraryOrder }) {
   const tracks = useLibraryStore((s) => s.tracks)
   const playTracks = usePlayerStore((s) => s.playTracks)
   const playing = usePlayerStore((s) => s.playing)
@@ -29,7 +30,10 @@ export default function TrackList({ query }: { query: string }) {
   // ⚠️ `matchTracks` and not an inline filter: the count in the tab above comes
   // from the same function, and two copies of "what counts as a match" drift
   // without anything failing.
-  const matched = useMemo(() => [...matchTracks(tracks, query)].sort(byTitle), [tracks, query])
+  const matched = useMemo(() => {
+    const found = matchTracks(tracks, query)
+    return order.kind === 'random' ? seededOrder(found, (t) => t.id, order.seed) : [...found].sort(byTitle)
+  }, [tracks, query, order])
 
   const shown = showAll ? matched : matched.slice(0, CAP)
   const hidden = matched.length - shown.length

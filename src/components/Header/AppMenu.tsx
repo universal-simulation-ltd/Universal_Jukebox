@@ -8,6 +8,7 @@ import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/na
 import { hasMusicLibrary } from '../../lib/appleMusic'
 import { hasNativeImporter } from '../../lib/nativeImport'
 import { useCloseAppMenu } from '@unisim/sdk'
+import { useSettingsStore } from '../../stores/settingsStore'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
 //
@@ -47,6 +48,7 @@ export default function AppMenu() {
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const removeFolder = useLibraryStore((s) => s.removeFolder)
   const clear = useLibraryStore((s) => s.clear)
+  const tipsSeen = useSettingsStore((s) => s.tipsSeen.length)
   const status = useLibraryStore((s) => s.status)
   const roots = useLibraryStore((s) => s.roots)
   const tracks = useLibraryStore((s) => s.tracks)
@@ -222,6 +224,10 @@ export default function AppMenu() {
       {hasLibrary && <Row onClick={() => navigate({ view: 'tidy' })}>Tidy up library…</Row>}
       <Row onClick={() => navigate({ view: 'settings' })}>Settings…</Row>
       <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
+      {/* The first-run "Tap here" tips, back again (`components/Tip.tsx`). */}
+      {tipsSeen > 0 && (
+        <Row onClick={() => useSettingsStore.getState().set('tipsSeen', [])}>Show the tips again</Row>
+      )}
 
       {/* ⚠️ Always mounted, even when the picker path is the one in use: this is
           also the fallback if `showDirectoryPicker` throws — an iframe, a

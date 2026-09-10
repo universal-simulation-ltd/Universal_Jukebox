@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. No event may carry a
@@ -10,8 +11,9 @@ import AppMenu from './components/Header/AppMenu'
 import ProductLogo from './components/Header/ProductLogo'
 import About from './components/About'
 import AlbumGrid from './components/AlbumGrid'
-import AlbumView from './components/AlbumView'
+import AlbumView, { ShuffleGlyph } from './components/AlbumView'
 import ArtistList from './components/ArtistList'
+import ArtistView from './components/ArtistView'
 import ErrorBanner from './components/ErrorBanner'
 import ExampleNotice from './components/ExampleNotice'
 import Landing from './components/Landing'
@@ -23,7 +25,8 @@ import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
 import { NAVIGATED, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
 import { MINI_QUERY } from './lib/miniMode'
-import { tabCounts } from './lib/search'
+import { matchAlbums, tabCounts } from './lib/search'
+import { FULL_ALBUM_MIN, isFullAlbum, newSeed, type LibraryOrder } from './lib/libraryView'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
 import { useSettingsStore, type HomeTab } from './stores/settingsStore'
@@ -42,10 +45,22 @@ export const CONTAINER = 'mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8'
 const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_Jukebox'
 
 /** Screens that are a PAGE of their own, and so open at their top. */
-const PAGE_VIEWS = new Set<View>(['playing', 'album', 'settings', 'about', 'tidy'])
+const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'about', 'tidy'])
 
 /** The views the skipped-files report belongs on: the library itself. */
-const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'album'])
+const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'album', 'artist'])
+
+/** How far a pull from the top of the page has to travel to open search. */
+const PULL_TO_SEARCH_PX = 70
+
+/** The library's two switches: A–Z/Random and "Full albums only". */
+function togglePill(active: boolean): string {
+  return `rounded-full border px-3 py-1 text-[12.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
+    active
+      ? 'border-orange-500 bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300'
+      : 'border-slate-300 text-slate-600 hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:text-orange-400'
+  }`
+}
 
 const TABS: { view: HomeTab; label: string }[] = [
   { view: 'albums', label: 'Albums' },
@@ -147,6 +162,12 @@ export default function App() {
   const setSetting = useSettingsStore((s) => s.set)
 
   const [query, setQuery] = useState('')
+  /** A–Z or Random, for all three lists — see `lib/libraryView.ts`. */
+  const [order, setOrder] = useState<LibraryOrder>({ kind: 'az' })
+  const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
+  /** The search box on a phone: hidden until pulled down for, or asked for. */
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchBox = useRef<HTMLInputElement>(null)
 
   /**
    * The view actually on screen.
@@ -164,10 +185,58 @@ export default function App() {
    * count that came from its own copy of the rule would drift silently, and
    * "Tracks (2)" over a list of three is worse than no count at all.
    */
-  const counts = useMemo(
-    () => (query.trim() ? tabCounts(albums, tracks, query) : null),
-    [albums, tracks, query],
-  )
+  const counts = useMemo(() => {
+    if (!query.trim()) return null
+    const all = tabCounts(albums, tracks, query)
+    // With "Full albums only" on, the Albums count is of what the grid shows.
+    return fullAlbumsOnly ? { ...all, albums: matchAlbums(albums.filter(isFullAlbum), query).length } : all
+  }, [albums, tracks, query, fullAlbumsOnly])
+
+  /**
+   * Show the search box and put the cursor in it.
+   *
+   * ⚠️ `flushSync` first: on a phone the box is `display: none` until opened,
+   * and a hidden field cannot take focus — and iOS only raises the keyboard for
+   * a focus made DURING the gesture, so it cannot wait for the next render.
+   */
+  const openSearch = useCallback(() => {
+    flushSync(() => setSearchOpen(true))
+    searchBox.current?.focus()
+  }, [])
+
+  /**
+   * ⚠️ PULL DOWN TO SEARCH, on a phone (James, 2026-09-10: "Hide the search your
+   * library in mobile and if at the top of the page and then swipe down reveal
+   * the search field and open the keyboard"). Below Tailwind's `sm` the box is
+   * hidden; a downward drag that STARTS with the page at its very top opens it,
+   * from `touchend` — the gesture iOS will raise the keyboard for.
+   */
+  const onLibraryTab = view === 'albums' || view === 'artists' || view === 'tracks'
+  useEffect(() => {
+    if (!onLibraryTab || searchOpen) return
+    const phone = window.matchMedia('(max-width: 639px)')
+    let startY: number | null = null
+    let pulled = 0
+    const start = (e: TouchEvent) => {
+      startY = phone.matches && window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null
+      pulled = 0
+    }
+    const move = (e: TouchEvent) => {
+      if (startY !== null && e.touches.length === 1) pulled = e.touches[0].clientY - startY
+    }
+    const end = () => {
+      if (startY !== null && pulled > PULL_TO_SEARCH_PX) openSearch()
+      startY = null
+    }
+    window.addEventListener('touchstart', start, { passive: true })
+    window.addEventListener('touchmove', move, { passive: true })
+    window.addEventListener('touchend', end)
+    return () => {
+      window.removeEventListener('touchstart', start)
+      window.removeEventListener('touchmove', move)
+      window.removeEventListener('touchend', end)
+    }
+  }, [onLibraryTab, searchOpen, openSearch])
 
   useEffect(() => {
     void hydrate()
@@ -302,6 +371,8 @@ export default function App() {
           <Landing />
         ) : view === 'album' && route.albumId ? (
           <AlbumView albumId={route.albumId} />
+        ) : view === 'artist' && route.artist ? (
+          <ArtistView name={route.artist} />
         ) : view === 'playing' ? (
           // At T6 the stage is gone and the bar is the app — so Now Playing
           // sends you back to the library rather than rendering an empty stage.
@@ -365,13 +436,64 @@ export default function App() {
                   )
                 })}
               </nav>
+              <div className="flex items-center gap-1.5">
+                {/* A–Z ↔ Random, for whichever list is showing (James,
+                    2026-09-10). The label says the order you are IN; pressing it
+                    switches, and each switch to Random is a fresh shuffle. */}
+                <button
+                  type="button"
+                  onClick={() => setOrder((o) => (o.kind === 'az' ? { kind: 'random', seed: newSeed() } : { kind: 'az' }))}
+                  aria-label={order.kind === 'az' ? 'In A to Z order. Switch to random' : 'In random order. Switch to A to Z'}
+                  title={order.kind === 'az' ? 'Show in random order' : 'Show A to Z'}
+                  className={togglePill(order.kind === 'random')}
+                >
+                  {order.kind === 'az' ? (
+                    'A–Z'
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      <ShuffleGlyph />
+                      Random
+                    </span>
+                  )}
+                </button>
+                {view === 'albums' && (
+                  <button
+                    type="button"
+                    onClick={() => setSetting('fullAlbumsOnly', !fullAlbumsOnly)}
+                    aria-pressed={fullAlbumsOnly}
+                    title={`Only albums with ${FULL_ALBUM_MIN} or more tracks`}
+                    className={togglePill(fullAlbumsOnly)}
+                  >
+                    Full albums only
+                  </button>
+                )}
+              </div>
+              {/* On a phone the search box is hidden until asked for — this, or
+                  pulling down from the top of the page (see `openSearch`). */}
+              {!searchOpen && !query && (
+                <button
+                  type="button"
+                  onClick={openSearch}
+                  aria-label="Search your library"
+                  title="Search — or pull down from the top of the page"
+                  className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:hidden dark:text-slate-400 dark:hover:bg-slate-800"
+                >
+                  <SearchGlyph />
+                </button>
+              )}
               <input
+                ref={searchBox}
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onBlur={() => {
+                  if (!query.trim()) setSearchOpen(false)
+                }}
                 placeholder="Search your library"
                 aria-label="Search your library"
-                className="ml-auto w-full max-w-xs rounded-full border border-slate-300 bg-white px-4 py-1.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`ml-auto w-full max-w-xs rounded-full border border-slate-300 bg-white px-4 py-1.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${
+                  searchOpen || query ? '' : 'hidden sm:block'
+                }`}
               />
               {queueLength > 0 && !mini && (
                 <button
@@ -385,11 +507,11 @@ export default function App() {
             </div>
 
             {view === 'artists' ? (
-              <ArtistList query={query} />
+              <ArtistList query={query} order={order} />
             ) : view === 'tracks' ? (
-              <TrackList query={query} />
+              <TrackList query={query} order={order} />
             ) : (
-              <AlbumGrid query={query} />
+              <AlbumGrid query={query} order={order} />
             )}
           </>
         )}
@@ -462,6 +584,15 @@ function StarGlyph({ filled }: { filled: boolean }) {
       aria-hidden
     >
       <path d="M10 2.6l2.32 4.7 5.18.75-3.75 3.66.885 5.16L10 14.44l-4.635 2.43.885-5.16L2.5 8.05l5.18-.75L10 2.6Z" />
+    </svg>
+  )
+}
+
+function SearchGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+      <circle cx="8.8" cy="8.8" r="5.3" />
+      <path d="m12.8 12.8 4 4" />
     </svg>
   )
 }

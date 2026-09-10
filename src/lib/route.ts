@@ -6,12 +6,14 @@
 // this file needing to know about it, and makes an album a link somebody can
 // send to themselves. `Universal_Video/src/lib/route.ts` is the same shape.
 
-export type View = 'albums' | 'artists' | 'tracks' | 'album' | 'playing' | 'about' | 'settings' | 'tidy'
+export type View = 'albums' | 'artists' | 'tracks' | 'album' | 'artist' | 'playing' | 'about' | 'settings' | 'tidy'
 
 export interface Route {
   view: View
   /** The album id, when `view` is 'album'. */
   albumId?: string
+  /** The artist's name, when `view` is 'artist'. */
+  artist?: string
   /**
    * True when the hash named no view at all — the app's front door.
    *
@@ -43,6 +45,7 @@ export function routeFromHash(rawHash: string): Route {
     // spaces, and anything else a tag happens to hold.
     return { view: 'album', albumId: safeDecode(hash.slice('album/'.length)) }
   }
+  if (hash.startsWith('artist/')) return { view: 'artist', artist: safeDecode(hash.slice('artist/'.length)) }
   if (hash === 'albums') return { view: 'albums' }
   if (hash === 'artists') return { view: 'artists' }
   if (hash === 'tracks') return { view: 'tracks' }
@@ -67,7 +70,9 @@ export function navigate(route: Route): void {
   const hash =
     route.view === 'album' && route.albumId
       ? `#/album/${encodeURIComponent(route.albumId)}`
-      : `#/${route.view}`
+      : route.view === 'artist' && route.artist
+        ? `#/artist/${encodeURIComponent(route.artist)}`
+        : `#/${route.view}`
   go(hash)
 }
 
@@ -106,12 +111,18 @@ export function goHome(): void {
 //   Albums → Artists → Tracks (tabs)            REPLACE each other: a tab is the
 //                                                same level seen differently
 
-/** 0 the library (any tab), 1 a page off it, 2 Now Playing. */
-export type Level = 0 | 1 | 2
+/**
+ * 0 the library (any tab), 1 a page off it, 2 Now Playing — and an artist's
+ * page at 0.5, BETWEEN the library and an album. "All albums by …" from an
+ * album is UP (back from the artist is the library, not the album you left),
+ * and an album opened from the artist's page comes back to it.
+ */
+export type Level = number
 
 export function levelOf(hash: string): Level {
   const { view } = routeFromHash(hash)
   if (view === 'playing') return 2
+  if (view === 'artist') return 0.5
   if (view === 'album' || view === 'settings' || view === 'about' || view === 'tidy') return 1
   return 0
 }

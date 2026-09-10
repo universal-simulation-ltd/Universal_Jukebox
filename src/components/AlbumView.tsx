@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
 import Cover from './Cover'
 import PreviewButton from './PreviewButton'
+import AddToQueue from './AddToQueue'
+import Tip from './Tip'
+import { markTipSeen } from '../lib/tips'
 import { clock, plural, totalTime } from '../lib/format'
 import { navigate } from '../lib/route'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
@@ -14,8 +17,6 @@ export default function AlbumView({ albumId }: { albumId: string }) {
   const allTracks = useLibraryStore((s) => s.tracks)
   const playTracks = usePlayerStore((s) => s.playTracks)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
-  const enqueue = usePlayerStore((s) => s.enqueue)
-  const queued = usePlayerStore((s) => s.queue.length)
   const shuffle = usePlayerStore((s) => s.shuffle)
   const playing = usePlayerStore((s) => s.playing)
   const nowPlaying = usePlayerStore(currentTrack)
@@ -46,6 +47,9 @@ export default function AlbumView({ albumId }: { albumId: string }) {
   // every ordinary album grows a spurious "Disc 1" row.
   const discs = new Set(tracks.map((t) => t.discNo ?? 1))
   const showDiscs = discs.size > 1
+  // How many records this artist has here — "All N albums by …" appears only
+  // when there is more than this one.
+  const artistAlbumCount = albums.filter((a) => a.artist === album.artist).length
 
   /**
    * Shuffle from the album view turns shuffle ON and starts — rather than
@@ -78,6 +82,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
    * there is a jukebox to open.
    */
   const openTheJukebox = () => {
+    markTipSeen('cover')
     if (onTheDeck) showTheDeck()
     else playTracks(tracks, 0)
   }
@@ -131,12 +136,25 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               Click to open jukebox
             </span>
           </span>
+          <Tip id="cover" detail="to open the jukebox" />
         </button>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
             {album.title}
           </h1>
           <p className="mt-1 text-[15px] text-slate-600 dark:text-slate-300">{album.artist}</p>
+          {artistAlbumCount > 1 && (
+            <button
+              type="button"
+              onClick={() => navigate({ view: 'artist', artist: album.artist })}
+              className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+            >
+              All {artistAlbumCount} albums by {album.artist}
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+                <path d="M7.3 4.3a1 1 0 0 1 1.4 0l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 0 1-1.4-1.4L11.58 10l-4.3-4.3a1 1 0 0 1 0-1.4Z" />
+              </svg>
+            </button>
+          )}
           <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
             {[album.year, plural(tracks.length, 'track'), total].filter(Boolean).join(' · ')}
           </p>
@@ -160,18 +178,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               <ShuffleGlyph />
               Shuffle
             </button>
-            {/* Only offered once something is already playing — "add to queue"
-                with an empty queue is just "play", and two buttons that do the
-                same thing is worse than one. */}
-            {queued > 0 && (
-              <button
-                type="button"
-                onClick={() => enqueue(tracks, 'end')}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
-              >
-                Add to queue
-              </button>
-            )}
+            <AddToQueue tracks={tracks} />
           </div>
         </div>
       </div>
@@ -235,7 +242,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
   )
 }
 
-function PlayGlyph() {
+export function PlayGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
       <path d="M6.3 3.4A1 1 0 0 0 4.8 4.3v11.4a1 1 0 0 0 1.5.9l9.4-5.7a1 1 0 0 0 0-1.8L6.3 3.4Z" />
@@ -243,7 +250,7 @@ function PlayGlyph() {
   )
 }
 
-function ShuffleGlyph() {
+export function ShuffleGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M3 5h3.2c1 0 2 .5 2.5 1.4l3.6 6.2c.5.9 1.5 1.4 2.5 1.4H17M3 15h3.2c1 0 2-.5 2.5-1.4l.9-1.5M12.3 7l.9-1.6c.5-.9 1.5-1.4 2.5-1.4H17" />
