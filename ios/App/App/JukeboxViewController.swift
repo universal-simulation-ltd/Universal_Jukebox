@@ -24,6 +24,8 @@ class JukeboxViewController: CAPBridgeViewController {
         // so both are in `PluginHeaders` before the first render reads them.
         bridge?.registerPluginInstance(AppleMusicPlugin())
         bridge?.registerPluginInstance(FileImportPlugin())
+        // The lock screen's own picture — iOS 26's turning record.
+        bridge?.registerPluginInstance(NowPlayingPlugin())
 
         // ⚠️ THE EDGE SWIPE BACK (James, 2026-09-10: "Mobile should also have
         // the edge of screen side swipe to go back instead of having to use

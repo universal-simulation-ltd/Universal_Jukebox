@@ -1,16 +1,18 @@
 import { create } from 'zustand'
 import { isMiniMode } from '../lib/miniMode'
 import type { SourceFile } from '../lib/types'
-import { coverUrl } from '../lib/art'
+import { coverUrl, fallbackHue } from '../lib/art'
 import { followMusic, playCountTick, playTransportCue } from '../lib/crackle'
 import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
+import { lockArt } from '../lib/lockArt'
+import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
 import type { Track } from '../lib/types'
 import { useLibraryStore } from './libraryStore'
-import { settings } from './settingsStore'
+import { settings, useSettingsStore } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
 import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
@@ -475,10 +477,24 @@ function persistModes(shuffle: boolean, repeat: Repeat) {
 function publishNowPlaying(track: Track | null): void {
   if (!track) {
     ms.setMetadata(null, null)
+    void clearLockScreen()
     return
   }
   const album = useLibraryStore.getState().albums.find((a) => a.id === track.albumId)
-  ms.setMetadata(track, album ? coverUrl(album.id, album.cover) : null)
+  const cover = album ? coverUrl(album.id, album.cover) : null
+  ms.setMetadata(track, cover)
+  // Then the cover ON the machine playing it (`lib/lockArt.ts`), a frame or
+  // two later — and, in the iPhone app on iOS 26, that record turning.
+  const { deck, deckEras } = settings()
+  const id = album?.id ?? track.albumId
+  void lockArt({ albumId: id, cover, hue: fallbackHue(id), style: resolveDeck(deck, album ?? track, deckEras) }).then(
+    (art) => {
+      if (!art || currentTrack(usePlayerStore.getState())?.id !== track.id) return
+      ms.setMetadata(track, art.stillUrl, 'image/png')
+      const { currentSec, durationSec, playing } = usePlayerStore.getState()
+      void showOnLockScreen(track, art, { elapsed: currentSec, duration: durationSec, playing })
+    },
+  )
 }
 
 /** The track currently pointed at, or null. */
@@ -1106,6 +1122,7 @@ audio.subscribe((state) => {
   followPlayback(state.playing)
   followMusic(state.playing)
   ms.setPlaybackState(state.playing)
+  followProgress(state.playing, state.currentSec, state.durationSec)
   ms.setPosition(state.currentSec, state.durationSec)
 })
 
@@ -1177,3 +1194,11 @@ audio.setPreviewStoppedCallback(() => {
 
 // Apply the stored volume to the element the first time anything touches it.
 audio.setVolume(usePlayerStore.getState().volume)
+
+// A different machine chosen while something plays redraws the lock screen's
+// picture — the lock screen should show what Now Playing shows.
+useSettingsStore.subscribe((next, prev) => {
+  if (next.deck === prev.deck && next.deckEras === prev.deckEras) return
+  const track = currentTrack(usePlayerStore.getState())
+  if (track) publishNowPlaying(track)
+})

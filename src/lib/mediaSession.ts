@@ -73,7 +73,7 @@ export function describeMediaSession(): string {
  * page is alive, which is exactly as long as the lock-screen art needs to
  * exist.
  */
-export function setMetadata(track: Track | null, coverUrl: string | null): void {
+export function setMetadata(track: Track | null, coverUrl: string | null, type = 'image/webp'): void {
   if (!supported()) return
   if (!track) {
     navigator.mediaSession.metadata = null
@@ -89,9 +89,9 @@ export function setMetadata(track: Track | null, coverUrl: string | null): void 
       // have would be a lie; declaring one size means some platforms ignore it.
       artwork: coverUrl
         ? [
-            { src: coverUrl, sizes: '96x96', type: 'image/webp' },
-            { src: coverUrl, sizes: '256x256', type: 'image/webp' },
-            { src: coverUrl, sizes: '512x512', type: 'image/webp' },
+            { src: coverUrl, sizes: '96x96', type },
+            { src: coverUrl, sizes: '256x256', type },
+            { src: coverUrl, sizes: '512x512', type },
           ]
         : [],
     })
@@ -152,6 +152,37 @@ export function setPosition(currentSec: number, durationSec: number, rate = 1): 
     })
   } catch {
     /* a platform that declares the method and rejects the values */
+  }
+}
+
+/**
+ * A button pressed on the iPhone app's OWN lock-screen entry
+ * (`nowPlayingNative.ts`, mode `own`), run through the same handlers as the
+ * Media Session's — so the two routes can never disagree about what "next" does.
+ */
+export function dispatchAction(action: string, position?: number): void {
+  const handlers = current
+  if (!handlers) return
+  switch (action) {
+    case 'play':
+      handlers.onPlay()
+      break
+    case 'pause':
+      handlers.onPause()
+      break
+    case 'toggle':
+      if (wasPlaying) handlers.onPause()
+      else handlers.onPlay()
+      break
+    case 'nexttrack':
+      handlers.onNext()
+      break
+    case 'previoustrack':
+      handlers.onPrevious()
+      break
+    case 'seekto':
+      if (typeof position === 'number') handlers.onSeekTo(position)
+      break
   }
 }
 
