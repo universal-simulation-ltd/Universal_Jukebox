@@ -37,6 +37,11 @@ function supported(): boolean {
 /** The actions this platform accepted, for the iPhone launch diagnostics. */
 let accepted: MediaSessionAction[] = []
 
+/** The handlers last passed to `setHandlers`, re-applied when playback starts. */
+let current: MediaSessionHandlers | null = null
+let wasPlaying = false
+let reapplied = 0
+
 /**
  * What the OS has been told, in one line — for `[jukebox:diag]`. On the iPhone
  * the lock screen showed play/pause only (2026-09-10); this says whether the
@@ -46,7 +51,7 @@ let accepted: MediaSessionAction[] = []
 export function describeMediaSession(): string {
   if (!supported()) return 'no navigator.mediaSession'
   const title = navigator.mediaSession.metadata?.title ?? null
-  return `actions=${accepted.join(',') || 'none'} state=${navigator.mediaSession.playbackState} title=${title === null ? 'none' : JSON.stringify(title)}`
+  return `actions=${accepted.join(',') || 'none'} reapplied=${reapplied} state=${navigator.mediaSession.playbackState} title=${title === null ? 'none' : JSON.stringify(title)}`
 }
 
 /**
@@ -101,6 +106,17 @@ export function setPlaybackState(playing: boolean): void {
   } catch {
     /* ignore */
   }
+  // ⚠️ Registered again every time playback STARTS, not just once at load. The
+  // iPhone lock screen showed play/pause alone (2026-09-10) though the WebView
+  // accepted all eight actions — and they were all set at module load, before
+  // any media element existed. WebKit links the page's Media Session to the
+  // lock screen once something plays; handlers set before that appear not to
+  // reach it, leaving only its defaults.
+  if (playing && !wasPlaying && current) {
+    register(current)
+    reapplied += 1
+  }
+  wasPlaying = playing
 }
 
 /**
@@ -140,6 +156,25 @@ export function setPosition(currentSec: number, durationSec: number, rate = 1): 
  */
 export function setHandlers(handlers: MediaSessionHandlers): () => void {
   if (!supported()) return () => {}
+  current = handlers
+  const registered = register(handlers)
+  return () => {
+    current = null
+    for (const action of registered) {
+      try {
+        navigator.mediaSession.setActionHandler(action, null)
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+/**
+ * Set every action, clearing each first — so a re-application is a real
+ * remove-then-add on the platform side, not a no-op replacement.
+ */
+function register(handlers: MediaSessionHandlers): MediaSessionAction[] {
 
   const actions: [MediaSessionAction, MediaSessionActionHandler][] = [
     ['play', () => handlers.onPlay()],
@@ -157,6 +192,7 @@ export function setHandlers(handlers: MediaSessionHandlers): () => void {
   const registered: MediaSessionAction[] = []
   for (const [action, handler] of actions) {
     try {
+      navigator.mediaSession.setActionHandler(action, null)
       navigator.mediaSession.setActionHandler(action, handler)
       registered.push(action)
     } catch {
@@ -164,14 +200,5 @@ export function setHandlers(handlers: MediaSessionHandlers): () => void {
     }
   }
   accepted = registered
-
-  return () => {
-    for (const action of registered) {
-      try {
-        navigator.mediaSession.setActionHandler(action, null)
-      } catch {
-        /* ignore */
-      }
-    }
-  }
+  return registered
 }
