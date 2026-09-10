@@ -5,6 +5,9 @@ import { plural } from '../../lib/format'
 import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
+import { hasMusicLibrary } from '../../lib/appleMusic'
+import { hasNativeImporter } from '../../lib/nativeImport'
+import { useCloseAppMenu } from '@unisim/sdk'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
 //
@@ -53,12 +56,17 @@ export default function AppMenu() {
   const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
   const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
   const chooseNativeFolder = useLibraryStore((s) => s.chooseNativeFolder)
+  const importMusicLibrary = useLibraryStore((s) => s.importMusicLibrary)
+  const pickNativeFiles = useLibraryStore((s) => s.pickNativeFiles)
   const native = isNativeShell()
   // Android: the folder is chosen, not fixed — see `usesChosenFolder`.
   const chosen = usesChosenFolder()
   // iOS: a folder of the app's own AND the choice of another — see
   // `hasOwnMusicFolder`.
   const own = hasOwnMusicFolder()
+  // iOS: the Music app's library, and a native picker for audio files.
+  const musicLibrary = hasMusicLibrary()
+  const nativePicker = hasNativeImporter()
   const pref = useThemeStore((s) => s.pref)
   const setPref = useThemeStore((s) => s.setPref)
   const folderInput = useRef<HTMLInputElement>(null)
@@ -81,9 +89,15 @@ export default function AppMenu() {
     // Android: a different folder, through the system picker. The importer
     // would copy into the phone's SHARED Documents, which the library does not
     // read there — see `usesChosenFolder`.
-    if (canImport) fileInput.current?.click()
+    // ⚠️ The native picker where there is one: the web input offers "Take Photo"
+    // on iOS before it offers files — see `lib/nativeImport.ts`.
+    const importFiles = () => {
+      if (nativePicker) void pickNativeFiles()
+      else fileInput.current?.click()
+    }
+    if (canImport) importFiles()
     else if (chosen) void chooseNativeFolder()
-    else if (native) fileInput.current?.click()
+    else if (native) importFiles()
     else if (canPersist) void pickFolder()
     else folderInput.current?.click()
   }
@@ -166,6 +180,16 @@ export default function AppMenu() {
               Rescan my music folder
             </Row>
           )}
+          {/* The iPhone's Music library — songs synced from a Mac. "Refresh"
+              once it is in, because a sync never tells this app it happened. */}
+          {musicLibrary && (
+            <Row
+              onClick={() => void importMusicLibrary()}
+              title="The songs synced to this iPhone from your computer, as they are in the Music app"
+            >
+              {roots.some((r) => r.source === 'music-library') ? 'Refresh my Music library' : 'Add my Music library…'}
+            </Row>
+          )}
           {roots.length > 1 && (
             <Row onClick={() => void clear()}>Forget all of them…</Row>
           )}
@@ -234,10 +258,21 @@ export default function AppMenu() {
 function Row({
   onClick, title, children,
 }: { onClick(): void; title?: string; children: React.ReactNode }) {
+  // ⚠️ EVERY ROW CLOSES THE MENU (James, 2026-09-10: "When clicking actions ->
+  // settings - it should close the actions menu"). The dropdown belongs to the
+  // SDK's profile pill, which renders these rows as-is and owns the open state,
+  // so a row that only navigated left the panel sitting on top of the page it
+  // had just opened. `useCloseAppMenu` is the SDK's door for exactly this, and a
+  // no-op outside the pill. Closed FIRST, so a row that opens a picker or a
+  // dialog is not competing with a menu still on screen.
+  const close = useCloseAppMenu()
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        close()
+        onClick()
+      }}
       title={title}
       className="block w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
     >

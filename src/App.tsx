@@ -22,6 +22,7 @@ import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
 import { NAVIGATED, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
+import { MINI_QUERY } from './lib/miniMode'
 import { tabCounts } from './lib/search'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
@@ -96,8 +97,6 @@ function useRoute(): Route {
  * touchscreen laptop window dragged thin still reports a fine pointer from its
  * trackpad and keeps the mini player the tier was written for.
  */
-const MINI_QUERY = '(max-width: 429px) and (pointer: fine)'
-
 function useMiniMode(): boolean {
   const [mini, setMini] = useState(
     () => typeof window !== 'undefined' && window.matchMedia(MINI_QUERY).matches,

@@ -85,6 +85,9 @@ async function report(): Promise<void> {
     // `JukeboxViewController`; if this is false there, the picker cannot appear
     // however correct the web code is.
     chosenFolderPlugin: pluginRegistered('JukeboxMusicFolder'),
+    // The Music library source and the native audio importer (both iOS).
+    musicLibraryPlugin: pluginRegistered('JukeboxAppleMusic'),
+    fileImportPlugin: pluginRegistered('JukeboxFileImport'),
   }
 
   try {

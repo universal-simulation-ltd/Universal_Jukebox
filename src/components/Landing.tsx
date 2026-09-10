@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
+import { hasMusicLibrary } from '../lib/appleMusic'
+import { hasNativeImporter } from '../lib/nativeImport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { keepsFolderWhenInstalled } from '../lib/persistence'
 
@@ -49,6 +51,12 @@ export default function Landing() {
   // and choosing is offered beside it, never instead. `chosen` alone would have
   // turned iOS into Android the moment its picker plugin was registered.
   const own = hasOwnMusicFolder()
+  // iOS: the Music app's library, and a native picker for audio files — see
+  // `lib/appleMusic.ts` and `lib/nativeImport.ts`.
+  const musicLibrary = hasMusicLibrary()
+  const nativePicker = hasNativeImporter()
+  const importMusicLibrary = useLibraryStore((s) => s.importMusicLibrary)
+  const pickNativeFiles = useLibraryStore((s) => s.pickNativeFiles)
   // Building it draws eleven sleeves, which is fast but not instant — and a
   // button that appears to do nothing for half a second is a button people
   // press twice.
@@ -136,7 +144,7 @@ export default function Landing() {
           <button
             type="button"
             disabled={importProgress !== null}
-            onClick={() => fileInput.current?.click()}
+            onClick={() => (nativePicker ? void pickNativeFiles() : fileInput.current?.click())}
             className="mt-1 text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
           >
             {native ? 'Or add music from this device' : 'Or pick individual files'}
@@ -155,6 +163,29 @@ export default function Landing() {
           >
             Or choose a different folder — iCloud Drive, On My iPhone…
           </button>
+        )}
+
+        {/* ⚠️ THE ONE MOST PEOPLE WITH AN iPHONE ACTUALLY NEED. Songs synced
+            from a Mac live in the Music app's library, which no folder — ours
+            or one chosen — can see (James, 2026-09-10: "I always transfer my
+            music from my Mac to iPhone and used to use Marvis"). A full button,
+            not a link, for that reason. See `lib/appleMusic.ts`. */}
+        {musicLibrary && (
+          <div className="mt-3 flex flex-col items-center gap-1.5">
+            <button
+              type="button"
+              disabled={importProgress !== null}
+              onClick={() => void importMusicLibrary()}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-[14px] font-medium text-slate-800 transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-orange-500 dark:hover:text-orange-400"
+            >
+              Use my Music library
+            </button>
+            <p className="max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+              The songs synced to this iPhone from your computer, as they are in the Music
+              app. Apple Music subscription downloads are protected, and iOS doesn’t let
+              other apps play them.
+            </p>
+          </div>
         )}
 
         {/* ⚠️ An import COPIES, through the Capacitor bridge, so a big one is

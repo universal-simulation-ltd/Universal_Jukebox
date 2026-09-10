@@ -86,6 +86,17 @@ function explain(
   const name = `“${track.title}”`
   const folder = root.label
 
+  // ⚠️ The Music library has no folder to reopen or rescan, so none of the
+  // folder wording below is true of it. Its songs fail for two reasons only,
+  // and the second is permanent: the song left the library, or it is an Apple
+  // Music download — DRM-protected, and iOS gives no third-party player a copy.
+  if (root.source === 'music-library') {
+    return {
+      text: `${name} can’t be played. It’s no longer in the Music library on this iPhone, or it’s an Apple Music download — those are protected, and iOS doesn’t let other apps play them. Refreshing the Music library from the menu brings the list up to date.`,
+      action: null,
+    }
+  }
+
   if (reachableNow) {
     return { text: `${folder} is back, and ${name} with it.`, action: 'play' }
   }

@@ -2,6 +2,18 @@ import { create } from 'zustand'
 import { releaseAllCovers, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
 import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
+import {
+  MUSIC_LIBRARY_LABEL,
+  MUSIC_LIBRARY_ROOT_ID,
+  hasMusicLibrary,
+  isMusicLibraryTrack,
+  preparedFile,
+  prepareSong,
+  readMusicLibrary,
+  requestMusicLibraryAccess,
+  type MusicLibraryRead,
+} from '../lib/appleMusic'
+import { importWithNativePicker } from '../lib/nativeImport'
 import { addScan, isFolderNamed, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, uniqueLabel } from '../lib/roots'
 import { hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
 import {
@@ -140,6 +152,21 @@ interface LibraryState {
   /** How far an import has got, for something honest to show during a slow one. */
   importProgress: { done: number; total: number; name: string } | null
   fileFor(track: Track): SourceFile | null
+  /**
+   * Does this track need a file MADE before it can play? True only for a
+   * Music-library song not played recently — see `lib/appleMusic.ts`.
+   * Synchronous and cheap: the player asks it on every start.
+   */
+  needsPreparing(track: Track): boolean
+  /** Make the track playable; `null` if it cannot be. The player awaits this. */
+  prepare(track: Track): Promise<SourceFile | null>
+  /**
+   * iOS: read the iPhone's own Music library — the songs synced from a Mac —
+   * into the library, or refresh it. Asks for permission the first time.
+   */
+  importMusicLibrary(): Promise<void>
+  /** iOS: add audio files through the native picker, then rescan. */
+  pickNativeFiles(): Promise<void>
   dismissError(): void
 }
 
@@ -171,7 +198,12 @@ export function needAccessFrom(
 
 /** The example library's records are made on demand — no folder, ever. */
 function isGenerated(root: Root): boolean {
-  return root.id === EXAMPLE_ROOT_ID
+  // ⚠️ The Music library is "generated" in the sense that matters here: none of
+  // its tracks has a file until one is played (`lib/appleMusic.ts`), so an
+  // empty file map says nothing about whether it is reachable. Without this,
+  // every relaunch would report it as a folder that needs its permission back
+  // — and offer a "Choose folder" button for a library that has no folder.
+  return root.id === EXAMPLE_ROOT_ID || root.source === 'music-library'
 }
 
 /** Tracks in the order an album should play: disc, then track, then title. */
@@ -512,9 +544,133 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     await get().scanNativeFolder()
   },
 
+  needsPreparing(track) {
+    return isMusicLibraryTrack(get().roots, track) && !preparedFile(track)
+  },
+
+  async prepare(track) {
+    if (!isMusicLibraryTrack(get().roots, track)) return get().fileFor(track)
+    try {
+      return await prepareSong(track)
+    } catch (err) {
+      console.error(`[jukebox] Could not prepare “${track.title}” for playback:`, err)
+      return null
+    }
+  },
+
+  async importMusicLibrary() {
+    if (!hasMusicLibrary()) return
+    let access
+    try {
+      access = await requestMusicLibraryAccess()
+    } catch (err) {
+      console.error('[jukebox] Could not ask for the Music library:', err)
+      set({ error: 'The Music library could not be opened.' })
+      return
+    }
+    if (access !== 'authorized') {
+      set({
+        error: access === 'restricted'
+          ? 'Access to the Music library is restricted on this iPhone (Screen Time or a device profile), so Universal Jukebox can’t read it.'
+          : 'Universal Jukebox isn’t allowed to read your Music library. Turn it on in Settings → Apps → Universal Jukebox → Media & Apple Music, then try again.',
+      })
+      return
+    }
+
+    // A folder scan running at the same time would merge into the same library
+    // from under this one.
+    scanAbort?.abort()
+    // The demo steps aside for real music, exactly as it does for a folder.
+    if (get().roots.some((r) => r.id === EXAMPLE_ROOT_ID)) await get().removeFolder(EXAMPLE_ROOT_ID)
+
+    // ⚠️ Refreshing keeps the root's prefix, like a rescan does — the prefix IS
+    // the identity (`lib/roots.ts`), and a new one would file the same songs a
+    // second time under a second name.
+    const existing = get().roots.find((r) => r.source === 'music-library')
+    const taken = get().roots.filter((r) => r.id !== existing?.id).map((r) => prefixOf(r))
+    const prefix = existing ? prefixOf(existing) : uniqueLabel(MUSIC_LIBRARY_LABEL, taken)
+
+    set({
+      status: 'scanning',
+      error: null,
+      stoppedEarly: false,
+      progress: { seen: 0, added: 0, skipped: 0, where: MUSIC_LIBRARY_LABEL, done: false },
+    })
+    let read: MusicLibraryRead
+    try {
+      read = await readMusicLibrary(prefix, (progress) => set({ progress }))
+    } catch (err) {
+      console.error('[jukebox] Could not read the Music library:', err)
+      set({
+        status: get().tracks.length > 0 ? 'ready' : 'empty',
+        progress: null,
+        error: 'The Music library could not be read.',
+      })
+      return
+    }
+
+    if (read.tracks.length === 0) {
+      set({
+        status: get().tracks.length > 0 ? 'ready' : 'empty',
+        progress: null,
+        error: emptyMusicLibraryMessage(read),
+      })
+      return
+    }
+
+    const before = { tracks: get().tracks, albums: get().albums }
+    const merged = addScan(before, prefix, { tracks: read.tracks, albums: read.albums })
+    // Tidy-up fixes are keyed to track and album ids, which a refresh
+    // reproduces exactly — so they come back, as they do after a folder rescan.
+    const fixes = await db.allFixes()
+    const fixed = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
+    const root: Root = {
+      id: existing?.id ?? MUSIC_LIBRARY_ROOT_ID,
+      label: prefix,
+      prefix,
+      handle: null,
+      nativePath: null,
+      source: 'music-library',
+      scannedAt: Date.now(),
+      trackCount: read.tracks.length,
+    }
+    await Promise.all([db.replaceLibrary(fixed.tracks, fixed.albums), db.putRoot(root)])
+    set({
+      status: 'ready',
+      tracks: fixed.tracks,
+      albums: fixed.albums,
+      roots: [...get().roots.filter((r) => r.id !== root.id), root],
+      progress: null,
+      // ⚠️ What was left out is SAID, in the same place a folder scan names the
+      // formats it refused — somebody whose library is half Apple Music
+      // downloads should not be left wondering where half of it went.
+      refusals: musicLibrarySkips(read),
+    })
+  },
+
+  async pickNativeFiles() {
+    let copied: number | null
+    try {
+      copied = await importWithNativePicker()
+    } catch (err) {
+      console.error('[jukebox] The file picker failed:', err)
+      set({ error: 'Those files could not be copied into the music folder.' })
+      return
+    }
+    if (copied === null) return // Backed out of the picker: nothing to say.
+    if (copied === 0) {
+      set({ error: 'None of those files could be copied into the music folder.' })
+      return
+    }
+    await get().scanNativeFolder()
+  },
+
   fileFor(track) {
     const file = get().filesByPath.get(track.path)
     if (file) return file
+    // A Music-library song's file is its exported copy, once one has been made
+    // — null until then, and `needsPreparing` is what the player asks first.
+    if (isMusicLibraryTrack(get().roots, track)) return preparedFile(track)
     // ⚠️ The example library's audio does not exist until this asks for it, and
     // then it is synthesised on the spot rather than read. That is the whole
     // reason a demo of a local-file player can ship with no files in it — see
@@ -562,6 +718,40 @@ function emptyFolderMessage(folder: string): string {
       ? 'Open the Files app, go to On My iPhone \u2192 Universal Jukebox, and copy an album in.'
       : 'Copy an album into the Universal Jukebox folder in your Files app.'
   return `No music in your folder yet. ${where} Folders are kept, so Artist/Album/track.mp3 is exactly right \u2014 then scan again. Or tap \u201cadd music from this device\u201d to pick files here.`
+}
+
+/** Why a Music library came back with nothing this app can play. */
+function emptyMusicLibraryMessage(read: MusicLibraryRead): string {
+  if (read.total === 0) {
+    return 'There are no songs in the Music library on this iPhone. Sync them from your Mac (Finder → your iPhone → Music), then try again.'
+  }
+  const parts: string[] = []
+  if (read.protected > 0) parts.push(`${read.protected} are Apple Music downloads, which are protected and can’t be played by other apps`)
+  if (read.cloudOnly > 0) parts.push(`${read.cloudOnly} are in iCloud but not downloaded to this iPhone`)
+  return `None of the ${read.total} songs in your Music library can be played here: ${parts.join(', and ')}. Songs synced from your Mac play fine.`
+}
+
+/**
+ * The songs a Music-library import left out, in the shape of the refused-format
+ * report a folder scan fills — so they are named in the same place, once.
+ */
+function musicLibrarySkips(read: MusicLibraryRead): { ext: string; count: number; why: string }[] {
+  const skips: { ext: string; count: number; why: string }[] = []
+  if (read.protected > 0) {
+    skips.push({
+      ext: 'protected',
+      count: read.protected,
+      why: 'Apple Music downloads are protected, and iOS doesn’t let other apps play them. Songs synced from your Mac aren’t affected.',
+    })
+  }
+  if (read.cloudOnly > 0) {
+    skips.push({
+      ext: 'icloud',
+      count: read.cloudOnly,
+      why: 'In iCloud but not downloaded to this iPhone. Download them in the Music app, then refresh the Music library.',
+    })
+  }
+  return skips
 }
 
 let scanAbort: AbortController | null = null

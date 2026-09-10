@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { isMiniMode } from '../lib/miniMode'
 import type { SourceFile } from '../lib/types'
 import { coverUrl } from '../lib/art'
 import { playTransportCue } from '../lib/crackle'
@@ -337,6 +338,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       get().stopPreview()
       return
     }
+    if (whenPlayable(set, track, () => get().preview(track))) return
     const file = useLibraryStore.getState().fileFor(track)
     if (!file) {
       set({
@@ -449,7 +451,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
  */
 export function showTheDeck(): void {
   try {
-    if (window.matchMedia('(max-width: 429px)').matches) return
+    // ⚠️ The SHARED rule, not a width of its own — see `lib/miniMode.ts` for
+    // what a second copy of it did to phones.
+    if (isMiniMode()) return
   } catch { /* no matchMedia — assume a real screen */ }
   navigate({ view: 'playing' })
 }
@@ -720,6 +724,69 @@ function unreachable(set: Set, track: Track | undefined, message: string): void 
 }
 
 /**
+ * The song's copy is being made — see `whenPlayable`. Bumped by every start,
+ * so an export that finishes after the user has moved on starts nothing.
+ */
+let preparing = 0
+
+const UNPLAYABLE =
+  'That song can’t be played — it isn’t on this iPhone any more, or it’s an Apple Music download, which iOS doesn’t let other apps play.'
+
+/**
+ * Make sure a track has a file before anything tries to play it.
+ *
+ * Returns FALSE when it already has one (the caller carries straight on), and
+ * TRUE when it has taken over: the file is being made, and `resume` runs once
+ * it exists — unless the user has started something else in the meantime.
+ *
+ * ⚠️ WHY A TRACK CAN HAVE NO FILE YET. Songs from the iPhone's Music library
+ * (`lib/appleMusic.ts`) are copied out of it on first play, because WKWebView
+ * cannot open the `ipod-library://` URL iOS gives them. That copy takes a
+ * moment. Every other track — a folder's, the example library's — answers
+ * `needsPreparing` with false and never waits here.
+ *
+ * ⚠️ The token matters more than it looks. Tap one album, then another before
+ * the first song's copy is ready: without it, the first song would start the
+ * moment its copy landed — on top of the one the user actually chose.
+ */
+function whenPlayable(set: Set, track: Track, resume: () => void): boolean {
+  const library = useLibraryStore.getState()
+  if (!library.needsPreparing(track)) {
+    preparing++
+    return false
+  }
+  const token = ++preparing
+  void library.prepare(track).then((file) => {
+    if (token !== preparing) return
+    if (!file) {
+      unreachable(set, track, UNPLAYABLE)
+      return
+    }
+    resume()
+  })
+  return true
+}
+
+/**
+ * Start copying the NEXT track while this one plays, so a change-over — and
+ * above all a crossfade, which starts a couple of seconds before the end — does
+ * not have to wait for it. A no-op for anything that needs no copy.
+ */
+function prefetchNext(get: Get): void {
+  const { queue, order, cursor, repeat } = get()
+  if (order.length < 2) return
+  let next = cursor + 1
+  if (next >= order.length) {
+    if (repeat === 'off') return
+    next = 0
+  }
+  const track = queue[order[next]]
+  if (!track) return
+  const library = useLibraryStore.getState()
+  if (library.needsPreparing(track)) void library.prepare(track)
+}
+
+/**
  * Load a track and either start it or hand over to the ceremony.
  *
  * ⚠️ The ceremony loads the audio but does NOT play it — the countdown is cover
@@ -728,6 +795,7 @@ function unreachable(set: Set, track: Track | undefined, message: string): void 
  */
 function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   if (!track) return
+  if (whenPlayable(set, track, () => startCeremonyOrPlay(set, get, track))) return
   const file = useLibraryStore.getState().fileFor(track)
   if (!file) {
     unreachable(set, track, 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.')
@@ -735,6 +803,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   }
 
   publishNowPlaying(track)
+  prefetchNext(get)
   clearCeremony()
   clearHandover()
   if (get().handover) set({ handover: false })
@@ -843,12 +912,35 @@ function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
   const from = currentTrack(get())
   set({ cursor: nextCursor })
   const track = get().queue[order[nextCursor]]
+  // A Music-library song not played before is copied first. The cursor has
+  // already moved (see above), so the screen names the song that is coming.
+  if (track && whenPlayable(set, track, () => {
+    if (get().cursor === nextCursor) playPrepared(set, get, from, track, naturalEnd)
+  })) return
+  playPrepared(set, get, from, track, naturalEnd)
+}
+
+/**
+ * The rest of `playAt`, once the track has a file.
+ *
+ * ⚠️ `from` is passed IN, not read here: by the time a copy has been made the
+ * cursor has long since moved, and `currentTrack` would answer with the track
+ * that is arriving — turning every change-over into a "blend" with itself.
+ */
+function playPrepared(
+  set: Set,
+  get: Get,
+  from: ReturnType<typeof currentTrack>,
+  track: Track | undefined,
+  naturalEnd: boolean,
+) {
   const file = track ? useLibraryStore.getState().fileFor(track) : null
-  if (!file) {
+  if (!file || !track) {
     unreachable(set, track, 'That file isn’t reachable any more. Choose the folder again to restore playback.')
     return
   }
   publishNowPlaying(track)
+  prefetchNext(get)
 
   const plan = handoverFor(from, track)
   // ⚠️ `naturalEnd` means the outgoing track has ALREADY finished, so there is

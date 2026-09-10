@@ -24,6 +24,7 @@ export default function PlayerBar() {
   const shuffle = usePlayerStore((s) => s.shuffle)
   const repeat = usePlayerStore((s) => s.repeat)
   const ceremony = usePlayerStore((s) => s.ceremony)
+  const ceremonyCount = usePlayerStore((s) => s.ceremonyCount)
   const albums = useLibraryStore((s) => s.albums)
 
   const toggle = usePlayerStore((s) => s.toggle)
@@ -86,7 +87,24 @@ export default function PlayerBar() {
           onClick={() => navigate({ view: 'playing' })}
           className="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
         >
-          <Cover album={album} className="h-11 w-11 shrink-0 sm:h-12 sm:w-12" />
+          {/* ⚠️ THE COUNTDOWN, OVER THE SLEEVE (James, 2026-09-10: "you also need
+              to see the 3,2,1 in the mini player … so you know it's working").
+              The ceremony's numerals otherwise render only on Now Playing, so
+              anybody who started an album without being on that screen saw
+              about two seconds of apparent nothing before the music began —
+              which reads as a button that did not work. */}
+          <span className="relative shrink-0">
+            <Cover album={album} className="h-11 w-11 shrink-0 sm:h-12 sm:w-12" />
+            {ceremony && ceremonyCount !== null && (
+              <span
+                key={ceremonyCount}
+                aria-live="polite"
+                className="absolute inset-0 grid place-items-center rounded-xl bg-slate-950/55 text-[22px] font-semibold tabular-nums text-white"
+              >
+                {ceremonyCount}
+              </span>
+            )}
+          </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-medium text-slate-900 dark:text-slate-100">
               {track.title}

@@ -140,6 +140,14 @@ export interface Root {
    * `null` on the web, where `handle` is the mechanism.
    */
   nativePath?: string | null
+  /**
+   * `'music-library'` for the iPhone's own Music library (`lib/appleMusic.ts`)
+   * — a root with no folder behind it at all. Its tracks are built from the
+   * tags iOS holds and copied out on first play, so it never needs permission
+   * back and nothing in it can be "re-chosen"; `needAccess` skips it, and the
+   * missing-file error words itself for it.
+   */
+  source?: 'music-library'
   scannedAt: number
   trackCount: number
 }

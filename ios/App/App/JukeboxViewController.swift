@@ -19,5 +19,10 @@ import Capacitor
 class JukeboxViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(MusicFolderPlugin())
+        // The iPhone's own music library (songs synced from a Mac) and the
+        // native audio-file importer. Same timing rule as above: registered here
+        // so both are in `PluginHeaders` before the first render reads them.
+        bridge?.registerPluginInstance(AppleMusicPlugin())
+        bridge?.registerPluginInstance(FileImportPlugin())
     }
 }
