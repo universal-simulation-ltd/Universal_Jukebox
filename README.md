@@ -156,6 +156,13 @@ synthesis, check it by measuring — the PCM peak of a generated track, **per
 voice**, not per file. The whole-file peak was healthy the entire time the melody
 was missing, because the drums were never affected.
 
+That measurement is now a test: `lib/exampleLibrary.test.ts` renders every voice
+of all 31 tracks **on its own** and holds each to a peak and an RMS floor. With
+the old unguarded envelope put back it fails 93 times — the pad, the bass and
+the lead of every track — while the whole-track peak of the 27 tracks with drums
+stays above both floors, which is the point: a per-file version would have
+caught "Quiet Rooms" and passed the rest.
+
 ## The folder problem
 
 This is the honest bit, and the app is designed around it rather than

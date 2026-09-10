@@ -186,7 +186,7 @@ export async function buildExampleLibrary(): Promise<{ tracks: Track[]; albums: 
     })
 
     entry.tracks.forEach((title, i) => {
-      const path = `${PREFIX}${entry.artist}/${entry.title}/${pad2(i + 1)} ${title}.wav`
+      const path = trackPath(entry, i)
       const seconds = trackSeconds(path)
       const size = WAV_HEADER_BYTES + Math.round(seconds * RATE) * CHANNELS * BYTES_PER_SAMPLE
       tracks.push({
@@ -221,6 +221,45 @@ export async function buildExampleLibrary(): Promise<{ tracks: Track[]; albums: 
 /** 1 January 2020, so every id is reproducible. */
 const FIXED_MTIME = Date.UTC(2020, 0, 1)
 
+/** Where one example track lives. The one place the shape of that path is decided. */
+function trackPath(entry: ExampleAlbum, index: number): string {
+  return `${PREFIX}${entry.artist}/${entry.title}/${pad2(index + 1)} ${entry.tracks[index]}.wav`
+}
+
+/**
+ * Every example track's path, and whether its record has drums.
+ *
+ * ⚠️ A TEST SEAM, and the reason it exists is in the README: the first week of
+ * this library was a drum machine and nothing failed. `buildExampleLibrary`
+ * cannot run in Node (it draws sleeves on a canvas), so the sound test walks
+ * the records through this instead — built from the same `trackPath`, so the
+ * two lists cannot drift apart.
+ */
+export function exampleTrackPaths(): { path: string; drums: boolean }[] {
+  return ALBUMS.flatMap((entry) =>
+    entry.tracks.map((_, i) => ({ path: trackPath(entry, i), drums: entry.recipe.drums })),
+  )
+}
+
+/**
+ * One VOICE of one example track, rendered on its own — the PCM the real
+ * track would contain if the other three were muted.
+ *
+ * ⚠️ A test seam, and PER VOICE on purpose. A whole-track measurement was
+ * healthy the entire time the pad, the bass and the lead wrote nothing, because
+ * the drums are built by different functions and were never affected. The only
+ * measurement that sees a silent melody is one that listens to the melody.
+ */
+export function renderExampleVoice(path: string, voice: Voice): Float32Array | null {
+  const entry = albumFor(path)
+  if (!entry) return null
+  return render(path, entry.recipe, trackSeconds(path), voice)
+}
+
+function albumFor(path: string): ExampleAlbum | undefined {
+  return ALBUMS.find((a) => path.includes(`/${a.title}/`) && path.includes(`/${a.artist}/`))
+}
+
 /** Is this one of ours? Read after a reload, when the store has no idea. */
 export function isExampleTrack(track: Track): boolean {
   return track.path.startsWith(PREFIX)
@@ -247,7 +286,7 @@ export function exampleFile(track: Track): File | null {
     return cached
   }
 
-  const entry = ALBUMS.find((a) => track.path.includes(`/${a.title}/`) && track.path.includes(`/${a.artist}/`))
+  const entry = albumFor(track.path)
   if (!entry) return null
 
   const samples = render(track.path, entry.recipe, trackSeconds(track.path))
@@ -298,7 +337,20 @@ const MINOR = [0, 2, 3, 5, 7, 8, 10]
 const PENTA_MAJOR = [0, 2, 4, 7, 9]
 const PENTA_MINOR = [0, 3, 5, 7, 10]
 
-function render(seed: string, recipe: Recipe, seconds: number): Float32Array {
+/** The four parts a track is built from. */
+export type Voice = 'pad' | 'bass' | 'lead' | 'drums'
+export const VOICES: readonly Voice[] = ['pad', 'bass', 'lead', 'drums']
+
+/**
+ * A whole track — or, with `only`, one voice of it and nothing else.
+ *
+ * ⚠️ `only` gates the WRITES and never the dice. The lead and the hats both
+ * draw from the seeded PRNG, so skipping a voice's `random()` calls would shift
+ * every note after it and a soloed voice would no longer be the one in the
+ * mix. Every draw below happens whichever voice is asked for.
+ */
+function render(seed: string, recipe: Recipe, seconds: number, only?: Voice): Float32Array {
+  const plays = (voice: Voice) => only === undefined || only === voice
   const random = mulberry32(hash(seed))
   const frames = Math.round(seconds * RATE)
   const out = new Float32Array(frames)
@@ -320,17 +372,21 @@ function render(seed: string, recipe: Recipe, seconds: number): Float32Array {
     const rootNote = recipe.root + scale[degree % scale.length]
 
     // The pad: a triad held for the bar, quiet and slow to arrive.
-    for (const interval of [0, recipe.minor ? 3 : 4, 7]) {
-      addTone(out, at, bar * 0.98, midi(rootNote + interval), 0.055 * recipe.pad, {
-        attack: 0.25, release: bar * 0.5, bite: 0.06,
-      })
+    if (plays('pad')) {
+      for (const interval of [0, recipe.minor ? 3 : 4, 7]) {
+        addTone(out, at, bar * 0.98, midi(rootNote + interval), 0.055 * recipe.pad, {
+          attack: 0.25, release: bar * 0.5, bite: 0.06,
+        })
+      }
     }
 
     // The bass: the root on one and three, an octave down.
-    for (const b3 of [0, 2]) {
-      addTone(out, at + b3 * beat, beat * 1.6, midi(rootNote - 12), 0.16, {
-        attack: 0.008, release: beat * 1.2, bite: 0.04,
-      })
+    if (plays('bass')) {
+      for (const b3 of [0, 2]) {
+        addTone(out, at + b3 * beat, beat * 1.6, midi(rootNote - 12), 0.16, {
+          attack: 0.008, release: beat * 1.2, bite: 0.04,
+        })
+      }
     }
 
     // The lead: eighth notes, some of them, from the pentatonic.
@@ -338,15 +394,17 @@ function render(seed: string, recipe: Recipe, seconds: number): Float32Array {
       if (random() > recipe.density) continue
       const step = penta[Math.floor(random() * penta.length)]
       const octave = random() < 0.25 ? 12 : 0
+      if (!plays('lead')) continue
       addTone(out, at + e * beat * 0.5, beat * 0.5, midi(recipe.root + step + octave + 12), 0.1, {
         attack: 0.006, release: beat * 0.42, bite: recipe.bite,
       })
     }
 
     if (recipe.drums) {
-      for (const k of [0, 2]) addKick(out, at + k * beat)
+      if (plays('drums')) for (const k of [0, 2]) addKick(out, at + k * beat)
       for (let e = 0; e < 8; e++) {
-        if (e % 2 === 1 || random() < 0.4) addHat(out, at + e * beat * 0.5, e % 2 === 1 ? 0.03 : 0.018)
+        const hit = e % 2 === 1 || random() < 0.4
+        if (hit && plays('drums')) addHat(out, at + e * beat * 0.5, e % 2 === 1 ? 0.03 : 0.018)
       }
     }
   }
