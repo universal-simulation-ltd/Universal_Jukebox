@@ -13,6 +13,7 @@ import AlbumGrid from './components/AlbumGrid'
 import AlbumView from './components/AlbumView'
 import ArtistList from './components/ArtistList'
 import ErrorBanner from './components/ErrorBanner'
+import ExampleNotice from './components/ExampleNotice'
 import Landing from './components/Landing'
 import NowPlaying from './components/NowPlaying'
 import PlayerBar from './components/PlayerBar'
@@ -272,6 +273,10 @@ export default function App() {
             are a different matter — those are about whether the app works at
             all, so they follow you everywhere. */}
         <ScanBanner showRefusals={LIBRARY_VIEWS.has(view)} />
+
+        {/* "This is the demo", wherever its records are on screen — and not on
+            Settings or About, which are about the app rather than the music. */}
+        {(LIBRARY_VIEWS.has(view) || view === 'playing') && <ExampleNotice />}
 
         {view === 'tidy' ? (
           <Tidy />
