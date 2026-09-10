@@ -32,6 +32,13 @@ function inset(side: 'top' | 'bottom'): number | null {
   }
 }
 
+/** Is a native plugin of this JS name registered in the shell? */
+function pluginRegistered(name: string): boolean {
+  const headers = (globalThis as { Capacitor?: { PluginHeaders?: { name?: string }[] } }).Capacitor
+    ?.PluginHeaders
+  return Array.isArray(headers) && headers.some((h) => h?.name === name)
+}
+
 function rect(selector: string): string | null {
   const el = document.querySelector(selector)
   if (!el) return null
@@ -72,6 +79,12 @@ async function report(): Promise<void> {
     landingArt: rect('main svg'),
     // Whether the fades and the crossfade can work here at all.
     canSetVolume: canSetElementVolume(),
+    // Whether the native shell registered the folder-choice plugin — the switch
+    // that turns "choose your own music folder" on (`usesChosenFolder` in
+    // `nativeFile.ts` reads the same headers). On iOS it is registered by
+    // `JukeboxViewController`; if this is false there, the picker cannot appear
+    // however correct the web code is.
+    chosenFolderPlugin: pluginRegistered('JukeboxMusicFolder'),
   }
 
   try {
