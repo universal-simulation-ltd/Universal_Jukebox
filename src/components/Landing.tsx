@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { useLibraryStore } from '../stores/libraryStore'
+import { keepsFolderWhenInstalled } from '../lib/persistence'
 
 // The front door, before there is a library.
 //
@@ -107,6 +108,11 @@ export default function Landing() {
             <>
               This browser can remember the folder, so your library will still be here next
               time — you’ll just be asked to confirm access once.
+              {/* Only where it is true — Chrome 122+, not yet installed. See
+                  `lib/persistence.ts`. */}
+              {keepsFolderWhenInstalled() && (
+                <> Install it as an app from Chrome’s address bar and it won’t ask even that.</>
+              )}
             </>
           ) : (
             <>
