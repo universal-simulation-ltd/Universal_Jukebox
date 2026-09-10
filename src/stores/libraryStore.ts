@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { releaseAllCovers, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
 import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
-import { addScan, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, uniqueLabel } from '../lib/roots'
+import { addScan, isFolderNamed, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, uniqueLabel } from '../lib/roots'
 import { hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
 import {
   NATIVE_ROOT_LABEL,
@@ -88,8 +88,12 @@ interface LibraryState {
   stopScan(): void
   /** Choose a folder and ADD it to the library. */
   pickFolder(): Promise<void>
-  /** The Firefox/Safari path, and "pick individual files". Also adds. */
-  addFiles(files: FileList | File[], label?: string): Promise<void>
+  /**
+   * The Firefox/Safari path, and "pick individual files". Also adds — unless
+   * `intoRootId` names the folder these files are that folder chosen AGAIN, in
+   * which case it is a rescan of that folder (see the implementation).
+   */
+  addFiles(files: FileList | File[], label?: string, intoRootId?: string): Promise<void>
   /** Fill the library with the generated example records — see `lib/exampleLibrary.ts`. */
   loadExample(): Promise<void>
   /** Re-ask for one folder's permission and re-read it. */
@@ -297,14 +301,23 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     })
   },
 
-  async addFiles(files, label) {
+  async addFiles(files, label, intoRootId) {
     const list = Array.from(files)
     if (list.length === 0) return
     // The label is the top folder of the first path, which is what the person
     // actually chose — `webkitRelativePath` carries it and nothing else does.
     const first = (list[0] as File & { webkitRelativePath?: string }).webkitRelativePath
     const derived = first && first.includes('/') ? first.slice(0, first.indexOf('/')) : label
-    await runScan(set, get, list, derived ?? 'Chosen files', null)
+    const name = derived ?? 'Chosen files'
+    // ⚠️ A stranded folder chosen AGAIN is a rescan of that folder, not a second
+    // one. Without this the "Choose folder" button — the only way back on
+    // Firefox and Safari — filed the folder as "Music (2)" beside the original
+    // "Music", which stayed stranded and kept asking for itself. `runScan`
+    // with the root's id keeps its prefix, so every track id comes back the
+    // same. Only when the name matches, though: somebody asked for Music who
+    // picks Podcasts has added Podcasts.
+    const into = intoRootId ? get().roots.find((r) => r.id === intoRootId) : undefined
+    await runScan(set, get, list, name, null, into && isFolderNamed(into, name) ? into.id : undefined)
   },
 
   /**

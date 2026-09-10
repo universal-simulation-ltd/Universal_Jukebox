@@ -158,6 +158,64 @@ export function rootsNeedingAccess(
   })
 }
 
+/**
+ * The root a track is filed under.
+ *
+ * ⚠️ The LONGEST matching prefix, not the first. A legacy root (prefix "")
+ * matches every path, so taking the first hit would hand a track in `Music (2)`
+ * to whichever root happened to be listed first — and the error that asks for a
+ * folder back would then ask for the wrong one.
+ */
+export function rootOf(roots: Root[], path: string): Root | undefined {
+  let best: Root | undefined
+  let bestLength = -1
+  for (const root of roots) {
+    const prefix = prefixOf(root)
+    if (!pathUnder(path, prefix)) continue
+    if (prefix.length > bestLength) {
+      best = root
+      bestLength = prefix.length
+    }
+  }
+  return best
+}
+
+/**
+ * What it takes to get an unreachable folder back, which decides both the
+ * button offered and the sentence beside it.
+ *
+ * - `reopen`  — a stored directory handle: ask the browser for permission again.
+ * - `choose`  — no handle (Firefox, Safari, or a library built from picked
+ *               files): the folder has to be chosen again with the picker.
+ * - `rescan`  — the native app's folder: nothing to grant, so read it again.
+ *
+ * ⚠️ Native is checked FIRST. A native root has no `handle` either, so without
+ * that order it falls into `choose` — whose button opens a `webkitdirectory`
+ * picker that iOS ignores.
+ */
+export type FolderAccess = 'reopen' | 'choose' | 'rescan'
+
+/**
+ * Is `name` — the folder somebody just picked — this root's folder?
+ *
+ * ⚠️ The ONLY identity a re-picked folder has on the `choose` path is its name:
+ * `webkitdirectory` hands back files, not a handle that could be compared. A
+ * root's label is that name, or that name with a " (2)" on it where two folders
+ * shared one. Anything else means somebody picked a different folder in answer
+ * to "choose TestMusic again", and that one must be ADDED, not filed under
+ * TestMusic's prefix.
+ */
+export function isFolderNamed(root: Root, name: string): boolean {
+  const label = prefixOf(root) || root.label
+  if (label === name) return true
+  return label.startsWith(`${name} (`) && /^ \(\d+\)$/.test(label.slice(name.length))
+}
+
+export function folderAccess(root: Root): FolderAccess {
+  if (root.nativePath != null) return 'rescan'
+  return root.handle ? 'reopen' : 'choose'
+}
+
 /** How many tracks a root actually has in the library right now. */
 export function trackCountFor(tracks: Track[], root: Root): number {
   const prefix = prefixOf(root)

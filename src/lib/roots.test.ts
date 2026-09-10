@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { trackKey } from './keys'
 import {
-  addScan, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, trackCountFor, uniqueLabel,
+  addScan, folderAccess, isFolderNamed, pathUnder, prefixOf, removeRoot, rootOf, rootsNeedingAccess,
+  trackCountFor, uniqueLabel,
 } from './roots'
 import type { Album, Root, Track } from './types'
 
@@ -199,6 +200,60 @@ describe('which folders need their permission back', () => {
   it('does not ask for an empty folder', () => {
     const need = rootsNeedingAccess([root('Empty')], tracks, new Map(), generated)
     expect(need).toHaveLength(0)
+  })
+})
+
+// The error a missing file raises asks for its FOLDER back, so it has to find
+// the right one — and offer the right kind of button for it.
+describe('which folder a track belongs to', () => {
+  it('is the folder its path is filed under', () => {
+    const roots = [root('Music'), root('Backup')]
+    expect(rootOf(roots, 'Backup/Nick Cave/01.mp3')?.id).toBe('Backup')
+  })
+
+  it('prefers the longest prefix over a legacy root that claims everything', () => {
+    // Taking the first match would hand this track to `old` and ask for the
+    // wrong folder's permission.
+    const roots = [root('old', { prefix: undefined }), root('Music (2)')]
+    expect(rootOf(roots, 'Music (2)/a.mp3')?.id).toBe('Music (2)')
+    expect(rootOf(roots, 'Loose/a.mp3')?.id).toBe('old')
+  })
+
+  it('does not mistake a folder whose name merely starts the same', () => {
+    expect(rootOf([root('Music')], 'Music (2)/a.mp3')).toBeUndefined()
+  })
+})
+
+describe('what getting a folder back takes', () => {
+  it('is permission, where the browser kept a handle', () => {
+    expect(folderAccess(root('Music', { handle: {} as unknown as FileSystemDirectoryHandle }))).toBe('reopen')
+  })
+
+  it('is choosing it again, where it did not', () => {
+    expect(folderAccess(root('Music'))).toBe('choose')
+  })
+
+  it('is a rescan for the native folder — which has no handle either, and no picker', () => {
+    expect(folderAccess(root('Music', { nativePath: 'Documents' }))).toBe('rescan')
+  })
+})
+
+// ⚠️ Re-choosing a stranded folder has to refill THAT folder. Before this, the
+// "Choose folder" button filed it as a new "Music (2)" and left the original
+// stranded for good — so the button that promised the way back never led there.
+describe('recognising a folder chosen again', () => {
+  it('is the same folder when the name matches', () => {
+    expect(isFolderNamed(root('Music'), 'Music')).toBe(true)
+  })
+
+  it('is the same folder when the root is the second of that name', () => {
+    expect(isFolderNamed(root('Music (2)'), 'Music')).toBe(true)
+  })
+
+  it('is a different folder otherwise — which gets added, not filed under this one', () => {
+    expect(isFolderNamed(root('Music'), 'Podcasts')).toBe(false)
+    expect(isFolderNamed(root('Music (2)'), 'Mus')).toBe(false)
+    expect(isFolderNamed(root('Music (live)'), 'Music')).toBe(false)
   })
 })
 

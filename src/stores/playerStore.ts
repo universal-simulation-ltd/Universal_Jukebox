@@ -59,6 +59,16 @@ interface PlayerState {
   shuffle: boolean
   repeat: Repeat
   error: string | null
+  /**
+   * The track whose file could not be found when `error` was raised, or null
+   * when the error is about something else.
+   *
+   * ⚠️ The TRACK, not a reason. Why it was missing — a deleted file, or a
+   * folder whose permission lapsed — is read live from the library by
+   * `useMissingFile`, so the error can change its mind the moment the folder
+   * comes back. Cleared everywhere `error` is.
+   */
+  missingTrack: Track | null
 
   /**
    * The first-play ceremony (§22.9 of next-products.md): the platter spins up,
@@ -126,6 +136,12 @@ interface PlayerState {
   removeFromQueue(index: number): void
   clearQueue(): void
   dismissError(): void
+  /**
+   * Try the missing track again, once its folder is back. The one thing the
+   * transport cannot do for itself here: `unreachable` stopped and emptied the
+   * player, so the play button has nothing loaded to resume.
+   */
+  replayMissing(): void
 }
 
 function readModes(): { shuffle: boolean; repeat: Repeat } {
@@ -168,6 +184,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   shuffle: modes.shuffle,
   repeat: modes.repeat,
   error: null,
+  missingTrack: null,
   ceremony: false,
   ceremonyDone: false,
   ceremonyCount: null,
@@ -199,7 +216,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       : Array.from({ length: tracks.length }, (_, i) => i)
     const cursor = shuffle ? 0 : startAt
 
-    set({ queue: tracks, order, cursor, error: null })
+    set({ queue: tracks, order, cursor, error: null, missingTrack: null })
     startCeremonyOrPlay(set, get, tracks[order[cursor]])
   },
 
@@ -322,12 +339,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     const file = useLibraryStore.getState().fileFor(track)
     if (!file) {
-      set({ error: 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.' })
+      set({
+        error: 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.',
+        missingTrack: track,
+      })
       return
     }
     audio.pause()
     audio.stopPreview()
-    set({ previewTrackId: track.id, error: null })
+    set({ previewTrackId: track.id, error: null, missingTrack: null })
     audio.startPreview(file, get().muted ? 0 : get().volume)
     // The scratch rides along, because the needle is landing on something —
     // it is just not landing on the deck you can see.
@@ -383,7 +403,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   dismissError() {
-    set({ error: null })
+    set({ error: null, missingTrack: null })
+  },
+
+  replayMissing() {
+    const track = get().missingTrack
+    if (!track) return
+    set({ error: null, missingTrack: null })
+    // The cursor is already ON the missing track — `playAt` moves it before it
+    // looks for the file — so this is that track going on, not a new queue.
+    // A missing PREVIEW is the one exception, and gets its preview back.
+    if (currentTrack(get())?.id === track.id) {
+      showTheDeck()
+      startCeremonyOrPlay(set, get, track)
+    } else {
+      get().preview(track)
+    }
   },
 }))
 
@@ -663,13 +698,16 @@ function prefersReducedMotion(): boolean {
  * which would otherwise still be offering play/pause for a track that is not on.
  * `audio.stop()` also releases the file, which is right — nothing is cued.
  */
-function unreachable(set: Set, message: string): void {
+function unreachable(set: Set, track: Track | undefined, message: string): void {
   clearCeremony()
   clearHandover()
   audio.stop()
   publishNowPlaying(null)
   set({
     error: message,
+    // What lets the error say WHICH folder, and why — see `useMissingFile`.
+    // `message` remains the fallback for a track no folder claims.
+    missingTrack: track ?? null,
     ceremony: false,
     ceremonyCount: null,
     handover: false,
@@ -692,7 +730,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   if (!track) return
   const file = useLibraryStore.getState().fileFor(track)
   if (!file) {
-    unreachable(set, 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.')
+    unreachable(set, track, 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.')
     return
   }
 
@@ -807,7 +845,7 @@ function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
   const track = get().queue[order[nextCursor]]
   const file = track ? useLibraryStore.getState().fileFor(track) : null
   if (!file) {
-    unreachable(set, 'That file isn’t reachable any more. Choose the folder again to restore playback.')
+    unreachable(set, track, 'That file isn’t reachable any more. Choose the folder again to restore playback.')
     return
   }
   publishNowPlaying(track)
@@ -995,7 +1033,7 @@ audio.setCallbacks({
     })
   },
   onError(message) {
-    usePlayerStore.setState({ error: message })
+    usePlayerStore.setState({ error: message, missingTrack: null })
   },
   onApproachingEnd(remainingSec) {
     maybeStartEarlyCrossfade(remainingSec)

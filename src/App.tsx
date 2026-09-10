@@ -12,6 +12,7 @@ import About from './components/About'
 import AlbumGrid from './components/AlbumGrid'
 import AlbumView from './components/AlbumView'
 import ArtistList from './components/ArtistList'
+import ErrorBanner from './components/ErrorBanner'
 import Landing from './components/Landing'
 import NowPlaying from './components/NowPlaying'
 import PlayerBar from './components/PlayerBar'
@@ -119,11 +120,7 @@ export default function App() {
   const albums = useLibraryStore((s) => s.albums)
   const tracks = useLibraryStore((s) => s.tracks)
   const hydrate = useLibraryStore((s) => s.hydrate)
-  const libraryError = useLibraryStore((s) => s.error)
-  const dismissLibraryError = useLibraryStore((s) => s.dismissError)
 
-  const playerError = usePlayerStore((s) => s.error)
-  const dismissPlayerError = usePlayerStore((s) => s.dismissError)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const skipCeremony = usePlayerStore((s) => s.skipCeremony)
   const toggle = usePlayerStore((s) => s.toggle)
@@ -218,7 +215,6 @@ export default function App() {
   }, [toggle, next, previous])
 
   const hasLibrary = status === 'ready' || status === 'scanning'
-  const error = playerError ?? libraryError
 
   // ⚠️ No background class on the root div. The page colour is on `<html>` —
   // see the note in `index.css`: an opaque background here is what made Now
@@ -264,24 +260,9 @@ export default function App() {
       <UsageTracker />
 
       <main className={`${CONTAINER} flex-1 py-6 ${hasLibrary ? '' : 'flex flex-col justify-center'}`}>
-        {error && (
-          <div
-            role="alert"
-            className="mb-5 flex items-start gap-3 rounded-2xl bg-red-50 px-5 py-4 text-[13px] leading-relaxed text-red-900 dark:bg-red-950/40 dark:text-red-200"
-          >
-            <p className="flex-1">{error}</p>
-            <button
-              type="button"
-              onClick={() => {
-                dismissPlayerError()
-                dismissLibraryError()
-              }}
-              className="shrink-0 font-medium underline-offset-2 hover:underline"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
+        {/* The error slot — and, for a track whose file was not there, the
+            way back to its folder. See `ErrorBanner`. */}
+        <ErrorBanner />
 
         {/* ⚠️ Only on the LIBRARY views. The skipped-files list is a report
             about a scan and belongs with the library it describes. Parked above

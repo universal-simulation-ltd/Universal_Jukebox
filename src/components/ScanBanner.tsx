@@ -1,8 +1,12 @@
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { DropRing } from '@unisim/sdk'
+import FolderAccessButton from './FolderAccessButton'
 import { plural } from '../lib/format'
+import { folderAccess } from '../lib/roots'
 import { goHome } from '../lib/route'
+import { useMissingFile } from '../lib/useMissingFile'
 import { needAccessFrom, useLibraryStore } from '../stores/libraryStore'
+import { usePlayerStore } from '../stores/playerStore'
 
 // Live scan progress, and the two things a scan has to say afterwards: the
 // formats it had to refuse, and whether the folder needs its permission back.
@@ -50,18 +54,26 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   const roots = useLibraryStore((s) => s.roots)
   const tracks = useLibraryStore((s) => s.tracks)
   const filesByPath = useLibraryStore((s) => s.filesByPath)
-  const stranded = useMemo(
+  const unreachable = useMemo(
     () => needAccessFrom(roots, tracks, filesByPath),
     [roots, tracks, filesByPath],
   )
-  const regrantFolder = useLibraryStore((s) => s.regrantFolder)
-  const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
+  // ⚠️ Minus the folder the error above is already asking for. A track whose
+  // folder lapsed raises an error carrying THAT folder's button (see
+  // `ErrorBanner`), and the same button again in here, just below it, reads as
+  // two problems. The row comes back the moment the error is dismissed.
+  const playerError = usePlayerStore((s) => s.error)
+  const missing = useMissingFile()
+  const coveredId =
+    playerError && missing?.folderLapsed && !missing.reachableNow ? missing.root?.id : undefined
+  const stranded = useMemo(
+    () => (coveredId ? unreachable.filter((r) => r.id !== coveredId) : unreachable),
+    [unreachable, coveredId],
+  )
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const stopScan = useLibraryStore((s) => s.stopScan)
   const stoppedEarly = useLibraryStore((s) => s.stoppedEarly)
-  const addFiles = useLibraryStore((s) => s.addFiles)
   const clear = useLibraryStore((s) => s.clear)
-  const folderInput = useRef<HTMLInputElement>(null)
 
   /**
    * The way out of this banner that isn't "find that folder again".
@@ -170,7 +182,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               // A stored handle is the ONLY thing that makes a folder
               // reopenable — not the browser's capabilities in general, since a
               // library built by picking files has no handle even on Chromium.
-              const canReopen = !!root.handle
+              const canReopen = folderAccess(root) === 'reopen'
               // ⚠️ NATIVE IS A THIRD CASE and it must not fall into the one
               // below. A native root has no `handle`, so without this it takes
               // the "choose it again" branch — whose button opens a
@@ -182,7 +194,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               // own Documents directory. Tracks go missing only because the
               // files were deleted or moved in the Files app, and the honest fix
               // for that is a rescan, not a permission.
-              const isNative = root.nativePath != null
+              const isNative = folderAccess(root) === 'rescan'
               // Grouped, the shared half of each sentence is already in the
               // heading, so a row says only what is true of THIS folder.
               const grouped = stranded.length > 1
@@ -204,23 +216,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
                         ? ' — this browser can’t reopen a folder on its own, so choose it again. Nothing has to be read twice.'
                         : ' and its artwork are still here, but this browser can’t reopen a folder on its own — choose it again to play anything from it. It will be quick: nothing has to be read twice.'}
                   </p>
-                  {/* ⚠️ This MUST be a click. A permission request with no user
-                      gesture behind it is dropped silently, which presents as a
-                      button that does nothing — so it can never move into an
-                      effect. */}
-                  <button
-                    type="button"
-                    onClick={
-                      isNative
-                        ? () => void scanNativeFolder()
-                        : canReopen
-                          ? () => void regrantFolder(root.id)
-                          : () => folderInput.current?.click()
-                    }
-                    className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
-                  >
-                    {isNative ? 'Rescan' : canReopen ? 'Allow access' : 'Choose folder'}
-                  </button>
+                  {/* This folder's own button — shared with the missing-file
+                      error, and one per folder for the reason in its header. */}
+                  <FolderAccessButton root={root} />
                 </li>
               )
             })}
@@ -235,20 +233,6 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
           </div>
         </div>
       )}
-
-      {/* Always mounted rather than inside the branch above: a ref to something
-          conditionally rendered is a click that silently does nothing. */}
-      <input
-        ref={folderInput}
-        type="file"
-        {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files) void addFiles(e.target.files)
-          e.target.value = ''
-        }}
-      />
 
       {showRefusals && refusals.length > 0 && (
         <div className="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
