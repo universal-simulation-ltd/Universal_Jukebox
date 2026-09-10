@@ -214,9 +214,14 @@ export async function walkNativeLibrary(signal?: AbortSignal): Promise<NativeEnt
     let entries
     try {
       entries = (await Filesystem.readdir({ path: dir, directory: Directory.Documents })).files
-    } catch {
-      // An unreadable directory is skipped rather than fatal — the same
-      // position the web walker takes.
+    } catch (err) {
+      // ⚠️ THE ROOT IS DIFFERENT FROM EVERY OTHER DIRECTORY. A sub-folder that
+      // will not open is skipped, exactly as the web walker skips one — but if
+      // the MUSIC FOLDER ITSELF cannot be read, returning `[]` reports "your
+      // folder is empty" for what is actually "I could not look". Those need
+      // different things from the user (put music in / something is wrong), and
+      // conflating them is how a broken app looks merely unused.
+      if (dir === NATIVE_ROOT_PATH) throw err
       continue
     }
     for (const entry of entries) {
@@ -313,4 +318,68 @@ function base64Of(file: File): Promise<string> {
     }
     reader.readAsDataURL(file)
   })
+}
+
+/**
+ * The note this app leaves in its own music folder on a fresh install.
+ *
+ * ⚠️ IT IS THERE TO MAKE THE FOLDER APPEAR AT ALL. iOS lists an app under
+ * *Files → On My iPhone* only once its Documents directory has something in it,
+ * so a newly installed Jukebox has NO folder for anyone to put music into — and
+ * the landing page cheerfully tells them to use one that is not there. That is a
+ * dead end, and it is the more serious half of the day-one "Scan does nothing"
+ * report: there was nowhere to put the music, and then nothing happened when
+ * you asked it to look.
+ *
+ * ⚠️ `.txt`, so the scanner ignores it — `isPlayable` says no and it is not in
+ * `REFUSED`, so it is skipped silently rather than reported as a snubbed format.
+ */
+const README_NAME = 'Put your music in here.txt'
+
+const README_BODY = [
+  'Universal Jukebox — your music goes in this folder.',
+  '',
+  'Copy albums in here, AirDrop them, unzip them here, or drag them across',
+  'from a computer. Folders are fine and are kept — Artist/Album/track.mp3 is',
+  'exactly right.',
+  '',
+  'It plays MP3, M4A, FLAC and WAV.',
+  '',
+  'Then open Universal Jukebox and tap "Scan my music folder". Anything you add',
+  'later needs another scan: the app cannot tell that a file appeared while it',
+  'was closed.',
+  '',
+  'This note is not needed for anything and can be deleted.',
+  '',
+].join('\n')
+
+/**
+ * Make sure the music folder exists and is visible in the Files app.
+ *
+ * Writes the note above, and ONLY when the folder is completely empty. So it
+ * appears on a fresh install, it never comes back once there is music in there,
+ * and if somebody empties the folder it returns with the instructions — which is
+ * the one moment they are wanted again.
+ *
+ * Swallows its own failure: a folder that cannot be seeded is a worse first run,
+ * never a reason to fail a launch.
+ */
+export async function ensureNativeMusicFolder(): Promise<void> {
+  if (!isNativeShell()) return
+  try {
+    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
+    const { files } = await Filesystem.readdir({
+      path: NATIVE_ROOT_PATH,
+      directory: Directory.Documents,
+    }).catch(() => ({ files: [] as { name: string }[] }))
+    if (files.length > 0) return
+    await Filesystem.writeFile({
+      path: README_NAME,
+      directory: Directory.Documents,
+      data: README_BODY,
+      encoding: Encoding.UTF8,
+    })
+  } catch (err) {
+    console.error('[jukebox] Could not seed the music folder:', err)
+  }
 }

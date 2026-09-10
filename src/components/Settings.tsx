@@ -45,10 +45,13 @@ export default function Settings() {
   // Web Audio graph, and a browser can refuse us one. Saying so is better than
   // a slider that does nothing.
   const boostBroken = graphUnavailable()
-  // ⚠️ iOS makes `element.volume` read-only, so a fade is a slider that moves
-  // and changes nothing you can hear. The suite's rule for a capability gap is
-  // to say so rather than to fail at the moment of use — the boost slider right
-  // above already does exactly this. See `lib/volumeSupport.ts`.
+  // Where the engine will not let an app set `element.volume`, a fade is a
+  // slider that moves and changes nothing you can hear. The suite's rule for a
+  // capability gap is to say so rather than to fail at the moment of use — the
+  // boost slider right above already does exactly this.
+  // ⚠️ Asked of the ENGINE, not of the platform: iOS was expected to be the case
+  // that needed this and measured not to be, so on a current iPhone these
+  // sliders stay live. See the header of `lib/volumeSupport.ts`.
   const fadesBroken = !canSetElementVolume()
   const FADE_HINT =
     'This device doesn’t let an app set the playback volume — that belongs to the ' +

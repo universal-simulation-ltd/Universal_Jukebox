@@ -201,21 +201,75 @@ nothing else.
 that a file appeared behind its back, so *Rescan my music folder* is in the app
 menu and is not a duplicate of *Add music*.
 
-### ⚠️ And iOS will not let an app set the volume
+⚠️ **And the folder has to be seeded, or it is not THERE to put music in.** iOS
+lists an app under *Files → On My iPhone* only once its Documents directory holds
+something, so a freshly installed Jukebox has no folder at all — while the
+landing page tells you to go and use one. `ensureNativeMusicFolder()` writes a
+short *Put your music in here.txt* on first run, which makes the folder appear
+and says what to do with it. It is written **only when the folder is completely
+empty**, so it never returns once there is music in there, and it does come back
+if the folder is emptied — which is the one moment it is wanted again.
 
-`HTMLMediaElement.volume` is read-only in an iOS WebView: the assignment does
-not throw, it just has no effect, and reading it back gives 1. Four things here
-go through `element.volume` — the slider, mute, the fades, and the crossfade —
-and on a phone all four stop working silently.
+⚠️ **A scan that finds nothing must SAY so.** The first build returned silently
+when the folder held no music, which on a fresh install — where everybody starts
+— made *Scan my music folder* a button that did literally nothing. It now names
+the path through the Files app, because the folder cannot be seen from inside the
+app and somebody who has just been told there is no music in it has no way to
+find out where it is.
 
-Three of them merely stop being *heard*. **The crossfade gets worse rather than
-absent**, and that is the one that had to be handled: it starts the incoming
-track *under* the outgoing one, and with no working gain "under" is full volume,
-so both records play at once for the length of the fade. `lib/volumeSupport.ts`
-probes the engine — a capability check, not an iOS sniff, so a future iOS that
-honours `volume` picks the fades back up on its own — and where volume cannot be
-set the crossfade degrades to a clean change-over and the fade sliders in
-Settings are disabled with a sentence saying why.
+### ⚠️ The volume question, and what a device actually said
+
+Received wisdom is that `HTMLMediaElement.volume` is read-only in an iOS
+WebView: the assignment does nothing, the property reads back as 1, and volume
+belongs to the hardware buttons alone. Four things here go through
+`element.volume` — the slider, mute, the fades and the crossfade — so if that
+were true on the target device, all four would stop working silently.
+
+**It was not true.** Measured on an iPhone 15 Pro running iOS 26, in this app's
+own WebView: the assignment round-trips, so the fades and the real crossfade run
+on the phone exactly as they do on the web.
+
+⚠️ **What is checked is the property, not the loudspeaker.**
+`lib/volumeSupport.ts` asks whether the engine *stores* the value it was given.
+Whether the audio path then attenuates by it cannot be read from JavaScript —
+the only instrument for that is an ear.
+
+The check stays, because of what it protects when the answer *is* no. Three of
+those four features would merely stop being heard. **The crossfade would get
+worse rather than absent:** it starts the incoming track *under* the outgoing
+one, and with no working gain "under" is full volume, so both records would play
+at once for the length of the fade. Where volume cannot be set, the crossfade
+degrades to a clean change-over and the fade sliders are disabled with a
+sentence saying why.
+
+⚠️ **It is a capability check, not an iOS check, and that is what stopped a bug
+shipping.** Hard-coding the assumption — `if (isIOS) noFades()` — would have
+left this app refusing to fade on a device perfectly willing to, with a confident
+comment explaining why and nothing anywhere to contradict it.
+
+### ⚠️ Two safe-area rules, and what happens without the top one
+
+The native shell runs `viewport-fit=cover` with `contentInset: 'never'`, so the
+page owns the full screen — the Dynamic Island and the home indicator included.
+Two rules pay for that, and **both are invisible on a Mac**, because
+`env(safe-area-inset-*)` is 0 in every browser and every emulator.
+
+- `pt-[env(safe-area-inset-top)]` on the page wrapper in `App.tsx`
+- `pb-[env(safe-area-inset-bottom)]` on the transport in `PlayerBar.tsx`
+
+⚠️ **The top one is not cosmetic — without it the navbar PAINTS OVER the page.**
+`UniversalAppsNavBar` is `position: sticky; top: 0` and takes the inset onto
+itself as `paddingTop`, cancelling the wrapper's with an equal negative
+`marginTop`. With no wrapper padding to cancel, the bar's natural box top is
+*above* the viewport top — so sticky engages immediately and pins the box at
+y=0, while the flow below has reserved only the un-padded height. The bar ends
+up `inset` pixels taller than its own gap and covers the top of `<main>`.
+
+Measured on the device that reported it: inset 59px, navbar `63..122`, and the
+landing artwork at y=88 — 35px of the record under the bar. With the rule, the
+artwork sits at 147 and nothing overlaps. ⚠️ The SDK's own note says it
+"repairs an app that FORGOT the wrapper padding"; that is true of a static bar
+and **not** of the sticky one.
 
 ---
 

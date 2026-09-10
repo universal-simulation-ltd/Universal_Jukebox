@@ -1,29 +1,40 @@
 // Can this platform actually change an `<audio>` element's volume?
 //
-// ⚠️ ON iOS THE ANSWER IS NO, AND NOTHING SAYS SO. `HTMLMediaElement.volume` is
-// read-only in WKWebView and in iOS Safari: the assignment does not throw, it
-// simply has no effect, and reading the property back gives 1. Volume there
-// belongs to the hardware buttons and to nothing else. Every other current
-// engine — desktop Safari included — honours it.
+// ⚠️ MEASURED ON A DEVICE, 2026-09-10, AND THE ANSWER WAS NOT THE EXPECTED ONE.
+// This file was written on the received wisdom that `HTMLMediaElement.volume` is
+// read-only in an iOS WebView — the assignment doing nothing, the property
+// reading back as 1, volume belonging to the hardware buttons alone. On an
+// iPhone 15 Pro running iOS 26, in the Capacitor WebView, **the probe below
+// answers `true`**: the assignment round-trips. So the app runs its fades and
+// its real crossfade there, exactly as it does on the web.
 //
-// That matters here more than it would in most apps, because `lib/audio.ts`
-// puts FOUR features through `element.volume`: the slider, mute, the fade in and
-// out, and the crossfade. On a phone all four silently stop working, and three
-// of them merely stop being heard.
+// ⚠️ WHAT THE PROBE MEASURES IS THE PROPERTY, NOT THE LOUDSPEAKER. It asks
+// whether the engine STORES the value it was given. Whether the audio path then
+// attenuates by it is a different question and cannot be answered from
+// JavaScript — nothing readable reports it, so the only instrument is an ear.
+// Treat a `true` here as "this engine does not refuse the assignment", which is
+// the strongest thing that can be established programmatically.
 //
-// ⚠️ THE FOURTH ONE GETS WORSE, NOT ABSENT, WHICH IS WHY THIS FILE EXISTS. A
-// crossfade starts the incoming track UNDER the outgoing one and ramps the pair
-// past each other. With no working gain, "under" is full volume: both tracks
-// play at once, at full level, for the length of the crossfade. That is not a
-// missing feature, it is a bad noise — and it would arrive precisely when
-// somebody turned on the feature that was supposed to make the seam disappear.
+// It still earns its place, because of what it protects when the answer is no.
+// `lib/audio.ts` puts FOUR features through `element.volume`: the slider, mute,
+// the fade in and out, and the crossfade. Where volume does not work three of
+// them merely stop being HEARD —
 //
-// ⚠️ CAPABILITY, NOT PLATFORM. This asks the engine rather than sniffing for
-// iOS, which is the shape the rest of the suite already uses for a capability
-// gap (see the header of `components/Landing.tsx`). It costs one detached
-// element once, it cannot be wrong about a platform it has never heard of, and
-// if a future iOS starts honouring `volume` the app picks the fades back up on
-// its own with nothing to change.
+// ⚠️ and the fourth gets WORSE, not absent, which is the reason any of this is
+// here. A crossfade starts the incoming track UNDER the outgoing one and ramps
+// the pair past each other. With no working gain, "under" is full volume: both
+// tracks play at once, at full level, for the length of the crossfade. That is
+// not a missing feature, it is a bad noise — and it would arrive precisely when
+// somebody turned on the thing meant to make the seam disappear.
+//
+// ⚠️ CAPABILITY, NOT PLATFORM, and that is what saved this from shipping wrong.
+// Had the iOS assumption been hard-coded — `if (isIOS) noFades()` — this app
+// would now be refusing to fade on a device that is perfectly willing to,
+// and nothing would ever have contradicted the comment. Asking the engine costs
+// one detached element once, cannot be wrong about a platform it has never heard
+// of, and moves with the platform in both directions. It is the shape the rest
+// of the suite already uses for a capability gap (see the header of
+// `components/Landing.tsx`).
 
 /** Memoised: the probe is cheap but it is the same answer every time. */
 let cached: boolean | null = null

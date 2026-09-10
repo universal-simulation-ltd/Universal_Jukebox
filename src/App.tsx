@@ -200,7 +200,26 @@ export default function App() {
   // see the note in `index.css`: an opaque background here is what made Now
   // Playing's cover ground invisible for the whole time it existed.
   return (
-    <div className="flex min-h-screen flex-col">
+    // ⚠️ `pt-[env(safe-area-inset-top)]` IS REQUIRED BY THE NAVBAR, and leaving
+    // it off does not merely push the chrome up — it makes the bar PAINT OVER
+    // THE PAGE. `UniversalAppsNavBar`'s sticky wrapper takes the inset onto
+    // itself as `paddingTop` and cancels this padding with an equal negative
+    // `marginTop`; the SDK documents the page wrapper's half as the app's job.
+    //
+    // Without it the bar's natural box top is ABOVE the viewport top (that is
+    // what the negative margin means), so `position: sticky; top: 0` engages
+    // immediately and pins the box at y=0 — while the flow below it has only
+    // reserved the un-padded height. The bar is then `inset` pixels taller than
+    // its own gap and covers the first `inset` pixels of `<main>`.
+    //
+    // ⚠️ Measured, on the day the phone build shipped without it: with a 59px
+    // inset the navbar ran 0..123 while the landing artwork stayed at y=88 —
+    // 35px of the record hidden under the bar. ⚠️ AND IT IS INVISIBLE ON A MAC:
+    // `env(safe-area-inset-top)` is 0 in every browser and every emulator, both
+    // terms vanish, and the layout is pixel-identical to the web. The SDK's own
+    // note claims it "repairs an app that FORGOT the wrapper padding" — that is
+    // true of the old static bar and NOT true of the sticky one.
+    <div className="flex min-h-screen flex-col pt-[env(safe-area-inset-top)]">
       <UniversalAppsNavBar
         contentClassName={CONTAINER}
         product="jukebox"

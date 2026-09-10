@@ -297,11 +297,15 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
  */
 export async function crossfade(file: SourceFile, seconds: number): Promise<void> {
   // ⚠️ A CROSSFADE WITHOUT WORKING GAIN IS NOT A CROSSFADE, IT IS TWO TRACKS AT
-  // ONCE. On iOS `element.volume` is read-only and assigning to it does nothing
-  // (see `lib/volumeSupport.ts`), so every ramp below would be a no-op and the
-  // overlap this function creates on purpose would play both records at full
+  // ONCE. Every ramp below writes to `element.volume`; where that does nothing,
+  // the overlap this function creates ON PURPOSE plays both records at full
   // level for `seconds`. Degrading to a clean change-over is not as good as a
   // crossfade; it is very much better than that.
+  //
+  // ⚠️ Which platforms those are is NOT hard-coded, and must not become so —
+  // iOS was assumed to be one and measured not to be (iOS 26, iPhone 15 Pro:
+  // the assignment round-trips, so the branch below does not fire there). See
+  // the header of `lib/volumeSupport.ts`.
   if (!canSetElementVolume()) {
     await load(file, true)
     return

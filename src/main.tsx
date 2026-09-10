@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { UniversalProvider } from '@unisim/sdk'
 import App from './App'
 import { startApplyingSettings } from './lib/applySettings'
+import { logNativeDiagnostics } from './lib/nativeDiagnostics'
 import './index.css'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
@@ -51,6 +52,11 @@ const universalConfig = {
 // first render so a boost or a fade chosen last visit is already in force when
 // the first track plays.
 startApplyingSettings()
+
+// Inside the native shell only, and no-ops everywhere else. See the header of
+// `lib/nativeDiagnostics.ts`: a device build has no console of its own, and the
+// first two bugs this app shipped with were both invisible from a Mac.
+logNativeDiagnostics()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

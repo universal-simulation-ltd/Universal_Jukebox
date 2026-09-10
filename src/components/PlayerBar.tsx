@@ -44,7 +44,13 @@ export default function PlayerBar() {
   const known = Number.isFinite(durationSec) && durationSec > 0
 
   return (
-    <div className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+    // ⚠️ `pb-[env(safe-area-inset-bottom)]` is the bottom half of the same rule
+    // the page wrapper carries at the top (see `App.tsx`). This bar is
+    // `sticky bottom-0` and the native shell runs with `viewport-fit=cover` and
+    // `contentInset: 'never'`, so without it the transport sits UNDER the home
+    // indicator on a phone — the play button and the scrub bar are the things
+    // that end up beneath it. 0 on the web, so nothing changes there.
+    <div className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
       {/* The scrub bar spans the full width above the controls: it is the one
           control people aim at without looking, so it gets the whole edge. */}
       <input

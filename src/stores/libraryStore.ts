@@ -3,10 +3,12 @@ import { releaseAllCovers, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
 import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
 import { addScan, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, uniqueLabel } from '../lib/roots'
-import { hasDirectoryPicker, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
+import { hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
 import {
   NATIVE_ROOT_LABEL,
   NATIVE_ROOT_PATH,
+  ensureNativeMusicFolder,
+  nativePlatform,
   NativeFile,
   importFilesToNativeLibrary,
   isNativeShell,
@@ -210,8 +212,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // all that is missing after a relaunch is the live handles, which is
     // exactly what this puts back. Anything the walk no longer finds is simply
     // absent from the map, which `needAccess` already reads as unplayable.
-    if (isNativeShell() && roots.some((r) => r.nativePath != null)) {
-      await reattachNative(set, get)
+    if (isNativeShell()) {
+      // ⚠️ Before anything else native: on a fresh install iOS will not show
+      // this app in the Files app until its Documents folder has something in
+      // it, so the landing page's "put your music in the Universal Jukebox
+      // folder" refers to a folder that does not exist yet.
+      await ensureNativeMusicFolder()
+      if (roots.some((r) => r.nativePath != null)) await reattachNative(set, get)
     }
   },
 
@@ -415,11 +422,23 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       })
       return
     }
-    if (entries.length === 0) {
+
+    // ⚠️ A SCAN THAT FINDS NOTHING MUST SAY SO. This used to `set({ error: null })`
+    // and return, which on a fresh install — the one state where every user
+    // starts — made "Scan my music folder" a button that did *literally
+    // nothing*: no spinner, no message, no change. It was reported as broken on
+    // the first launch, and it was right to be.
+    //
+    // ⚠️ Counted on PLAYABLE files, not on entries. The folder is seeded with a
+    // readme so that iOS shows it in the Files app at all (see
+    // `ensureNativeMusicFolder`), so "empty" is never actually empty — an
+    // `entries.length === 0` check would be dead code and the honest case would
+    // fall through to the scanner's much vaguer "nothing playable" line.
+    if (!entries.some((e) => isPlayable(e.name))) {
       set({
         status: get().tracks.length > 0 ? 'ready' : 'empty',
         progress: null,
-        error: null,
+        error: emptyFolderMessage(),
       })
       return
     }
@@ -497,6 +516,22 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
  * renders — and because a new scan must be able to abort the previous one even
  * if the component that started it is long gone.
  */
+/**
+ * Where to put the music, in the words of the platform the user is holding.
+ *
+ * ⚠️ Names the actual path through the Files app rather than saying "the music
+ * folder". The folder is not visible from inside this app, and a person who has
+ * just been told there is no music in it has no way to find out where it is —
+ * which is the whole reason the first version of this read as a dead end.
+ */
+function emptyFolderMessage(): string {
+  const where =
+    nativePlatform() === 'ios'
+      ? 'Open the Files app, go to On My iPhone \u2192 Universal Jukebox, and copy an album in.'
+      : 'Copy an album into the Universal Jukebox folder in your Files app.'
+  return `No music in your folder yet. ${where} Folders are kept, so Artist/Album/track.mp3 is exactly right \u2014 then scan again. Or tap \u201cadd music from this device\u201d to pick files here.`
+}
+
 let scanAbort: AbortController | null = null
 
 /**

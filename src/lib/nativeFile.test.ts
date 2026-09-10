@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NativeFile, isNativeShell, nativeFileUrl, type NativeEntry } from './nativeFile'
-import { HEAD_BYTES, scan } from './scan'
+import { HEAD_BYTES, isPlayable, scan } from './scan'
 import { readTags } from './tags'
 
 // The native shell's file, and the one thing about it that can be checked
@@ -233,5 +233,31 @@ describe('scan over native entries', () => {
     const result = await scan([entry({ path: 'x.wma', name: 'x.wma', size: 10 })], { prefix: 'Music' })
     expect(result.tracks).toHaveLength(0)
     expect(result.refused.get('wma')).toBe(1)
+  })
+})
+
+describe('the seeded readme', () => {
+  // ⚠️ The folder is seeded so that iOS shows it in the Files app at all, which
+  // means "no music yet" is never "no FILES yet". Two things have to hold for
+  // the empty-folder message to reach the person who needs it, and both are
+  // one-liners that a rename would quietly break.
+  const README = 'Put your music in here.txt'
+
+  it('is not mistaken for music', () => {
+    // If this ever became playable, a fresh install would scan "successfully",
+    // build a library of one unplayable track, and never show the message that
+    // explains where music goes.
+    expect(isPlayable(README)).toBe(false)
+  })
+
+  it('is not reported as a snubbed format either', async () => {
+    // `.txt` must be skipped SILENTLY, not listed in the "some files were
+    // skipped" report — telling somebody their readme was refused is noise
+    // about a file this app wrote itself.
+    vi.stubGlobal('Capacitor', { convertFileSrc: (u: string) => u })
+    serveBytes(new Uint8Array(16))
+    const result = await scan([entry({ path: README, name: README, size: 16 })], { prefix: 'Music' })
+    expect(result.tracks).toHaveLength(0)
+    expect(result.refused.has('txt')).toBe(false)
   })
 })
