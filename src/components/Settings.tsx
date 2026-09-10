@@ -5,6 +5,7 @@ import { DECKS, deckCopy, resolveDeck } from '../lib/decks'
 import { clearLyrics, countLyrics } from '../lib/library'
 import { goHome } from '../lib/route'
 import { canSetElementVolume } from '../lib/volumeSupport'
+import { DeckMiniature } from './Deck'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { usePlayerStore } from '../stores/playerStore'
 import {
@@ -162,6 +163,9 @@ export default function Settings() {
               value,
               label: DECKS[value].label,
               hint: DECKS[value].hint,
+              // The machine itself, still — the sentence beside it says what
+              // it does; this says what it LOOKS like, which is the question.
+              picture: <DeckMiniature setting={value} box={64} />,
             }))}
           />
         </Section>
@@ -483,6 +487,13 @@ interface Option<T> {
   value: T
   label: string
   hint?: string
+  /**
+   * A picture of the option, drawn beside its radio — the deck chooser's
+   * miniatures. Decoration: it sits inside the `<label>`, so clicking it picks
+   * the option, but it is `aria-hidden` and the radio and its text remain the
+   * control a keyboard or a screen reader uses.
+   */
+  picture?: React.ReactNode
 }
 
 /**
@@ -503,14 +514,29 @@ function Choice<T extends string>({
         <legend className="text-[14px] font-medium text-slate-900 dark:text-slate-100">{label}</legend>
         <div className="mt-2.5 space-y-2">
           {options.map((option) => (
-            <label key={option.value} className="flex cursor-pointer items-start gap-2.5">
+            <label
+              key={option.value}
+              className={`flex cursor-pointer gap-2.5 ${option.picture ? 'items-center' : 'items-start'}`}
+            >
               <input
                 type="radio"
                 name={name}
                 checked={value === option.value}
                 onChange={() => onChange(option.value)}
-                className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-orange-600"
+                className={`h-3.5 w-3.5 shrink-0 accent-orange-600 ${option.picture ? '' : 'mt-0.5'}`}
               />
+              {option.picture && (
+                // A fixed box, so five machines of five different shapes line
+                // their text up in one column.
+                <span
+                  aria-hidden
+                  className={`flex h-[72px] w-[80px] shrink-0 items-center justify-center transition-opacity ${
+                    value === option.value ? '' : 'opacity-75'
+                  }`}
+                >
+                  {option.picture}
+                </span>
+              )}
               <span className="min-w-0">
                 <span className="block text-[13.5px] text-slate-800 dark:text-slate-200">{option.label}</span>
                 {option.hint && (

@@ -1,9 +1,9 @@
 import { coverUrl, fallbackHue } from '../lib/art'
-import { resolveDeck } from '../lib/decks'
+import { DECK_ROTATION, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { usePlayerStore } from '../stores/playerStore'
-import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
+import { useSettingsStore, type DeckSetting, type DeckStyle } from '../stores/settingsStore'
 import type { Album } from '../lib/types'
 import { SHAPES, type DeckFaceProps, type NotesAnchor } from './decks/face'
 import CassetteDeck from './decks/CassetteDeck'
@@ -225,6 +225,69 @@ export function CeremonyCount() {
     >
       {count}
     </p>
+  )
+}
+
+/**
+ * A still picture of a deck, for the Settings chooser — so "a Walkman-style
+ * shell" is something you can SEE before you pick it.
+ *
+ * ⚠️ DRAWN AT FULL SIZE AND SCALED DOWN, never drawn small. The faces are
+ * mostly proportional, but not all of them: the CD player's hinge lugs and
+ * buttons and the jukebox's lamp are fixed pixel sizes, and at 60px across they
+ * would be a third of the machine. Rendering the face in a `MINI_BASE` frame and
+ * shrinking the whole thing with a transform keeps every part in the proportion
+ * the real deck has — the miniature IS the deck, not a sketch of it.
+ *
+ * ⚠️ `spinning: false` and `reduced: true`, so it is a STILL: nothing turns,
+ * nothing transitions, and — the one that matters — the jukebox face's level
+ * meter stays off. `useLevels` only builds the Web Audio graph when it is
+ * metering, and that graph is a one-way door (`lib/audioGraph.ts`); a Settings
+ * page must never be the thing that routes the app's audio through it.
+ *
+ * `random` is the four machines of the rotation at half size, in its order.
+ */
+const MINI_BASE = 220
+
+export function DeckMiniature({ setting, box }: { setting: DeckSetting; box: number }) {
+  if (setting === 'random') {
+    const cell = (box - 4) / 2
+    return (
+      <span className="grid grid-cols-2 place-items-center gap-1" style={{ width: box, height: box }}>
+        {DECK_ROTATION.map((style) => (
+          <StillDeck key={style} style={style} box={cell} />
+        ))}
+      </span>
+    )
+  }
+  return <StillDeck style={setting} box={box} />
+}
+
+function StillDeck({ style, box }: { style: DeckStyle; box: number }) {
+  const Face = FACES[style] ?? FACES.vinyl
+  const { frame } = SHAPES[style] ?? SHAPES.vinyl
+  // Fit the frame inside a `box` square, whichever of its sides is longer.
+  const width = Math.min(box, box / frame.ratio)
+  const scale = width / MINI_BASE
+  return (
+    <span className="relative block shrink-0" style={{ width, height: width * frame.ratio }}>
+      <span
+        className="pointer-events-none absolute top-0 left-0 block"
+        style={{
+          width: MINI_BASE,
+          height: MINI_BASE * frame.ratio,
+          borderRadius: frame.radius,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        {/* A third of the way through, with the pickup down — the pose that
+            shows the most of each machine: the arm on the record, the laser
+            out from the hub, the reels unequal. The brand orange stands in for
+            album art. */}
+        <Face progress={0.3} engaged spinning={false} reduced url={null} hue={24} />
+      </span>
+    </span>
   )
 }
 
