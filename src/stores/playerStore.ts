@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { isMiniMode } from '../lib/miniMode'
 import type { SourceFile } from '../lib/types'
 import { coverUrl } from '../lib/art'
-import { playCountTick, playTransportCue } from '../lib/crackle'
+import { followMusic, playCountTick, playTransportCue } from '../lib/crackle'
 import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
 import * as db from '../lib/library'
@@ -1104,6 +1104,7 @@ audio.subscribe((state) => {
     durationSec: state.durationSec,
   })
   followPlayback(state.playing)
+  followMusic(state.playing)
   ms.setPlaybackState(state.playing)
   ms.setPosition(state.currentSec, state.durationSec)
 })

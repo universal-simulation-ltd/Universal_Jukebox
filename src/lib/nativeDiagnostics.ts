@@ -18,6 +18,7 @@ import { canSetElementVolume } from './volumeSupport'
 import { graphExists } from './audioGraph'
 import { describeEvents, installLifecycleLog, noteEvent } from './bgLog'
 import { describeMediaSession } from './mediaSession'
+import { effectsState } from './crackle'
 
 /** Reads a CSS `env()` value in px, or null where the platform has none. */
 function inset(side: 'top' | 'bottom'): number | null {
@@ -149,8 +150,8 @@ function watchBackgroundPlayback(): void {
       console.log(`[jukebox:bg] hidden ${JSON.stringify({ ...state(), graph: graphExists() })}`)
       // Saved as well as printed: what the lock screen is being told, at the
       // moment it takes over — read back from the next launch's `lastBackground`.
-      noteEvent('media', { session: describeMediaSession() })
-      console.log(`[jukebox:bg] media session ${describeMediaSession()}`)
+      noteEvent('media', { session: describeMediaSession(), fx: effectsState() })
+      console.log(`[jukebox:bg] media session ${describeMediaSession()} fx=${effectsState()}`)
       timer = window.setInterval(() => {
         const s = state()
         console.log(`[jukebox:bg] +${Math.round((Date.now() - hiddenAt) / 1000)}s ${JSON.stringify({ ...s, moved: Math.round((s.sec - startSec) * 10) / 10 })}`)

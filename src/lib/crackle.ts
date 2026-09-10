@@ -326,13 +326,44 @@ function idleAfter(seconds: number): void {
   if (idleTimer !== null) clearTimeout(idleTimer)
   idleTimer = setTimeout(() => {
     idleTimer = null
-    if (context && context.state === 'running') void context.suspend().catch(() => {})
+    if (!musicPlaying) sleep()
   }, (seconds + 0.25) * 1000)
+}
+
+/**
+ * ⚠️ WHILE THE MUSIC PLAYS, THE CONTEXT STAYS AWAKE. WebKit counts this
+ * context as one of the page's players, and iOS shows the page as PAUSED when
+ * it is put to sleep — on the iPhone (2026-09-10) Control Centre showed the
+ * play triangle over a song that was playing, because the context was
+ * suspended a moment after the countdown and again on every trip to the
+ * background. So it sleeps only when the music stops (`followMusic`, fed from
+ * the player), and wakes when the music starts.
+ */
+let musicPlaying = false
+
+export function followMusic(playing: boolean): void {
+  if (playing === musicPlaying) return
+  musicPlaying = playing
+  if (!context) return
+  if (playing) {
+    if (context.state === 'suspended') void context.resume().catch(() => {})
+  } else if (idleTimer === null) {
+    sleep()
+  }
+}
+
+function sleep(): void {
+  if (context && context.state === 'running') void context.suspend().catch(() => {})
+}
+
+/** For the iPhone diagnostics: `none`, `running`, `suspended` or `closed`. */
+export function effectsState(): string {
+  return context ? context.state : 'none'
 }
 
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && context && context.state === 'running') void context.suspend().catch(() => {})
+    if (document.hidden && !musicPlaying) sleep()
   })
 }
 
