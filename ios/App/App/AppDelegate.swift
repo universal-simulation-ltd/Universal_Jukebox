@@ -45,7 +45,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     /// configured still plays in the foreground, so this must never stop launch.
     @objc private func audioInterrupted(_ note: Notification) {
         let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt ?? 99
-        let reason = note.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt ?? 99
+        // ⚠️ The REASON key only exists from iOS 14.5, and this app supports
+        // 14.0 — reading it unguarded fails the build, not the run.
+        var reason: UInt = 99
+        if #available(iOS 14.5, *) {
+            reason = note.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt ?? 99
+        }
         print("[jukebox:native] audio interruption type=\(raw) reason=\(reason) \(AudioReport.now())")
         guard AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
         configureAudioSession()
