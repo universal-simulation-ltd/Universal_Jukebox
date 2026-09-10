@@ -126,6 +126,13 @@ not exist, mixed in among somebody's own albums, indistinguishable in the grid
 and removable only by knowing which names were fake. So the first real folder
 takes its place.
 
+**It says it is the demo, once you are inside it.** The sleeves are drawn to
+look like real records and survive a reload, so a dashed *Example library*
+note sits above the library, the album pages and Now Playing while it is loaded
+(`ExampleNotice`). It is a label, not a door: there is still no way to load the
+demo from a real library, because loading it replaces the library and that would
+need a confirmation and a way back that do not exist.
+
 Three things about it are deliberate:
 
 - **The index is built eagerly, the audio lazily.** Titles, years, durations and
@@ -170,7 +177,7 @@ discovering it later.
 
 | Where | What you get |
 |---|---|
-| Chrome / Edge | Pick the folder **once**. The directory handle is stored, so the library is still there next launch behind one permission confirmation. |
+| Chrome / Edge | Pick the folder **once**. The directory handle is stored, so the library is still there next launch behind one permission confirmation — and in **Chrome 122+, installed as an app, not even that**: an installed app keeps its grant. The landing page says so only in Google Chrome 122+ that is not already installed (`lib/persistence.ts`); Edge shares the engine but does not document the policy, so it is not promised there. |
 | Firefox / Safari | Pick the folder **every session**. Neither ships File System Access, and the permission is the thing that cannot be saved — no polyfill can invent it. |
 | iOS app | **No folder is picked at all.** The app has one, and the OS shares it with the Files app. |
 | Android app | Pick the folder **once**, in the system picker. Android keeps the grant, so the library is still there next launch with nothing to confirm. |
@@ -499,10 +506,28 @@ button must not be left saying "stop" over nothing.
 was the old state driving, and who is going to tell it? A `set({ error })` and a
 `return` is a label on a machine that is still running.
 
-⚠️ What it deliberately does **not** do is act on the reason. A deleted file and
-a folder whose permission has lapsed produce the identical message, and only one
-of them is fixable by the person reading it — `ScanBanner` already knows how to
-ask for a folder again, per root, and the error does not reach for it.
+**It does act on the reason** (2026-09-10; it used to say one sentence for
+both). `useMissingFile` reads the reason from the library rather than storing
+it: a folder with **no** live files has lost its permission, and the error
+carries **that folder's own button** — `FolderAccessButton`, the same one the
+permission banner uses, which drops that folder's row while the error is up so
+it never shows twice. A folder whose other files are fine has lost **this
+file**, and the error says so, with nothing to press. Once the folder is back
+the error offers **Play it**, because `unreachable()` left nothing loaded for
+the play button to resume.
+
+⚠️ Still **one button per folder**, never "reconnect everything" — see the
+permission banner above. And the *Choose folder* route (Firefox, Safari, or a
+library of picked files) passes the root's id through `addFiles`: before that,
+re-choosing a stranded folder filed it as a new "Music (2)" and left the
+original asking for itself forever. It rescans into the root only when the
+chosen folder carries that root's name (`isFolderNamed`); anything else is
+added as a new folder.
+
+⚠️ **Still open:** "Add a folder…" from the app menu with a name you already
+have *adds* "Music (2)" even though `uniqueLabel`'s comment says an exact match
+means "rescan that one". Which of those is right for two different folders that
+share a name is a decision, not a bug fix, so it was left alone.
 
 ### The needle, once the music is going
 
