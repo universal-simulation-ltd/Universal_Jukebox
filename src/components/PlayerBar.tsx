@@ -215,6 +215,15 @@ function QueuePeek() {
     orderIndex: from + i,
   }))
 
+  // ⚠️ DELIBERATELY NO `aria-controls` here, although every fold in the library
+  // has one. `aria-expanded` + `aria-controls` is what the SDK's reveal-on-expand
+  // keys on, and it answers by SCROLLING THE PAGE until the panel is on screen.
+  // This panel is a popover pinned to the sticky transport — it is on screen by
+  // construction, and scrolling the window does not move it at all. The only
+  // thing the reveal could do is shift the library underneath an open overlay
+  // (it would, on a short window, where the panel's top passes under the navbar
+  // and "keep the top in view" asks for an upward scroll). The same goes for any
+  // positioned menu or popover added to this app.
   return (
     <div ref={wrap} className="relative">
       <IconButton

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useId, useMemo, useState } from 'react'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
 import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
@@ -33,6 +33,7 @@ export default function AlbumGrid({ query }: AlbumGridProps) {
   const albums = useLibraryStore((s) => s.albums)
   /** Artists the user has opened out. Names, because that is what groups them. */
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const baseId = useId()
 
   // ⚠️ Sorted first, then filtered through `matchAlbums` — the same function
   // the tab count uses, so the number beside "Albums" and the tiles below it
@@ -74,49 +75,26 @@ export default function AlbumGrid({ query }: AlbumGridProps) {
 
   return (
     <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-      {runs.map((run) => {
+      {runs.map((run, runIndex) => {
         const groupable = fanning && run.albums.length >= FAN_MIN
-        const isFan = groupable && !expanded.has(run.artist)
-        const open = () => setExpanded((prev) => new Set(prev).add(run.artist))
-        const close = () =>
+        const isOpen = groupable && expanded.has(run.artist)
+        const toggle = () =>
           setExpanded((prev) => {
             const next = new Set(prev)
-            next.delete(run.artist)
+            if (next.has(run.artist)) next.delete(run.artist)
+            else next.add(run.artist)
             return next
           })
+        // ⚠️ The run has no box of its own — its tiles are grid cells among
+        // everybody else's — so the group card's `aria-controls` names the LAST
+        // of them. The SDK's reveal spans the trigger AND the panel, so "the card
+        // you pressed down to its last record" is exactly the stretch it brings
+        // on screen. (`aria-controls` may list several ids, but the SDK looks the
+        // value up as ONE id, and a list would find nothing.)
+        const lastTileId = `${baseId}-run-${runIndex}-last`
 
-        if (isFan) {
-          return (
-            <li key={`fan-${run.artist}`}>
-              <button
-                type="button"
-                onClick={open}
-                aria-expanded={false}
-                className="group w-full text-left focus:outline-none"
-              >
-                {/* Breathing room inside the tile's own square, so the cards
-                    behind lean into padding rather than into the neighbouring
-                    tile. Inside, so every cell stays the same size — a fan that
-                    grew its cell would shove the whole row out of alignment. */}
-                <div className="aspect-square w-full px-3 pt-3">
-                  <CoverFan
-                    albums={run.albums}
-                    className="h-full w-full transition-transform group-hover:-translate-y-0.5"
-                  />
-                </div>
-                <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
-                  {run.artist}
-                </p>
-                <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
-                  {plural(run.albums.length, 'album')}
-                </p>
-              </button>
-            </li>
-          )
-        }
-
-        const tiles = run.albums.map((album) => (
-          <li key={album.id}>
+        const tiles = run.albums.map((album, i) => (
+          <li key={album.id} id={groupable && i === run.albums.length - 1 ? lastTileId : undefined}>
             <button
               type="button"
               onClick={() => navigate({ view: 'album', albumId: album.id })}
@@ -143,34 +121,68 @@ export default function AlbumGrid({ query }: AlbumGridProps) {
           </li>
         ))
 
-        if (!groupable) return tiles
+        if (!groupable) return <Fragment key={run.artist}>{tiles}</Fragment>
 
-        // ⚠️ The group's own card, FIRST and in the cell the fan was in — not a
-        // "fold back up" link at the end of the run. See `OpenGroup`.
-        return [
-          <li key={`open-${run.artist}`}>
-            <button
-              type="button"
-              onClick={close}
-              aria-expanded
-              className="group w-full text-left focus:outline-none"
-            >
-              <div className="aspect-square w-full">
-                <OpenGroup
-                  albums={run.albums}
-                  className="h-full w-full transition-transform group-hover:-translate-y-0.5"
-                />
-              </div>
-              <p className="mt-2 line-clamp-2 text-[13px] font-medium text-orange-700 dark:text-orange-400">
-                {run.artist}
-              </p>
-              <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
-                Showing {plural(run.albums.length, 'album')} — tap to fold up
-              </p>
-            </button>
-          </li>,
-          ...tiles,
-        ]
+        // ⚠️ ONE button for both states — the fan and the opened group's card —
+        // and it has to stay one. This was two buttons, a fan with a FIXED
+        // `aria-expanded={false}` and a card with a fixed `aria-expanded`, so
+        // opening a run unmounted one and mounted the other: the attribute never
+        // CHANGED on any element, the SDK's reveal-on-expand (which watches for
+        // exactly that change) never fired, and keyboard focus fell off the page
+        // along with the button that had it. The shared `Fragment` key and the
+        // stable `li` key are what let React keep the same element and flip the
+        // attribute on it.
+        //
+        // The card sits FIRST and in the cell the fan was in — not a "fold back
+        // up" link at the end of the run. See `OpenGroup`.
+        return (
+          <Fragment key={run.artist}>
+            <li key="group">
+              <button
+                type="button"
+                onClick={toggle}
+                aria-expanded={isOpen}
+                aria-controls={lastTileId}
+                className="group w-full text-left focus:outline-none"
+              >
+                {isOpen ? (
+                  <div className="aspect-square w-full">
+                    <OpenGroup
+                      albums={run.albums}
+                      className="h-full w-full transition-transform group-hover:-translate-y-0.5"
+                    />
+                  </div>
+                ) : (
+                  // Breathing room inside the tile's own square, so the cards
+                  // behind lean into padding rather than into the neighbouring
+                  // tile. Inside, so every cell stays the same size — a fan that
+                  // grew its cell would shove the whole row out of alignment.
+                  <div className="aspect-square w-full px-3 pt-3">
+                    <CoverFan
+                      albums={run.albums}
+                      className="h-full w-full transition-transform group-hover:-translate-y-0.5"
+                    />
+                  </div>
+                )}
+                <p
+                  className={`mt-2 line-clamp-2 text-[13px] font-medium ${
+                    isOpen
+                      ? 'text-orange-700 dark:text-orange-400'
+                      : 'text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400'
+                  }`}
+                >
+                  {run.artist}
+                </p>
+                <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
+                  {isOpen
+                    ? `Showing ${plural(run.albums.length, 'album')} — tap to fold up`
+                    : plural(run.albums.length, 'album')}
+                </p>
+              </button>
+            </li>
+            {isOpen && tiles}
+          </Fragment>
+        )
       })}
     </ul>
   )

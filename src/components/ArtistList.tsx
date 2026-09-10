@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
 import OpenGroup from './OpenGroup'
@@ -26,6 +26,12 @@ import type { Album } from '../lib/types'
 export default function ArtistList({ query }: { query: string }) {
   const albums = useLibraryStore((s) => s.albums)
   const [openArtist, setOpenArtist] = useState<string | null>(null)
+  // The drawer's id, for the cards' `aria-controls`. ⚠️ That attribute is what
+  // lets the SDK's reveal-on-expand find the drawer: it watches `aria-expanded`
+  // flip to true and scrolls to whatever `aria-controls` names. With `aria-expanded`
+  // alone it deliberately does nothing — and the drawer opens BELOW the whole
+  // grid, which on a long list is off the bottom of the screen.
+  const drawerId = useId()
 
   const artists = useMemo(() => {
     const byArtist = new Map<string, Album[]>()
@@ -74,6 +80,7 @@ export default function ArtistList({ query }: { query: string }) {
                     : navigate({ view: 'album', albumId: artist.albums[0].id })
                 }
                 aria-expanded={many ? openArtist === artist.name : undefined}
+                aria-controls={many ? drawerId : undefined}
                 className="group w-full text-left focus:outline-none"
               >
                 {/* ⚠️ Open, the fan becomes the sleeve — the same card the
@@ -124,7 +131,11 @@ export default function ArtistList({ query }: { query: string }) {
           somewhere else on the page at the moment you click it. A drawer under
           the grid leaves the grid still. */}
       {open && (
-        <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">
+        <section
+          id={drawerId}
+          aria-label={`${open.name}’s albums`}
+          className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800"
+        >
           <div className="mb-4 flex items-baseline justify-between gap-4">
             <h2 className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">
               {open.name}
