@@ -292,6 +292,32 @@ export function usesChosenFolder(): boolean {
   }
 }
 
+/**
+ * Does this platform have a music folder of the APP'S OWN, usable without a
+ * picker?
+ *
+ * iOS does: `Directory.Documents` is private to the app and published to the
+ * Files app by two Info.plist keys, so music can be put into it and read back
+ * with no grant at all. Android does not: there `Directory.Documents` is the
+ * phone's SHARED Documents folder, and scoped storage hides from this app
+ * everything in it that the app did not write itself.
+ *
+ * ⚠️ A SEPARATE QUESTION FROM `usesChosenFolder`, and conflating the two was a
+ * bug. That one asks "can a folder be chosen here"; this one asks "is there a
+ * folder already". On iOS both are now yes (James, 2026-09-10: "choose their
+ * library folder instead of forcing them to use ours" — choice, not the loss of
+ * ours), and every place that read `usesChosenFolder()` as "there is no own
+ * folder" would have dropped the app's own folder the moment the iOS picker
+ * plugin was registered — stopped seeding it, refused to walk it, and made a
+ * library already scanned from it throw on the next launch.
+ *
+ * ⚠️ Platform, not capability, on purpose: there is no runtime probe for "is
+ * Documents private to this app". It is a fact about each OS's storage model.
+ */
+export function hasOwnMusicFolder(): boolean {
+  return isNativeShell() && nativePlatform() === 'ios'
+}
+
 /** The native plugin behind a chosen folder — see `usesChosenFolder`. */
 export const MUSIC_FOLDER_PLUGIN = 'JukeboxMusicFolder'
 
@@ -381,14 +407,20 @@ export async function walkNativeLibrary(
   signal?: AbortSignal,
   folder: string = NATIVE_ROOT_PATH,
 ): Promise<NativeEntry[]> {
-  if (usesChosenFolder()) {
-    // ⚠️ No folder is "I could not look", never "empty" — the same distinction
-    // the root case below draws, for the same reason.
-    if (!folder) throw new Error('No music folder has been chosen yet')
+  // A CHOSEN folder — a non-empty `Root.nativePath` — is walked by the plugin.
+  if (folder && usesChosenFolder()) {
     await loadMusicFolder()
     const { files } = await musicFolder!.walk({ uri: folder })
     return files.map((f) => ({ ...f, mtime: f.mtime ?? 0 }))
   }
+  // ⚠️ `''` IS THE APP'S OWN FOLDER, IN BOTH MODES, WHEREVER THERE IS ONE. On
+  // iOS a folder can be chosen AND the app keeps its own — and every library
+  // scanned before the picker existed is stored under `''`, so treating `''`
+  // as "nothing chosen" whenever a picker is registered would make it throw on
+  // the first launch after the update. Only where there is no own folder
+  // (Android) is `''` genuinely "no folder", which is "I could not look",
+  // never "empty".
+  if (!hasOwnMusicFolder()) throw new Error('No music folder has been chosen yet')
   const { Filesystem, Directory } = await import('@capacitor/filesystem')
   const found: NativeEntry[] = []
   const stack: string[] = ['']
@@ -550,11 +582,13 @@ const README_BODY = [
  * never a reason to fail a launch.
  */
 export async function ensureNativeMusicFolder(): Promise<void> {
-  // ⚠️ iOS ONLY. On Android `Directory.Documents` is the phone's SHARED
-  // Documents folder, which the library does not read there (see
-  // `usesChosenFolder`) — a readme written into it would be litter in
+  // ⚠️ Only where the app HAS its own folder (`hasOwnMusicFolder` — iOS). On
+  // Android `Directory.Documents` is the phone's SHARED Documents folder, which
+  // the library does not read — a readme written into it would be litter in
   // somebody's Documents, telling them to put music somewhere that is ignored.
-  if (!isNativeShell() || usesChosenFolder()) return
+  // ⚠️ NOT keyed on `usesChosenFolder()`: iOS can choose a folder now too, and
+  // still offers its own — which only appears in the Files app once seeded.
+  if (!hasOwnMusicFolder()) return
   try {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
     const { files } = await Filesystem.readdir({

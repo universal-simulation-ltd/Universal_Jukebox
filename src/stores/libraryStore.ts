@@ -14,6 +14,7 @@ import {
   isNativeShell,
   pickNativeMusicFolder,
   releaseNativeMusicFolder,
+  hasOwnMusicFolder,
   usesChosenFolder,
   walkNativeLibrary,
 } from '../lib/nativeFile'
@@ -111,13 +112,13 @@ interface LibraryState {
    * one folder and the OS shares it with the Files app. See
    * `lib/nativeFile.ts`.
    *
-   * ⚠️ Where the folder is CHOSEN instead (`usesChosenFolder` — Android today)
+   * ⚠️ Where the folder is CHOSEN instead (`usesChosenFolder` — Android, and iOS once a folder has been picked)
    * the first "scan" is a choice: with no folder chosen yet, or with access to
    * the chosen one gone, this hands over to `chooseNativeFolder`.
    */
   scanNativeFolder(): Promise<void>
   /**
-   * Where `usesChosenFolder()` (Android today; any platform whose shell
+   * Where `usesChosenFolder()` (Android and iOS; any platform whose shell
    * registers a `JukeboxMusicFolder` plugin): open the system folder picker and
    * make what is chosen the library's phone folder, replacing the one before if
    * there was one. A no-op everywhere else.
@@ -450,23 +451,24 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // "Music (2)": one folder, two roots, every track in the library twice.
     // There is exactly one native root, and `nativePath` is what marks it.
     const existing = get().roots.find((r) => r.nativePath != null)
-    if (usesChosenFolder() && !existing?.nativePath) {
-      // Android with nothing chosen yet: "scan" can only mean "choose".
+    const folder = existing?.nativePath ?? NATIVE_ROOT_PATH
+    // Nothing chosen yet AND no folder of the app's own to fall back on
+    // (Android): "scan" can only mean "choose".
+    // ⚠️ Not `usesChosenFolder() && !existing?.nativePath`, which read `''` as
+    // "not chosen": iOS stores its own folder as `''` and can choose one too, so
+    // that test sent every iOS rescan of the app's own folder to the picker.
+    if (usesChosenFolder() && !folder && !hasOwnMusicFolder()) {
       await get().chooseNativeFolder()
       return
     }
-    const outcome = await scanNative(
-      set,
-      get,
-      existing?.nativePath ?? NATIVE_ROOT_PATH,
-      existing?.id,
-      NATIVE_ROOT_LABEL,
-    )
-    // ⚠️ Android has lost the folder — moved, renamed, deleted, or access
-    // withdrawn in Settings. Choosing it again is the only way back, and this
-    // was a tap, so the picker opens now rather than an error naming a fix the
-    // screen has no button for. Backing out of it leaves the error showing.
-    if (outcome === 'unreadable' && usesChosenFolder()) await get().chooseNativeFolder()
+    const outcome = await scanNative(set, get, folder, existing?.id, NATIVE_ROOT_LABEL)
+    // ⚠️ A CHOSEN folder has been lost — moved, renamed, deleted, access
+    // withdrawn, a drive unplugged. Choosing it again is the only way back, and
+    // this was a tap, so the picker opens now rather than an error naming a fix
+    // the screen has no button for. Backing out of it leaves the error showing.
+    // The app's own folder (`''`) is never "lost" in that sense — there is
+    // nothing to re-choose — so it gets the error alone.
+    if (outcome === 'unreadable' && folder && usesChosenFolder()) await get().chooseNativeFolder()
   },
 
   async chooseNativeFolder() {
@@ -549,8 +551,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
  * just been told there is no music in it has no way to find out where it is —
  * which is the whole reason the first version of this read as a dead end.
  */
-function emptyFolderMessage(): string {
-  if (usesChosenFolder()) {
+function emptyFolderMessage(folder: string): string {
+  // Keyed on the folder that was READ, not on whether a picker exists: on iOS
+  // both kinds of folder are possible and they need different directions.
+  if (folder) {
     return 'No music in that folder. Copy albums into it from a computer or with the Files app — Artist/Album/track.mp3 is exactly right — then scan again, or choose a different folder.'
   }
   const where =
@@ -588,7 +592,7 @@ async function scanNative(
     set({
       status: get().tracks.length > 0 ? 'ready' : 'empty',
       progress: null,
-      error: usesChosenFolder()
+      error: folder
         ? 'That folder could not be opened — it may have been moved or renamed, or access to it was withdrawn. Choose it again.'
         : 'The music folder could not be read. If the app was just installed, try opening it again.',
     })
@@ -610,7 +614,7 @@ async function scanNative(
     set({
       status: get().tracks.length > 0 ? 'ready' : 'empty',
       progress: null,
-      error: emptyFolderMessage(),
+      error: emptyFolderMessage(folder),
     })
     return 'empty'
   }

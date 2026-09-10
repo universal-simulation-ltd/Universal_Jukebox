@@ -4,7 +4,7 @@ import { trackCountFor } from '../../lib/roots'
 import { plural } from '../../lib/format'
 import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
-import { isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
+import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
 //
@@ -56,12 +56,22 @@ export default function AppMenu() {
   const native = isNativeShell()
   // Android: the folder is chosen, not fixed — see `usesChosenFolder`.
   const chosen = usesChosenFolder()
+  // iOS: a folder of the app's own AND the choice of another — see
+  // `hasOwnMusicFolder`.
+  const own = hasOwnMusicFolder()
   const pref = useThemeStore((s) => s.pref)
   const setPref = useThemeStore((s) => s.setPref)
   const folderInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
   const hasLibrary = status === 'ready'
+  // ⚠️ Is the library reading a folder somebody CHOSE (a non-empty
+  // `nativePath`) rather than the app's own? Then the importer is wrong here
+  // too, on iOS as on Android: it copies into the app's own folder, which the
+  // library is no longer reading, so imported music would never be found.
+  const readingChosen = roots.some((r) => !!r.nativePath)
+  // Where "add" means copy files INTO the folder the library reads.
+  const canImport = native && own && !readingChosen
 
   // Same paths as the landing screen: the real picker where the browser has
   // one, `webkitdirectory` where it hasn't — and inside the native shell,
@@ -71,7 +81,8 @@ export default function AppMenu() {
     // Android: a different folder, through the system picker. The importer
     // would copy into the phone's SHARED Documents, which the library does not
     // read there — see `usesChosenFolder`.
-    if (chosen) void chooseNativeFolder()
+    if (canImport) fileInput.current?.click()
+    else if (chosen) void chooseNativeFolder()
     else if (native) fileInput.current?.click()
     else if (canPersist) void pickFolder()
     else folderInput.current?.click()
@@ -120,15 +131,28 @@ export default function AppMenu() {
           <Row
             onClick={chooseFolder}
             title={
-              chosen
-                ? 'Reads a different folder instead of the one the library reads now'
-                : native
-                  ? 'Copies the files you pick into the Universal Jukebox folder, then re-scans'
-                  : 'Adds to your library — the folders you already have stay where they are'
+              canImport
+                ? 'Copies the files you pick into the Universal Jukebox folder, then re-scans'
+                : chosen
+                  ? 'Reads a different folder instead of the one the library reads now'
+                  : native
+                    ? 'Copies the files you pick into the Universal Jukebox folder, then re-scans'
+                    : 'Adds to your library — the folders you already have stay where they are'
             }
           >
-            {chosen ? 'Choose a different folder…' : native ? 'Add music…' : 'Add a folder…'}
+            {canImport ? 'Add music…' : chosen ? 'Choose a different folder…' : native ? 'Add music…' : 'Add a folder…'}
           </Row>
+          {/* iOS, reading its own folder: choosing another is offered BESIDE
+              "Add music…", not instead of it. Once a chosen folder is being read
+              the row above already is "Choose a different folder…". */}
+          {canImport && chosen && (
+            <Row
+              onClick={() => void chooseNativeFolder()}
+              title="Read a folder of your own instead — iCloud Drive, On My iPhone, or a connected drive"
+            >
+              Choose a different folder…
+            </Row>
+          )}
           {/* ⚠️ Native only, and it is not a duplicate of the row above. Music
               put in through the FILES APP — copied, AirDropped, synced from a
               computer — never touches this app, so nothing tells the library it

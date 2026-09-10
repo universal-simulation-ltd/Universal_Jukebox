@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { isNativeShell, usesChosenFolder } from '../lib/nativeFile'
+import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { useLibraryStore } from '../stores/libraryStore'
 import { keepsFolderWhenInstalled } from '../lib/persistence'
 
@@ -44,6 +44,11 @@ export default function Landing() {
   // so there the folder IS chosen — through the system picker, which Android
   // then lets the app keep. See `usesChosenFolder`.
   const chosen = usesChosenFolder()
+  // ⚠️ AND iOS IS BOTH. It has a folder of its own (the Files app's "Universal
+  // Jukebox") AND can choose another — so the own folder stays the main button
+  // and choosing is offered beside it, never instead. `chosen` alone would have
+  // turned iOS into Android the moment its picker plugin was registered.
+  const own = hasOwnMusicFolder()
   // Building it draws eleven sleeves, which is fast but not instant — and a
   // button that appears to do nothing for half a second is a button people
   // press twice.
@@ -77,7 +82,7 @@ export default function Landing() {
           type="button"
           disabled={importProgress !== null}
           onClick={() =>
-            chosen
+            chosen && !own
               ? void chooseNativeFolder()
               : native
                 ? void scanNativeFolder()
@@ -88,11 +93,11 @@ export default function Landing() {
           className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60"
         >
           <FolderGlyph />
-          {native && !chosen ? 'Scan my music folder' : 'Choose your music folder'}
+          {native && (own || !chosen) ? 'Scan my music folder' : 'Choose your music folder'}
         </button>
 
         <p className="max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-          {chosen ? (
+          {chosen && !own ? (
             <>
               Pick the folder your music is in — usually <strong>Music</strong>. Sub-folders
               are fine. The app keeps permission to read it, so your library is still here
@@ -127,7 +132,7 @@ export default function Landing() {
             the library reads — so it would copy files somewhere they are never
             found. Music goes into the chosen folder, the way it gets onto an
             Android phone anyway. */}
-        {!chosen && (
+        {(!chosen || own) && (
           <button
             type="button"
             disabled={importProgress !== null}
@@ -135,6 +140,20 @@ export default function Landing() {
             className="mt-1 text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
           >
             {native ? 'Or add music from this device' : 'Or pick individual files'}
+          </button>
+        )}
+
+        {/* iOS: a folder of your own choosing — iCloud Drive, On My iPhone, a
+            connected drive — as well as the app's. The picker opens IN the
+            app's folder, so going back to it is one tap. */}
+        {chosen && own && (
+          <button
+            type="button"
+            disabled={importProgress !== null}
+            onClick={() => void chooseNativeFolder()}
+            className="text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
+          >
+            Or choose a different folder — iCloud Drive, On My iPhone…
           </button>
         )}
 

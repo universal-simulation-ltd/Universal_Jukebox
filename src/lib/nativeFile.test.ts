@@ -11,6 +11,7 @@ import {
   usesChosenFolder,
   walkNativeLibrary,
   type NativeEntry,
+  hasOwnMusicFolder,
 } from './nativeFile'
 import { HEAD_BYTES, isPlayable, scan } from './scan'
 import { readTags } from './tags'
@@ -324,10 +325,11 @@ vi.mock('@capacitor/filesystem', () => ({
 
 /**
  * A native shell. `musicFolderPlugin` is whether the native side registered
- * `JukeboxMusicFolder` — which Android does and iOS does not, yet.
+ * `JukeboxMusicFolder` — which both phones do now (Android's
+ * `MusicFolderPlugin.java`, iOS's `MusicFolderPlugin.swift`).
  */
 function onPlatform(platform: 'ios' | 'android', options: { musicFolderPlugin?: boolean } = {}) {
-  const { musicFolderPlugin = platform === 'android' } = options
+  const { musicFolderPlugin = true } = options
   vi.stubGlobal('Capacitor', {
     isNativePlatform: () => true,
     getPlatform: () => platform,
@@ -341,11 +343,11 @@ describe('the Android music folder', () => {
     for (const f of [musicFolder.pick, musicFolder.walk, musicFolder.release, fs.readdir, fs.writeFile]) f.mockReset()
   })
 
-  it('is chosen on Android and fixed on iOS', () => {
+  it('can be chosen on both phones, and never in a browser', () => {
     onPlatform('android')
     expect(usesChosenFolder()).toBe(true)
     onPlatform('ios')
-    expect(usesChosenFolder()).toBe(false)
+    expect(usesChosenFolder()).toBe(true)
     vi.unstubAllGlobals()
     expect(usesChosenFolder()).toBe(false)
   })
@@ -371,12 +373,16 @@ describe('the Android music folder', () => {
     expect(fs.readdir).not.toHaveBeenCalled()
   })
 
-  it('refuses to walk with no folder chosen, rather than calling it empty', async () => {
+  it('refuses to walk with no folder chosen on ANDROID, rather than calling it empty', async () => {
     // "Your folder is empty" and "I could not look" need different things from
-    // the person — the same line the iOS walker draws at its root.
+    // the person — the same line the iOS walker draws at its root. Android has
+    // no folder of its own to fall back on (its Documents is the phone's shared
+    // one), so `''` there really is "nothing chosen". iOS is different: see the
+    // migration test below.
     onPlatform('android')
     await expect(walkNativeLibrary()).rejects.toThrow()
     expect(musicFolder.walk).not.toHaveBeenCalled()
+    expect(fs.readdir).not.toHaveBeenCalled()
   })
 
   it('treats a backed-out picker as no answer, not an error', async () => {
@@ -397,6 +403,63 @@ describe('the Android music folder', () => {
     expect(fs.writeFile).not.toHaveBeenCalled()
 
     onPlatform('ios')
+    fs.readdir.mockResolvedValue({ files: [] })
+    await ensureNativeMusicFolder()
+    expect(fs.writeFile).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ── iOS: a folder can be chosen, AND the app keeps its own ───────────────────
+
+describe('the iOS music folder — chosen, and its own', () => {
+  beforeEach(() => {
+    for (const f of [musicFolder.pick, musicFolder.walk, musicFolder.release, fs.readdir, fs.writeFile]) f.mockReset()
+  })
+
+  it('has a folder of its own on iOS, and not on Android or the web', () => {
+    onPlatform('ios')
+    expect(hasOwnMusicFolder()).toBe(true)
+    onPlatform('android')
+    expect(hasOwnMusicFolder()).toBe(false)
+    vi.unstubAllGlobals()
+    expect(hasOwnMusicFolder()).toBe(false)
+  })
+
+  it('still walks a library stored under its own folder once a picker exists — the migration case', async () => {
+    // ⚠️ Every iOS library scanned before folder choice existed is stored as
+    // `Root.nativePath === ''`. Registering the iOS picker plugin flips
+    // `usesChosenFolder()` to true; if `''` were then read as "nothing chosen",
+    // that library would throw on the first launch after the update. It must
+    // go on walking the app's own folder, through `readdir`, not the plugin.
+    onPlatform('ios', { musicFolderPlugin: true })
+    fs.readdir.mockResolvedValue({
+      files: [{ name: '01.mp3', type: 'file', size: 10, mtime: 5, uri: 'file:///Documents/01.mp3' }],
+    })
+
+    const entries = await walkNativeLibrary(undefined, '')
+
+    expect(musicFolder.walk).not.toHaveBeenCalled()
+    expect(fs.readdir).toHaveBeenCalled()
+    expect(entries.map((e) => e.path)).toEqual(['01.mp3'])
+  })
+
+  it('walks a folder CHOSEN on iOS through the plugin', async () => {
+    onPlatform('ios', { musicFolderPlugin: true })
+    const chosen = 'file:///private/var/mobile/Library/Mobile%20Documents/com~apple~CloudDocs/Music/'
+    const file = { path: 'A/R/01.flac', uri: `${chosen}A/R/01.flac`, name: '01.flac', size: 10, mtime: 5 }
+    musicFolder.walk.mockResolvedValue({ files: [file] })
+
+    const entries = await walkNativeLibrary(undefined, chosen)
+
+    expect(musicFolder.walk).toHaveBeenCalledWith({ uri: chosen })
+    expect(entries).toEqual([file])
+    expect(fs.readdir).not.toHaveBeenCalled()
+  })
+
+  it('keeps seeding its own folder with the readme when a picker exists', async () => {
+    // Without the readme iOS does not list the folder in the Files app at all,
+    // so "put your music in the Universal Jukebox folder" would point nowhere.
+    onPlatform('ios', { musicFolderPlugin: true })
     fs.readdir.mockResolvedValue({ files: [] })
     await ensureNativeMusicFolder()
     expect(fs.writeFile).toHaveBeenCalledTimes(1)
