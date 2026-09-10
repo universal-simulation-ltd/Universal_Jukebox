@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Cover from './Cover'
 import { clock } from '../lib/format'
 import { navigate } from '../lib/route'
+import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 
@@ -144,16 +145,32 @@ export default function PlayerBar() {
             <IconButton label={muted ? 'Unmute' : 'Mute'} onClick={toggleMute}>
               {muted || volume === 0 ? <MutedGlyph /> : <VolumeGlyph />}
             </IconButton>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={muted ? 0 : volume}
-              aria-label="Volume"
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="jb-scrub h-1 w-20 cursor-pointer appearance-none rounded-full bg-slate-200 dark:bg-slate-700"
-            />
+            {/* ⚠️ The same capability check as the Settings fade sliders
+                (`lib/volumeSupport.ts`), asked of the ENGINE rather than the
+                platform. Where assigning `element.volume` is refused, this
+                slider would move and change nothing you can hear — so it says
+                where the volume is instead. Mute STAYS: it goes through
+                `element.muted`, not `volume`, and works on those engines too.
+                A current iPhone answers yes and keeps the slider. */}
+            {canSetElementVolume() ? (
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={muted ? 0 : volume}
+                aria-label="Volume"
+                onChange={(e) => setVolume(Number(e.target.value))}
+                className="jb-scrub h-1 w-20 cursor-pointer appearance-none rounded-full bg-slate-200 dark:bg-slate-700"
+              />
+            ) : (
+              <span
+                className="max-w-[7.5rem] text-[11px] leading-tight text-slate-500 dark:text-slate-400"
+                title="This device doesn’t let an app set the playback volume — that belongs to its own volume buttons."
+              >
+                Volume is on your device’s buttons
+              </span>
+            )}
           </div>
         </div>
       </div>

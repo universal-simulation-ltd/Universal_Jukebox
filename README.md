@@ -246,8 +246,10 @@ those four features would merely stop being heard. **The crossfade would get
 worse rather than absent:** it starts the incoming track *under* the outgoing
 one, and with no working gain "under" is full volume, so both records would play
 at once for the length of the fade. Where volume cannot be set, the crossfade
-degrades to a clean change-over and the fade sliders are disabled with a
-sentence saying why.
+degrades to a clean change-over, the fade sliders are disabled with a sentence
+saying why, and the transport's volume slider is replaced by a line saying the
+volume is on the device's buttons. Mute stays: it goes through
+`element.muted`, which those engines honour.
 
 ⚠️ **It is a capability check, not an iOS check, and that is what stopped a bug
 shipping.** Hard-coding the assumption — `if (isIOS) noFades()` — would have
