@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { isMiniMode } from '../lib/miniMode'
 import type { SourceFile } from '../lib/types'
 import { coverUrl } from '../lib/art'
-import { playTransportCue } from '../lib/crackle'
+import { playCountTick, playTransportCue } from '../lib/crackle'
 import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
 import * as db from '../lib/library'
@@ -667,6 +667,17 @@ function handoverFor(from: Track | null, to: Track): Handover {
  * stuck at full whatever the slider said — and, now, with a cassette on screen
  * making the noise of a needle.
  */
+/**
+ * The countdown's tick, on each numeral. Part of the start-up sound, so it
+ * obeys the same switch and the same level as the needle drop that follows it —
+ * somebody who turned that off did not want the countdown clicking either.
+ */
+function countTick(downbeat: boolean): void {
+  const { needleDrop: on, needleDropLevel } = settings()
+  if (!on) return
+  playCountTick(usePlayerStore.getState().volume, needleDropLevel, downbeat)
+}
+
 function needleDrop(volume: number): void {
   const { needleDrop: on, needleDropLevel, deck } = settings()
   if (!on) return
@@ -851,11 +862,15 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
     lastCeremonyAt: Date.now(),
   })
   void audio.load(file, false)
+  countTick(false)
 
   const at = (ms: number, fn: () => void) => {
     ceremonyTimers.push(setTimeout(fn, ms) as unknown as number)
   }
-  at(BEATS.one, () => set({ ceremonyCount: 1 }))
+  at(BEATS.one, () => {
+    set({ ceremonyCount: 1 })
+    countTick(true)
+  })
   at(BEATS.land, () => {
     set({ armDown: true, deckPhase: 'idle' })
     needleDrop(get().volume)

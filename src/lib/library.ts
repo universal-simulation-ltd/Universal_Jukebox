@@ -308,6 +308,16 @@ export interface LyricRecord {
   /** True when LRCLIB says the track has no words at all. */
   instrumental?: boolean
   at: number
+  /**
+   * `'upload'` for a lyrics file the person added themselves — which wins over
+   * the file's own tags and over lrclib from then on. Absent for lrclib's.
+   */
+  source?: 'upload'
+  /**
+   * The cache's shape. Records from before 2026-09-10 have none, and a "not
+   * found" among them is asked again — see `cacheUsable` in `lrclib.ts`.
+   */
+  v?: number
 }
 
 export async function getLyricRecord(trackId: string): Promise<LyricRecord | null> {

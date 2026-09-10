@@ -6,6 +6,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import Deck, { CeremonyCount } from './Deck'
+import DeckSwiper from './DeckSwiper'
 import type { Album } from '../lib/types'
 import Lyrics from './Lyrics'
 import Queue from './Queue'
@@ -66,11 +67,12 @@ export default function NowPlaying() {
           only when there IS a cover. */}
       {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
 
-      <div className="relative shrink-0">
+      {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
+      <DeckSwiper size={clampDeck()}>
         {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
             off, the record on the deck is still the OLD one — see below. */}
         <Deck album={onTheDeck} size={clampDeck()} ceremonial />
-      </div>
+      </DeckSwiper>
 
       <div className="relative min-w-0 flex-1 text-center lg:text-left">
         {/* ⚠️ The numerals REPLACE the title for two seconds; they do not sit on

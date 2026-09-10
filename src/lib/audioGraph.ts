@@ -35,6 +35,24 @@
 // graph the boost and the analyser are reading). Capture is permanent, so
 // getting this wrong once is not recoverable within the session.
 
+import { isNativeShell, nativePlatform } from './nativeFile'
+
+/**
+ * May the app build this graph at all here?
+ *
+ * ⚠️ NEVER IN THE iOS APP (James, 2026-09-10: "Needs to play music in the
+ * background when minimised iPhone"). Capturing an element into Web Audio moves
+ * its sound out of the `<audio>` element's own playback, which iOS keeps going
+ * in the background, and into an `AudioContext` — which iOS suspends the moment
+ * the app is not on screen. The music stops, with no error anywhere. The two
+ * things that need the graph (the boost above 100%, and the jukebox deck's
+ * level tubes and the visualiser) are decoration next to music that keeps
+ * playing with the phone in a pocket, so on iOS they are simply not offered.
+ */
+export function graphAllowed(): boolean {
+  return !(isNativeShell() && nativePlatform() === 'ios')
+}
+
 let context: AudioContext | null = null
 let sources: MediaElementAudioSourceNode[] = []
 let boostGain: GainNode | null = null
@@ -58,6 +76,10 @@ export interface Graph {
 export function ensureGraph(elements: HTMLAudioElement[]): Graph | null {
   if (analyser && context) return { context, analyser }
   if (unavailable) return null
+  if (!graphAllowed()) {
+    unavailable = true
+    return null
+  }
 
   try {
     const Ctor =
@@ -124,7 +146,7 @@ export function graphExists(): boolean {
 
 /** Whether this browser has refused us a graph. */
 export function graphUnavailable(): boolean {
-  return unavailable
+  return unavailable || !graphAllowed()
 }
 
 /**

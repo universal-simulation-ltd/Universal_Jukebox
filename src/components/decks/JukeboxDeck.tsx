@@ -6,7 +6,7 @@ import type { DeckFaceProps } from './face'
 //
 // ⚠️ THIS COMPONENT OWNS NO TIMING, like every other face — `Deck.tsx` reads
 // the ceremony's beats off `playerStore` and hands this file `progress`,
-// `engaged`, `spinning` and `arrival`. See `decks/face.ts`.
+// `engaged`, `spinning` and `labelFade`. See `decks/face.ts`.
 //
 // ⚠️ IT IS A 45, NOT AN LP, and that is the one thing that stops it reading as
 // the vinyl deck in a box. A jukebox holds singles: a big centre hole, a label
@@ -50,7 +50,7 @@ const ARM = {
  */
 const WINDOW = { left: '15%', right: '15%', top: '10%' }
 
-export default function JukeboxDeck({ progress, engaged, spinning, reduced, url, hue, arrival }: DeckFaceProps) {
+export default function JukeboxDeck({ progress, engaged, spinning, reduced, url, hue, labelFade }: DeckFaceProps) {
   const trackAngle = ARM.TRACK_START + progress * ARM.TRACK_TRAVEL
 
   /**
@@ -216,10 +216,10 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
           }}
         />
 
-        {/* The record, inside its arrival wrapper — it is the part the gripper
+        {/* The record, inside its own wrapper — it is the part the gripper
             brings across; the platter, the arm and the cabinet are the machine.
-            See `arrival` in `face.ts` for why this is not the whole face. */}
-        <div className="absolute inset-[7%]" style={{ animation: arrival }}>
+            Only its label fades — see `labelFade` in `face.ts`. */}
+        <div className="absolute inset-[7%]">
           <div
             className="absolute inset-0 rounded-full bg-[#120c09] shadow-xl"
             style={{
@@ -247,7 +247,7 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
               style={{ inset: '25%' }}
             >
               {url ? (
-                <img src={url} alt="" className="h-full w-full object-cover" />
+                <img src={url} alt="" className="h-full w-full object-cover" style={{ animation: labelFade }} />
               ) : (
                 <div
                   className="h-full w-full"

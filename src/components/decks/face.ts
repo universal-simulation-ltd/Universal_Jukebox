@@ -32,23 +32,21 @@ export interface DeckFaceProps {
   /** The per-album fallback hue, for when there is no art. */
   hue: number
   /**
-   * A CSS `animation` shorthand for THE MEDIUM arriving on the deck or being
-   * lifted off it — or `undefined`, which is the usual case.
+   * A CSS `animation` shorthand for the ALBUM ART on the medium — fading in as
+   * a record arrives, out as one leaves — or `undefined`, the usual case.
    *
-   * ⚠️ THE MEDIUM ONLY, and that is the whole reason this is a prop rather than
-   * one wrapper around the whole face in `Deck.tsx` (which is what it was
-   * first). "The disc fading in from just above the record player into
-   * position" (James, 2026-09-09) needs the record player to still be there
-   * while the disc arrives — so the record, the disc and the shell take this,
-   * and the tonearm, the laser sled and the tape head do not. A face that
-   * cannot separate the two (the cassette is one drawing) applies it to
-   * everything, which is right for a cassette going into a slot.
+   * ⚠️ THE ART ONLY; THE MEDIUM STAYS PUT. This was `arrival`, an animation on
+   * the whole disc: lowered in from above as the countdown ran. James, having
+   * watched it on the phone (2026-09-10): "The record fading upwards transition
+   * looks too harsh — just fade the album image on the disc during 2,1". So the
+   * record is on the deck the whole time and only its label changes, which is
+   * also what makes a change of record read as the SAME machine playing
+   * something new.
    *
-   * ⚠️ Do NOT merge it into the same `animation` property as the spin. They
-   * share `animation-play-state`, which the spin pauses when the music stops —
-   * and an arrival frozen halfway is a record hanging in mid-air.
+   * ⚠️ Do NOT merge it into the spin's `animation` — they would share
+   * `animation-play-state`, which the spin pauses when the music stops.
    */
-  arrival?: string
+  labelFade?: string
 }
 
 /** Where the drifting notes leave from, per deck: roughly, the pickup. */

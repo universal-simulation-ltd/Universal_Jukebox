@@ -34,7 +34,7 @@ function pack(fraction: number): number {
   return Math.sqrt(REEL.HUB * REEL.HUB + (REEL.MAX * REEL.MAX - REEL.HUB * REEL.HUB) * f)
 }
 
-export default function CassetteDeck({ progress, engaged, spinning, reduced, url, hue, arrival }: DeckFaceProps) {
+export default function CassetteDeck({ progress, engaged, spinning, reduced, url, hue, labelFade }: DeckFaceProps) {
   // ⚠️ `useId` gives ids with colons in them, which are legal in HTML but break
   // `url(#…)` references in some engines. Strip them; the point is only that
   // two decks on one page cannot share a clip path.
@@ -49,11 +49,9 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
   const right = pack(progress)
 
   return (
-    // ⚠️ The arrival is on EVERYTHING here, unlike the other two faces. A
-    // cassette deck is a slot: the shell, its window and the head that meets it
-    // are one drawing, and there is no "player" left behind when the tape comes
-    // out. See `arrival` in `decks/face.ts`.
-    <div className="absolute inset-0" style={{ animation: arrival }}>
+    // Only the label fades as a tape goes in or comes out — see `labelFade` in
+    // `decks/face.ts`. The cassette itself stays in the deck.
+    <div className="absolute inset-0">
       <svg viewBox="0 0 100 66" className="h-full w-full drop-shadow-xl" aria-hidden>
         <defs>
           <clipPath id={labelClip}>
@@ -76,7 +74,7 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
               centre label, and the same reason the artwork extraction pays for
               itself on every deck. */}
           {url ? (
-            <image
+            <image style={{ animation: labelFade }}
               href={url}
               x="7"
               y="5"

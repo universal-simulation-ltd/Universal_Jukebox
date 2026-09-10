@@ -272,6 +272,31 @@ function noise(audio: AudioContext, at: number, level: number, spec: NoiseSpec):
 }
 
 /** Close the shared context — on teardown, so a hot reload doesn't stack them. */
+/**
+ * The countdown's tick — a metronome's wooden click, once on the 2 and once on
+ * the 1 (James, 2026-09-10: "Have a sound on 2, 1 — is it called a metronome").
+ *
+ * Two short tones rather than a noise burst: a woodblock is a pitched knock
+ * with a hard front edge, and a band of noise reads as a hiss. The 1 is a
+ * little higher, the way a metronome marks the downbeat, so the ear hears "and
+ * — GO" rather than two identical clicks. Well under a second, like every cue.
+ */
+const TICK: ToneSpec[] = [
+  { kind: 'tone', at: 0, wave: 'sine', from: 1650, to: 1480, peak: 0.3, seconds: 0.07 },
+  { kind: 'tone', at: 0, wave: 'triangle', from: 3300, to: 2900, peak: 0.1, seconds: 0.03 },
+]
+
+export function playCountTick(volume = 0.8, level = 1, downbeat = false): void {
+  const audio = ctx()
+  if (!audio) return
+  if (audio.state === 'suspended') void audio.resume().catch(() => {})
+  const gain = Math.max(0, Math.min(1, volume)) * Math.max(0, Math.min(MAX_LEVEL, level))
+  if (gain <= 0) return
+  const pitch = downbeat ? 1.26 : 1
+  const now = audio.currentTime
+  for (const part of TICK) tone(audio, now + part.at, gain, { ...part, from: part.from * pitch, to: part.to * pitch })
+}
+
 export function closeAudioContext(): void {
   try {
     void context?.close()

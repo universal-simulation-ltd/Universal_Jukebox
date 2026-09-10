@@ -23,11 +23,36 @@ public class FileImportPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDele
     public let identifier = "FileImportPlugin"
     public let jsName = "JukeboxFileImport"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "importFiles", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "importFiles", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "readText", returnType: CAPPluginReturnPromise)
     ]
 
     /// Main thread only.
     private var pending: CAPPluginCall?
+    /// A `readText` waiting on its picker. Main thread only.
+    private var pendingText: CAPPluginCall?
+
+    /// One text file's contents — a lyrics sheet, `.lrc` or plain — as
+    /// `{ name, text }`, or `{ cancelled: true }`. Filtered to text, so the
+    /// picker offers nothing it cannot read, and no camera.
+    @objc func readText(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let presenter = self.bridge?.viewController else {
+                call.reject("There is nothing to show the file picker on.", "NO_VIEW")
+                return
+            }
+            self.pending?.resolve(["cancelled": true])
+            self.pending = nil
+            self.pendingText?.resolve(["cancelled": true])
+            self.pendingText = call
+            var types: [UTType] = [.plainText, .text]
+            if let lrc = UTType(filenameExtension: "lrc") { types.append(lrc) }
+            let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: true)
+            picker.allowsMultipleSelection = false
+            picker.delegate = self
+            presenter.present(picker, animated: true)
+        }
+    }
 
     /// Resolves `{ imported, names }`, or `{ cancelled: true }`.
     @objc func importFiles(_ call: CAPPluginCall) {
@@ -46,6 +71,25 @@ public class FileImportPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDele
     }
 
     public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        if let call = pendingText {
+            pendingText = nil
+            guard let url = urls.first else {
+                call.resolve(["cancelled": true])
+                return
+            }
+            defer { try? FileManager.default.removeItem(at: url) }
+            // A lyrics sheet is a few kilobytes. Anything past half a megabyte is
+            // not one, and reading it into a string would only cost memory.
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            guard size <= 512 * 1024,
+                  let text = (try? String(contentsOf: url, encoding: .utf8))
+                    ?? (try? String(contentsOf: url, encoding: .isoLatin1)) else {
+                call.reject("That file could not be read as text.", "NOT_TEXT")
+                return
+            }
+            call.resolve(["name": url.lastPathComponent, "text": text])
+            return
+        }
         guard let call = pending else { return }
         pending = nil
         let fm = FileManager.default
@@ -69,6 +113,8 @@ public class FileImportPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDele
     }
 
     public func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        pendingText?.resolve(["cancelled": true])
+        pendingText = nil
         pending?.resolve(["cancelled": true])
         pending = nil
     }

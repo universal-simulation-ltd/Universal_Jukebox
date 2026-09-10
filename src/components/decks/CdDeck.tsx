@@ -16,10 +16,10 @@ import type { DeckFaceProps } from './face'
 // and runs on the same ceremony timeline. The only thing this file is allowed
 // to disagree with `VinylDeck.tsx` about is what those three values LOOK like.
 //
-// ⚠️ The DISC is the medium and the BODY is not — which is why `arrival` (the
+// ⚠️ The DISC is the medium and the BODY is not — which is why `labelFade` (the
 // record being lowered in, or lifted out for a different album) wraps only the
 // disc. The player stays on the table while the disc changes, exactly as the
-// tonearm stays put on the vinyl deck. See `arrival` in `face.ts`.
+// tonearm stays put on the vinyl deck. See `labelFade` in `face.ts`.
 
 /**
  * Where the laser sits, as a radius in the SVG's own units (the disc is 100
@@ -61,7 +61,7 @@ const point = (r: number) => ({ x: 50 + r * Math.cos(RAD), y: 50 + r * Math.sin(
  */
 const WELL = { left: '7.5%', right: '7.5%', top: '4.5%' }
 
-export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, arrival }: DeckFaceProps) {
+export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, labelFade }: DeckFaceProps) {
   // Parked at the start until the laser is on: a disc that has not been read
   // yet has its sled at the hub, and the seek back out is what the handover
   // between tracks looks like on this deck.
@@ -144,9 +144,9 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
           }}
         />
 
-        {/* The disc, inside its arrival wrapper — it is the part that goes in
+        {/* The disc, inside its own wrapper — it is the part that goes in
             and comes out; the body, the sled and the rail are the machine. */}
-        <div className="absolute inset-0" style={{ animation: arrival }}>
+        <div className="absolute inset-0">
           {/* The disc. Silver in both themes, because a CD is silver in both. */}
           <div
             className="absolute inset-0 overflow-hidden rounded-full shadow-lg"
@@ -190,7 +190,7 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
                 that crop the artwork differently look like a bug in one. */}
             <div className="absolute overflow-hidden rounded-full ring-1 ring-slate-900/20" style={{ inset: '30%' }}>
               {url ? (
-                <img src={url} alt="" className="h-full w-full object-cover" />
+                <img src={url} alt="" className="h-full w-full object-cover" style={{ animation: labelFade }} />
               ) : (
                 <div
                   className="h-full w-full"

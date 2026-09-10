@@ -3,6 +3,7 @@ import { revealExpanded } from '@unisim/sdk'
 import SingingMic from './SingingMic'
 import { activeLine } from '../lib/lyrics'
 import { takeLyricsReveal } from '../lib/lyricsReveal'
+import { hasNativeImporter, pickTextWithNativePicker } from '../lib/nativeImport'
 import { micPhase, nextSungLine } from '../lib/singing'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -77,7 +78,7 @@ function Provenance() {
   if (status !== 'ready' || !sheet) return null
   return (
     <p className="text-[12px] text-slate-400 dark:text-slate-500">
-      {sheet.source === 'file' ? 'From this file’s own tags' : 'From lrclib.net'}
+      {sheet.source === 'file' ? 'From this file’s own tags' : sheet.source === 'upload' ? 'From your lyrics file' : 'From lrclib.net'}
       {sheet.synced ? ' · following along' : ''}
     </p>
   )
@@ -251,7 +252,14 @@ function Nothing() {
   const reload = useLyricsStore((s) => s.reload)
 
   if (online) {
-    return <Note>No lyrics in this file, and lrclib.net doesn’t have this one either.</Note>
+    return (
+      <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
+        <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
+          No lyrics in this file, and lrclib.net doesn’t have this one either.
+        </p>
+        <AddLyricsFile />
+      </div>
+    )
   }
   return (
     <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
@@ -281,6 +289,7 @@ function Nothing() {
           More about this in Settings
         </button>
       </div>
+      <AddLyricsFile />
     </div>
   )
 }
@@ -298,6 +307,70 @@ function Retry({ message }: { message: string }) {
       >
         Try again
       </button>
+      <AddLyricsFile />
+    </div>
+  )
+}
+
+/**
+ * "Add a lyrics file" — for when none could be found, or finding them failed
+ * (James, 2026-09-10: "if there's an error finding lyrics we should give the
+ * user a choice to upload a lyrics file from their device").
+ *
+ * An `.lrc` follows along with the song like any timed sheet; plain text shows
+ * as the words. Kept for this track from then on, ahead of the file's own tags
+ * and lrclib (`adoptLyrics`). On iOS it is the native text picker — the web
+ * input's first menu there offers the camera — and an `<input>` everywhere else.
+ */
+function AddLyricsFile() {
+  const track = usePlayerStore(currentTrack)
+  const adopt = useLyricsStore((s) => s.adoptLyrics)
+  const input = useRef<HTMLInputElement>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+
+  const take = async (text: string) => {
+    if (!track) return
+    const ok = await adopt(track, text)
+    setProblem(ok ? null : 'That doesn’t look like lyrics. A plain text file or an .lrc file is what’s needed.')
+  }
+  const pick = async () => {
+    if (!hasNativeImporter()) {
+      input.current?.click()
+      return
+    }
+    try {
+      const file = await pickTextWithNativePicker()
+      if (file) await take(file.text)
+    } catch {
+      setProblem('That file could not be read as text.')
+    }
+  }
+
+  return (
+    <div className="mt-4 border-t border-slate-200 pt-3 dark:border-slate-800">
+      <p className="text-[12.5px] text-slate-500 dark:text-slate-400">
+        Got the words yourself? A timed .lrc file follows along with the song; plain text
+        shows as the words.
+      </p>
+      <button
+        type="button"
+        onClick={() => void pick()}
+        className="mt-2 rounded-md border border-slate-300 px-3 py-1.5 text-[13px] font-medium text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:text-orange-400"
+      >
+        Add a lyrics file
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept=".lrc,.txt,text/plain"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) await take(await file.text())
+        }}
+      />
+      {problem && <p className="mt-2 text-[12.5px] text-red-700 dark:text-red-300">{problem}</p>}
     </div>
   )
 }

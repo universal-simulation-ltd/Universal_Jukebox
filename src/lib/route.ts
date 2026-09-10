@@ -32,7 +32,12 @@ export interface Route {
 export const NAVIGATED = 'jukebox:navigated'
 
 export function currentRoute(): Route {
-  const hash = typeof location === 'undefined' ? '' : location.hash.replace(/^#\/?/, '')
+  return routeFromHash(typeof location === 'undefined' ? '' : location.hash)
+}
+
+/** A hash — `#/album/x`, `#/tracks`, `''` — as a route. Pure. */
+export function routeFromHash(rawHash: string): Route {
+  const hash = rawHash.replace(/^#\/?/, '')
   if (hash.startsWith('album/')) {
     // The id is encoded because an album key is "artist album" — it contains
     // spaces, and anything else a tag happens to hold.
@@ -79,8 +84,146 @@ export function goHome(): void {
   go('#/')
 }
 
-function go(hash: string): void {
-  if (location.hash === hash) return
-  history.pushState(null, '', hash)
+// ── Back goes UP a level, not back in time ───────────────────────────────────
+//
+// ⚠️ James, 2026-09-10: "The back swipe should go back a stage, not necessarily
+// previous page e.g library -> album -> now playing -> album should then go to
+// library NOT now playing."
+//
+// The iPhone's edge swipe is WKWebView's own back gesture, and like a
+// browser's Back button it walks HISTORY — which is chronological. So instead of
+// teaching the gesture about the app, the history is kept SHAPED LIKE THE APP:
+// at any moment it holds exactly one entry per level you are standing below —
+// the library, then (if you went down) an album or a settings page, then Now
+// Playing. Going somewhere that belongs at a level you are already standing at
+// or above does not push; it steps back to that level first and replaces it.
+// A swipe, the browser button, and `history.back()` are then all "up a level",
+// with no code of their own.
+//
+//   library → album A → Now Playing → album A   is one step BACK, to album A
+//   library → album A → Now Playing → album B   steps back to the library,
+//                                                then opens album B on top of it
+//   Albums → Artists → Tracks (tabs)            REPLACE each other: a tab is the
+//                                                same level seen differently
+
+/** 0 the library (any tab), 1 a page off it, 2 Now Playing. */
+export type Level = 0 | 1 | 2
+
+export function levelOf(hash: string): Level {
+  const { view } = routeFromHash(hash)
+  if (view === 'playing') return 2
+  if (view === 'album' || view === 'settings' || view === 'about' || view === 'tidy') return 1
+  return 0
+}
+
+export interface NavigationPlan {
+  /** How many entries to step back first. */
+  back: number
+  /** Then: add the target, write it over the entry landed on, or nothing. */
+  then: 'push' | 'replace' | 'none'
+}
+
+/**
+ * How to get from `stack` (our history entries, oldest first) to `target`.
+ * Pure, and the whole of the rule above.
+ */
+export function planNavigation(stack: string[], target: string): NavigationPlan {
+  const level = levelOf(target)
+  let keep = 0
+  while (keep < stack.length && levelOf(stack[keep]) < level) keep++
+  if (keep >= stack.length) return { back: 0, then: 'push' }
+  const back = stack.length - 1 - keep
+  return { back, then: stack[keep] === target ? 'none' : 'replace' }
+}
+
+const STACK_KEY = 'jukebox:history'
+const home = (hash: string) => (hash === '' || hash === '#' ? '#/' : hash)
+
+/** Our entries, oldest first; the last is the one on screen. */
+let stack: string[] = []
+/** Where a multi-step move is going, while its `history.go(-n)` lands. */
+let pending: { then: 'push' | 'replace'; hash: string } | null = null
+
+function save(): void {
+  try {
+    sessionStorage.setItem(STACK_KEY, JSON.stringify(stack))
+  } catch { /* private mode — the stack still works for this page's life */ }
+}
+
+function depthOfState(): number | null {
+  const depth = (history.state as { jbDepth?: unknown } | null)?.jbDepth
+  return typeof depth === 'number' ? depth : null
+}
+
+function apply(then: 'push' | 'replace', hash: string): void {
+  if (then === 'push') {
+    history.pushState({ jbDepth: stack.length }, '', hash)
+    stack.push(hash)
+  } else {
+    history.replaceState({ jbDepth: Math.max(0, stack.length - 1) }, '', hash)
+    stack[Math.max(0, stack.length - 1)] = hash
+  }
+  save()
   window.dispatchEvent(new Event(NAVIGATED))
+}
+
+function go(rawHash: string): void {
+  const hash = home(rawHash)
+  if (pending === null && home(location.hash) === hash) return
+  const plan = planNavigation(stack, hash)
+  if (plan.back === 0) {
+    if (plan.then !== 'none') apply(plan.then, hash)
+    return
+  }
+  // ⚠️ `history.go` is ASYNCHRONOUS. The push or replace has to wait for it to
+  // land (the `popstate` below), or it would be written onto the entry being
+  // left and then thrown away by the back step.
+  stack = stack.slice(0, stack.length - plan.back)
+  pending = plan.then === 'none' ? null : { then: plan.then, hash }
+  save()
+  history.go(-plan.back)
+}
+
+if (typeof window !== 'undefined' && typeof history !== 'undefined') {
+  // The entry the app opened on. After a reload it already carries its depth,
+  // and the stack comes back from this tab's session storage.
+  const depth = depthOfState()
+  const here = home(location.hash)
+  if (depth === null) {
+    stack = [here]
+    history.replaceState({ jbDepth: 0 }, '', location.href)
+  } else {
+    let saved: string[] = []
+    try {
+      saved = JSON.parse(sessionStorage.getItem(STACK_KEY) ?? '[]')
+    } catch { /* nothing kept */ }
+    stack = Array.from({ length: depth + 1 }, (_, i) => (Array.isArray(saved) && typeof saved[i] === 'string' ? saved[i] : '#/'))
+    stack[depth] = here
+  }
+  save()
+
+  // ⚠️ Registered at module load, so it runs BEFORE `useRoute`'s own popstate
+  // listener in App.tsx. A multi-step move therefore completes — replaced and
+  // announced — before the app re-reads the hash, and the level it passed
+  // through on the way is never drawn.
+  window.addEventListener('popstate', () => {
+    if (pending) {
+      const move = pending
+      pending = null
+      apply(move.then, move.hash)
+      return
+    }
+    // A real back or forward: the swipe, a browser button, a hash typed in.
+    const at = depthOfState()
+    const hash = home(location.hash)
+    if (at === null) {
+      history.replaceState({ jbDepth: stack.length }, '', location.href)
+      stack.push(hash)
+    } else {
+      stack = stack.slice(0, at + 1)
+      while (stack.length < at + 1) stack.push('#/')
+      stack[at] = hash
+    }
+    save()
+  })
 }

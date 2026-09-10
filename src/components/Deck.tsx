@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { DECK_ROTATION, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
@@ -131,25 +132,22 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   const spinning = playing || active
 
   /**
-   * The medium arriving on the deck, or being lifted off it.
+   * The album art fading in as a record arrives, and out as one leaves.
    *
-   * ⚠️ ONE animation on THE MEDIUM, rather than a cross-dissolve between two
-   * covers. That is what lets the album underneath change at the moment the
-   * picture is invisible: a record fading out, the cover swapping behind it,
-   * and the new record fading in is exactly the sequence asked for, with no
-   * face needing to hold two covers at once. Each face decides what its medium
-   * is — see `arrival` in `decks/face.ts`, and why it is not the whole face.
+   * ⚠️ The record itself no longer moves — see `labelFade` in `decks/face.ts`
+   * for why. During the countdown the art takes the whole count (the needle
+   * lands at 1050ms) to come up; after a change of record it is quicker, since
+   * the music is already on its way.
    *
    * ⚠️ Ceremonial deck only. The mini player's deck is a 40px picture of the
-   * state; a record dropping into it from above would be a twitch in the corner
-   * of the screen, which is the opposite of what any of this is for.
+   * state, not a stage.
    */
-  const arrival =
+  const labelFade =
     !ceremonial || reduced || phase === 'idle'
       ? undefined
       : phase === 'arriving'
-        ? 'jb-deck-in 700ms cubic-bezier(.22,.9,.3,1) both'
-        : 'jb-deck-out 420ms ease-in both'
+        ? `jb-label-in ${active ? 1000 : 450}ms ease-out both`
+        : 'jb-label-out 420ms ease-in both'
 
   const openAlbum = () => {
     if (album) navigate({ view: 'album', albumId: album.id })
@@ -183,7 +181,7 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           reduced={reduced}
           url={url}
           hue={hue}
-          arrival={arrival}
+          labelFade={labelFade}
         />
 
         {/* Drifting notes — pure decoration, and only while something is
@@ -215,15 +213,37 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
  */
 export function CeremonyCount() {
   const count = usePlayerStore((s) => s.ceremonyCount)
+  const reduced = usePrefersReducedMotion()
+  // ⚠️ THE NUMBER ON ITS WAY OUT, drawn in the same place as the one coming in
+  // (James, 2026-09-10: "When 2,1 starts show a 3 already fading out and then
+  // on 1 the 2 fades out and as it starts the 1 fades out"). So the count opens
+  // on a 3 that is already leaving — it reads as a countdown in progress rather
+  // than as a number that appeared — and the 1 fades itself out as the music
+  // begins. The previous value is kept in a ref and read during render: stable
+  // under a double render, since the effect is what moves it on.
+  const previous = useRef<number | null>(null)
+  const outgoing = count === null ? null : (previous.current ?? count + 1)
+  useEffect(() => {
+    previous.current = count
+  }, [count])
   if (count === null) return null
   return (
     <p
-      key={count}
-      className="text-6xl font-semibold tracking-tight text-orange-600 tabular-nums dark:text-orange-400"
-      style={{ animation: 'jb-count 780ms ease-out' }}
+      className="inline-grid text-6xl font-semibold tracking-tight text-orange-600 tabular-nums dark:text-orange-400"
       aria-hidden
     >
-      {count}
+      {!reduced && outgoing !== null && outgoing !== count && (
+        <span key={`out-${outgoing}`} className="[grid-area:1/1]" style={{ animation: 'jb-count-out 420ms ease-in both' }}>
+          {outgoing}
+        </span>
+      )}
+      <span
+        key={`in-${count}`}
+        className="[grid-area:1/1]"
+        style={{ animation: reduced ? undefined : count === 1 ? 'jb-count-last 780ms ease-out both' : 'jb-count-in 420ms ease-out both' }}
+      >
+        {count}
+      </span>
     </p>
   )
 }

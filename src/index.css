@@ -71,27 +71,35 @@ body {
   100% { opacity: 0; transform: translate(26px, -74px) rotate(18deg); }
 }
 
-/* The medium arriving on the deck: a record lowered in from above, fading up
-   into place. Runs as the countdown counts (James, 2026-09-09: "the disc fading
-   in from just above the record player into position as the countdown goes")
-   and again once the outgoing record has been lifted away.
-
-   ⚠️ It ends at `none`, not at `translateY(0) scale(1)`, and that matters: the
-   deck's own hover lift is a transform on an ancestor, and an animation that
-   settles on an explicit identity transform of its own would still be composited
-   over it — harmless here, but it also means the element keeps a transform after
-   the animation is `forwards`-filled, which creates a containing block and
-   quietly re-parents the tonearm's absolute positioning. */
-@keyframes jb-deck-in {
-  from { opacity: 0; transform: translateY(-16%) scale(0.94); }
-  to   { opacity: 1; transform: none; }
+/* The album art on the medium fading in as a record arrives and out as one
+   leaves (`labelFade` in `decks/face.ts`). Opacity only: the record itself stays
+   on the deck — the lift it replaced was, in James's word, "too harsh". */
+@keyframes jb-label-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes jb-label-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
-/* And leaving: lifted off and faded away, so the cover underneath can change
-   while nobody can see it. */
-@keyframes jb-deck-out {
-  from { opacity: 1; transform: none; }
-  to   { opacity: 0; transform: translateY(-13%) scale(0.95); }
+/* The countdown's numerals crossing over (`CeremonyCount` in Deck.tsx): the
+   incoming one comes up as the outgoing one leaves, and the last — the 1 —
+   fades itself out as the music starts. */
+@keyframes jb-count-in {
+  0%   { opacity: 0; transform: scale(0.72); }
+  60%  { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes jb-count-out {
+  from { opacity: 0.85; transform: none; }
+  to   { opacity: 0; transform: translateY(-18%) scale(0.9); }
+}
+@keyframes jb-count-last {
+  0%   { opacity: 0; transform: scale(0.72); }
+  25%  { opacity: 1; transform: scale(1); }
+  65%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.08); }
 }
 
 /* A record leaving the "waiting to go on" row because it has just gone on the

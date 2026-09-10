@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { graphUnavailable } from '../lib/audioGraph'
+import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck } from '../lib/decks'
 import { clearLyrics, countLyrics } from '../lib/library'
@@ -235,7 +235,11 @@ export default function Settings() {
             max={MAX_BOOST}
             step={0.1}
             disabled={boostBroken}
-            disabledHint="This browser wouldn’t give the app the audio graph a boost needs. Everything else still works."
+            disabledHint={
+              graphAllowed()
+                ? 'This browser wouldn’t give the app the audio graph a boost needs. Everything else still works.'
+                : 'Not in the iPhone app — the boost would stop your music playing when the app is in the background.'
+            }
             format={formatBoost}
             onChange={(v) => s.set('volumeBoost', v)}
           />

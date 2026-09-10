@@ -1,4 +1,7 @@
 import { create } from 'zustand'
+import { getLyricRecord, putLyricRecord } from '../lib/library'
+import { parseLyrics } from '../lib/lyrics'
+import { CACHE_VERSION } from '../lib/lrclib'
 import { lyricsFromFile, type LyricSheet } from '../lib/lyrics'
 import { onlineLyrics } from '../lib/lrclib'
 import { useLibraryStore } from './libraryStore'
@@ -65,6 +68,11 @@ interface LyricsState {
   shownFor: string | null
   showFor(trackId: string): void
   hideLyrics(): void
+  /**
+   * Use lyrics the person supplied — a `.lrc` or a plain text file — for this
+   * track, now and from now on. False when the text is not a lyric sheet.
+   */
+  adoptLyrics(track: Track, raw: string): Promise<boolean>
 }
 
 /**
@@ -94,6 +102,18 @@ export const useLyricsStore = create<LyricsState>((set, get) => ({
     if (get().shownFor !== null) set({ shownFor: null })
   },
 
+  async adoptLyrics(track, raw) {
+    const sheet = parseLyrics(raw, 'upload')
+    if (!sheet || sheet.lines.every((line) => line.text.trim() === '')) return false
+    // A lookup still in flight for this track must not land on top of it.
+    token++
+    try {
+      await putLyricRecord({ id: track.id, raw, at: Date.now(), source: 'upload', v: CACHE_VERSION })
+    } catch { /* storage disabled — it still shows now, it just won't be remembered */ }
+    set({ trackId: track.id, status: 'ready', sheet, message: null })
+    return true
+  },
+
   load(track) {
     const state = get()
     // Already answered for this track, and the answer is not one that a retry
@@ -116,6 +136,15 @@ export const useLyricsStore = create<LyricsState>((set, get) => ({
 async function run(track: Track, set: (partial: Partial<LyricsState>) => void): Promise<void> {
   const mine = ++token
   set({ trackId: track.id, status: 'loading', sheet: null, message: null, askedOnline: false })
+
+  // ⚠️ The person's OWN lyrics file wins over everything — they added it
+  // because the others were missing or wrong (see `adoptLyrics`).
+  const own = await getLyricRecord(track.id).catch(() => null)
+  if (mine !== token) return
+  if (own?.source === 'upload' && own.raw) {
+    const sheet = parseLyrics(own.raw, 'upload')
+    if (sheet) return set({ status: 'ready', sheet, message: null })
+  }
 
   const file = useLibraryStore.getState().fileFor(track)
   if (file) {

@@ -9,6 +9,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         configureAudioSession()
+        // A phone call, Siri, an alarm: iOS takes the audio session away and
+        // hands it back when the interruption ends. Take it back as `.playback`
+        // then, rather than trusting whatever category it comes back as.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(audioInterrupted(_:)),
+            name: AVAudioSession.interruptionNotification, object: nil)
         return true
     }
 
@@ -34,6 +40,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     ///
     /// A failure here is logged and swallowed: an audio session that cannot be
     /// configured still plays in the foreground, so this must never stop launch.
+    @objc private func audioInterrupted(_ note: Notification) {
+        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+        configureAudioSession()
+    }
+
     private func configureAudioSession() {
         let session = AVAudioSession.sharedInstance()
         do {
@@ -50,6 +62,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
+        // ⚠️ Re-asserted on the way into the background (James, 2026-09-10: the
+        // music stopped when the app was minimised). WebKit manages the session
+        // for its own media and can leave it in a category that does not
+        // survive the app leaving the screen; `.playback` is the one that does.
+        configureAudioSession()
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
     }

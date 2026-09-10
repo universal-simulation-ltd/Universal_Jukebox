@@ -15,6 +15,7 @@
 
 import { isNativeShell, nativePlatform, walkNativeLibrary } from './nativeFile'
 import { canSetElementVolume } from './volumeSupport'
+import { graphExists } from './audioGraph'
 
 /** Reads a CSS `env()` value in px, or null where the platform has none. */
 function inset(side: 'top' | 'bottom'): number | null {
@@ -56,6 +57,7 @@ function rect(selector: string): string | null {
  */
 export function logNativeDiagnostics(): void {
   if (!isNativeShell()) return
+  watchBackgroundPlayback()
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       void report()
@@ -99,4 +101,43 @@ async function report(): Promise<void> {
   }
 
   console.log(`[jukebox:diag] ${JSON.stringify(lines)}`)
+}
+
+/**
+ * What the music does while the app is off screen, logged as it happens.
+ *
+ * ⚠️ Background playback cannot be checked from a Mac — no emulator runs the
+ * iOS rules that stop it — and the failure is silence, which logs nothing on its
+ * own. So while the page is hidden this reports every few seconds whether the
+ * deck is paused and whether its position is still moving, and says so again on
+ * the way back. `[jukebox:bg]` lines, read off `devicectl … --console`.
+ */
+function watchBackgroundPlayback(): void {
+  let timer: number | null = null
+  let hiddenAt = 0
+  let startSec = 0
+  const deck = () => {
+    const decks = [...document.querySelectorAll<HTMLAudioElement>('audio[data-jukebox-audio]')]
+    return decks.find((a) => !a.paused) ?? decks[0] ?? null
+  }
+  const state = () => {
+    const a = deck()
+    return a ? { paused: a.paused, sec: Math.round(a.currentTime * 10) / 10 } : { paused: true, sec: 0 }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hiddenAt = Date.now()
+      startSec = state().sec
+      console.log(`[jukebox:bg] hidden ${JSON.stringify({ ...state(), graph: graphExists() })}`)
+      timer = window.setInterval(() => {
+        const s = state()
+        console.log(`[jukebox:bg] +${Math.round((Date.now() - hiddenAt) / 1000)}s ${JSON.stringify({ ...s, moved: Math.round((s.sec - startSec) * 10) / 10 })}`)
+      }, 5000)
+    } else {
+      if (timer !== null) window.clearInterval(timer)
+      timer = null
+      const s = state()
+      console.log(`[jukebox:bg] visible after ${Math.round((Date.now() - hiddenAt) / 1000)}s ${JSON.stringify({ ...s, moved: Math.round((s.sec - startSec) * 10) / 10 })}`)
+    }
+  })
 }

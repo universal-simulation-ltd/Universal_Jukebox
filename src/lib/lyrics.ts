@@ -39,7 +39,8 @@ export interface LyricSheet {
   source: LyricSource
 }
 
-export type LyricSource = 'file' | 'online'
+/** `upload`: a lyrics file the person added themselves (`adoptLyrics`). */
+export type LyricSource = 'file' | 'online' | 'upload'
 
 /**
  * A `[key:value]` at the head of a line — either a timestamp (`[01:23.45]`) or

@@ -15,6 +15,7 @@ export const FILE_IMPORT_PLUGIN = 'JukeboxFileImport'
 
 interface FileImportPlugin {
   importFiles(): Promise<{ imported?: number; names?: string[]; cancelled?: boolean }>
+  readText(): Promise<{ name?: string; text?: string; cancelled?: boolean }>
 }
 
 let plugin: FileImportPlugin | null = null
@@ -42,4 +43,15 @@ export async function importWithNativePicker(): Promise<number | null> {
   const result = await plugin!.importFiles()
   if (result.cancelled) return null
   return result.imported ?? 0
+}
+
+/**
+ * One text file — a lyrics sheet — through the native picker, or `null` when
+ * the picker was backed out of. iOS only; the web uses an `<input>`.
+ */
+export async function pickTextWithNativePicker(): Promise<{ name: string; text: string } | null> {
+  await load()
+  const result = await plugin!.readText()
+  if (result.cancelled || typeof result.text !== 'string') return null
+  return { name: result.name ?? 'lyrics', text: result.text }
 }

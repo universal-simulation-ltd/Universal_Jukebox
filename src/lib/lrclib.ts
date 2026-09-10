@@ -36,6 +36,19 @@ import { getLyricRecord, putLyricRecord, type LyricRecord } from './library'
 import type { Track } from './types'
 
 const ENDPOINT = 'https://lrclib.net/api/get'
+/** The fuzzy half — see `searchLrclib`. */
+const SEARCH = 'https://lrclib.net/api/search'
+
+/**
+ * ⚠️ A "not found" is remembered for THREE DAYS, then asked again. It used to be
+ * remembered for ever, so one miss — a lookup made before the fuzzy search
+ * existed, a server having a bad minute — meant the song never got its words.
+ * Found lyrics and "instrumental" are still kept for good.
+ */
+export const NONE_TTL_MS = 3 * 24 * 60 * 60 * 1000
+export const CACHE_VERSION = 2
+/** A result whose length is further off than this is a different recording. */
+const MAX_OFF_SEC = 15
 
 /**
  * LRCLIB asks clients to identify themselves, and it is the polite thing to do
@@ -75,10 +88,10 @@ export async function onlineLyrics(
   signal?: AbortSignal,
 ): Promise<OnlineLookup> {
   const cached = await getLyricRecord(track.id)
-  if (cached) {
+  if (cached && cacheUsable(cached, Date.now())) {
     if (cached.instrumental) return { kind: 'instrumental' }
     if (cached.raw === null) return { kind: 'none' }
-    const sheet = parseLyrics(cached.raw, 'online')
+    const sheet = parseLyrics(cached.raw, cached.source === 'upload' ? 'upload' : 'online')
     if (sheet) return { kind: 'found', sheet }
     return { kind: 'none' }
   }
@@ -99,23 +112,37 @@ export async function onlineLyrics(
 
   try {
     const response = await ask(`${ENDPOINT}?${query}`, signal)
-    if (response.status === 404) {
-      await remember({ id: track.id, raw: null, at: Date.now() })
-      return { kind: 'none' }
+    // ⚠️ THE EXACT LOOKUP MISSES SONGS LRCLIB HAS. `/api/get` matches the
+    // length to within about two seconds, and a remaster, a compilation copy or
+    // a slightly different rip is enough to miss — asked for "Piano Man" at 345
+    // seconds instead of 339 it answers 503, which this used to report as an
+    // error (James, 2026-09-10: "It showed as couldn't find lyrics but it's a
+    // well known song"). A miss, or a server error, goes to the fuzzy search,
+    // which picks the closest match itself.
+    let found: { raw: string | null; instrumental: boolean } | null = null
+    if (response.ok) {
+      found = readResponse(await response.json())
+    } else if (response.status === 404 || response.status >= 500) {
+      found = await searchLrclib(artist, track.title, track.durationSec, signal)
+      if (!found && response.status >= 500) {
+        return { kind: 'error', message: `lrclib.net returned ${response.status}.` }
+      }
+      if (!found) {
+        await remember({ id: track.id, raw: null, at: Date.now(), v: CACHE_VERSION })
+        return { kind: 'none' }
+      }
+    } else {
+      return { kind: 'error', message: `lrclib.net returned ${response.status}.` }
     }
-    if (!response.ok) return { kind: 'error', message: `lrclib.net returned ${response.status}.` }
-
-    const body: unknown = await response.json()
-    const found = readResponse(body)
     if (found.instrumental) {
-      await remember({ id: track.id, raw: null, instrumental: true, at: Date.now() })
+      await remember({ id: track.id, raw: null, instrumental: true, at: Date.now(), v: CACHE_VERSION })
       return { kind: 'instrumental' }
     }
     if (!found.raw) {
-      await remember({ id: track.id, raw: null, at: Date.now() })
+      await remember({ id: track.id, raw: null, at: Date.now(), v: CACHE_VERSION })
       return { kind: 'none' }
     }
-    await remember({ id: track.id, raw: found.raw, at: Date.now() })
+    await remember({ id: track.id, raw: found.raw, at: Date.now(), v: CACHE_VERSION })
     const sheet = parseLyrics(found.raw, 'online')
     return sheet ? { kind: 'found', sheet } : { kind: 'none' }
   } catch (error) {
@@ -164,6 +191,76 @@ function readResponse(body: unknown): { raw: string | null; instrumental: boolea
 }
 
 /** Writing to the cache must never be able to fail a lookup that succeeded. */
+/**
+ * Is a cached answer still worth trusting? Pure, so the rule is tested.
+ *
+ * Anything with words in it, "instrumental", and a person's own uploaded file
+ * are kept for good. A "not found" is kept only if it was written by this
+ * version of the cache and is less than `NONE_TTL_MS` old.
+ */
+export function cacheUsable(record: LyricRecord, now: number): boolean {
+  if (record.source === 'upload' || record.instrumental || record.raw !== null) return true
+  return record.v === CACHE_VERSION && now - record.at < NONE_TTL_MS
+}
+
+/**
+ * The title to SEARCH with: the song, without a remaster, live or version tag.
+ * "Piano Man - 2023 Remaster" and "Piano Man (Live)" are both asked as
+ * "Piano Man", and the length then picks the right recording.
+ */
+export function searchTitle(title: string): string {
+  const TAGS = '(remaster|remastered|live|version|edit|mono|stereo|deluxe|bonus|mix|anniversary)'
+  return title
+    .replace(new RegExp(`\\s*[([][^)\\]]*${TAGS}[^)\\]]*[)\\]]\\s*$`, 'i'), '')
+    .replace(new RegExp(`\\s+[-–]\\s+.*${TAGS}.*$`, 'i'), '')
+    .trim() || title
+}
+
+/**
+ * The best of a search's results, or null. Pure, so the choice is tested.
+ *
+ * Results within a few seconds of the track's own length come first, synced
+ * before plain among those; then the rest by how close they are. Anything more
+ * than `MAX_OFF_SEC` out is a different recording, and wrong words timed to the
+ * wrong song are worse than none.
+ */
+export function pickBest(
+  results: unknown,
+  durationSec?: number,
+): { raw: string | null; instrumental: boolean } | null {
+  if (!Array.isArray(results)) return null
+  const scored = results
+    .map((result) => {
+      const record = (result ?? {}) as Record<string, unknown>
+      const length = typeof record.duration === 'number' ? record.duration : null
+      return {
+        read: readResponse(result),
+        off: durationSec && length !== null ? Math.abs(length - durationSec) : 0,
+        synced: typeof record.syncedLyrics === 'string' && record.syncedLyrics.trim() !== '',
+      }
+    })
+    .filter((s) => s.read.raw !== null || s.read.instrumental)
+    .filter((s) => !durationSec || s.off <= MAX_OFF_SEC)
+    .sort((a, b) => Number(a.off > 3) - Number(b.off > 3) || Number(b.synced) - Number(a.synced) || a.off - b.off)
+  return scored[0]?.read ?? null
+}
+
+async function searchLrclib(
+  artist: string,
+  title: string,
+  durationSec: number | undefined,
+  signal?: AbortSignal,
+): Promise<{ raw: string | null; instrumental: boolean } | null> {
+  try {
+    const query = new URLSearchParams({ artist_name: artist, track_name: searchTitle(title) })
+    const response = await ask(`${SEARCH}?${query}`, signal)
+    if (!response.ok) return null
+    return pickBest(await response.json(), durationSec)
+  } catch {
+    return null
+  }
+}
+
 async function remember(record: LyricRecord): Promise<void> {
   try {
     await putLyricRecord(record)
