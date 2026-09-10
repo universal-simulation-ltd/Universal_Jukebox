@@ -16,7 +16,7 @@ import type { Album, Track } from './types'
 //   • The app is about YOUR files. A demo that quietly downloads somebody
 //     else's contradicts the front page.
 //
-// So: four artists, eleven records, thirty-one tracks of synthesised music with
+// So: four artists, nine records, thirty-one tracks of synthesised music with
 // drawn sleeves, none of which exists until it is asked for.
 //
 // ⚠️ THE AUDIO IS MADE LAZILY AND THE INDEX IS NOT. The library — titles,
@@ -76,6 +76,11 @@ interface ExampleAlbum {
   recipe: Recipe
   /** Track titles, in running order. Their lengths come from the seed. */
   tracks: string[]
+  /**
+   * Which sleeve construction to use, when the hash's choice would make two
+   * records by the same artist look like cousins. See `drawSleeve`.
+   */
+  sleeve?: 0 | 1 | 2 | 3
 }
 
 /**
@@ -111,6 +116,9 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Indie',
     recipe: { root: 60, minor: false, bpm: 88, bite: 0.24, density: 0.48, drums: true, pad: 0.62 },
     tracks: ['Twelve Inches', 'Gatefold', 'Sleeve Notes', 'Repress'],
+    // The hash gives this the rings "Sides A and B" already has — two of one
+    // band's four sleeves the same shape, side by side in the opened fan.
+    sleeve: 3,
   },
   {
     artist: 'The Tone Arms',
@@ -135,6 +143,8 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Dub',
     recipe: { root: 43, minor: true, bpm: 68, bite: 0.16, density: 0.34, drums: true, pad: 0.78 },
     tracks: ['One Off', 'Reference Cut', 'Room Tone'],
+    // Same again: the rings would repeat "Cutting Head", two years earlier.
+    sleeve: 3,
   },
   {
     artist: 'Lathe & the Lacquers',
@@ -552,8 +562,9 @@ function wav(samples: Float32Array): Blob {
  * what the grid, the fan, the deck's centre label and the Now Playing ground
  * are all made of.
  *
- * Each sleeve is one of three constructions over a two-colour ground, chosen by
- * the album's own hash, with the type set on top. Nothing here is random at run
+ * Each sleeve is one of four constructions over a two-colour ground, chosen by
+ * the album's own hash — or by name, where the hash would repeat a sibling's
+ * (`sleeve`) — with the type set on top. Nothing here is random at run
  * time: the same record is the same sleeve every time.
  */
 async function drawSleeve(entry: ExampleAlbum): Promise<Blob | null> {
@@ -577,7 +588,11 @@ async function drawSleeve(entry: ExampleAlbum): Promise<Blob | null> {
   ctx.fillRect(0, 0, size, size)
 
   const ink = dark ? 'rgba(255,255,255,' : 'rgba(15,23,42,'
-  const style = seed % 3
+  // ⚠️ The hash picks from the first three; the fourth is only ever ASKED FOR
+  // (`sleeve` on the record). With three constructions over nine records five
+  // came out as rings, including two pairs from the same artist — which in the
+  // opened fan read as one sleeve printed twice.
+  const style = entry.sleeve ?? seed % 3
 
   if (style === 0) {
     // Concentric rings, off-centre — a record seen from above.
@@ -598,6 +613,21 @@ async function drawSleeve(entry: ExampleAlbum): Promise<Blob | null> {
       const height = size * (0.12 + random() * 0.62)
       ctx.fillStyle = `${ink}${(0.06 + random() * 0.16).toFixed(3)})`
       ctx.fillRect(i * width, size - height, width * 0.72, height)
+    }
+  } else if (style === 3) {
+    // A halftone: a grid of dots swelling towards one bright point, the way a
+    // screen-printed sleeve does its shading.
+    const step = size / 16
+    const fx = size * (0.2 + random() * 0.6)
+    const fy = size * (0.12 + random() * 0.36)
+    for (let y = step / 2; y < size; y += step) {
+      for (let x = step / 2; x < size; x += step) {
+        const near = 1 - Math.min(1, Math.hypot(x - fx, y - fy) / (size * 0.75))
+        ctx.beginPath()
+        ctx.arc(x, y, step * 0.47 * Math.max(0.1, near), 0, Math.PI * 2)
+        ctx.fillStyle = `${ink}${(0.08 + 0.2 * near).toFixed(3)})`
+        ctx.fill()
+      }
     }
   } else {
     // Diagonals, with one bold stripe through them.

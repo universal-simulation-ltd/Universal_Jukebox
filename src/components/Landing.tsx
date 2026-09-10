@@ -170,7 +170,7 @@ export default function Landing() {
           {building ? 'Cutting the records…' : 'Load the example library'}
         </button>
         <p className="mx-auto mt-2.5 max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-          Eleven records by four artists that don’t exist — the music and the sleeves are
+          Nine records by four artists that don’t exist — the music and the sleeves are
           both generated on this device, in this tab. Nothing is downloaded. Choosing your
           own folder afterwards replaces it.
         </p>
