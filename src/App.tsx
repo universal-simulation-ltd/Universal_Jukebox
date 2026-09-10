@@ -79,12 +79,31 @@ function useRoute(): Route {
  * React rather than CSS because the decision is "render something else", not
  * "hide something" — hiding it would still mount the deck and run its
  * animation behind a `display:none`.
+ *
+ * ⚠️ BUT ONLY FOR A NARROW WINDOW ON A DESKTOP — `(pointer: fine)` — and never
+ * on a phone. The tier was settled with the owner on 2026-09-07 as "simplified
+ * view as the WINDOW gets smaller", i.e. a desktop window dragged thin, where a
+ * record squeezed into a sliver is decoration fighting the controls for room.
+ * A phone is not a thin window: a portrait iPhone is 393px, so it sat in T6
+ * permanently and the app shipped to the phone with NO RECORD AT ALL — reported
+ * on the first test of the native build (2026-09-10). At that width the deck
+ * still fits at ~244px (`clampDeck`), which is the screen, not a sliver.
+ *
+ * `pointer: coarse` is the test rather than `isNativeShell()` on purpose: the
+ * same phone in Safari at the same width should get the same record, and a
+ * touchscreen laptop window dragged thin still reports a fine pointer from its
+ * trackpad and keeps the mini player the tier was written for.
  */
+const MINI_QUERY = '(max-width: 429px) and (pointer: fine)'
+
 function useMiniMode(): boolean {
-  const [mini, setMini] = useState(() => typeof window !== 'undefined' && window.innerWidth < 430)
+  const [mini, setMini] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(MINI_QUERY).matches,
+  )
   useEffect(() => {
-    const query = window.matchMedia('(max-width: 429px)')
+    const query = window.matchMedia(MINI_QUERY)
     const sync = () => setMini(query.matches)
+    sync()
     query.addEventListener('change', sync)
     return () => query.removeEventListener('change', sync)
   }, [])
