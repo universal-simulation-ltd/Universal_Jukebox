@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
-  "description": "Universal Jukebox \u2014 a player for the music already on your device. Point it at a folder and it reads the tags and the embedded album art out of your own files, builds a library, and plays it. Nothing is uploaded and there is no account.",
+  "description": "Universal Jukebox — a player for the music already on your device. Point it at a folder and it reads the tags and the embedded album art out of your own files, builds a library, and plays it. Nothing is uploaded and there is no account.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -29,7 +29,7 @@
     "@capacitor/filesystem": "^7.1.8",
     "@capacitor/ios": "^7.6.9",
     "@capacitor/status-bar": "^7.0.6",
-    "@unisim/sdk": "^0.139.0",
+    "@unisim/sdk": "^0.140.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"

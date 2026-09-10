@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
-import UsageTracker from './UsageTracker'
+// <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
+// that is the only event this app will ever send. No event may carry a
+// filename, an artist, an album, a track count or a byte count: this app reads
+// someone's whole music collection, and the front page promises we never
+// build a picture of what people own.
+import { UsageTracker } from '@unisim/sdk'
 import AppMenu from './components/Header/AppMenu'
 import ProductLogo from './components/Header/ProductLogo'
 import About from './components/About'
