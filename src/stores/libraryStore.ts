@@ -12,6 +12,9 @@ import {
   NativeFile,
   importFilesToNativeLibrary,
   isNativeShell,
+  pickNativeMusicFolder,
+  releaseNativeMusicFolder,
+  usesChosenFolder,
   walkNativeLibrary,
 } from '../lib/nativeFile'
 import { applyFixes } from '../lib/tidy'
@@ -103,8 +106,24 @@ interface LibraryState {
    * The native equivalent of `pickFolder`, minus the picking — there is exactly
    * one folder and the OS shares it with the Files app. See
    * `lib/nativeFile.ts`.
+   *
+   * ⚠️ Where the folder is CHOSEN instead (`usesChosenFolder` — Android today)
+   * the first "scan" is a choice: with no folder chosen yet, or with access to
+   * the chosen one gone, this hands over to `chooseNativeFolder`.
    */
   scanNativeFolder(): Promise<void>
+  /**
+   * Where `usesChosenFolder()` (Android today; any platform whose shell
+   * registers a `JukeboxMusicFolder` plugin): open the system folder picker and
+   * make what is chosen the library's phone folder, replacing the one before if
+   * there was one. A no-op everywhere else.
+   *
+   * ⚠️ REPLACES rather than adds, unlike the web's "Add a folder". There is one
+   * native root and `nativePath` is what marks it (see `scanNativeFolder`
+   * below), so a second chosen folder would need a second native root, and
+   * every native code path assumes one. Worth doing; not done.
+   */
+  chooseNativeFolder(): Promise<void>
   /**
    * Native only: copy picked files into the music folder, then re-scan.
    *
@@ -409,39 +428,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
   async scanNativeFolder() {
     if (!isNativeShell()) return
-    set({ status: 'scanning', error: null, progress: { seen: 0, added: 0, skipped: 0, where: '', done: false } })
-    let entries
-    try {
-      entries = await walkNativeLibrary()
-    } catch (err) {
-      console.error('[jukebox] Could not read the music folder:', err)
-      set({
-        status: get().tracks.length > 0 ? 'ready' : 'empty',
-        progress: null,
-        error: 'The music folder could not be read. If the app was just installed, try opening it again.',
-      })
-      return
-    }
-
-    // ⚠️ A SCAN THAT FINDS NOTHING MUST SAY SO. This used to `set({ error: null })`
-    // and return, which on a fresh install — the one state where every user
-    // starts — made "Scan my music folder" a button that did *literally
-    // nothing*: no spinner, no message, no change. It was reported as broken on
-    // the first launch, and it was right to be.
-    //
-    // ⚠️ Counted on PLAYABLE files, not on entries. The folder is seeded with a
-    // readme so that iOS shows it in the Files app at all (see
-    // `ensureNativeMusicFolder`), so "empty" is never actually empty — an
-    // `entries.length === 0` check would be dead code and the honest case would
-    // fall through to the scanner's much vaguer "nothing playable" line.
-    if (!entries.some((e) => isPlayable(e.name))) {
-      set({
-        status: get().tracks.length > 0 ? 'ready' : 'empty',
-        progress: null,
-        error: emptyFolderMessage(),
-      })
-      return
-    }
     // ⚠️ THE EXISTING ROOT IS FOUND BY `nativePath`, NOT BY ID, and the
     // difference is a bug that would only show on the second scan. `runScan`
     // derives a new root's id from its LABEL, so the first native scan creates
@@ -451,19 +437,45 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // "Music (2)": one folder, two roots, every track in the library twice.
     // There is exactly one native root, and `nativePath` is what marks it.
     const existing = get().roots.find((r) => r.nativePath != null)
-    await runScan(
+    if (usesChosenFolder() && !existing?.nativePath) {
+      // Android with nothing chosen yet: "scan" can only mean "choose".
+      await get().chooseNativeFolder()
+      return
+    }
+    const outcome = await scanNative(
       set,
       get,
-      entries,
-      NATIVE_ROOT_LABEL,
-      null,
+      existing?.nativePath ?? NATIVE_ROOT_PATH,
       existing?.id,
-      // The music folder IS the Documents root, so its path relative to
-      // Documents — which is what `walkNativeLibrary` walks — is the empty
-      // string. Empty but NOT null: `nativePath != null` is what marks a root
-      // as the native one, above and in `hydrate`.
-      NATIVE_ROOT_PATH,
+      NATIVE_ROOT_LABEL,
     )
+    // ⚠️ Android has lost the folder — moved, renamed, deleted, or access
+    // withdrawn in Settings. Choosing it again is the only way back, and this
+    // was a tap, so the picker opens now rather than an error naming a fix the
+    // screen has no button for. Backing out of it leaves the error showing.
+    if (outcome === 'unreadable' && usesChosenFolder()) await get().chooseNativeFolder()
+  },
+
+  async chooseNativeFolder() {
+    if (!usesChosenFolder()) return
+    let picked
+    try {
+      picked = await pickNativeMusicFolder()
+    } catch (err) {
+      console.error('[jukebox] The folder picker failed:', err)
+      set({ error: 'That folder could not be used — the phone would not let the app keep access to it. Try again, or choose a different folder.' })
+      return
+    }
+    if (!picked) return // Backed out of the picker: not an error, nothing to say.
+
+    const existing = get().roots.find((r) => r.nativePath != null)
+    const outcome = await scanNative(set, get, picked.uri, existing?.id, picked.name)
+    // Hold exactly one grant — the folder the library now reads. On success the
+    // old folder's goes; on failure the new one's does, since the library is
+    // still pointed at the old folder.
+    const unused = outcome === 'ok' ? existing?.nativePath : picked.uri
+    const inUse = outcome === 'ok' ? picked.uri : existing?.nativePath
+    if (unused && unused !== inUse) void releaseNativeMusicFolder(unused)
   },
 
   async importNativeFiles(files) {
@@ -525,6 +537,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
  * which is the whole reason the first version of this read as a dead end.
  */
 function emptyFolderMessage(): string {
+  if (usesChosenFolder()) {
+    return 'No music in that folder. Copy albums into it from a computer or with the Files app — Artist/Album/track.mp3 is exactly right — then scan again, or choose a different folder.'
+  }
   const where =
     nativePlatform() === 'ios'
       ? 'Open the Files app, go to On My iPhone \u2192 Universal Jukebox, and copy an album in.'
@@ -533,6 +548,72 @@ function emptyFolderMessage(): string {
 }
 
 let scanAbort: AbortController | null = null
+
+/**
+ * Walk a native music folder and scan what is in it — the part of a native
+ * scan that is the same on both platforms.
+ *
+ * `folder` is `Root.nativePath`: `''` on iOS, where the music folder IS
+ * Documents, and the chosen folder's tree URI on Android. Returns how it went,
+ * because the callers do different things next — Android re-opens the picker
+ * on `'unreadable'`, and `chooseNativeFolder` gives back whichever folder grant
+ * the library is not using.
+ */
+async function scanNative(
+  set: (partial: Partial<LibraryState>) => void,
+  get: () => LibraryState,
+  folder: string,
+  existingId: string | undefined,
+  label: string,
+): Promise<'ok' | 'empty' | 'unreadable'> {
+  set({ status: 'scanning', error: null, progress: { seen: 0, added: 0, skipped: 0, where: '', done: false } })
+  let entries
+  try {
+    entries = await walkNativeLibrary(undefined, folder)
+  } catch (err) {
+    console.error('[jukebox] Could not read the music folder:', err)
+    set({
+      status: get().tracks.length > 0 ? 'ready' : 'empty',
+      progress: null,
+      error: usesChosenFolder()
+        ? 'That folder could not be opened — it may have been moved or renamed, or access to it was withdrawn. Choose it again.'
+        : 'The music folder could not be read. If the app was just installed, try opening it again.',
+    })
+    return 'unreadable'
+  }
+
+  // ⚠️ A SCAN THAT FINDS NOTHING MUST SAY SO. This used to `set({ error: null })`
+  // and return, which on a fresh install — the one state where every user
+  // starts — made "Scan my music folder" a button that did *literally
+  // nothing*: no spinner, no message, no change. It was reported as broken on
+  // the first launch, and it was right to be.
+  //
+  // ⚠️ Counted on PLAYABLE files, not on entries. The folder is seeded with a
+  // readme so that iOS shows it in the Files app at all (see
+  // `ensureNativeMusicFolder`), so "empty" is never actually empty — an
+  // `entries.length === 0` check would be dead code and the honest case would
+  // fall through to the scanner's much vaguer "nothing playable" line.
+  if (!entries.some((e) => isPlayable(e.name))) {
+    set({
+      status: get().tracks.length > 0 ? 'ready' : 'empty',
+      progress: null,
+      error: emptyFolderMessage(),
+    })
+    return 'empty'
+  }
+  await runScan(
+    set,
+    get,
+    entries,
+    label,
+    null,
+    existingId,
+    // Empty on iOS but NOT null: `nativePath != null` is what marks a root as
+    // the native one, in `scanNativeFolder` and in `hydrate`.
+    folder,
+  )
+  return 'ok'
+}
 
 /**
  * Put the native music folder's live files back, without re-scanning it.
@@ -549,6 +630,11 @@ let scanAbort: AbortController | null = null
  * Its path has not changed and it is plainly the same track, so it plays. The
  * stale tags in the library are what "Rescan" is for, and this app already
  * treats everything in the database as disposable (see `lib/types.ts`).
+ *
+ * ⚠️ On Android this is a walk of the CHOSEN folder, and it never opens the
+ * picker: it runs at launch, with nobody's tap behind it. If access has gone,
+ * the tracks simply stay unplayable and the banner's Rescan — a tap — is what
+ * asks for the folder again.
  */
 async function reattachNative(
   set: (partial: Partial<LibraryState>) => void,
@@ -558,7 +644,7 @@ async function reattachNative(
   if (!root) return
   let entries
   try {
-    entries = await walkNativeLibrary()
+    entries = await walkNativeLibrary(undefined, root.nativePath ?? NATIVE_ROOT_PATH)
   } catch (err) {
     console.error('[jukebox] Could not re-read the music folder on startup:', err)
     return

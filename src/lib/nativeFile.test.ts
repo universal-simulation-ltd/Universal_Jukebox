@@ -2,7 +2,16 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NativeFile, isNativeShell, nativeFileUrl, type NativeEntry } from './nativeFile'
+import {
+  NativeFile,
+  ensureNativeMusicFolder,
+  isNativeShell,
+  nativeFileUrl,
+  pickNativeMusicFolder,
+  usesChosenFolder,
+  walkNativeLibrary,
+  type NativeEntry,
+} from './nativeFile'
 import { HEAD_BYTES, isPlayable, scan } from './scan'
 import { readTags } from './tags'
 
@@ -114,6 +123,46 @@ describe('NativeFile', () => {
 
     expect(new Uint8Array(got)).toEqual(bytes.slice(100, 200))
     expect(warn).toHaveBeenCalled()
+  })
+
+  it('stops reading at the end of the window when a 206 runs on to the end of the file', async () => {
+    // ⚠️ Android, measured 2026-09-10: Capacitor's local server answers 206 with
+    // a Content-Range for exactly the window asked for, and a body that starts
+    // there and runs to the END OF THE FILE — 10 bytes asked, 3 MB back. The
+    // status says the range was honoured, so only the length gives it away, and
+    // the tags still parse. The read has to stop, not buffer the rest.
+    const bytes = new Uint8Array(64 * 1024).map((_, i) => i % 251)
+    const CHUNK = 1024
+    let pulled = 0
+    let cancelled = false
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: { headers?: Record<string, string> }) => {
+        let at = Number(init?.headers?.Range?.replace('bytes=', '').split('-')[0] ?? 0)
+        const body = new ReadableStream<Uint8Array>(
+          {
+            pull(controller) {
+              if (at >= bytes.byteLength) return controller.close()
+              pulled++
+              controller.enqueue(bytes.slice(at, at + CHUNK))
+              at += CHUNK
+            },
+            cancel() {
+              cancelled = true
+            },
+          },
+          { highWaterMark: 0 },
+        )
+        return new Response(body, { status: 206 })
+      }),
+    )
+
+    const got = await new NativeFile(entry({ size: bytes.byteLength })).slice(5000, 5100).arrayBuffer()
+
+    expect(new Uint8Array(got)).toEqual(bytes.slice(5000, 5100))
+    expect(cancelled).toBe(true)
+    // One chunk covers the window; the other ~60 KB were never pulled.
+    expect(pulled).toBeLessThanOrEqual(2)
   })
 
   it('throws on a real HTTP failure rather than returning empty bytes', async () => {
@@ -259,5 +308,97 @@ describe('the seeded readme', () => {
     const result = await scan([entry({ path: README, name: README, size: 16 })], { prefix: 'Music' })
     expect(result.tracks).toHaveLength(0)
     expect(result.refused.has('txt')).toBe(false)
+  })
+})
+
+// ── Android: the folder is chosen ────────────────────────────────────────────
+
+const musicFolder = vi.hoisted(() => ({ pick: vi.fn(), walk: vi.fn(), release: vi.fn() }))
+const fs = vi.hoisted(() => ({ readdir: vi.fn(), writeFile: vi.fn() }))
+vi.mock('@capacitor/core', () => ({ registerPlugin: () => musicFolder }))
+vi.mock('@capacitor/filesystem', () => ({
+  Filesystem: fs,
+  Directory: { Documents: 'DOCUMENTS' },
+  Encoding: { UTF8: 'utf8' },
+}))
+
+/**
+ * A native shell. `musicFolderPlugin` is whether the native side registered
+ * `JukeboxMusicFolder` — which Android does and iOS does not, yet.
+ */
+function onPlatform(platform: 'ios' | 'android', options: { musicFolderPlugin?: boolean } = {}) {
+  const { musicFolderPlugin = platform === 'android' } = options
+  vi.stubGlobal('Capacitor', {
+    isNativePlatform: () => true,
+    getPlatform: () => platform,
+    convertFileSrc: (u: string) => u,
+    PluginHeaders: musicFolderPlugin ? [{ name: 'JukeboxMusicFolder', methods: [] }] : [],
+  })
+}
+
+describe('the Android music folder', () => {
+  beforeEach(() => {
+    for (const f of [musicFolder.pick, musicFolder.walk, musicFolder.release, fs.readdir, fs.writeFile]) f.mockReset()
+  })
+
+  it('is chosen on Android and fixed on iOS', () => {
+    onPlatform('android')
+    expect(usesChosenFolder()).toBe(true)
+    onPlatform('ios')
+    expect(usesChosenFolder()).toBe(false)
+    vi.unstubAllGlobals()
+    expect(usesChosenFolder()).toBe(false)
+  })
+
+  it('follows the PLUGIN, not the platform name — the seam for any other platform', () => {
+    // An iOS `JukeboxMusicFolder` plugin must switch the chosen-folder route on
+    // with no call site changing; Android without one must not pretend.
+    onPlatform('ios', { musicFolderPlugin: true })
+    expect(usesChosenFolder()).toBe(true)
+    onPlatform('android', { musicFolderPlugin: false })
+    expect(usesChosenFolder()).toBe(false)
+  })
+
+  it('walks the CHOSEN folder through the plugin — never Documents', async () => {
+    onPlatform('android')
+    const file = { path: 'A/R/01.mp3', uri: 'content://docs/document/1', name: '01.mp3', size: 10, mtime: 5 }
+    musicFolder.walk.mockResolvedValue({ files: [file] })
+
+    const entries = await walkNativeLibrary(undefined, 'content://docs/tree/primary%3AMusic')
+
+    expect(musicFolder.walk).toHaveBeenCalledWith({ uri: 'content://docs/tree/primary%3AMusic' })
+    expect(entries).toEqual([file])
+    expect(fs.readdir).not.toHaveBeenCalled()
+  })
+
+  it('refuses to walk with no folder chosen, rather than calling it empty', async () => {
+    // "Your folder is empty" and "I could not look" need different things from
+    // the person — the same line the iOS walker draws at its root.
+    onPlatform('android')
+    await expect(walkNativeLibrary()).rejects.toThrow()
+    expect(musicFolder.walk).not.toHaveBeenCalled()
+  })
+
+  it('treats a backed-out picker as no answer, not an error', async () => {
+    onPlatform('android')
+    musicFolder.pick.mockResolvedValueOnce({ cancelled: true })
+    expect(await pickNativeMusicFolder()).toBeNull()
+
+    musicFolder.pick.mockResolvedValueOnce({ uri: 'content://docs/tree/x', name: 'Albums' })
+    expect(await pickNativeMusicFolder()).toEqual({ uri: 'content://docs/tree/x', name: 'Albums' })
+  })
+
+  it('does not leave a readme in the phone’s shared Documents folder', async () => {
+    // On iOS the readme is what makes the folder appear in the Files app. On
+    // Android `Directory.Documents` is the phone's SHARED Documents, which the
+    // library does not even read — writing there is litter.
+    onPlatform('android')
+    await ensureNativeMusicFolder()
+    expect(fs.writeFile).not.toHaveBeenCalled()
+
+    onPlatform('ios')
+    fs.readdir.mockResolvedValue({ files: [] })
+    await ensureNativeMusicFolder()
+    expect(fs.writeFile).toHaveBeenCalledTimes(1)
   })
 })

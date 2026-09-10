@@ -130,6 +130,13 @@ export interface Root {
    * library comes back after a relaunch without asking the user anything. The
    * Chromium handle only manages the same trick by storing a live object.
    *
+   * ⚠️ ON ANDROID IT IS A `content://` TREE URI, NOT A PATH (2026-09-10). The
+   * iOS folder has no Android twin an app can read — see
+   * `android/…/MusicFolderPlugin.java` — so there the folder IS chosen, through
+   * the system picker, and Android keeps the grant. It is still a plain string
+   * with nothing live behind it, so everything above holds; only the value
+   * differs. Read it as "where to walk", never as a filesystem path.
+   *
    * `null` on the web, where `handle` is the mechanism.
    */
   nativePath?: string | null

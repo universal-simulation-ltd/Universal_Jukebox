@@ -172,7 +172,8 @@ discovering it later.
 |---|---|
 | Chrome / Edge | Pick the folder **once**. The directory handle is stored, so the library is still there next launch behind one permission confirmation. |
 | Firefox / Safari | Pick the folder **every session**. Neither ships File System Access, and the permission is the thing that cannot be saved — no polyfill can invent it. |
-| iOS / Android app | **No folder is picked at all.** The app has one, and the OS shares it. |
+| iOS app | **No folder is picked at all.** The app has one, and the OS shares it with the Files app. |
+| Android app | Pick the folder **once**, in the system picker. Android keeps the grant, so the library is still there next launch with nothing to confirm. |
 
 **On all three, the library and the artwork survive**, cached in IndexedDB and
 keyed by path + size + mtime. What a Firefox visitor loses is a click, not their
@@ -223,6 +224,40 @@ when the folder held no music, which on a fresh install — where everybody star
 the path through the Files app, because the folder cannot be seen from inside the
 app and somebody who has just been told there is no music in it has no way to
 find out where it is.
+
+### ⚠️ Android has no such folder, so there the folder IS chosen
+
+The iOS answer does not carry over. `@capacitor/filesystem`'s
+`Directory.Documents` on Android is not an app folder: it is the phone's shared
+`/storage/emulated/0/Documents`, and under scoped storage (Android 11+) an app
+can list only what it wrote there itself. Measured on an Android 15 emulator: an
+MP3 put into Documents from outside was invisible, and so was every file under
+`/sdcard/Music`. The first Android build compiled, installed, told you to use a
+"Universal Jukebox folder in your Files app" that does not exist on Android, and
+could not have found a single track.
+
+So on Android *Choose your music folder* opens the system folder picker
+(Storage Access Framework, starting in Music) and the app **keeps the grant**
+(`takePersistableUriPermission`). The folder's tree URI is stored as the root's
+`nativePath` — a plain string, like the iOS path — so the library comes back on
+launch with nothing to confirm, and a cover image beside an album is visible
+too. An app-local plugin (`android/…/MusicFolderPlugin.java`) picks and walks
+the folder; the bytes are still read through Capacitor's local server, never
+through the plugin. There is one phone folder: choosing another replaces it.
+The in-app importer is hidden on Android, because it would copy into that shared
+Documents folder, which the library does not read.
+
+The chosen-folder route is switched on by the plugin, not by the platform name
+(`usesChosenFolder()` in `lib/nativeFile.ts`), so a native plugin of the same
+name on another platform turns it on there.
+
+⚠️ **Android's local server does not honour a range the way it says it does.**
+It answers `206` with a `Content-Range` for exactly the bytes asked for, and a
+body that runs on to the end of the file: asking for 512 KB of a 20 MB file
+returned all 20 MB. The tags still parse, so nothing looks wrong. The scan would
+have moved every file in the library through memory. `NativeFile` therefore
+reads the body as a stream and cancels it once it has the window, which brought
+that read down to about 1 MB of actual disk reads.
 
 ### ⚠️ The volume question, and what a device actually said
 

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { isNativeShell } from '../lib/nativeFile'
+import { isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { useLibraryStore } from '../stores/libraryStore'
 
 // The front door, before there is a library.
@@ -30,6 +30,7 @@ export default function Landing() {
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
   const loadExample = useLibraryStore((s) => s.loadExample)
   const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
+  const chooseNativeFolder = useLibraryStore((s) => s.chooseNativeFolder)
   const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
   const importProgress = useLibraryStore((s) => s.importProgress)
   const folderInput = useRef<HTMLInputElement>(null)
@@ -38,6 +39,10 @@ export default function Landing() {
   // would render the web copy for one frame first, which on the phone reads as
   // the app offering a folder picker and then thinking better of it.
   const native = isNativeShell()
+  // ⚠️ AND ANDROID IS A FOURTH CASE: it has no fixed folder the app can read,
+  // so there the folder IS chosen — through the system picker, which Android
+  // then lets the app keep. See `usesChosenFolder`.
+  const chosen = usesChosenFolder()
   // Building it draws eleven sleeves, which is fast but not instant — and a
   // button that appears to do nothing for half a second is a button people
   // press twice.
@@ -71,20 +76,28 @@ export default function Landing() {
           type="button"
           disabled={importProgress !== null}
           onClick={() =>
-            native
-              ? void scanNativeFolder()
-              : canPersist
-                ? void pickFolder()
-                : folderInput.current?.click()
+            chosen
+              ? void chooseNativeFolder()
+              : native
+                ? void scanNativeFolder()
+                : canPersist
+                  ? void pickFolder()
+                  : folderInput.current?.click()
           }
           className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60"
         >
           <FolderGlyph />
-          {native ? 'Scan my music folder' : 'Choose your music folder'}
+          {native && !chosen ? 'Scan my music folder' : 'Choose your music folder'}
         </button>
 
         <p className="max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-          {native ? (
+          {chosen ? (
+            <>
+              Pick the folder your music is in — usually <strong>Music</strong>. Sub-folders
+              are fine. The app keeps permission to read it, so your library is still here
+              next time you open the app.
+            </>
+          ) : native ? (
             <>
               Your music goes in the <strong>Universal Jukebox</strong> folder in the Files
               app — copy it in, AirDrop it, or drag it over from a computer. Sub-folders are
@@ -103,14 +116,21 @@ export default function Landing() {
           )}
         </p>
 
-        <button
-          type="button"
-          disabled={importProgress !== null}
-          onClick={() => fileInput.current?.click()}
-          className="mt-1 text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
-        >
-          {native ? 'Or add music from this device' : 'Or pick individual files'}
-        </button>
+        {/* ⚠️ Not on Android. The importer copies into `Directory.Documents`,
+            which there is the phone's SHARED Documents folder — not the folder
+            the library reads — so it would copy files somewhere they are never
+            found. Music goes into the chosen folder, the way it gets onto an
+            Android phone anyway. */}
+        {!chosen && (
+          <button
+            type="button"
+            disabled={importProgress !== null}
+            onClick={() => fileInput.current?.click()}
+            className="mt-1 text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
+          >
+            {native ? 'Or add music from this device' : 'Or pick individual files'}
+          </button>
+        )}
 
         {/* ⚠️ An import COPIES, through the Capacitor bridge, so a big one is
             genuinely slow — and a silent slow thing reads as a crash. This is

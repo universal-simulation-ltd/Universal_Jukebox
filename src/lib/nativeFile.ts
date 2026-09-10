@@ -21,6 +21,15 @@
 // music every time they opened the app. A path is a string: it survives in
 // IndexedDB with no permission attached to it, which is how the native build
 // gets the thing only Chromium manages on the web.
+//
+// ⚠️ ANDROID IS DIFFERENT, AND THE iOS ROUTE DOES NOT WORK THERE (2026-09-10).
+// `Directory.Documents` on Android is the phone's SHARED Documents folder, and
+// scoped storage hides from this app everything in it that the app did not
+// write itself. So on Android the folder IS chosen — a Storage Access Framework
+// picker, with the grant kept — and walked by an app-local plugin. See
+// `usesChosenFolder` below. The READS are unchanged: both platforms play and
+// scan through Capacitor's local server, and on Android that server's 206 runs
+// past the range it claims — see `readWindow`.
 
 import type { SourceFile } from './types'
 
@@ -141,21 +150,71 @@ export class NativeFile implements SourceFile {
         if (to <= from) return new ArrayBuffer(0)
         // `to - 1`: HTTP ranges are inclusive at both ends, `slice` is not.
         const response = await fetch(url, { headers: { Range: `bytes=${from}-${to - 1}` } })
-        if (!response.ok && response.status !== 206) {
+        if (!response.ok) {
           throw new Error(`Could not read ${url}: HTTP ${response.status}`)
         }
-        const buffer = await response.arrayBuffer()
-        // The whole file came back because the range was ignored. Take the part
-        // that was asked for so the CALLER still gets correct bytes, and say so
-        // once — a silent full read is the expensive bug this guards.
-        if (response.status !== 206 && buffer.byteLength > to - from) {
-          warnRangeIgnored()
-          return buffer.slice(from, to)
-        }
-        return buffer
+        // A 200 is the whole file from byte 0 because the range was ignored.
+        // Skip to the part that was asked for so the CALLER still gets correct
+        // bytes, and say so once — a silent full read is the expensive bug this
+        // guards.
+        const ranged = response.status === 206
+        if (!ranged) warnRangeIgnored()
+        return readWindow(response, ranged ? 0 : from, to - from)
       },
     }
   }
+}
+
+/**
+ * Exactly `want` bytes of a response body, starting `skip` bytes in — and then
+ * STOP READING.
+ *
+ * ⚠️ ANDROID'S 206 IS NOT THE RANGE IT CLAIMS. Capacitor's Android local server
+ * (`WebViewLocalServer.handleLocalRequest`) answers a range request with `206`
+ * and a `Content-Range` naming exactly the window asked for — and a body that
+ * starts at the window and runs ON TO THE END OF THE FILE. Measured on an
+ * Android 15 emulator, 2026-09-10: `bytes=0-9` of a 3 MB file came back as
+ * 3,145,728 bytes, and a 512 KB head read of a 20 MB file as all 20 MB. The
+ * status says the range was honoured, the first bytes are the right ones, and
+ * the tags parse perfectly — so `response.arrayBuffer()` here would hold every
+ * file in the library in memory, one at a time, with nothing to say so. That is
+ * THE ONE RULE at the top of `lib/scan.ts`, broken by the server.
+ *
+ * So the body is read as a stream and CANCELLED once the window is full, which
+ * stops the native side reading too: the same 512 KB head read then cost about
+ * 1 MB of disk reads in the app process (`/proc/<pid>/io`), against 21 MB for
+ * `arrayBuffer()`. iOS answers a true 206 and is unaffected — the loop simply
+ * reaches the end of a body that is already the right length.
+ */
+async function readWindow(response: Response, skip: number, want: number): Promise<ArrayBuffer> {
+  const body = response.body
+  if (!body) {
+    // No stream to stop (an environment without one). Correct bytes, full cost.
+    return (await response.arrayBuffer()).slice(skip, skip + want)
+  }
+  const reader = body.getReader()
+  const out = new Uint8Array(want)
+  let skipped = 0
+  let have = 0
+  try {
+    while (have < want) {
+      const { done, value } = await reader.read()
+      if (done) break
+      let chunk = value
+      if (skipped < skip) {
+        const drop = Math.min(skip - skipped, chunk.byteLength)
+        skipped += drop
+        chunk = chunk.subarray(drop)
+      }
+      const take = Math.min(chunk.byteLength, want - have)
+      out.set(chunk.subarray(0, take), have)
+      have += take
+    }
+  } finally {
+    // The point of the whole function: tell the server to stop.
+    void reader.cancel().catch(() => {})
+  }
+  return have === want ? out.buffer : out.slice(0, have).buffer
 }
 
 let rangeWarned = false
@@ -192,8 +251,123 @@ export const NATIVE_ROOT_LABEL = 'Music'
  */
 export const NATIVE_ROOT_PATH = ''
 
+// ── Android: a folder the person chooses ─────────────────────────────────────
+
 /**
- * Walk the app's Documents directory and return every file in it.
+ * True where the music folder is CHOSEN rather than fixed — i.e. Android.
+ *
+ * ⚠️ THE iOS ANSWER DOES NOT EXIST ON ANDROID. `Directory.Documents` there is
+ * not an app folder: `@capacitor/filesystem` maps it to the phone's SHARED
+ * `/storage/emulated/0/Documents`, and under scoped storage (Android 11+) an
+ * app can list only the files it wrote there itself. Measured on an Android 15
+ * emulator, 2026-09-10: an MP3 put into Documents from outside was invisible to
+ * `readdir`, which listed only this app's own readme — and every file under
+ * `/sdcard/Music` was invisible too. So the Android build installed, told
+ * people to use "the Universal Jukebox folder in your Files app" (there is no
+ * such folder on Android), and could never find a single track.
+ *
+ * The Android build instead asks for a folder through the system picker and
+ * Android keeps the grant, so it survives a relaunch the way the iOS path does
+ * — see `android/app/src/main/java/uk/co/unisim/jukebox/MusicFolderPlugin.java`.
+ *
+ * ⚠️ DECIDED BY THE PLUGIN, NOT BY THE PLATFORM'S NAME. The chosen-folder route
+ * is on wherever the native shell registers a `JukeboxMusicFolder` plugin —
+ * Android today, because `MainActivity` registers one. A native plugin of the
+ * same name with the same three methods (`MusicFolderPlugin` below) turns it on
+ * for any other platform, iOS included, without a single call site changing.
+ *
+ * `PluginHeaders` rather than `Capacitor.isPluginAvailable`: the native bridge
+ * injects the headers before any page script runs, so this is answerable
+ * SYNCHRONOUSLY on the first render (the same reason `isNativeShell` exists),
+ * whereas `isPluginAvailable` is added by `@capacitor/core`, which need not
+ * have loaded yet.
+ */
+export function usesChosenFolder(): boolean {
+  if (!isNativeShell()) return false
+  try {
+    const headers = (capacitor() as { PluginHeaders?: { name?: string }[] } | undefined)?.PluginHeaders
+    return Array.isArray(headers) && headers.some((h) => h?.name === MUSIC_FOLDER_PLUGIN)
+  } catch {
+    return false
+  }
+}
+
+/** The native plugin behind a chosen folder — see `usesChosenFolder`. */
+export const MUSIC_FOLDER_PLUGIN = 'JukeboxMusicFolder'
+
+/**
+ * What a platform's `JukeboxMusicFolder` plugin must do. Android's is
+ * `MusicFolderPlugin.java`; another platform's needs these three and nothing
+ * else.
+ *
+ * - `pick()` opens the system folder picker and KEEPS the grant (Android:
+ *   `takePersistableUriPermission`). Resolves `{ uri, name }`, or
+ *   `{ cancelled: true }` when backed out of — never a rejection for that.
+ *   `uri` is an opaque string the library stores as `Root.nativePath` in
+ *   IndexedDB and hands back to `walk` on every launch; this module never
+ *   parses it.
+ * - `walk({ uri })` lists every file under it as `NativeEntry`s — `path`
+ *   relative to the folder, and an entry `uri` that `Capacitor.convertFileSrc`
+ *   can serve with range reads, since scanning and playback both go through the
+ *   local server. It REJECTS when the folder can no longer be reached, rather
+ *   than resolving `[]`.
+ * - `release({ uri })` drops a grant the library no longer uses.
+ */
+interface MusicFolderPlugin {
+  pick(): Promise<{ uri?: string; name?: string; cancelled?: boolean }>
+  walk(options: { uri: string }): Promise<{ files: NativeEntry[] }>
+  release(options: { uri: string }): Promise<void>
+}
+
+let musicFolder: MusicFolderPlugin | null = null
+
+/**
+ * Register the app-local plugin, once.
+ *
+ * ⚠️ RETURNS NOTHING, and callers read `musicFolder` afterwards — on purpose. A
+ * Capacitor plugin is a Proxy that answers EVERY property with a native-method
+ * wrapper, `then` included (`@capacitor/core`'s `registerPlugin`), so resolving
+ * a promise WITH it makes the promise machinery call a native method named
+ * "then", which never answers. An `async` function that returns the plugin is
+ * exactly that.
+ */
+async function loadMusicFolder(): Promise<void> {
+  if (musicFolder) return
+  const { registerPlugin } = await import('@capacitor/core')
+  musicFolder = registerPlugin<MusicFolderPlugin>(MUSIC_FOLDER_PLUGIN)
+}
+
+/** Ask for the music folder. `null` when the picker was backed out of. */
+export async function pickNativeMusicFolder(): Promise<{ uri: string; name: string } | null> {
+  await loadMusicFolder()
+  const picked = await musicFolder!.pick()
+  if (picked.cancelled || !picked.uri) return null
+  return { uri: picked.uri, name: picked.name || NATIVE_ROOT_LABEL }
+}
+
+/**
+ * Give back the grant on a folder the library no longer reads.
+ *
+ * Android caps how many a single app may hold, so choosing a different folder
+ * lets go of the old one rather than collecting them. Never throws: a grant
+ * that could not be released is untidy, not broken.
+ */
+export async function releaseNativeMusicFolder(uri: string): Promise<void> {
+  try {
+    await loadMusicFolder()
+    await musicFolder!.release({ uri })
+  } catch (err) {
+    console.warn('[jukebox] Could not release the old music folder:', err)
+  }
+}
+
+/**
+ * Walk the music folder and return every file in it.
+ *
+ * On iOS that is the app's Documents directory, and `folder` is
+ * `NATIVE_ROOT_PATH`. On Android it is the chosen folder's tree URI —
+ * `Root.nativePath` — walked natively in one call, because each directory there
+ * is a content-provider query rather than a `readdir`.
  *
  * Iterative rather than recursive, for the reason `walkHandle` in `lib/scan.ts`
  * gives: a stack blown halfway through loses everything found so far.
@@ -203,7 +377,18 @@ export const NATIVE_ROOT_PATH = ''
  * which is how the UI can say "12 .wma files were skipped" rather than leaving
  * somebody to wonder where half their library went.
  */
-export async function walkNativeLibrary(signal?: AbortSignal): Promise<NativeEntry[]> {
+export async function walkNativeLibrary(
+  signal?: AbortSignal,
+  folder: string = NATIVE_ROOT_PATH,
+): Promise<NativeEntry[]> {
+  if (usesChosenFolder()) {
+    // ⚠️ No folder is "I could not look", never "empty" — the same distinction
+    // the root case below draws, for the same reason.
+    if (!folder) throw new Error('No music folder has been chosen yet')
+    await loadMusicFolder()
+    const { files } = await musicFolder!.walk({ uri: folder })
+    return files.map((f) => ({ ...f, mtime: f.mtime ?? 0 }))
+  }
   const { Filesystem, Directory } = await import('@capacitor/filesystem')
   const found: NativeEntry[] = []
   const stack: string[] = ['']
@@ -365,7 +550,11 @@ const README_BODY = [
  * never a reason to fail a launch.
  */
 export async function ensureNativeMusicFolder(): Promise<void> {
-  if (!isNativeShell()) return
+  // ⚠️ iOS ONLY. On Android `Directory.Documents` is the phone's SHARED
+  // Documents folder, which the library does not read there (see
+  // `usesChosenFolder`) — a readme written into it would be litter in
+  // somebody's Documents, telling them to put music somewhere that is ignored.
+  if (!isNativeShell() || usesChosenFolder()) return
   try {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
     const { files } = await Filesystem.readdir({

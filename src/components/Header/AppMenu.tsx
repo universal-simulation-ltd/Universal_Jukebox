@@ -4,7 +4,7 @@ import { trackCountFor } from '../../lib/roots'
 import { plural } from '../../lib/format'
 import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
-import { isNativeShell } from '../../lib/nativeFile'
+import { isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
 //
@@ -52,7 +52,10 @@ export default function AppMenu() {
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
   const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
   const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
+  const chooseNativeFolder = useLibraryStore((s) => s.chooseNativeFolder)
   const native = isNativeShell()
+  // Android: the folder is chosen, not fixed — see `usesChosenFolder`.
+  const chosen = usesChosenFolder()
   const pref = useThemeStore((s) => s.pref)
   const setPref = useThemeStore((s) => s.setPref)
   const folderInput = useRef<HTMLInputElement>(null)
@@ -65,7 +68,11 @@ export default function AppMenu() {
   // neither, because there is one fixed folder and it cannot be chosen. There
   // "add" means "put files INTO it", which is the import.
   const chooseFolder = () => {
-    if (native) fileInput.current?.click()
+    // Android: a different folder, through the system picker. The importer
+    // would copy into the phone's SHARED Documents, which the library does not
+    // read there — see `usesChosenFolder`.
+    if (chosen) void chooseNativeFolder()
+    else if (native) fileInput.current?.click()
     else if (canPersist) void pickFolder()
     else folderInput.current?.click()
   }
@@ -113,12 +120,14 @@ export default function AppMenu() {
           <Row
             onClick={chooseFolder}
             title={
-              native
-                ? 'Copies the files you pick into the Universal Jukebox folder, then re-scans'
-                : 'Adds to your library — the folders you already have stay where they are'
+              chosen
+                ? 'Reads a different folder instead of the one the library reads now'
+                : native
+                  ? 'Copies the files you pick into the Universal Jukebox folder, then re-scans'
+                  : 'Adds to your library — the folders you already have stay where they are'
             }
           >
-            {native ? 'Add music…' : 'Add a folder…'}
+            {chosen ? 'Choose a different folder…' : native ? 'Add music…' : 'Add a folder…'}
           </Row>
           {/* ⚠️ Native only, and it is not a duplicate of the row above. Music
               put in through the FILES APP — copied, AirDropped, synced from a
