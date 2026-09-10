@@ -34,6 +34,21 @@ function supported(): boolean {
   return typeof navigator !== 'undefined' && 'mediaSession' in navigator
 }
 
+/** The actions this platform accepted, for the iPhone launch diagnostics. */
+let accepted: MediaSessionAction[] = []
+
+/**
+ * What the OS has been told, in one line — for `[jukebox:diag]`. On the iPhone
+ * the lock screen showed play/pause only (2026-09-10); this says whether the
+ * Media Session exists in the WebView at all, which actions it accepted, and
+ * whether the track's metadata reached it.
+ */
+export function describeMediaSession(): string {
+  if (!supported()) return 'no navigator.mediaSession'
+  const title = navigator.mediaSession.metadata?.title ?? null
+  return `actions=${accepted.join(',') || 'none'} state=${navigator.mediaSession.playbackState} title=${title === null ? 'none' : JSON.stringify(title)}`
+}
+
 /**
  * Tell the OS what is playing.
  *
@@ -148,6 +163,7 @@ export function setHandlers(handlers: MediaSessionHandlers): () => void {
       /* this platform doesn't know this action */
     }
   }
+  accepted = registered
 
   return () => {
     for (const action of registered) {

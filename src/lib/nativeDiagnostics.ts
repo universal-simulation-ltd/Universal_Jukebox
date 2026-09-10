@@ -16,7 +16,8 @@
 import { isNativeShell, nativePlatform, walkNativeLibrary } from './nativeFile'
 import { canSetElementVolume } from './volumeSupport'
 import { graphExists } from './audioGraph'
-import { describeEvents, installLifecycleLog } from './bgLog'
+import { describeEvents, installLifecycleLog, noteEvent } from './bgLog'
+import { describeMediaSession } from './mediaSession'
 
 /** Reads a CSS `env()` value in px, or null where the platform has none. */
 function inset(side: 'top' | 'bottom'): number | null {
@@ -104,6 +105,9 @@ async function report(): Promise<void> {
     // The Music library source and the native audio importer (both iOS).
     musicLibraryPlugin: pluginRegistered('JukeboxAppleMusic'),
     fileImportPlugin: pluginRegistered('JukeboxFileImport'),
+    // The lock screen showed play/pause only (2026-09-10): does the WebView have
+    // a Media Session, and which of our actions did it accept?
+    mediaSession: describeMediaSession(),
   }
 
   try {
@@ -143,6 +147,10 @@ function watchBackgroundPlayback(): void {
       hiddenAt = Date.now()
       startSec = state().sec
       console.log(`[jukebox:bg] hidden ${JSON.stringify({ ...state(), graph: graphExists() })}`)
+      // Saved as well as printed: what the lock screen is being told, at the
+      // moment it takes over — read back from the next launch's `lastBackground`.
+      noteEvent('media', { session: describeMediaSession() })
+      console.log(`[jukebox:bg] media session ${describeMediaSession()}`)
       timer = window.setInterval(() => {
         const s = state()
         console.log(`[jukebox:bg] +${Math.round((Date.now() - hiddenAt) / 1000)}s ${JSON.stringify({ ...s, moved: Math.round((s.sec - startSec) * 10) / 10 })}`)
