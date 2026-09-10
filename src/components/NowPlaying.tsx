@@ -186,6 +186,7 @@ function LyricsToggle() {
         requestLyricsReveal()
         showFor(track.id)
       }}
+      id="jb-lyrics-toggle"
       aria-pressed={show}
       className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
     >

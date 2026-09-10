@@ -1,3 +1,4 @@
+import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
 import { create } from 'zustand'
 
 // Everything on the Settings page, in one store, persisted to localStorage.
@@ -75,23 +76,26 @@ export type HomeTab = 'albums' | 'artists' | 'tracks'
  * ⚠️ This is a MACHINE, always one of these four. What the user may have
  * chosen is a `DeckSetting`, which has one more value — see below.
  */
-export type DeckStyle = 'vinyl' | 'cd' | 'cassette' | 'jukebox'
+export type DeckStyle = 'vinyl' | 'cd' | 'cassette' | 'jukebox' | 'pocket'
 
 /**
  * What the user picked, which is not quite the same thing.
  *
- * `random` is the one value that is not a machine: it means "a different one
- * each time", and `lib/decks.ts` resolves it against a position in the queue.
+ * `automatic` is the one value that is not a machine: it means "the machine of
+ * the album's day", and `lib/decks.ts` resolves it against the album's YEAR
+ * (James, 2026-09-10: "Instead of random, let's do automatic which gives each
+ * album a device based on its year"). A stored `automatic` from before loads as
+ * `automatic`.
  *
  * ⚠️ The two types are deliberately separate rather than one union with a
- * `random` member, and the split is what keeps the rest of the app honest.
+ * `automatic` member, and the split is what keeps the rest of the app honest.
  * `FACES`, `SHAPES` and `CUES` are all `Record<DeckStyle, …>`, so nothing that
- * has to DRAW or SOUND a deck can be handed `random` — it has to go through
+ * has to DRAW or SOUND a deck can be handed `automatic` — it has to go through
  * `resolveDeck()` first, which is the only place the rotation exists. The
- * version of this that made `random` a `DeckStyle` compiled fine and rendered
+ * version of this that made `automatic` a `DeckStyle` compiled fine and rendered
  * nothing.
  */
-export type DeckSetting = DeckStyle | 'random'
+export type DeckSetting = DeckStyle | 'automatic'
 
 /**
  * Every value `deck` may hold, in the order the chooser lists them.
@@ -102,10 +106,10 @@ export type DeckSetting = DeckStyle | 'random'
  * the setting saves, then silently reverts to vinyl on the next load, which is
  * the hardest kind of bug to see because the app looks like it is working.
  *
- * ⚠️ `random` is LAST on purpose: it is the option that is not a machine, and
+ * ⚠️ `automatic` is LAST on purpose: it is the option that is not a machine, and
  * putting it at the end of the radio list keeps the four real ones together.
  */
-export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'jukebox', 'random']
+export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'jukebox', 'pocket', 'automatic']
 
 export interface Settings {
   ceremonyMode: CeremonyMode
@@ -118,13 +122,15 @@ export interface Settings {
   homeTab: HomeTab
   /**
    * Which player the deck draws, and which start-up sound it makes — or
-   * `random`, for a different one per track.
+   * `automatic`, for a different one per track.
    *
    * ⚠️ Vinyl is the default and must stay it: an existing user's stored blob
    * has no `deck` key, and the field-by-field fallback below has to give them
    * back exactly the app they had.
    */
   deck: DeckSetting
+  /** Where each machine's day starts, for `automatic` — see `DeckEras`. */
+  deckEras: DeckEras
   /** The synthesised start-up sound: the needle landing, the disc spinning up,
    *  or the play key latching, whichever deck is showing. */
   needleDrop: boolean
@@ -169,6 +175,7 @@ export const DEFAULTS: Settings = {
   ceremonyMode: 'always',
   homeTab: 'albums',
   deck: 'vinyl',
+  deckEras: DEFAULT_ERAS,
   needleDrop: true,
   needleDropLevel: 1,
   volumeBoost: 1,
@@ -264,7 +271,10 @@ function read(): Settings {
       ? (mode as CeremonyMode)
       : DEFAULTS.ceremonyMode,
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' ? tab : DEFAULTS.homeTab,
-    deck: DECK_SETTINGS.includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
+    // `automatic` was retired for `automatic` on 2026-09-10; somebody who had
+    // chosen "a different machine each time" gets the closest thing to it.
+    deck: deck === 'random' ? 'automatic' : DECK_SETTINGS.includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
+    deckEras: sanitiseEras((stored as { deckEras?: unknown }).deckEras),
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
@@ -319,6 +329,7 @@ function persist(state: Settings) {
     ceremonyMode: state.ceremonyMode,
     homeTab: state.homeTab,
     deck: state.deck,
+    deckEras: state.deckEras,
     needleDrop: state.needleDrop,
     needleDropLevel: state.needleDropLevel,
     volumeBoost: state.volumeBoost,

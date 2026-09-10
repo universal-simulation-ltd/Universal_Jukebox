@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { revealExpanded } from '@unisim/sdk'
 import SingingMic from './SingingMic'
 import { activeLine } from '../lib/lyrics'
 import { takeLyricsReveal } from '../lib/lyricsReveal'
@@ -36,26 +35,37 @@ export default function Lyrics() {
     if (show && track) load(track)
   }, [show, track, load])
 
-  // Opened with "Show lyrics": scroll down until the WHOLE box is on screen
-  // (James, 2026-09-10) — `lib/lyricsReveal.ts` for why only then.
+  // Opened with "Show lyrics": scroll the page so the "Hide lyrics" button sits
+  // at the TOP of the screen, with the lyrics filling what is under it (James,
+  // 2026-09-10: "I want it to scroll down further when it does so the hide
+  // lyrics is right at the top of the page"). `lib/lyricsReveal.ts` for why
+  // only on that tap.
   //
-  // ⚠️ TWICE, AND THE SECOND ONE IS THE ONE THAT MATTERS. The panel opens as a
-  // one-line "Looking…" and grows to its full height only when the words
-  // arrive — a file read, or lrclib, which can take seconds. One reveal at the
-  // moment of opening scrolled to the small box and was over long before the
-  // big one existed, leaving most of it below the fold. So it reveals on
-  // opening, and again whenever the lookup's status moves, until the lookup is
-  // done. The SDK still stands down the instant the person scrolls themselves.
+  // ⚠️ By hand, rather than with the SDK's `revealExpanded` this used to call:
+  // that brings a box INTO view — the least movement that shows it — which
+  // stops short of where James wanted it, and on the first open often did not
+  // move at all, because the page was not yet long enough to scroll that far.
+  //
+  // ⚠️ AND AGAIN WHEN THE WORDS ARRIVE. The panel opens as a one-line
+  // "Looking…", and until the sheet lands there may be nothing below the button
+  // to scroll into — the page is too short, and `scrollTo` stops at the bottom.
+  // So it scrolls on opening, and once more after the lookup settles and the
+  // page has grown.
   const section = useRef<HTMLElement>(null)
   const status = useLyricsStore((s) => s.status)
+  const reduced = usePrefersReducedMotion()
   const revealing = useRef(false)
   useEffect(() => {
-    if (!show || !section.current) return
+    if (!show) return
     if (takeLyricsReveal()) revealing.current = true
     if (!revealing.current) return
-    revealExpanded(section.current, null, { settleMs: 1200 })
-    if (status !== 'idle' && status !== 'loading') revealing.current = false
-  }, [show, status])
+    scrollToggleToTop(reduced)
+    if (status !== 'idle' && status !== 'loading') {
+      revealing.current = false
+      const again = window.setTimeout(() => scrollToggleToTop(reduced), 350)
+      return () => window.clearTimeout(again)
+    }
+  }, [show, status, reduced])
 
   if (!show || !track) return null
   return (
@@ -64,7 +74,11 @@ export default function Lyrics() {
         <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
           Lyrics
         </h2>
-        <Provenance />
+        <div className="flex items-center gap-3">
+          <Provenance />
+          {/* In case the wrong words came back (James, 2026-09-10). */}
+          {status === 'ready' && <AddLyricsFile compact />}
+        </div>
       </div>
       <Body />
     </section>
@@ -322,7 +336,7 @@ function Retry({ message }: { message: string }) {
  * and lrclib (`adoptLyrics`). On iOS it is the native text picker — the web
  * input's first menu there offers the camera — and an `<input>` everywhere else.
  */
-function AddLyricsFile() {
+function AddLyricsFile({ compact = false }: { compact?: boolean }) {
   const track = usePlayerStore(currentTrack)
   const adopt = useLyricsStore((s) => s.adoptLyrics)
   const input = useRef<HTMLInputElement>(null)
@@ -346,6 +360,38 @@ function AddLyricsFile() {
     }
   }
 
+  const fileInput = (
+    <input
+      ref={input}
+      type="file"
+      accept=".lrc,.txt,text/plain"
+      className="hidden"
+      onChange={async (e) => {
+        const file = e.target.files?.[0]
+        e.target.value = ''
+        if (file) await take(await file.text())
+      }}
+    />
+  )
+
+  // "Replace lyrics", beside where they came from — the same picker, for when
+  // the words that came back are the wrong ones.
+  if (compact) {
+    return (
+      <span className="flex flex-col items-end">
+        <button
+          type="button"
+          onClick={() => void pick()}
+          className="text-[12px] font-medium text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+        >
+          Replace lyrics
+        </button>
+        {fileInput}
+        {problem && <span className="mt-1 text-[12px] text-red-700 dark:text-red-300">{problem}</span>}
+      </span>
+    )
+  }
+
   return (
     <div className="mt-4 border-t border-slate-200 pt-3 dark:border-slate-800">
       <p className="text-[12.5px] text-slate-500 dark:text-slate-400">
@@ -359,17 +405,7 @@ function AddLyricsFile() {
       >
         Add a lyrics file
       </button>
-      <input
-        ref={input}
-        type="file"
-        accept=".lrc,.txt,text/plain"
-        className="hidden"
-        onChange={async (e) => {
-          const file = e.target.files?.[0]
-          e.target.value = ''
-          if (file) await take(await file.text())
-        }}
-      />
+      {fileInput}
       {problem && <p className="mt-2 text-[12.5px] text-red-700 dark:text-red-300">{problem}</p>}
     </div>
   )
@@ -381,4 +417,21 @@ function Note({ children }: { children: React.ReactNode }) {
       {children}
     </p>
   )
+}
+
+/**
+ * Put the "Hide lyrics" button at the top of the screen, just under the navbar.
+ *
+ * The navbar is sticky, so its height is measured rather than assumed — it is
+ * taller on a phone with a Dynamic Island. A page too short to scroll that far
+ * simply stops at the bottom, which is why the caller asks again once the words
+ * have arrived.
+ */
+function scrollToggleToTop(reduced: boolean): void {
+  const button = document.getElementById('jb-lyrics-toggle')
+  if (!button) return
+  const bar = document.querySelector('header')?.closest('[style*="sticky"]') ?? document.querySelector('header')
+  const pinned = bar ? bar.getBoundingClientRect().bottom : 0
+  const top = button.getBoundingClientRect().top + window.scrollY - pinned - 12
+  window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' })
 }

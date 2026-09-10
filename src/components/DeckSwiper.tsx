@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
-import { coverUrl, fallbackHue } from '../lib/art'
+import { resolveDeck } from '../lib/decks'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
+import { Medium } from './UpNextReel'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
@@ -36,6 +38,8 @@ export default function DeckSwiper({ size, children }: { size: number; children:
   const repeat = usePlayerStore((s) => s.repeat)
   const jumpTo = usePlayerStore((s) => s.jumpTo)
   const albums = useLibraryStore((s) => s.albums)
+  const setting = useSettingsStore((s) => s.deck)
+  const eras = useSettingsStore((s) => s.deckEras)
   const reduced = usePrefersReducedMotion()
 
   const start = useRef<{ x: number; y: number } | null>(null)
@@ -52,10 +56,16 @@ export default function DeckSwiper({ size, children }: { size: number; children:
   }
   const prevIndex = indexAt(-1)
   const nextIndex = indexAt(1)
+  const trackAt = (index: number | null): Track | undefined => (index === null ? undefined : queue[order[index]])
   const albumAt = (index: number | null): Album | undefined => {
-    const track: Track | undefined = index === null ? undefined : queue[order[index]]
+    const track = trackAt(index)
     return track ? albums.find((a) => a.id === track.albumId) : undefined
   }
+  // ⚠️ Each neighbour on its OWN machine (James, 2026-09-10: "it needs to
+  // reflect what device will be playing too"). Under `automatic` the record
+  // before and the record after can be a cassette and a pocket player; the
+  // peek shows what a swipe will actually put on.
+  const styleAt = (index: number | null): DeckStyle => resolveDeck(setting, albumAt(index) ?? trackAt(index), eras)
 
   const peek = Math.round(size * PEEK)
 
@@ -66,10 +76,10 @@ export default function DeckSwiper({ size, children }: { size: number; children:
     // and there is no screen edge next to it to peek from.
     <div className="relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible">
       {prevIndex !== null && (
-        <Peek album={albumAt(prevIndex)} side="left" size={peek} onClick={() => jumpTo(prevIndex)} />
+        <Peek album={albumAt(prevIndex)} style={styleAt(prevIndex)} side="left" size={peek} onClick={() => jumpTo(prevIndex)} />
       )}
       {nextIndex !== null && (
-        <Peek album={albumAt(nextIndex)} side="right" size={peek} onClick={() => jumpTo(nextIndex)} />
+        <Peek album={albumAt(nextIndex)} style={styleAt(nextIndex)} side="right" size={peek} onClick={() => jumpTo(nextIndex)} />
       )}
       <div
         className="relative shrink-0"
@@ -120,12 +130,14 @@ export default function DeckSwiper({ size, children }: { size: number; children:
   )
 }
 
-/** A neighbouring record, most of it off the edge of the screen. */
+/**
+ * A neighbour, most of it off the edge of the screen — drawn as its own MEDIUM
+ * (a record, a disc, a cassette, a single, a pocket player), the same drawing
+ * the row of records waiting to go on uses, scaled up.
+ */
 function Peek({
-  album, side, size, onClick,
-}: { album: Album | undefined; side: 'left' | 'right'; size: number; onClick(): void }) {
-  const url = album ? coverUrl(album.id, album.cover) : null
-  const hue = album ? fallbackHue(album.id) : 24
+  album, style, side, size, onClick,
+}: { album: Album | undefined; style: DeckStyle; side: 'left' | 'right'; size: number; onClick(): void }) {
   return (
     <button
       type="button"
@@ -133,33 +145,22 @@ function Peek({
         e.stopPropagation()
         onClick()
       }}
-      aria-label={`${side === 'left' ? 'Previous' : 'Next'} record${album ? `: ${album.title}` : ''}`}
-      className="absolute top-1/2 rounded-full opacity-55 transition-opacity hover:opacity-90 focus-visible:opacity-100 lg:hidden"
+      aria-label={`${side === 'left' ? 'Previous' : 'Next'}${album ? `: ${album.title}` : ''}`}
+      className="absolute top-1/2 opacity-60 transition-opacity hover:opacity-90 focus-visible:opacity-100 lg:hidden"
       style={{
         width: size,
         height: size,
         transform: 'translateY(-50%)',
-        // Just under half of it on screen: enough to see WHICH record, not
-        // enough to compete with the one that is playing.
+        // Just under half of it on screen: enough to see WHICH record, and on
+        // what, not enough to compete with the one that is playing.
         [side]: -Math.round(size * 0.58),
       }}
     >
-      <span className="absolute inset-0 rounded-full bg-slate-900 shadow-lg dark:bg-[#12192b]" />
-      <span
-        className="absolute inset-0 rounded-full opacity-[0.16]"
-        style={{ background: 'repeating-radial-gradient(circle at 50% 50%, transparent 0 3px, rgba(255,255,255,.5) 3px 4px)' }}
-      />
-      <span className="absolute overflow-hidden rounded-full" style={{ inset: '30%' }}>
-        {url ? (
-          <img src={url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span
-            className="block h-full w-full"
-            style={{ background: `linear-gradient(135deg, hsl(${hue} 46% 62%), hsl(${(hue + 28) % 360} 44% 44%))` }}
-          />
-        )}
+      {/* `Medium` is drawn at 76px; scaled rather than redrawn, so the two
+          rows can never disagree about what a cassette looks like. */}
+      <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
+        <Medium album={album} style={style} />
       </span>
-      <span className="absolute rounded-full bg-slate-100 dark:bg-slate-900" style={{ inset: '48.4%' }} />
     </button>
   )
 }

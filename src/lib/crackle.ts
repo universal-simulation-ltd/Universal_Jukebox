@@ -89,6 +89,7 @@ export function playTransportCue(style: DeckStyle, volume = 0.8, level = 1): voi
     if (part.kind === 'tone') tone(audio, now + part.at, gain, part)
     else noise(audio, now + part.at, gain, part)
   }
+  idleAfter(Math.max(...cue.map((part) => part.at + part.seconds)))
 }
 
 /**
@@ -137,6 +138,14 @@ const CUES: Record<DeckStyle, CuePart[]> = {
     { kind: 'noise', at: 0.06, freq: 2400, q: 0.8, peak: 0.09, seconds: 0.3, pops: 0 },
     { kind: 'tone', at: 0.38, wave: 'sine', from: 120, to: 46, peak: 0.3, seconds: 0.3 },
     { kind: 'noise', at: 0.42, freq: 1900, q: 0.5, peak: 0.34, seconds: 0.5, pops: 0.0013 },
+  ],
+  // The pocket player: three ticks of the click wheel under a thumb, then the
+  // centre button — small, dry sounds, because the machine is.
+  pocket: [
+    { kind: 'noise', at: 0, freq: 4200, q: 3, peak: 0.2, seconds: 0.04, pops: 0 },
+    { kind: 'noise', at: 0.07, freq: 4400, q: 3, peak: 0.18, seconds: 0.04, pops: 0 },
+    { kind: 'noise', at: 0.14, freq: 4600, q: 3, peak: 0.16, seconds: 0.04, pops: 0 },
+    { kind: 'tone', at: 0.26, wave: 'sine', from: 980, to: 760, peak: 0.14, seconds: 0.09 },
   ],
 }
 
@@ -295,6 +304,36 @@ export function playCountTick(volume = 0.8, level = 1, downbeat = false): void {
   const pitch = downbeat ? 1.26 : 1
   const now = audio.currentTime
   for (const part of TICK) tone(audio, now + part.at, gain, { ...part, from: part.from * pitch, to: part.to * pitch })
+  idleAfter(0.12)
+}
+
+/**
+ * Put this file's `AudioContext` to sleep once a cue has finished.
+ *
+ * ⚠️ BECAUSE A RUNNING ONE MAY BE WHAT STOPS THE MUSIC IN THE BACKGROUND. iOS
+ * treats Web Audio as something that may not play with the app off screen and
+ * interrupts it as the app goes — and on 2026-09-10 the music (a plain `<audio>`
+ * element, which iOS does let play on) was found already paused at the moment
+ * the app was hidden, with no graph of our own built. This context was the one
+ * piece of Web Audio still alive: created for the first needle drop and then
+ * left running, making silence, for the rest of the session. It is only needed
+ * for the second or so a cue lasts; the next cue resumes it (see the
+ * `suspended` check in each player above).
+ */
+let idleTimer: ReturnType<typeof setTimeout> | null = null
+
+function idleAfter(seconds: number): void {
+  if (idleTimer !== null) clearTimeout(idleTimer)
+  idleTimer = setTimeout(() => {
+    idleTimer = null
+    if (context && context.state === 'running') void context.suspend().catch(() => {})
+  }, (seconds + 0.25) * 1000)
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && context && context.state === 'running') void context.suspend().catch(() => {})
+  })
 }
 
 export function closeAudioContext(): void {

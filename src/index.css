@@ -83,6 +83,12 @@ body {
   to   { opacity: 0; }
 }
 
+/* The pocket player's ♪, breathing while the music plays (`PocketDeck.tsx`). */
+@keyframes jb-pocket-note {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
+
 /* The countdown's numerals crossing over (`CeremonyCount` in Deck.tsx): the
    incoming one comes up as the outgoing one leaves, and the last — the 1 —
    fades itself out as the music starts. */
@@ -255,8 +261,15 @@ body {
    fix is `maximum-scale=1` on the viewport meta — pinch-zoom is an
    accessibility feature. */
 @media (pointer: coarse) {
-  input:not([type='checkbox']):not([type='radio']):not([type='range'])
-       :not([type='color']):not([type='file']):not([type='button'])
-       :not([type='submit']):not([type='reset']),
-  textarea, select { font-size: max(16px, 1em) !important; }
+  /* ⚠️ ONE UNBROKEN :not() CHAIN. This rule used to wrap the chain onto three
+     lines, and the whitespace before each continuation line is a DESCENDANT
+     combinator: `input:not(…) :not(…)` means "an element inside an input",
+     which never exists. The selector matched nothing, every search box stayed
+     13px, and iOS zoomed into it — reported from the iPhone app 2026-09-10, and
+     measured: 13px under touch emulation before this line, 16px after. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']):not([type='button']):not([type='submit']):not([type='reset']),
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
 }

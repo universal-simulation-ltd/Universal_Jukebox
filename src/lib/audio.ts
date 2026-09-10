@@ -40,6 +40,16 @@
 
 import { ensureRunning } from './audioGraph'
 import { releaseTrackUrl, trackUrl } from './trackSource'
+import { noteEvent } from './bgLog'
+
+/**
+ * When OUR code last paused an element — so a pause that did not come from here
+ * can be told apart. See the `pause` listener below.
+ */
+let ownPauseAt = 0
+function markOwnPause(): void {
+  ownPauseAt = Date.now()
+}
 import { canSetElementVolume } from './volumeSupport'
 import type { SourceFile } from './types'
 
@@ -136,7 +146,29 @@ function element(index: 0 | 1): HTMLAudioElement {
   const mine = () => active === index
 
   audio.addEventListener('play', () => { if (mine()) set({ playing: true }) })
-  audio.addEventListener('pause', () => { if (mine()) set({ playing: false }) })
+  audio.addEventListener('pause', () => {
+    // ⚠️ A PAUSE NOBODY HERE ASKED FOR, WITH THE APP OFF SCREEN, is the
+    // background-playback failure (2026-09-10): the music was found already
+    // paused at the moment the page went hidden, with no code of ours having
+    // paused it. So it is recorded (`lib/bgLog.ts`), and one attempt is made to
+    // carry on — if WebKit lets a hidden page resume, this is the moment. The
+    // lock screen's own pause button comes through `pause()` below, which marks
+    // itself, so a person pausing from there is never fought.
+    const external = Date.now() - ownPauseAt > 400
+    noteEvent('pause', { deck: audio.dataset.jukeboxAudio, external, sec: audio.currentTime })
+    if (external && document.hidden && mine()) {
+      audio
+        .play()
+        .then(() => noteEvent('rescue', { ok: true }))
+        .catch((error: unknown) => {
+          noteEvent('rescue', { ok: false, why: error instanceof Error ? error.name : String(error) })
+          if (mine()) set({ playing: false })
+        })
+      return
+    }
+    if (mine()) set({ playing: false })
+  })
+  audio.addEventListener('play', () => noteEvent('play', { deck: audio.dataset.jukeboxAudio, sec: audio.currentTime }))
   audio.addEventListener('playing', () => { if (mine()) set({ playing: true, loading: false }) })
   audio.addEventListener('waiting', () => { if (mine()) set({ loading: true }) })
   audio.addEventListener('timeupdate', () => {
@@ -376,6 +408,7 @@ function finishRetirement(): void {
   deck.fade = 1
   const audio = deck.el
   if (audio) {
+    markOwnPause()
     audio.pause()
     audio.removeAttribute('src')
     // Without this the element keeps the old media loaded and, on some engines,
@@ -645,6 +678,7 @@ export function stop(): void {
   const audio = el()
   stopPreview()
   endFade(active, 1)
+  markOwnPause()
   audio.pause()
   audio.removeAttribute('src')
   audio.load()
@@ -745,6 +779,7 @@ export function stopPreview(): void {
     previewTimer = null
   }
   if (previewEl) {
+    markOwnPause()
     previewEl.pause()
     previewEl.removeAttribute('src')
     previewEl.load()

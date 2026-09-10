@@ -111,4 +111,7 @@ export const SHAPES: Record<DeckStyle, { frame: DeckFrame; notes: NotesAnchor }>
     frame: { ratio: 1.24, radius: '46% 46% 10% 10% / 30% 30% 7% 7%' },
     notes: { right: '12%', top: '44%' },
   },
+  // A pocket player is PORTRAIT — the 100 × 140 of `PocketDeck`'s own drawing —
+  // and its corners are the body's. Its notes leave the screen, upper right.
+  pocket: { frame: { ratio: 1.4, radius: '12% / 8.6%' }, notes: { right: '10%', top: '22%' } },
 }

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
-import { DECKS, deckCopy, resolveDeck } from '../lib/decks'
+import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearLyrics, countLyrics } from '../lib/library'
 import { goHome } from '../lib/route'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { DeckMiniature } from './Deck'
 import { useLyricsStore } from '../stores/lyricsStore'
-import { usePlayerStore } from '../stores/playerStore'
+import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { useLibraryStore } from '../stores/libraryStore'
 import {
   CEREMONY_LADDER,
   DECK_SETTINGS,
@@ -157,7 +158,7 @@ export default function Settings() {
             onChange={(v) => s.set('deck', v)}
             // ⚠️ `DECK_SETTINGS` rather than `Object.keys(DECKS)`. Both hold the
             // same five values, but only one of them has a defined ORDER — object
-            // key order is an implementation detail, and this list has `random`
+            // key order is an implementation detail, and this list has `automatic`
             // deliberately last, after the four real machines.
             options={DECK_SETTINGS.map((value) => ({
               value,
@@ -168,6 +169,11 @@ export default function Settings() {
               picture: <DeckMiniature setting={value} box={64} />,
             }))}
           />
+          {/* Automatic only: the years each machine takes over (James,
+              2026-09-10: "you can choose some years that correspond"). */}
+          {s.deck === 'automatic' && (
+            <EraYears eras={s.deckEras} onChange={(eras) => s.set('deckEras', eras)} />
+          )}
         </Section>
 
         <Section title={deck.startTitle} note={deck.startNote} summary={summaries.start}>
@@ -211,13 +217,14 @@ export default function Settings() {
             disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
             format={formatStep}
             onChange={(v) => s.set('needleDropLevel', stepToLevel(v))}
-            // ⚠️ Resolved against the cursor, so under Random the demonstration is
-            // the machine currently on the deck rather than always the first of
-            // the rotation. `playTransportCue` takes a `DeckStyle` and this store
+            // ⚠️ Resolved against the album on the deck, so under Automatic the
+            // demonstration is the machine currently playing. `playTransportCue` takes a `DeckStyle` and this store
             // holds a `DeckSetting`, so the compiler insists on the crossing.
             onCommit={(v) => {
               const player = usePlayerStore.getState()
-              playTransportCue(resolveDeck(s.deck, player.cursor), player.volume, stepToLevel(v))
+              const track = currentTrack(player)
+              const album = track ? useLibraryStore.getState().albums.find((a) => a.id === track.albumId) : undefined
+              playTransportCue(resolveDeck(s.deck, album ?? track, s.deckEras), player.volume, stepToLevel(v))
             }}
           />
         </Section>
@@ -695,5 +702,51 @@ function Slider({
         />
       </div>
     </Row>
+  )
+}
+
+/**
+ * The years each machine takes over, for Automatic.
+ *
+ * ⚠️ Committed on BLUR (or Enter), not on every keystroke. The years are kept in
+ * order by `sanitiseEras`, and typing "19" on the way to "1991" would otherwise
+ * be clamped and re-ordered under the cursor — the field would fight the typing.
+ */
+function EraYears({ eras, onChange }: { eras: DeckEras; onChange(eras: DeckEras): void }) {
+  const rows: { key: keyof DeckEras; label: string }[] = [
+    { key: 'vinyl', label: 'Vinyl from' },
+    { key: 'cassette', label: 'Cassette from' },
+    { key: 'cd', label: 'CD from' },
+    { key: 'pocket', label: 'Pocket player from' },
+  ]
+  return (
+    <div className="mt-4 rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-700">
+      <p className="text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+        Albums from before {eras.vinyl} go on the jukebox. An album with no year goes on vinyl.
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+        {rows.map((row) => (
+          <label key={row.key} className="flex flex-col gap-1 text-[12.5px] font-medium text-slate-700 dark:text-slate-200">
+            {row.label}
+            <input
+              key={`${row.key}-${eras[row.key]}`}
+              type="number"
+              inputMode="numeric"
+              min={1900}
+              max={2100}
+              defaultValue={eras[row.key]}
+              onBlur={(e) => {
+                const year = Number(e.currentTarget.value)
+                if (Number.isFinite(year) && year !== eras[row.key]) onChange(sanitiseEras({ ...eras, [row.key]: year }))
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur()
+              }}
+              className="w-24 rounded-md border border-slate-300 bg-white px-2 py-1 text-[13px] tabular-nums text-slate-900 focus:border-orange-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </label>
+        ))}
+      </div>
+    </div>
   )
 }

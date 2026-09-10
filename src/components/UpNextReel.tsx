@@ -80,6 +80,11 @@ export default function UpNextReel() {
   const jumpTo = usePlayerStore((s) => s.jumpTo)
   const albums = useLibraryStore((s) => s.albums)
   const setting = useSettingsStore((s) => s.deck)
+  const eras = useSettingsStore((s) => s.deckEras)
+  // The machine is the ALBUM's — see `resolveDeck`. A track stands in only
+  // where its album is not in the library.
+  const datedBy = (track: Track | undefined) =>
+    track ? (albums.find((a) => a.id === track.albumId) ?? track) : undefined
   const reduced = usePrefersReducedMotion()
 
   const box = useRef<HTMLDivElement>(null)
@@ -150,7 +155,7 @@ export default function UpNextReel() {
             key={`leaving-${departing.key}`}
             item={departing}
             albums={albums}
-            style={resolveDeck(setting, departing.orderIndex)}
+            style={resolveDeck(setting, datedBy(departing.track), eras)}
             leaving
           />
         )}
@@ -159,12 +164,12 @@ export default function UpNextReel() {
             key={w.key}
             item={w}
             albums={albums}
-            // ⚠️ Resolved per ITEM, not once for the row. Under `deck: 'random'`
-            // this is the whole point of the rotation being a pure function of
-            // a queue position: the row shows what each track is actually going
+            // ⚠️ Resolved per ITEM, not once for the row. Under `deck: 'automatic'`
+            // this is the whole point of the machine being a pure function of
+            // the album: the row shows what each track is actually going
             // to be played on, and it agrees with the deck because both of them
             // asked `resolveDeck` rather than each other.
-            style={resolveDeck(setting, w.orderIndex)}
+            style={resolveDeck(setting, datedBy(w.track), eras)}
             onJump={() => jumpTo(w.orderIndex)}
           />
         ))}
@@ -388,7 +393,25 @@ function MoreRecords({ count }: { count: number }) {
  * it. If one of them ever needs a detail from the real face, it is the wrong
  * shape for this row.
  */
-function Medium({ album, style }: { album: Album | undefined; style: DeckStyle }) {
+export function Medium({ album, style }: { album: Album | undefined; style: DeckStyle }) {
+  // The pocket player IS its medium — there is nothing to take out of it — so
+  // the row shows the player itself, small: the art on its screen and the
+  // wheel. Portrait, so it stands in the middle of the square.
+  if (style === 'pocket') {
+    return (
+      <div className="flex h-[76px] w-[76px] items-center justify-center">
+        <div className="relative h-[72px] w-[50px] rounded-[9px] bg-gradient-to-br from-slate-50 to-slate-300 shadow-md ring-1 ring-slate-400/60">
+          <div className="absolute inset-x-[7%] top-[5%] h-[42%] overflow-hidden rounded-[3px] bg-slate-900 p-[2px]">
+            <Cover album={album} className="h-full w-full" rounded={false} />
+          </div>
+          <span className="absolute left-1/2 top-[53%] block h-[26px] w-[26px] -translate-x-1/2 rounded-full bg-white ring-1 ring-slate-300">
+            <span className="absolute inset-[34%] block rounded-full bg-slate-100 ring-1 ring-slate-300" />
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   if (style === 'cassette') {
     return (
       <div className="flex h-[76px] w-[76px] items-center">

@@ -15,7 +15,7 @@ import type { DeckSetting, DeckStyle } from '../stores/settingsStore'
 // pause between them"), which is better than four versions of a sentence: a
 // map entry is a thing that can drift, and a neutral sentence cannot.
 //
-// ⚠️ Keyed by `DeckSetting`, not `DeckStyle`, so `random` gets copy too. It is
+// ⚠️ Keyed by `DeckSetting`, not `DeckStyle`, so `automatic` gets copy too. It is
 // the one entry that has to be true of every machine at once — the Settings
 // page is read while the rotation is somewhere else entirely — which is why its
 // sentences name no single mechanism.
@@ -109,16 +109,28 @@ export const DECKS: Record<DeckSetting, DeckCopy> = {
   // mechanism — `noun` is 'record' because that is what a jukebox holds and
   // what two of the four play, and it is the least wrong word available for a
   // sentence that has to be readable before you know what came up.
-  random: {
-    label: 'Random',
-    hint: 'A different machine for each track — record, disc, cassette, jukebox, then round again. The row waiting to go on shows what each one will be played on.',
+  pocket: {
+    label: 'Pocket player',
+    hint: 'A pocket music player with the album art on its screen, a click wheel under it, and the progress bar filling as the track plays.',
+    noun: 'album',
+    verb: 'wakes the screen',
+    startTitle: 'Picking an album',
+    startNote: 'The player waking up, the countdown, and the click of the wheel.',
+    soundLabel: 'Click-wheel sound',
+    soundHint:
+      'The tick of the wheel and the centre button pressed — starting an album, changing track, and previewing one. Rides your volume, and never plays on its own.',
+    pickup: 'playhead',
+  },
+  automatic: {
+    label: 'Automatic',
+    hint: 'Each album on the machine of its day, by the year on the album — a jukebox for the oldest, then vinyl, cassette, CD and a pocket player. You choose the years each one takes over.',
     noun: 'record',
-    verb: 'starts up whatever came up',
+    verb: 'starts the machine of the album’s day',
     startTitle: 'Putting something on',
-    startNote: 'The loading animation, the countdown, and the sound of whichever machine this track came up on.',
+    startNote: 'The loading animation, the countdown, and the sound of whichever machine the album belongs to.',
     soundLabel: 'Start-up sound',
     soundHint:
-      'The machine starting: a needle landing, a disc spinning up, a play key, or a jukebox gripper, depending on what came up. Rides your volume, and never plays on its own.',
+      'The machine starting: a jukebox gripper, a needle landing, a play key, a disc spinning up or a click wheel, depending on the album’s year. Rides your volume, and never plays on its own.',
     pickup: 'pickup',
   },
 }
@@ -129,43 +141,79 @@ export function deckCopy(setting: DeckSetting): DeckCopy {
 }
 
 /**
- * The order `random` walks, and why it is a rotation rather than a roll of the
- * dice (James, 2026-09-09: "rotates each of the options on the queue e.g.
- * vinyl, cd, cassette, vinyl …").
- *
- * ⚠️ It is a CYCLE, not `Math.random()`, and the difference is the feature. A
- * real random pick repeats — three cassettes in a row is an ordinary outcome —
- * and the complaint that produces is "the random setting is broken", which it
- * would not be. A cycle also makes the choice a pure function of a POSITION,
- * which is what lets the row of records waiting to go on show the machine each
- * one is headed for. Nothing has to be remembered, so nothing can disagree with
- * itself after a reload.
- *
- * ⚠️ Deliberately NOT `DECK_SETTINGS` with `random` filtered out. This order is
- * about how the four look one after another; the chooser's order is about how
- * they read in a list. Deriving one from the other ties two unrelated decisions
- * together with a line that keeps compiling after somebody adds a fifth option
- * that is not a machine either.
+ * The machines in the order of their day — what `automatic` walks through as
+ * the years go by. The Settings miniature for Automatic draws the last four.
  */
-export const DECK_ROTATION: DeckStyle[] = ['vinyl', 'cd', 'cassette', 'jukebox']
+export const ERA_ORDER: DeckStyle[] = ['jukebox', 'vinyl', 'cassette', 'cd', 'pocket']
 
 /**
- * The machine to draw and to sound, for a given place in the queue.
+ * The first year each later machine takes over, for `automatic`. Anything
+ * before `vinyl` goes on the jukebox.
  *
- * `at` is an index into `order` — the position of a track in the sequence — so
- * the current track uses the cursor and the third record waiting uses
- * `cursor + 3`. A cursor of -1 (nothing has played yet) falls to the start of
- * the rotation, which is vinyl: the app's own default, and the right thing for
- * an empty deck to be showing.
+ * ⚠️ Chosen by the person, not fixed (James, 2026-09-10: "you can choose some
+ * years that correspond"). The defaults are roughly when each became the way
+ * most people bought an album.
+ */
+export interface DeckEras {
+  vinyl: number
+  cassette: number
+  cd: number
+  pocket: number
+}
+
+export const DEFAULT_ERAS: DeckEras = { vinyl: 1963, cassette: 1983, cd: 1991, pocket: 2004 }
+
+const ERA_KEYS: (keyof DeckEras)[] = ['vinyl', 'cassette', 'cd', 'pocket']
+const FIRST_YEAR = 1900
+const LAST_YEAR = 2100
+
+/**
+ * A stored or typed-in set of years, made usable: whole numbers, in range, and
+ * never going BACKWARDS — a later machine cannot take over before an earlier
+ * one, so each is pushed to at least the year of the one before it. Anything
+ * missing or unreadable falls back to its default.
+ */
+export function sanitiseEras(value: unknown): DeckEras {
+  const given = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
+  const out = { ...DEFAULT_ERAS }
+  let floor = FIRST_YEAR
+  for (const key of ERA_KEYS) {
+    const raw = Number(given[key])
+    const year = Number.isFinite(raw) ? Math.round(raw) : DEFAULT_ERAS[key]
+    out[key] = Math.max(floor, Math.min(LAST_YEAR, year))
+    floor = out[key]
+  }
+  return out
+}
+
+/** The machine for an album of this year. No year at all goes on vinyl. */
+export function deckForYear(year: number | undefined, eras: DeckEras = DEFAULT_ERAS): DeckStyle {
+  if (!year || !Number.isFinite(year)) return 'vinyl'
+  if (year >= eras.pocket) return 'pocket'
+  if (year >= eras.cd) return 'cd'
+  if (year >= eras.cassette) return 'cassette'
+  if (year >= eras.vinyl) return 'vinyl'
+  return 'jukebox'
+}
+
+/**
+ * The machine to draw and to sound, for an album (or a track, where no album is
+ * to hand — both carry `year`).
  *
  * ⚠️ The RETURN type is `DeckStyle`, never `DeckSetting`. This function is the
- * only crossing between what the user chose and what gets drawn, and everything
- * downstream of it — the faces, the frames, the cues — is keyed on the narrower
- * type, so none of them can be reached with `random` by accident.
+ * only crossing between what the user chose and what gets drawn, and the faces,
+ * frames and cues downstream are all keyed on the narrower type, so none of them
+ * can be reached with `automatic` by accident.
+ *
+ * ⚠️ Pass the ALBUM wherever there is one. A compilation's tracks can carry
+ * their own original years, and the machine is a property of the record on the
+ * deck — the whole album goes on one machine, not a different one per track.
  */
-export function resolveDeck(setting: DeckSetting, at: number): DeckStyle {
-  if (setting !== 'random') return setting
-  const n = DECK_ROTATION.length
-  const index = Number.isFinite(at) ? Math.max(0, Math.trunc(at)) : 0
-  return DECK_ROTATION[index % n]
+export function resolveDeck(
+  setting: DeckSetting,
+  dated: { year?: number } | null | undefined,
+  eras: DeckEras = DEFAULT_ERAS,
+): DeckStyle {
+  if (setting !== 'automatic') return setting
+  return deckForYear(dated?.year, eras)
 }

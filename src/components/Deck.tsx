@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
-import { DECK_ROTATION, resolveDeck } from '../lib/decks'
+import { ERA_ORDER, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { usePlayerStore } from '../stores/playerStore'
@@ -11,6 +11,7 @@ import CassetteDeck from './decks/CassetteDeck'
 import CdDeck from './decks/CdDeck'
 import JukeboxDeck from './decks/JukeboxDeck'
 import VinylDeck from './decks/VinylDeck'
+import PocketDeck from './decks/PocketDeck'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
 // the pickup engaging when you put something on, and the pickup — or the reels
@@ -64,6 +65,7 @@ const FACES: Record<DeckStyle, React.ComponentType<DeckFaceProps>> = {
   cd: CdDeck,
   cassette: CassetteDeck,
   jukebox: JukeboxDeck,
+  pocket: PocketDeck,
 }
 
 interface DeckProps {
@@ -82,16 +84,13 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   const currentSec = usePlayerStore((s) => s.currentSec)
   const durationSec = usePlayerStore((s) => s.durationSec)
   const setting = useSettingsStore((s) => s.deck)
-  // ⚠️ The machine comes from the CURSOR, not from a counter kept in here.
-  // Under `deck: 'random'` it is a pure function of where the track sits in the
-  // queue (`resolveDeck`), which is what lets this deck, the start-up sound in
-  // `playerStore`, the Settings page's demonstration of it and the row of
-  // records waiting to go on all arrive at the same answer without any of them
-  // telling the others. A counter incremented on each load would have to be
-  // persisted, and would disagree with the reel the moment somebody jumped down
-  // the queue — which is exactly the gesture the reel exists to offer.
-  const cursor = usePlayerStore((s) => s.cursor)
-  const style = resolveDeck(setting, cursor)
+  // ⚠️ The machine comes from the ALBUM ON THE DECK — under `automatic`, its
+  // year decides (`resolveDeck`). The start-up sound in `playerStore`, the
+  // Settings demonstration, the row of records waiting and the peeking
+  // neighbours all ask the same function about the same album, so they agree
+  // without telling each other anything.
+  const eras = useSettingsStore((s) => s.deckEras)
+  const style = resolveDeck(setting, album, eras)
   const reduced = usePrefersReducedMotion()
 
   // The `??`s are not dead code: a settings blob edited by hand, or written by
@@ -265,16 +264,16 @@ export function CeremonyCount() {
  * metering, and that graph is a one-way door (`lib/audioGraph.ts`); a Settings
  * page must never be the thing that routes the app's audio through it.
  *
- * `random` is the four machines of the rotation at half size, in its order.
+ * `automatic` is four of its machines at half size, in the order of their day.
  */
 const MINI_BASE = 220
 
 export function DeckMiniature({ setting, box }: { setting: DeckSetting; box: number }) {
-  if (setting === 'random') {
+  if (setting === 'automatic') {
     const cell = (box - 4) / 2
     return (
       <span className="grid grid-cols-2 place-items-center gap-1" style={{ width: box, height: box }}>
-        {DECK_ROTATION.map((style) => (
+        {ERA_ORDER.filter((style) => style !== 'jukebox').map((style) => (
           <StillDeck key={style} style={style} box={cell} />
         ))}
       </span>

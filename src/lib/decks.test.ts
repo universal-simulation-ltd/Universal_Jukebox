@@ -1,64 +1,83 @@
 import { describe, expect, it } from 'vitest'
-import { DECKS, DECK_ROTATION, deckCopy, resolveDeck } from './decks'
+import { DECKS, DEFAULT_ERAS, ERA_ORDER, deckCopy, deckForYear, resolveDeck, sanitiseEras } from './decks'
 import { DECK_SETTINGS, type DeckStyle } from '../stores/settingsStore'
 
 // `resolveDeck` is the only crossing between what the user chose and what gets
-// drawn, so it is the one piece of the deck machinery worth a test: everything
-// else in `decks.ts` is a table of words, and everything downstream of it is a
-// picture. A rotation that is off by one puts the wrong machine on screen while
-// the row of records waiting to go on promises a different one — which is
-// exactly the failure nobody would think to look for, because both halves
-// individually look fine.
+// drawn. `automatic` (James, 2026-09-10) puts each album on the machine of its
+// day, by year, with the years the person chose.
 
 describe('resolveDeck', () => {
-  it('leaves a real machine alone, at any position', () => {
-    for (const style of DECK_ROTATION) {
-      for (const at of [-1, 0, 1, 7, 4096]) {
-        expect(resolveDeck(style, at)).toBe(style)
-      }
+  it('leaves a real machine alone, whatever the album', () => {
+    for (const style of ERA_ORDER) {
+      expect(resolveDeck(style, { year: 1955 })).toBe(style)
+      expect(resolveDeck(style, null)).toBe(style)
     }
   })
 
-  it('walks the rotation in order and wraps', () => {
-    const walked = Array.from({ length: DECK_ROTATION.length * 2 }, (_, i) => resolveDeck('random', i))
-    expect(walked).toEqual([...DECK_ROTATION, ...DECK_ROTATION])
+  it('puts each album on the machine of its year under automatic', () => {
+    expect(resolveDeck('automatic', { year: 1958 })).toBe('jukebox')
+    expect(resolveDeck('automatic', { year: 1973 })).toBe('vinyl')
+    expect(resolveDeck('automatic', { year: 1986 })).toBe('cassette')
+    expect(resolveDeck('automatic', { year: 1997 })).toBe('cd')
+    expect(resolveDeck('automatic', { year: 2022 })).toBe('pocket')
   })
 
-  it('starts at vinyl when nothing has played yet', () => {
-    // The cursor is -1 before the first play, and an empty deck showing the
-    // app's own default is the right answer — not a negative index.
-    expect(resolveDeck('random', -1)).toBe('vinyl')
-    expect(resolveDeck('random', -99)).toBe('vinyl')
+  it('uses the years the person chose', () => {
+    const eras = { ...DEFAULT_ERAS, cd: 1985 }
+    expect(resolveDeck('automatic', { year: 1986 }, eras)).toBe('cd')
   })
 
-  it('survives a position that is not a whole number', () => {
-    // Nothing passes a fraction today, but the cursor is arithmetic and a NaN
-    // index would return `undefined` and render a blank deck rather than throw.
-    expect(resolveDeck('random', 1.7)).toBe(DECK_ROTATION[1])
-    expect(resolveDeck('random', Number.NaN)).toBe(DECK_ROTATION[0])
-    expect(resolveDeck('random', Number.POSITIVE_INFINITY)).toBe(DECK_ROTATION[0])
+  it('puts an album with no year on vinyl', () => {
+    expect(resolveDeck('automatic', {})).toBe('vinyl')
+    expect(resolveDeck('automatic', null)).toBe('vinyl')
   })
 
   it('never returns the setting that is not a machine', () => {
-    for (let at = 0; at < 40; at += 1) {
-      expect(DECK_ROTATION).toContain(resolveDeck('random', at) as DeckStyle)
+    for (const year of [undefined, 1900, 1963, 1990, 2004, 2100]) {
+      expect(ERA_ORDER).toContain(resolveDeck('automatic', { year }) as DeckStyle)
     }
+  })
+})
+
+describe('deckForYear boundaries', () => {
+  it('starts each machine ON its year, not after it', () => {
+    expect(deckForYear(DEFAULT_ERAS.vinyl - 1)).toBe('jukebox')
+    expect(deckForYear(DEFAULT_ERAS.vinyl)).toBe('vinyl')
+    expect(deckForYear(DEFAULT_ERAS.pocket)).toBe('pocket')
+  })
+})
+
+describe('sanitiseEras', () => {
+  it('falls back to the defaults for anything missing or unreadable', () => {
+    expect(sanitiseEras(undefined)).toEqual(DEFAULT_ERAS)
+    expect(sanitiseEras({ cd: 'soon' })).toEqual(DEFAULT_ERAS)
+  })
+
+  it('never lets a later machine start before an earlier one', () => {
+    const eras = sanitiseEras({ vinyl: 1970, cassette: 1960, cd: 1995, pocket: 1990 })
+    expect(eras.cassette).toBeGreaterThanOrEqual(eras.vinyl)
+    expect(eras.pocket).toBeGreaterThanOrEqual(eras.cd)
+  })
+
+  it('keeps years in range and whole', () => {
+    const eras = sanitiseEras({ vinyl: 1800, cassette: 1983.6, cd: 1991, pocket: 3000 })
+    expect(eras.vinyl).toBe(1900)
+    expect(eras.cassette).toBe(1984)
+    expect(eras.pocket).toBe(2100)
   })
 })
 
 describe('the deck tables', () => {
   it('has copy for every setting the store will accept', () => {
-    // The store validates against `DECK_SETTINGS`, and the Settings page builds
-    // its radio list from the same array. A value that validates but has no
-    // copy is a chooser with a blank row in it.
     for (const setting of DECK_SETTINGS) {
-      expect(DECKS[setting]).toBeDefined()
-      expect(deckCopy(setting).label.length).toBeGreaterThan(0)
+      expect(DECKS[setting].label.length).toBeGreaterThan(0)
+      expect(deckCopy(setting)).toBe(DECKS[setting])
     }
   })
 
-  it('rotates through every machine, and only machines', () => {
-    const machines = DECK_SETTINGS.filter((v) => v !== 'random')
-    expect([...DECK_ROTATION].sort()).toEqual([...machines].sort())
+  it('offers automatic and the pocket player, and no longer random', () => {
+    expect(DECK_SETTINGS).toContain('automatic')
+    expect(DECK_SETTINGS).toContain('pocket')
+    expect(DECK_SETTINGS as string[]).not.toContain('random')
   })
 })

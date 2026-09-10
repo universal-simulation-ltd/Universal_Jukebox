@@ -679,10 +679,10 @@ function countTick(downbeat: boolean): void {
 }
 
 function needleDrop(volume: number): void {
-  const { needleDrop: on, needleDropLevel, deck } = settings()
+  const { needleDrop: on, needleDropLevel, deck, deckEras } = settings()
   if (!on) return
   // ⚠️ The CURSOR is read here rather than passed in, and all four callers are
-  // better for it. Under `deck: 'random'` the cue has to be the one belonging
+  // better for it. Under `deck: 'automatic'` the cue has to be the one belonging
   // to the machine currently on screen — `Deck.tsx` resolves the same setting
   // against the same cursor — and every call site is inside a timer that fires
   // after the cursor has already moved. Passing it as an argument would give
@@ -692,7 +692,9 @@ function needleDrop(volume: number): void {
   // The preview is the one caller with no queue position of its own, and it
   // wants this answer too: it is a needle landing on something that is not the
   // deck you can see, so it sounds like the deck you can see.
-  playTransportCue(resolveDeck(deck, usePlayerStore.getState().cursor), volume, needleDropLevel)
+  const track = currentTrack(usePlayerStore.getState())
+  const album = track ? useLibraryStore.getState().albums.find((a) => a.id === track.albumId) : undefined
+  playTransportCue(resolveDeck(deck, album ?? track, deckEras), volume, needleDropLevel)
 }
 
 function prefersReducedMotion(): boolean {

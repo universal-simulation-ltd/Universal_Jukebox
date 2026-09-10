@@ -16,6 +16,7 @@
 import { isNativeShell, nativePlatform, walkNativeLibrary } from './nativeFile'
 import { canSetElementVolume } from './volumeSupport'
 import { graphExists } from './audioGraph'
+import { describeEvents, installLifecycleLog } from './bgLog'
 
 /** Reads a CSS `env()` value in px, or null where the platform has none. */
 function inset(side: 'top' | 'bottom'): number | null {
@@ -58,6 +59,7 @@ function rect(selector: string): string | null {
 export function logNativeDiagnostics(): void {
   if (!isNativeShell()) return
   watchBackgroundPlayback()
+  installLifecycleLog()
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       void report()
@@ -87,6 +89,18 @@ async function report(): Promise<void> {
     // `JukeboxViewController`; if this is false there, the picker cannot appear
     // however correct the web code is.
     chosenFolderPlugin: pluginRegistered('JukeboxMusicFolder'),
+    // The search box's REAL font size on the device. iOS zooms the page into a
+    // field under 16px; the floor in `index.css` once matched nothing for a
+    // week because of a line break in its selector. This says whether it is
+    // applying, on the phone, rather than in an emulator.
+    searchFontPx: (() => {
+      const box = document.querySelector('input[type="search"]')
+      return box ? getComputedStyle(box).fontSize : 'no search box on this screen'
+    })(),
+    coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+    // What happened last time the app went to the background — saved, because
+    // the live log did not survive the trip (`lib/bgLog.ts`).
+    lastBackground: describeEvents().slice(-900),
     // The Music library source and the native audio importer (both iOS).
     musicLibraryPlugin: pluginRegistered('JukeboxAppleMusic'),
     fileImportPlugin: pluginRegistered('JukeboxFileImport'),

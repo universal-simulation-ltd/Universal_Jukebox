@@ -15,6 +15,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(audioInterrupted(_:)),
             name: AVAudioSession.interruptionNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(routeChanged(_:)),
+            name: AVAudioSession.routeChangeNotification, object: nil)
         return true
     }
 
@@ -41,9 +44,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     /// A failure here is logged and swallowed: an audio session that cannot be
     /// configured still plays in the foreground, so this must never stop launch.
     @objc private func audioInterrupted(_ note: Notification) {
-        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-              AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+        let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt ?? 99
+        let reason = note.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt ?? 99
+        print("[jukebox:native] audio interruption type=\(raw) reason=\(reason) \(AudioReport.now())")
+        guard AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
         configureAudioSession()
+    }
+
+    @objc private func routeChanged(_ note: Notification) {
+        let reason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt ?? 99
+        print("[jukebox:native] audio route change reason=\(reason) \(AudioReport.now())")
     }
 
     private func configureAudioSession() {
@@ -57,11 +67,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
+        print("[jukebox:native] applicationWillResignActive \(AudioReport.now())")
         // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
         // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
+        print("[jukebox:native] applicationDidEnterBackground \(AudioReport.now())")
         // ⚠️ Re-asserted on the way into the background (James, 2026-09-10: the
         // music stopped when the app was minimised). WebKit manages the session
         // for its own media and can leave it in a category that does not
@@ -72,10 +84,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
+        print("[jukebox:native] applicationWillEnterForeground \(AudioReport.now())")
         // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
+        print("[jukebox:native] applicationDidBecomeActive \(AudioReport.now())")
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     }
 
@@ -96,4 +110,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+}
+
+/// One line about the audio session, for the `[jukebox:native]` lifecycle log —
+/// the native half of the background-playback investigation (2026-09-10). What
+/// iOS thinks the session is at each step is the thing that decides whether the
+/// music is allowed to keep going.
+enum AudioReport {
+    static func now() -> String {
+        let session = AVAudioSession.sharedInstance()
+        return "category=\(session.category.rawValue) otherAudio=\(session.isOtherAudioPlaying) state=\(UIApplication.shared.applicationState.rawValue)"
+    }
 }
