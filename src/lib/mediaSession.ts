@@ -34,18 +34,6 @@ function supported(): boolean {
   return typeof navigator !== 'undefined' && 'mediaSession' in navigator
 }
 
-/**
- * iPhone and iPad. iOS gives the lock screen's previous/next slots to ±10 s
- * skip buttons whenever `seekbackward`/`seekforward` are offered — and in the
- * Jukebox iPhone app (2026-09-10) that left play/pause ALONE on the lock screen,
- * with all eight actions accepted. A music player wants the track buttons, so
- * iOS is not offered the seek-by pair. The scrubber (`seekto`) stays.
- */
-function appleTouchDevice(): boolean {
-  if (typeof navigator === 'undefined') return false
-  return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-}
-
 /** The actions this platform accepted, for the iPhone launch diagnostics. */
 let accepted: MediaSessionAction[] = []
 
@@ -166,12 +154,8 @@ export function setHandlers(handlers: MediaSessionHandlers): () => void {
     ['seekforward', (details) => handlers.onSeekBy(details.seekOffset ?? 10)],
   ]
 
-  const offered = appleTouchDevice()
-    ? actions.filter(([action]) => action !== 'seekbackward' && action !== 'seekforward')
-    : actions
-
   const registered: MediaSessionAction[] = []
-  for (const [action, handler] of offered) {
+  for (const [action, handler] of actions) {
     try {
       navigator.mediaSession.setActionHandler(action, handler)
       registered.push(action)
