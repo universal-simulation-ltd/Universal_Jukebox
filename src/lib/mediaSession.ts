@@ -121,8 +121,8 @@ export function setPlaybackState(playing: boolean): void {
   // iPhone lock screen showed play/pause alone (2026-09-10) though the WebView
   // accepted all eight actions — and they were all set at module load, before
   // any media element existed. WebKit links the page's Media Session to the
-  // lock screen once something plays; handlers set before that appear not to
-  // reach it, leaving only its defaults.
+  // lock screen once something plays; handlers set before that do not reach
+  // it, leaving only its defaults. Set again here, they appeared at once.
   if (playing && !wasPlaying && current) {
     register(current)
     reapplied += 1

@@ -337,7 +337,8 @@ function idleAfter(seconds: number): void {
  * play triangle over a song that was playing, because the context was
  * suspended a moment after the countdown and again on every trip to the
  * background. So it sleeps only when the music stops (`followMusic`, fed from
- * the player), and wakes when the music starts.
+ * the player), and wakes when the music starts — after which Control Centre
+ * showed the pause button over a playing song, as it should.
  */
 let musicPlaying = false
 
