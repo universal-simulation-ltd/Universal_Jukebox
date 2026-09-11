@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { resolveDeck } from '../lib/decks'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
@@ -42,10 +43,20 @@ const PEEK = 0.62
 const SETTLE_MS = 240
 /** The longest the arriving record is held, waiting for the deck to show it. */
 const HOLD_MAX_MS = 2500
+/**
+ * How long the record leaving takes to turn upright on its way to the side —
+ * a little longer than the move, so it is not a whirl. The change of track
+ * waits for it.
+ */
+const UPRIGHT_MS = 380
 
 interface Arriving {
   album: Album | undefined
   style: DeckStyle
+  /** A swipe's arrival: the side the new record came in from. */
+  from?: 'left' | 'right'
+  /** The record beyond it has started coming in from that edge. */
+  entered?: boolean
 }
 
 export default function DeckSwiper({
@@ -76,6 +87,8 @@ export default function DeckSwiper({
    * render later, after the crossfade's effect had already started.
    */
   const holding = useRef(false)
+  /** The record leaving, being turned upright (Web Animations, over the spin). */
+  const upright = useRef<Animation | null>(null)
 
   /** The records' offset: the finger's travel, then the end of the swipe. */
   const [x, setX] = useState(0)
@@ -187,6 +200,17 @@ export default function DeckSwiper({
     if (!arriving) return
     const release = () => {
       holding.current = false
+      // The record on the deck starts from upright — the stand-in's angle. A
+      // new record is already there (keyed, and held still); the same record
+      // (a swipe within an album) is wound back to the start of its turn.
+      upright.current?.cancel()
+      upright.current = null
+      deckWrap.current
+        ?.querySelector('[data-record]')
+        ?.getAnimations()
+        .forEach((a) => {
+          if (a instanceof CSSAnimation) a.currentTime = 0
+        })
       setAnimate(false)
       setX(0)
       setArriving(null)
@@ -226,11 +250,13 @@ export default function DeckSwiper({
 
   // The record leaving sinks and shrinks towards a peek's place — on a curve,
   // level at first (`ARC_SINK`); during a drag, the same curve from `progress`.
+  // ⚠️ It fades to a peek's OWN 0.6 on a swipe: it becomes that peek, and the
+  // two are swapped where they meet (`arriving.from`), so any difference is a jump.
   const slide: DeckSlide = {
     x,
     y: sag * progress * progress,
     scale: 1 - (1 - peekScale) * progress,
-    opacity: arriving ? 0 : 1 - (incoming ? 0.85 : 0.6) * progress,
+    opacity: arriving ? 0 : 1 - (incoming ? 0.85 : 0.4) * progress,
     animate,
     ms,
     // Past the point where letting go would change track — not for a nudge
@@ -242,17 +268,62 @@ export default function DeckSwiper({
   /** A record crossfade is sliding the machines — the peeks are a track stale. */
   const swapping = incoming !== null
 
-  /** A peek: the one being swiped towards comes in and grows; the other stays. */
-  const peekMotion = (side: 'left' | 'right') => {
-    const towards = !swapping && ((side === 'right' && x < 0) || (side === 'left' && x > 0))
+  /** How far a peek moves to be out of sight — most of one is already off. */
+  const offEdge = Math.round(peek * 0.5)
+
+  // ⚠️ THE THREE RECORDS MOVE AS ONE (James, 2026-09-11: "the next record needs
+  // to come into position at the same time and the previous record move out of
+  // view, then when the current becomes previous ... an animation to rotate it
+  // into the starting position"). Swiping to the next record:
+  //   - the next one comes in and grows to the deck (`towards`);
+  //   - the previous one goes on, off the edge (`away`);
+  //   - the one playing takes the previous one's place, turning upright.
+  // Where they stop, the peeks take over — the side the playing record went to
+  // shows it AT ONCE (the same picture, in the same place: nothing moves), and
+  // the record beyond the new one comes in from the far edge.
+  const peekMotion = (side: 'left' | 'right'): PeekMotion => {
+    // A crossfade's slide, or its arrival: the peeks are a track stale.
+    if (swapping || (arriving && !arriving.from)) return { shift: 0, lift: 0, scale: 1, opacity: 0, transition: 'fade' }
+    if (arriving?.from) {
+      if (side !== arriving.from) return { shift: 0, lift: 0, scale: 1, opacity: 0.6, transition: 'none' }
+      return {
+        shift: arriving.entered ? 0 : side === 'right' ? offEdge : -offEdge,
+        lift: 0,
+        scale: 1,
+        opacity: 0.6,
+        transition: arriving.entered ? 'move' : 'none',
+      }
+    }
+    const towards = (side === 'right' && x < 0) || (side === 'left' && x > 0)
+    const away = (side === 'left' && x < 0) || (side === 'right' && x > 0)
     return {
-      shift: towards ? x : 0,
+      shift: towards || away ? x : 0,
       // Rising out of the sag at once, then level — the arriving half of the arc.
       lift: towards ? -sag * (1 - (1 - progress) * (1 - progress)) : 0,
       scale: towards ? 1 + (grow - 1) * progress : 1,
-      opacity: arriving || swapping ? 0 : towards ? 0.6 + 0.4 * progress : 0.6,
-      animate: animate && !arriving && !swapping,
+      opacity: towards ? 0.6 + 0.4 * progress : away ? 0.6 * (1 - progress) : 0.6,
+      transition: animate ? 'move' : 'fade',
     }
+  }
+
+  /**
+   * Turn the record on the deck to upright — on, the way it is spinning — while
+   * it goes to the side, so that it matches the peek drawn there (at 0°).
+   * Played OVER the spin: a script animation outranks a CSS one, and the spin's
+   * own animation is left alone (pausing it from script would stop it
+   * answering to `animation-play-state` ever after).
+   */
+  const turnUpright = () => {
+    const record = deckWrap.current?.querySelector<HTMLElement>('[data-record]')
+    if (!record || typeof record.animate !== 'function') return
+    const now = getComputedStyle(record).transform
+    const m = new DOMMatrixReadOnly(now && now !== 'none' ? now : undefined)
+    const angle = ((Math.atan2(m.b, m.a) * 180) / Math.PI + 360) % 360
+    upright.current?.cancel()
+    upright.current = record.animate(
+      [{ transform: `rotate(${angle}deg)` }, { transform: 'rotate(360deg)' }],
+      { duration: UPRIGHT_MS, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' },
+    )
   }
 
   return (
@@ -372,13 +443,25 @@ export default function DeckSwiper({
           holding.current = true
           setAnimate(true)
           setX(dx < 0 ? -from.toRight : from.toLeft)
+          turnUpright()
           const album = albumAt(target)
           const style = styleAt(target)
+          const cameFrom = dx < 0 ? 'right' : 'left'
           settle.current = window.setTimeout(() => {
             settle.current = null
-            setArriving({ album, style })
-            jumpTo(target)
-          }, SETTLE_MS)
+            // ⚠️ ONE COMMIT for the hold and the change of track. The peeks
+            // read the cursor; drawn a frame apart, the record beyond would
+            // flash up in the middle, or the old neighbour back at the side.
+            flushSync(() => {
+              setAnimate(false)
+              setArriving({ album, style, from: cameFrom })
+              jumpTo(target)
+            })
+            // Then the record beyond comes in from the edge: drawn there first.
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => setArriving((a) => (a?.from ? { ...a, entered: true } : a))),
+            )
+          }, Math.max(SETTLE_MS, UPRIGHT_MS))
         }}
         onPointerCancel={() => {
           start.current = null
@@ -404,7 +487,8 @@ interface PeekMotion {
   lift: number
   scale: number
   opacity: number
-  animate: boolean
+  /** Glide there (a release), fade only (a drag follows the finger), or be there. */
+  transition: 'move' | 'fade' | 'none'
 }
 
 /**
@@ -444,7 +528,12 @@ const Peek = forwardRef<
         height: size,
         transform: `translateY(-50%) translateX(${motion.shift}px) translateY(${motion.lift}px) scale(${motion.scale})`,
         opacity: motion.opacity,
-        transition: motion.animate ? 'transform 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out' : 'opacity 200ms ease-out',
+        transition:
+          motion.transition === 'move'
+            ? 'transform 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out'
+            : motion.transition === 'fade'
+              ? 'opacity 200ms ease-out'
+              : 'none',
         // Just under half of it on screen: enough to see WHICH record, and on
         // what, not enough to compete with the one that is playing.
         [side]: -Math.round(size * 0.58),

@@ -154,6 +154,8 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
             // turned to (James, 2026-09-11: "the new track should also start in the
             // fixed starting position"). Same record, same key: pause still freezes it.
             key={url ?? hue}
+            // What `DeckSwiper` turns upright as a swipe carries it to the side.
+            data-record
             className="absolute inset-0 overflow-hidden rounded-full shadow-lg"
             style={{
               // ⚠️ 0.9s a revolution — twice the vinyl deck's 1.8s, and nowhere

@@ -226,6 +226,8 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
             // turned to (James, 2026-09-11: "the new track should also start in the
             // fixed starting position"). Same record, same key: pause still freezes it.
             key={url ?? hue}
+            // What `DeckSwiper` turns upright as a swipe carries it to the side.
+            data-record
             className="absolute inset-0 rounded-full bg-[#120c09] shadow-xl"
             style={{
               // 45 rpm — 1.33s a revolution, against the turntable's 1.8s.

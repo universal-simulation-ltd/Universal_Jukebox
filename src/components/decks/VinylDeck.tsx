@@ -59,6 +59,8 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
         // turned to (James, 2026-09-11: "the new track should also start in the
         // fixed starting position"). Same record, same key: pause still freezes it.
         key={url ?? hue}
+        // What `DeckSwiper` turns upright as a swipe carries it to the side.
+        data-record
         className="absolute inset-0 rounded-full bg-slate-900 shadow-xl dark:bg-[#12192b]"
         style={{
           // The platter turns at a real 33⅓ rpm — 1.8s a revolution — which is
