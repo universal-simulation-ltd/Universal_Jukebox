@@ -31,6 +31,7 @@ import {
   walkNativeLibrary,
 } from '../lib/nativeFile'
 import { applyFixes } from '../lib/tidy'
+import { mergeDiscSets } from '../lib/discs'
 import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
 
 // The library: what was found, and everything about getting it.
@@ -242,7 +243,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
    * re-grant is a button.
    */
   async hydrate() {
-    const [tracks, albums, roots] = await Promise.all([db.allTracks(), db.allAlbums(), db.allRoots()])
+    const [storedTracks, storedAlbums, roots] = await Promise.all([db.allTracks(), db.allAlbums(), db.allRoots()])
+    // A disc set stored as separate albums comes back as one — `lib/discs.ts`.
+    const { tracks, albums } = mergeDiscSets(storedTracks, storedAlbums)
     set({
       tracks,
       albums,
@@ -623,7 +626,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // Tidy-up fixes are keyed to track and album ids, which a refresh
     // reproduces exactly — so they come back, as they do after a folder rescan.
     const fixes = await db.allFixes()
-    const fixed = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
+    const tidied = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
+    // Disc sets joined AFTER the fixes, which are keyed to the parts' own ids.
+    const fixed = mergeDiscSets(tidied.tracks, tidied.albums)
     const root: Root = {
       id: existing?.id ?? MUSIC_LIBRARY_ROOT_ID,
       label: prefix,
@@ -932,7 +937,8 @@ async function runScan(
         const merged = addScan(before, prefix, { tracks: scanned, albums: [...scannedAlbums.values()] })
         void db.putTracks(newTracks)
         void db.putAlbums(newAlbums)
-        set({ tracks: merged.tracks, albums: merged.albums })
+        const joined = mergeDiscSets(merged.tracks, merged.albums)
+        set({ tracks: joined.tracks, albums: joined.albums })
       },
       onProgress: (progress) => set({ progress }),
       signal: abort.signal,
@@ -964,7 +970,9 @@ async function runScan(
     albums: result.albums,
   })
   const fixes = await db.allFixes()
-  const fixed = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
+  const tidied = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
+  // Disc sets joined AFTER the fixes, which are keyed to the parts' own ids.
+  const fixed = mergeDiscSets(tidied.tracks, tidied.albums)
 
   const root: Root = {
     id: rootId,

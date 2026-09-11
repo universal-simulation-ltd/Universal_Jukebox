@@ -42,8 +42,11 @@ export default function Shelf({ albums }: { albums: Album[] }) {
 
 function ShelfRow({ albums, label, start = 0 }: { albums: Album[]; label: string; start?: number }) {
   const row = useRef<HTMLDivElement>(null)
+  const ticker = useRef<HTMLSpanElement>(null)
   const [middle, setMiddle] = useState(0)
   const reduced = usePrefersReducedMotion()
+  /** The ticker's width, as a share of the shelf: a record's share, within reason. */
+  const tickerWidth = Math.max(6, Math.min(30, 100 / Math.max(1, albums.length)))
 
   // Open with the `start`th record in the middle — before the first paint, so
   // the shelf never shows itself at the wrong place and then jumps.
@@ -71,6 +74,11 @@ function ShelfRow({ albums, label, start = 0 }: { albums: Album[]; label: string
         }
       })
       setMiddle(best)
+      // The ticker follows the scroll itself, not the record in the middle, so
+      // it glides with the finger — written straight to the element, since a
+      // re-render of a hundred sleeves every frame is what would make it jerk.
+      const max = el.scrollWidth - el.clientWidth
+      if (ticker.current) ticker.current.style.left = `${(max > 0 ? Math.min(1, el.scrollLeft / max) : 0) * (100 - tickerWidth)}%`
     }
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(measure)
@@ -81,7 +89,7 @@ function ShelfRow({ albums, label, start = 0 }: { albums: Album[]; label: string
       el.removeEventListener('scroll', onScroll)
       if (frame) cancelAnimationFrame(frame)
     }
-  }, [albums])
+  }, [albums, tickerWidth])
 
   const bringToMiddle = (i: number) => {
     const items = row.current?.querySelectorAll<HTMLElement>('[data-shelf-item]')
@@ -128,11 +136,22 @@ function ShelfRow({ albums, label, start = 0 }: { albums: Album[]; label: string
           )
         })}
       </div>
-      {/* The shelf the records stand on. */}
+      {/* The shelf the records stand on — with a yellow ticker along it for
+          how far along the shelf you are (James, 2026-09-11: "a subtle
+          indication of the progression on the shelf e.g. a yellow ticker that
+          moves from left to right on the shelf as it progressing by swiping"). */}
       <div
-        className="mx-4 h-3 rounded-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-[0_10px_18px_-8px_rgba(0,0,0,0.5)] sm:mx-6 lg:mx-8 dark:from-amber-800 dark:to-amber-950"
+        className="relative mx-4 h-3 rounded-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-[0_10px_18px_-8px_rgba(0,0,0,0.5)] sm:mx-6 lg:mx-8 dark:from-amber-800 dark:to-amber-950"
         aria-hidden
-      />
+      >
+        {albums.length > 1 && (
+          <span
+            ref={ticker}
+            className="absolute top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-yellow-300/90 shadow-[0_0_6px_rgba(253,224,71,0.55)]"
+            style={{ width: `${tickerWidth}%`, left: 0 }}
+          />
+        )}
+      </div>
       {current && (
         <div className="mt-4 px-4 text-center" aria-live="polite">
           <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{current.title}</p>

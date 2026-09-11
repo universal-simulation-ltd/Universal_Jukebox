@@ -217,7 +217,10 @@ export const DEFAULTS: Settings = {
   tipsSeen: [],
   stableVolume: false,
   libraryRandom: false,
-  libraryColumns: 2,
+  // The shelf is the standard (James, 2026-09-11: "put jukebox shelf as
+  // standard") — and everyone who had the old default is moved to it once,
+  // `adoptShelf` below.
+  libraryColumns: 'jukebox',
   resumeCard: true,
   recordCrossfade: true,
 }
@@ -274,6 +277,8 @@ export function levelToStep(level: number): number {
 }
 
 const KEY = 'unisim-jukebox-settings'
+/** Set once the shelf has been made the standard on this device — see `adoptShelf`. */
+const SHELF_STANDARD_KEY = 'jukebox:shelf-standard'
 /** The single-purpose key `playerStore` used before this store existed. */
 const LEGACY_CRACKLE_KEY = 'unisim-jukebox-crackle'
 
@@ -292,6 +297,33 @@ function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
  * has ever set. Each field validates itself and falls back on its own.
  */
 function read(): Settings {
+  const settings = readStored()
+  if (adoptShelf()) {
+    settings.libraryColumns = 'jukebox'
+    persist(settings)
+  }
+  return settings
+}
+
+/**
+ * True the first time this runs on a device, and never again.
+ *
+ * ⚠️ Why a move and not just a new default: every `set` writes the WHOLE blob,
+ * so anybody who has ever changed any setting has `libraryColumns: 2` stored,
+ * chosen or not, and a new default would never reach them. Moved once, with
+ * the button there to cycle away again; the marker means a later choice sticks.
+ */
+function adoptShelf(): boolean {
+  try {
+    if (localStorage.getItem(SHELF_STANDARD_KEY) !== null) return false
+    localStorage.setItem(SHELF_STANDARD_KEY, '1')
+    return true
+  } catch {
+    return false
+  }
+}
+
+function readStored(): Settings {
   let stored: Partial<Record<keyof Settings, unknown>> = {}
   try {
     const raw = localStorage.getItem(KEY)
