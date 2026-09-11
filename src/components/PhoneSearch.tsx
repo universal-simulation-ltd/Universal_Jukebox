@@ -68,19 +68,42 @@ const PhoneSearch = forwardRef<PhoneSearchHandle, PhoneSearchProps>(function Pho
   useImperativeHandle(ref, () => ({ open: openNow }), [openNow])
 
   // The pull. Only from the very top of the page, one finger, on a phone.
+  //
+  // ⚠️ AND ONLY DOWN (James, 2026-09-11, with a screenshot of the search box
+  // open over a shelf: "Don't allow a swipe down as you're swiping left right
+  // on the shelves"). A swipe along a shelf drifts down a little, and at the
+  // top of the page that drift was a pull. Now a touch that starts on anything
+  // that swipes sideways (`data-swipe-x` — the shelves) is never a pull, and
+  // the first 10px of any touch decide it: across (or up) and it is not a pull
+  // for the rest of that touch.
   useEffect(() => {
     if (shown) return
     const phone = window.matchMedia('(max-width: 639px)')
     let startY: number | null = null
+    let startX = 0
     let pulled = 0
+    let decided = false
     const start = (e: TouchEvent) => {
-      startY = phone.matches && window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null
+      const onSwiper = e.target instanceof Element && e.target.closest('[data-swipe-x]') !== null
+      startY = phone.matches && !onSwiper && window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null
+      startX = e.touches[0]?.clientX ?? 0
       pulled = 0
+      decided = false
     }
     const move = (e: TouchEvent) => {
       const el = box.current
       if (startY === null || e.touches.length !== 1 || !el) return
-      pulled = e.touches[0].clientY - startY
+      const dy = e.touches[0].clientY - startY
+      const dx = e.touches[0].clientX - startX
+      if (!decided) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
+        decided = true
+        if (dy <= 0 || Math.abs(dx) >= Math.abs(dy) * 0.75) {
+          startY = null
+          return
+        }
+      }
+      pulled = dy
       const peek = Math.max(0, Math.min(full(), pulled * RESIST))
       el.style.transition = 'none'
       el.style.height = `${peek}px`

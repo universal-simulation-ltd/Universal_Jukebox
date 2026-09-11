@@ -272,6 +272,8 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
     <section aria-label={label} className="-mx-4 sm:-mx-6 lg:-mx-8">
       <div
         ref={row}
+        // A sideways swipe — never the page's pull-down to search (`PhoneSearch`).
+        data-swipe-x
         // ⚠️ THE PADDING SETS THE SIZE, and every item fills what is left
         // (`w-full`). A percentage WIDTH on a flex item is a share of the box
         // INSIDE the padding, so the two were shares of different things: a
