@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Cover from './Cover'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
@@ -25,16 +25,33 @@ export default function Shelf({ albums }: { albums: Album[] }) {
   return (
     <div className="space-y-10">
       {rows.map((row, i) => (
-        <ShelfRow key={i} albums={row} label={rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : 'Albums on the shelf'} />
+        <ShelfRow
+          key={i}
+          albums={row}
+          label={rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : 'Albums on the shelf'}
+          // ⚠️ STAGGERED, like bricks (James, 2026-09-11: "first line has first
+          // track selected and second line has second track then third has 1st
+          // again"), so the shelves don't stack into one straight column.
+          start={i % 2 === 1 && row.length > 1 ? 1 : 0}
+        />
       ))}
     </div>
   )
 }
 
-function ShelfRow({ albums, label }: { albums: Album[]; label: string }) {
+function ShelfRow({ albums, label, start = 0 }: { albums: Album[]; label: string; start?: number }) {
   const row = useRef<HTMLDivElement>(null)
   const [middle, setMiddle] = useState(0)
   const reduced = usePrefersReducedMotion()
+
+  // Open with the `start`th record in the middle — before the first paint, so
+  // the shelf never shows itself at the wrong place and then jumps.
+  useLayoutEffect(() => {
+    const el = row.current
+    const item = el?.querySelectorAll<HTMLElement>('[data-shelf-item]')[start]
+    if (!el || !item) return
+    el.scrollLeft = item.offsetLeft + item.offsetWidth / 2 - el.clientWidth / 2
+  }, [albums, start])
 
   useEffect(() => {
     const el = row.current
