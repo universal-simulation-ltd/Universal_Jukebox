@@ -210,7 +210,7 @@ interface ShelfRowProps<T> {
   direct?(item: T): boolean
   /** A button's whole label, where "verb + name" does not fit (the + tile). */
   labelOf?(item: T): string | undefined
-  /** The art whose glow sits behind this item while it is in the middle (`MiddleGlow`). */
+  /** The art whose glow is behind this item while it is in the middle (`ItemGlow`). */
   artOf?(item: T): Album | undefined
 }
 
@@ -287,53 +287,53 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
 
   const current = items[Math.min(middle, items.length - 1)]
   const text = current === undefined ? null : caption(current)
-  const art = current === undefined ? undefined : artOf?.(current)
 
   return (
     <section aria-label={label} className="-mx-4 sm:-mx-6 lg:-mx-8">
-      {/* The records, and the glow behind the one in the middle. */}
-      <div className="relative isolate">
-        {art && <MiddleGlow album={art} size={size} />}
-        <div
-          ref={row}
-          // A sideways swipe — never the page's pull-down to search (`PhoneSearch`).
-          data-swipe-x
-          // ⚠️ THE PADDING SETS THE SIZE, and every item fills what is left
-          // (`w-full`). A percentage WIDTH on a flex item is a share of the box
-          // INSIDE the padding, so the two were shares of different things: a
-          // record was drawn 44% of 44% of the screen, and the first one could
-          // never reach the middle — it sat 48px left of it, and on a shelf of
-          // two the second one counted as the middle (found 2026-09-11). Padding
-          // of (100% - item) / 2 each side puts the first and last items dead
-          // centre at either end.
-          className={`flex snap-x snap-mandatory items-end gap-3 overflow-x-auto pt-8 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-            size === 'record' ? 'px-[35%] sm:px-[42%] md:px-[45%]' : 'px-[31%] sm:px-[40%] md:px-[43%]'
-          }`}
-        >
-          {items.map((item, i) => {
-            const isMiddle = i === middle
-            const acts = isMiddle || direct?.(item) === true
-            return (
-              <button
-                key={keyOf(item)}
-                type="button"
-                data-shelf-item
-                onClick={() => (acts ? open(item, i) : bringToMiddle(i))}
-                aria-label={labelOf?.(item) ?? (acts ? `${verb} ${nameOf(item)}` : `Show ${nameOf(item)}`)}
-                aria-current={isMiddle ? 'true' : undefined}
-                className="relative w-full shrink-0 snap-center focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]"
-                style={{
-                  transform: `scale(${isMiddle ? 1 : 0.82})`,
-                  transformOrigin: 'bottom center',
-                  opacity: isMiddle ? 1 : 0.62,
-                  transition: reduced ? undefined : 'transform 280ms ease-out, opacity 280ms ease-out',
-                }}
-              >
-                {render(item)}
-              </button>
-            )
-          })}
-        </div>
+      <div
+        ref={row}
+        // A sideways swipe — never the page's pull-down to search (`PhoneSearch`).
+        data-swipe-x
+        // ⚠️ THE PADDING SETS THE SIZE, and every item fills what is left
+        // (`w-full`). A percentage WIDTH on a flex item is a share of the box
+        // INSIDE the padding, so the two were shares of different things: a
+        // record was drawn 44% of 44% of the screen, and the first one could
+        // never reach the middle — it sat 48px left of it, and on a shelf of
+        // two the second one counted as the middle (found 2026-09-11). Padding
+        // of (100% - item) / 2 each side puts the first and last items dead
+        // centre at either end.
+        className={`flex snap-x snap-mandatory items-end gap-3 overflow-x-auto pt-8 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          size === 'record' ? 'px-[35%] sm:px-[42%] md:px-[45%]' : 'px-[31%] sm:px-[40%] md:px-[43%]'
+        }`}
+      >
+        {items.map((item, i) => {
+          const isMiddle = i === middle
+          const acts = isMiddle || direct?.(item) === true
+          // Its neighbours carry a glow too, unlit, so the next one's is there
+          // to fade up as it arrives. Only these three: a hundred blurred
+          // covers would cost far more than they show.
+          const glow = Math.abs(i - middle) <= 1 ? artOf?.(item) : undefined
+          return (
+            <button
+              key={keyOf(item)}
+              type="button"
+              data-shelf-item
+              onClick={() => (acts ? open(item, i) : bringToMiddle(i))}
+              aria-label={labelOf?.(item) ?? (acts ? `${verb} ${nameOf(item)}` : `Show ${nameOf(item)}`)}
+              aria-current={isMiddle ? 'true' : undefined}
+              className="relative w-full shrink-0 snap-center focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]"
+              style={{
+                transform: `scale(${isMiddle ? 1 : 0.82})`,
+                transformOrigin: 'bottom center',
+                opacity: isMiddle ? 1 : 0.62,
+                transition: reduced ? undefined : 'transform 280ms ease-out, opacity 280ms ease-out',
+              }}
+            >
+              {glow && <ItemGlow album={glow} lit={isMiddle} reduced={reduced} />}
+              {render(item)}
+            </button>
+          )
+        })}
       </div>
       {/* The shelf the records stand on — with a yellow ticker along it for
           how far along the shelf you are (James, 2026-09-11: "a subtle
@@ -362,44 +362,45 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
 }
 
 /**
- * A soft glow in the middle record's own colours, just behind it and above the
- * plank — a record lit on display (James, 2026-09-11, after a faint full-width
- * art ground "didn't look right"). It is the cover itself, blurred hard and
- * faded to a circle, so it takes the art's colours without picking one. It
- * stays put in the middle of the shelf; the records slide past it.
+ * A glow in a record's own colours behind it while it is in the middle — a
+ * record lit on display (James, 2026-09-11). It is the cover itself, blurred
+ * and faded to a circle, so it takes the art's colours without picking one.
  *
- * Sized as 1.5× the middle item (the padding in `ShelfRow` makes an item 38% /
- * 20% / 14% of the shelf for sleeves, 30% / 16% / 10% for 45s) and centred on
- * it: an item is square and stands on the row's bottom, so a glow half as
- * tall again sits a sixth of its own height lower.
+ * It lives INSIDE the item, so it travels with the record as the shelf is
+ * swiped ("it needs to move with the items as swiping it") — a first go sat
+ * fixed in the middle of the shelf while the records slid past it. Behind the
+ * record because the item's transform makes it a stacking context, and
+ * `-z-10` stays within that. Unlit, it fades out as the record leaves the
+ * middle while the next one's fades up.
+ *
+ * ⚠️ 140% of the item, no more: the shelf scrolls sideways, so it clips
+ * up and down too, and the glow has only the row's `pt-8` to spread into —
+ * at 160% its top was sliced flat.
  */
-function MiddleGlow({ album, size }: { album: Album; size: 'sleeve' | 'record' }) {
+function ItemGlow({ album, lit, reduced }: { album: Album; lit: boolean; reduced: boolean }) {
   const url = coverUrl(album.id, album.cover)
   const hue = fallbackHue(album.id)
-  const round = 'radial-gradient(closest-side, black 30%, transparent 100%)'
-  const width = size === 'record' ? 'w-[45%] sm:w-[24%] md:w-[15%]' : 'w-[57%] sm:w-[30%] md:w-[21%]'
+  const round = 'radial-gradient(closest-side, black 50%, transparent 100%)'
   return (
-    <div
+    <span
       aria-hidden
-      data-middle-glow={album.id}
-      className={`pointer-events-none absolute bottom-1 left-1/2 -z-10 aspect-square ${width}`}
-      style={{ transform: 'translate(-50%, 16.7%)' }}
+      data-item-glow={lit ? 'lit' : 'unlit'}
+      className="pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[140%] w-[140%] -translate-x-1/2 -translate-y-1/2"
+      style={{ opacity: lit ? 1 : 0, transition: reduced ? undefined : 'opacity 350ms ease-out' }}
     >
       {url ? (
         <img
-          key={album.id}
           src={url}
           alt=""
-          className="h-full w-full object-cover opacity-[0.55] blur-2xl saturate-150 dark:opacity-[0.6]"
-          style={{ maskImage: round, WebkitMaskImage: round, animation: 'jb-glow-in 450ms ease-out both' }}
+          className="h-full w-full object-cover opacity-90 blur-xl saturate-200 dark:opacity-80"
+          style={{ maskImage: round, WebkitMaskImage: round }}
         />
       ) : (
-        <div
-          key={album.id}
-          className="h-full w-full opacity-[0.45] blur-xl"
-          style={{ background: `radial-gradient(closest-side, hsl(${hue} 60% 58%), transparent)`, animation: 'jb-glow-in 450ms ease-out both' }}
+        <span
+          className="block h-full w-full opacity-70 blur-lg"
+          style={{ background: `radial-gradient(closest-side, hsl(${hue} 70% 55%), transparent)` }}
         />
       )}
-    </div>
+    </span>
   )
 }
