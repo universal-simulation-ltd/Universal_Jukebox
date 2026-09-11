@@ -22,7 +22,6 @@ export default function PlayerBar() {
   const volume = usePlayerStore((s) => s.volume)
   const muted = usePlayerStore((s) => s.muted)
   const shuffle = usePlayerStore((s) => s.shuffle)
-  const repeat = usePlayerStore((s) => s.repeat)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const ceremonyCount = usePlayerStore((s) => s.ceremonyCount)
   const albums = useLibraryStore((s) => s.albums)
@@ -34,7 +33,6 @@ export default function PlayerBar() {
   const setVolume = usePlayerStore((s) => s.setVolume)
   const toggleMute = usePlayerStore((s) => s.toggleMute)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
-  const cycleRepeat = usePlayerStore((s) => s.cycleRepeat)
 
   // While dragging, the bar follows the pointer rather than the audio clock —
   // otherwise every `timeupdate` yanks the thumb back under the finger.
@@ -124,7 +122,8 @@ export default function PlayerBar() {
         </button>
 
         {/* Transport. Order is prev / play / next at every width; only the
-            shuffle and repeat toggles are shed. */}
+            shuffle toggle is shed. No repeat button (James, 2026-09-11:
+            "remove the repeat option from the mini player"). */}
         <div className="flex shrink-0 items-center gap-1">
           <IconButton label="Shuffle" onClick={toggleShuffle} active={shuffle} className="hidden sm:inline-flex">
             <ShuffleGlyph />
@@ -152,14 +151,6 @@ export default function PlayerBar() {
             <NextGlyph />
           </IconButton>
           <QueuePeek />
-          <IconButton
-            label={`Repeat: ${repeat}`}
-            onClick={cycleRepeat}
-            active={repeat !== 'off'}
-            className="hidden sm:inline-flex"
-          >
-            {repeat === 'one' ? <RepeatOneGlyph /> : <RepeatGlyph />}
-          </IconButton>
         </div>
 
         {/* Times and volume — the last things to go, below 560px (T5). */}
@@ -393,12 +384,6 @@ function NextGlyph() {
 }
 function ShuffleGlyph() {
   return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M3 5h3c1 0 2 .5 2.5 1.4l3.5 6.2c.5.9 1.5 1.4 2.5 1.4H17M3 15h3c1 0 2-.5 2.5-1.4l.8-1.4M12.2 7l.8-1.5C13.5 4.6 14.5 4 15.5 4H17" /><path d="m15 2 2 2-2 2M15 12l2 2-2 2" /></svg>
-}
-function RepeatGlyph() {
-  return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M4 8V7a3 3 0 0 1 3-3h9M16 12v1a3 3 0 0 1-3 3H4" /><path d="m13 1.5 3 2.5-3 2.5M7 13.5 4 16l3 2.5" /></svg>
-}
-function RepeatOneGlyph() {
-  return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M4 8V7a3 3 0 0 1 3-3h9M16 12v1a3 3 0 0 1-3 3H4" /><path d="m13 1.5 3 2.5-3 2.5M7 13.5 4 16l3 2.5M10 8.2l1.2-.7V12.5" /></svg>
 }
 function QueueGlyph() {
   return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M3 5.5h10M3 10h10M3 14.5h6" /><path d="M15.5 8.5v6.2" /><circle cx="14" cy="15" r="1.6" fill="currentColor" stroke="none" /></svg>

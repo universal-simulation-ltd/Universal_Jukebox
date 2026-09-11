@@ -38,18 +38,19 @@ export default function ShuffleLibrary({ view }: { view: ListTab }) {
     else player.shuffleSongs()
   }
 
+  // An icon beside the list options (James, 2026-09-11: "instead of the
+  // shuffle button just put a button with the shuffle icon next to the
+  // settings icon") — its label says which shuffle it is.
+  const says = copy.detail ? `${copy.label} — ${copy.detail.toLowerCase()}` : copy.label
   return (
-    // Centred on a phone (James, 2026-09-11), beside its line from `sm` up.
-    <div className="mb-5 flex flex-col items-center gap-1.5 text-center sm:flex-row sm:gap-3 sm:text-left">
-      <button
-        type="button"
-        onClick={start}
-        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
-      >
-        <ShuffleGlyph />
-        {copy.label}
-      </button>
-      {copy.detail && <span className="text-[12px] text-slate-500 dark:text-slate-400">{copy.detail}</span>}
-    </div>
+    <button
+      type="button"
+      onClick={start}
+      aria-label={says}
+      title={says}
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] dark:text-slate-400 dark:hover:bg-slate-800"
+    >
+      <ShuffleGlyph />
+    </button>
   )
 }

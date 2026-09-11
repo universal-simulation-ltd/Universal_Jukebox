@@ -502,6 +502,10 @@ export default function App() {
                 )}
               </button>
               )}
+              {/* Shuffle this list, beside its options — not on the Jukebox
+                  tab, and not during a search, when the list is not the
+                  library. */}
+              {!query.trim() && view !== 'jukebox' && <ShuffleLibrary view={listTab} />}
               {/* The wider screens' box, inline with the tabs. A phone uses
                   `PhoneSearch` above them instead. */}
               <input
@@ -601,11 +605,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Shuffle the library the way this tab reads it — not during a
-                search, when the list is not the library. */}
-            {!query.trim() && view !== 'jukebox' && (
-              <ShuffleLibrary view={view === 'artists' ? 'artists' : view === 'tracks' ? 'tracks' : 'albums'} />
-            )}
             {view === 'jukebox' ? (
               <JukeboxShelves />
             ) : view === 'artists' ? (
