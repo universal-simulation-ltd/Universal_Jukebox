@@ -51,8 +51,17 @@ function Sleeve({ album }: { album: Album | undefined }) {
  */
 const LAUNCH_SEED = newSeed()
 
-function Shelves<T>({ items, label, row }: { items: T[]; label: string; row(items: T[], label: string, start: number): ReactNode }) {
-  const rows = shelfRows(items, LAUNCH_SEED)
+function Shelves<T>({
+  items, label, row, lead,
+}: { items: T[]; label: string; row(items: T[], label: string, start: number): ReactNode; lead?: T }) {
+  // ⚠️ THE RESUME ITEM JOINS THE FIRST SHELF; IT DOES NOT RESHUFFLE THE REST
+  // (James, 2026-09-11: "When having the resume listening card show that songs
+  // artist in the shelf above as first item - keep the other items the same in
+  // the shelf"). The shelves are cut from the list as it would be without it,
+  // then `lead` goes to the front of the first one (moved there if that shelf
+  // already had it). Leading the whole list instead shifted every shelf by one.
+  const cut = shelfRows(items, LAUNCH_SEED)
+  const rows = lead === undefined || cut.length === 0 ? cut : [[lead, ...cut[0].filter((item) => item !== lead)], ...cut.slice(1)]
   const box = useRef<HTMLDivElement>(null)
   const [lift, setLift] = useState(0)
 
@@ -99,10 +108,11 @@ function Shelves<T>({ items, label, row }: { items: T[]; label: string; row(item
   )
 }
 
-export default function Shelf({ albums }: { albums: Album[] }) {
+export default function Shelf({ albums, lead }: { albums: Album[]; lead?: Album }) {
   return (
     <Shelves
       items={albums}
+      lead={lead}
       label="Albums on the shelf"
       row={(row, label, start) => (
         <ShelfRow
@@ -121,10 +131,13 @@ export default function Shelf({ albums }: { albums: Album[] }) {
 }
 
 /** The artists on the shelf, each as their latest record. */
-export function ArtistShelf({ artists }: { artists: { name: string; albums: Album[] }[] }) {
+export function ArtistShelf({
+  artists, lead,
+}: { artists: { name: string; albums: Album[] }[]; lead?: { name: string; albums: Album[] } }) {
   return (
     <Shelves
       items={artists}
+      lead={lead}
       label="Artists on the shelf"
       row={(row, label, start) => (
         <ShelfRow
@@ -146,7 +159,7 @@ export function ArtistShelf({ artists }: { artists: { name: string; albums: Albu
 }
 
 /** The songs on the shelf, as the records themselves. */
-export function TrackShelf({ tracks, onPlay }: { tracks: Track[]; onPlay(track: Track): void }) {
+export function TrackShelf({ tracks, onPlay, lead }: { tracks: Track[]; onPlay(track: Track): void; lead?: Track }) {
   const albums = useLibraryStore((s) => s.albums)
   const albumOf = useMemo(() => {
     const byId = new Map(albums.map((a) => [a.id, a]))
@@ -155,6 +168,7 @@ export function TrackShelf({ tracks, onPlay }: { tracks: Track[]; onPlay(track: 
   return (
     <Shelves
       items={tracks}
+      lead={lead}
       label="Songs on the shelf"
       row={(row, label, start) => (
         <ShelfRow

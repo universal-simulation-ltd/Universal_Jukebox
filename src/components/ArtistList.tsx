@@ -47,7 +47,7 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   const [grid, across] = useGridColumns(columns)
   const leadName = useResumable()?.album?.artist ?? null
 
-  const artists = useMemo(() => {
+  const all = useMemo(() => {
     const byArtist = new Map<string, Album[]>()
     for (const album of albums) {
       const list = byArtist.get(album.artist)
@@ -62,14 +62,17 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
       order.kind === 'random'
         ? seededOrder(entries, ([name]) => name, order.seed)
         : entries.sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' }))
-    // The artist "Resume listening" would play first, as the albums lead with its album.
-    return leadWith(ordered, leadName ? ([name]) => name === leadName : null).map(([name, list]) => ({
+    return ordered.map(([name, list]) => ({
       name,
       albums: [...list].sort((x, y) => (x.year ?? 9999) - (y.year ?? 9999)),
     }))
-  }, [albums, query, order, leadName])
+  }, [albums, query, order])
+  // The artist "Resume listening" would play first: at the front of the grid,
+  // or of the FIRST shelf, the shelves otherwise as they are (`Shelf`'s lead).
+  const resumeArtist = leadName ? all.find((a) => a.name === leadName) : undefined
+  const artists = useMemo(() => leadWith(all, leadName ? (a) => a.name === leadName : null), [all, leadName])
 
-  if (artists.length > 0 && columns === 'jukebox') return <ArtistShelf artists={artists} />
+  if (all.length > 0 && columns === 'jukebox') return <ArtistShelf artists={all} lead={resumeArtist} />
 
   if (artists.length === 0) {
     return (

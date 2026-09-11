@@ -38,15 +38,17 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
   // ⚠️ Ordered first, then filtered through `matchAlbums` — the same function
   // the tab count uses, so the number beside "Albums" and the tiles below it
   // can never disagree.
-  const shown = useMemo(() => {
+  const listed = useMemo(() => {
     const pool = fullOnly ? albums.filter(isFullAlbum) : albums
     const ordered = order.kind === 'random' ? seededOrder(pool, (a) => a.id, order.seed) : [...pool].sort(byTitle)
-    // While "Resume listening" shows (the row under the first), its album is
-    // the first tile (James, 2026-09-11: "in row 1 have the album for that
-    // track as item 1") — on the shelf too, where it is the first shelf's
-    // opening record.
-    return leadWith(matchAlbums(ordered, query), leadId ? (a) => a.id === leadId : null)
-  }, [albums, fullOnly, order, query, leadId])
+    return matchAlbums(ordered, query)
+  }, [albums, fullOnly, order, query])
+  // While "Resume listening" shows (the row under the first), its album is
+  // the first tile (James, 2026-09-11: "in row 1 have the album for that track
+  // as item 1"). On the shelf it joins the FIRST shelf instead, and the shelves
+  // stay as they are (`Shelf`'s lead).
+  const resumeAlbum = leadId ? listed.find((a) => a.id === leadId) : undefined
+  const shown = useMemo(() => leadWith(listed, leadId ? (a) => a.id === leadId : null), [listed, leadId])
 
   if (shown.length === 0) {
     return (
@@ -60,7 +62,7 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
     )
   }
 
-  if (columns === 'jukebox') return <Shelf albums={shown} />
+  if (columns === 'jukebox') return <Shelf albums={listed} lead={resumeAlbum} />
   // Smaller words when the tiles are small.
   const small = columns === 3 || columns === 4
 

@@ -45,12 +45,15 @@ export default function TrackList({ query, order }: { query: string; order: Libr
   // ⚠️ `matchTracks` and not an inline filter: the count in the tab above comes
   // from the same function, and two copies of "what counts as a match" drift
   // without anything failing.
-  const matched = useMemo(() => {
+  const listed = useMemo(() => {
     const found = matchTracks(tracks, query)
     const ordered = order.kind === 'random' ? seededOrder(found, (t) => t.id, order.seed) : [...found].sort(byTitle)
-    // The song "Resume listening" names, first — as the albums lead with its album.
-    return leadWith(ordered, leadId ? (t) => t.id === leadId : null)
-  }, [tracks, query, order, leadId])
+    return ordered
+  }, [tracks, query, order])
+  // The song "Resume listening" names, first — at the top of the list, or at
+  // the front of the FIRST shelf, the shelves otherwise as they are.
+  const resumeTrack = leadId ? listed.find((t) => t.id === leadId) : undefined
+  const matched = useMemo(() => leadWith(listed, leadId ? (t) => t.id === leadId : null), [listed, leadId])
 
   const shown = showAll ? matched : matched.slice(0, CAP)
   const hidden = matched.length - shown.length
@@ -70,7 +73,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
           album + record"); a tap plays the matched list from there, as a row
           in the list does. */}
       {columns === 'jukebox' ? (
-        <TrackShelf tracks={shown} onPlay={(track) => playTracks(matched, matched.indexOf(track))} />
+        <TrackShelf tracks={showAll ? listed : listed.slice(0, CAP)} lead={resumeTrack} onPlay={(track) => playTracks(listed, listed.indexOf(track))} />
       ) : (
       <ul className="divide-y divide-slate-200 dark:divide-slate-800">
         {withResumeRow(shown.map((track) => {
