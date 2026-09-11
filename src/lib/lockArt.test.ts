@@ -11,10 +11,11 @@ describe('hslToHex', () => {
 })
 
 describe('groundFor', () => {
-  it('is dark at both ends, and darker at the bottom', () => {
+  it('is white at the top and a light tint at the bottom — a record stands out on it', () => {
     const [top, bottom] = groundFor(210)
     const lum = (hex: string) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) + parseInt(hex.slice(5, 7), 16)
-    expect(lum(top)).toBeLessThan(3 * 110)
+    expect(top).toBe('#ffffff')
+    expect(lum(bottom)).toBeGreaterThan(3 * 200)
     expect(lum(bottom)).toBeLessThan(lum(top))
   })
 })

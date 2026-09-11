@@ -491,8 +491,10 @@ function publishNowPlaying(track: Track | null): void {
     (art) => {
       if (!art || currentTrack(usePlayerStore.getState())?.id !== track.id) return
       ms.setMetadata(track, art.stillUrl, 'image/png')
-      const { currentSec, durationSec, playing } = usePlayerStore.getState()
-      void showOnLockScreen(track, art, { elapsed: currentSec, duration: durationSec, playing })
+      void showOnLockScreen(track, art, () => {
+        const { currentSec, durationSec, playing } = usePlayerStore.getState()
+        return { elapsed: currentSec, duration: durationSec, playing }
+      })
     },
   )
 }

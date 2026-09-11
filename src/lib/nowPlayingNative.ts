@@ -66,11 +66,21 @@ async function load(): Promise<void> {
 export async function showOnLockScreen(
   track: Track,
   art: LockArt,
-  now: { elapsed: number; duration: number; playing: boolean },
+  /**
+   * Where playback is — a READER, not a snapshot, because it is read twice.
+   *
+   * ⚠️ The second read is the fix for Control Centre and the lock screen
+   * showing ▶ over a playing song (James, 2026-09-11). The first `show` goes out
+   * as the countdown runs, so it says "paused"; the music then starts while
+   * the art is still being drawn and sent, and `followProgress` ignored that —
+   * the mode was not known yet — so nothing ever corrected it.
+   */
+  now: () => { elapsed: number; duration: number; playing: boolean },
 ): Promise<void> {
   if (!nativeNowPlayingAvailable()) return
   try {
     await load()
+    const at = now()
     const result = await plugin!.show({
       artworkId: art.key,
       still: await base64(art.stillPng),
@@ -80,9 +90,9 @@ export async function showOnLockScreen(
       title: track.title,
       artist: track.artist ?? track.albumArtist ?? '',
       album: track.album ?? '',
-      elapsed: now.elapsed,
-      duration: now.duration,
-      rate: now.playing ? 1 : 0,
+      elapsed: at.elapsed,
+      duration: at.duration,
+      rate: at.playing ? 1 : 0,
     })
     mode = result.mode
     report = `mode=${result.mode} animated=${result.animated} keys=${result.supportedKeys.join(',') || 'none'}`
@@ -93,7 +103,12 @@ export async function showOnLockScreen(
         dispatchAction(e.action, e.position)
       })
     }
-    sent = { playing: now.playing, at: performance.now(), sec: now.elapsed, duration: now.duration }
+    // Where playback is NOW, not when `show` set off.
+    const latest = now()
+    sent = { playing: latest.playing, at: performance.now(), sec: latest.elapsed, duration: latest.duration }
+    if (mode === 'own') {
+      await plugin!.update({ elapsed: latest.elapsed, duration: latest.duration, rate: latest.playing ? 1 : 0 })
+    }
   } catch (error) {
     report = `failed: ${error instanceof Error ? error.message : String(error)}`
   }

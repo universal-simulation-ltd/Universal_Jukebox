@@ -31,8 +31,9 @@ export interface LockArt {
   spinSeconds: number | null
 }
 
-/** Bumped whenever the drawing changes, so no stale picture is reused. */
-const VERSION = 1
+/** Bumped whenever the drawing changes, so no stale picture is reused — the
+ *  native side caches its videos under the key this is part of. */
+const VERSION = 2
 const STILL = 600
 const DISC = 1024
 
@@ -70,9 +71,16 @@ export function lockArt(input: {
   return made
 }
 
-/** The background: the album's own hue, dark, so any cover sits well on it. */
+/**
+ * The background: WHITE, fading to a faint tint of the album's own hue.
+ *
+ * ⚠️ It was a dark ground in the album's hue until James saw it on the lock
+ * screen (2026-09-11): "record shows but will stand out better with a white bg
+ * behind the record". A slate record on a dark ground all but vanished. The
+ * light machines (the CD, the pocket player) get an outline instead.
+ */
 export function groundFor(hue: number): [string, string] {
-  return [hslToHex(hue, 30, 22), hslToHex(hue, 38, 7)]
+  return ['#ffffff', hslToHex(hue, 28, 90)]
 }
 
 export function hslToHex(h: number, s: number, l: number): string {
@@ -177,6 +185,11 @@ function drawDisc(style: DeckStyle, img: HTMLImageElement | null, hue: number): 
     circle(ctx, r, r, r * LABEL.cd)
     ctx.stroke()
     punch(ctx, r, r * 0.075)
+    // A silver disc on a white ground needs its edge drawn.
+    ctx.strokeStyle = 'rgba(15,23,42,0.22)'
+    ctx.lineWidth = DISC / 250
+    circle(ctx, r, r, r * 0.99)
+    ctx.stroke()
     return canvas
   }
 
@@ -303,6 +316,11 @@ function drawPocket(ctx: CanvasRenderingContext2D, S: number, img: HTMLImageElem
   rounded(ctx, x, y, w, h, w * 0.12)
   ctx.fill()
   ctx.restore()
+  // A white player on a white ground needs its edge drawn.
+  ctx.strokeStyle = 'rgba(15,23,42,0.22)'
+  ctx.lineWidth = S / 250
+  rounded(ctx, x, y, w, h, w * 0.12)
+  ctx.stroke()
 
   const sw = w * 0.8
   const sx = x + (w - sw) / 2
