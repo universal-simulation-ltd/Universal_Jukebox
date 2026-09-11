@@ -313,7 +313,14 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
         // side comes to 299), so a desktop window doesn't grow sleeves a foot
         // wide. The phone keeps its own
         // sizes; there, this rule would make the records smaller.
-        className={`flex snap-x snap-mandatory items-end gap-3 overflow-x-auto pt-8 pb-1 sm:pt-16 sm:px-[calc((100%_-_min((50%_-_24px)/1.89,300px))/2)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+        //
+        // ⚠️ `overflow-y-hidden`, not left to default. A sideways scroller
+        // clips up and down as well, and whatever pokes out below (a glow)
+        // made it scrollable UP AND DOWN too: an upward swipe on a record
+        // slid the whole row up under its own clip, and there it stayed
+        // (James, 2026-09-11, iPhone). Hidden, the row can't be scrolled
+        // that way, and an upward swipe goes to the page.
+        className={`flex snap-x snap-mandatory items-end gap-3 overflow-x-auto overflow-y-hidden pt-8 pb-1 sm:pt-16 sm:px-[calc((100%_-_min((50%_-_24px)/1.89,300px))/2)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
           size === 'record' ? 'px-[35%]' : 'px-[31%]'
         }`}
       >
