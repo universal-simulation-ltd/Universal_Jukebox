@@ -592,6 +592,34 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     const existing = get().roots.find((r) => r.source === 'music-library')
     const taken = get().roots.filter((r) => r.id !== existing?.id).map((r) => prefixOf(r))
     const prefix = existing ? prefixOf(existing) : uniqueLabel(MUSIC_LIBRARY_LABEL, taken)
+    const rootWith = (trackCount: number): Root => ({
+      id: existing?.id ?? MUSIC_LIBRARY_ROOT_ID,
+      label: prefix,
+      prefix,
+      handle: null,
+      nativePath: null,
+      source: 'music-library',
+      scannedAt: Date.now(),
+      trackCount,
+    })
+
+    // ⚠️ A FIRST IMPORT FILLS THE SHELVES WHILE THE ART IS STILL COMING IN
+    // (`readMusicLibrary`'s `onReady`). A refresh does NOT: the library already
+    // on screen stays as it is until the new one is complete, rather than
+    // shrinking to a handful of records and growing back.
+    //
+    // ⚠️ The root goes up WITH the first records, not at the end. Without it a
+    // record tapped mid-import is not a Music-library track (`isMusicLibraryTrack`
+    // asks the roots), so it is never exported for playback and fails as a
+    // missing file. It is not written to the database until the import is done.
+    const onReady = existing
+      ? undefined
+      : (sofar: { tracks: Track[]; albums: Album[] }) => {
+          const merged = addScan({ tracks: get().tracks, albums: get().albums }, prefix, sofar)
+          const joined = mergeDiscSets(merged.tracks, merged.albums)
+          const root = rootWith(sofar.tracks.length)
+          set({ tracks: joined.tracks, albums: joined.albums, roots: [...get().roots.filter((r) => r.id !== root.id), root] })
+        }
 
     set({
       status: 'scanning',
@@ -601,9 +629,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     })
     let read: MusicLibraryRead
     try {
-      read = await readMusicLibrary(prefix, (progress) => set({ progress }))
+      read = await readMusicLibrary(prefix, (progress) => set({ progress }), onReady)
     } catch (err) {
       console.error('[jukebox] Could not read the Music library:', err)
+      // Whatever a first import had already put on the shelves comes off again.
+      if (!existing) {
+        const left = removeRoot({ tracks: get().tracks, albums: get().albums }, prefix)
+        set({ tracks: left.tracks, albums: left.albums, roots: get().roots.filter((r) => r.id !== MUSIC_LIBRARY_ROOT_ID) })
+      }
       set({
         status: get().tracks.length > 0 ? 'ready' : 'empty',
         progress: null,
@@ -629,16 +662,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     const tidied = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
     // Disc sets joined AFTER the fixes, which are keyed to the parts' own ids.
     const fixed = mergeDiscSets(tidied.tracks, tidied.albums)
-    const root: Root = {
-      id: existing?.id ?? MUSIC_LIBRARY_ROOT_ID,
-      label: prefix,
-      prefix,
-      handle: null,
-      nativePath: null,
-      source: 'music-library',
-      scannedAt: Date.now(),
-      trackCount: read.tracks.length,
-    }
+    const root = rootWith(read.tracks.length)
     await Promise.all([db.replaceLibrary(fixed.tracks, fixed.albums), db.putRoot(root)])
     set({
       status: 'ready',

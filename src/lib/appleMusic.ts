@@ -190,10 +190,30 @@ export interface MusicLibraryRead {
   protected: number
 }
 
-/** Read the whole library: songs, then the album art, reporting as it goes. */
+/**
+ * How many records go on the shelves before the art is all in — two shelves'
+ * worth (`SHELF_MIN` is 15) — and then twice as many each time after that.
+ */
+export const FIRST_SHOWN = 30
+
+/**
+ * Read the whole library: songs, then the album art, reporting as it goes.
+ *
+ * ⚠️ `onReady` IS HOW THE SHELVES FILL DURING A FIRST IMPORT (James,
+ * 2026-09-11: "populate the shelves during the first music import, could even
+ * just be a small selection, doesn't have to show the full amount until scan is
+ * done"). The song list takes seconds; the art is the slow part, and until this
+ * existed nothing reached the shelves before every sleeve was in. It is handed
+ * EVERYTHING READY SO FAR, not the latest few (unlike a folder scan's
+ * `onBatch`): the first `FIRST_SHOWN` albums whose art has been asked for, then
+ * double that, and so on. Doubling keeps the shelves from being re-cut every
+ * few records while somebody is looking at them. Only albums whose art has
+ * been asked for are passed, so no sleeve goes up blank and changes later.
+ */
 export async function readMusicLibrary(
   prefix: string,
   onProgress?: (progress: ScanProgress) => void,
+  onReady?: (sofar: { tracks: Track[]; albums: Album[] }) => void,
 ): Promise<MusicLibraryRead> {
   await load()
   const answer = await plugin!.songs()
@@ -202,9 +222,21 @@ export async function readMusicLibrary(
   const report = (where: string, done = false) =>
     onProgress?.({ seen: answer.total, added: tracks.length, skipped, where, done })
 
+  // In the shelves' own A–Z order, so each later lot mostly lands after the
+  // records already showing rather than in among them.
+  const order = [...albums].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }))
+  const tracksOf = new Map<string, Track[]>()
+  for (const t of tracks) {
+    const list = tracksOf.get(t.albumId)
+    if (list) list.push(t)
+    else tracksOf.set(t.albumId, [t])
+  }
+  const ready: Album[] = []
+  let showAt = FIRST_SHOWN
+
   report('Reading the album art…')
   let fetched = 0
-  await inLanes(albums, 4, async (album) => {
+  await inLanes(order, 4, async (album) => {
     const libraryAlbumId = artworkFor.get(album.id)
     if (libraryAlbumId) {
       try {
@@ -218,6 +250,14 @@ export async function readMusicLibrary(
     }
     fetched++
     if (fetched % 10 === 0) report(`Reading the album art — ${fetched} of ${albums.length}`)
+    if (onReady) {
+      ready.push(album)
+      // Not once it is all in — the caller puts the whole library up then.
+      if (ready.length >= showAt && ready.length < albums.length) {
+        showAt *= 2
+        onReady({ tracks: ready.flatMap((a) => tracksOf.get(a.id) ?? []), albums: [...ready] })
+      }
+    }
   })
   report('', true)
   return { tracks, albums, total: answer.total, cloudOnly: answer.cloudOnly, protected: answer.protected }
