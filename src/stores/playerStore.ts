@@ -21,6 +21,7 @@ import { shouldRunCeremony } from '../lib/ceremony'
 import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
 import { INTRO_HOLD_MAX, cachedIntro, introHold, measureIntro } from '../lib/intro'
+import { noteEvent } from '../lib/bgLog'
 
 // Playback: the queue, what is on, and the transport.
 //
@@ -1253,6 +1254,10 @@ function playPrepared(
  * the first record finishes before the second starts.
  */
 let crossfadeArmed = false
+/** Songs being copied out ahead of a crossfade into them — asked for once each. */
+const preparingAhead = new Set<string>()
+/** The song a "not ready yet" was last written to the log for — once per song. */
+let waitingNoted: string | null = null
 
 function maybeStartEarlyCrossfade(remainingSec: number): void {
   const set = usePlayerStore.setState
@@ -1293,20 +1298,40 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   const lead = (plan.swap ? CROSSFADE.RECORD_SEC : CROSSFADE.SEC) + hold
   if (remainingSec > lead) return
 
+  const library = useLibraryStore.getState()
+  const file = library.fileFor(to)
+  if (!file) {
+    // ⚠️ NOT READY YET IS NOT "NO CROSSFADE" (James, 2026-09-11: "Crossfade
+    // doesn't always work, sometimes it's really abrupt"). A song from the
+    // Music library has to be copied out before it can play, and this used to
+    // ARM first and then give up — so a copy still running when the lead came
+    // round left the change to `onEnded`: a hard cut. Now it gets the copy
+    // going (once) and looks again on the next tick; if the song is ready
+    // late, the crossfade is shorter rather than missing. A file that is
+    // genuinely gone still reaches `onEnded`, which says so properly.
+    if (library.needsPreparing(to) && !preparingAhead.has(to.id)) {
+      preparingAhead.add(to.id)
+      void library.prepare(to).finally(() => preparingAhead.delete(to.id))
+    }
+    if (waitingNoted !== to.id) {
+      waitingNoted = to.id
+      noteEvent('handover', { kind: 'waiting', why: 'next song not ready', remaining: +remainingSec.toFixed(1) })
+    }
+    return
+  }
   crossfadeArmed = true
-  const file = useLibraryStore.getState().fileFor(to)
-  // A missing file is not an error worth raising here — `onEnded` will reach
-  // the same track a moment later and say so properly, on the path that owns
-  // the message.
-  if (!file) return
+  // Late (the song has only just become ready): cross over the time that is left.
+  const blendSec = Math.max(0.6, Math.min(lead, remainingSec))
+  const holdSec = Math.max(0, Math.min(hold, blendSec - (plan.swap ? CROSSFADE.RECORD_MANUAL_SEC : CROSSFADE.MANUAL_SEC)))
+  noteEvent('handover', { kind: 'crossfade', seconds: +blendSec.toFixed(1), hold: +holdSec.toFixed(1), late: blendSec < lead })
 
   set({ cursor: target })
   publishNowPlaying(to)
   runHandover(set, get, plan, () => {}, {
     duckFirst: false,
     crossfadeFile: file,
-    crossfadeSec: lead,
-    holdSec: hold,
+    crossfadeSec: blendSec,
+    holdSec,
   })
 }
 
@@ -1401,6 +1426,12 @@ audio.setCallbacks({
       )
       return
     }
+    // The song ran out with no crossfade started — the change is a cut. Said
+    // in the saved log, so an abrupt change on the phone can be traced.
+    noteEvent('handover', {
+      kind: 'cut at end',
+      why: store.ceremony ? 'countdown running' : store.handover ? 'change-over running' : crossfadeArmed ? 'armed, not started' : 'no crossfade started',
+    })
     advance(usePlayerStore.setState, usePlayerStore.getState, 1, true)
   },
   onDuration(seconds) {
