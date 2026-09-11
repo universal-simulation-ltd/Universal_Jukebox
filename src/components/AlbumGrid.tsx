@@ -40,7 +40,7 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
   // can never disagree.
   const shown = useMemo(() => {
     const pool = fullOnly ? albums.filter(isFullAlbum) : albums
-    const ordered = order.kind === 'random' ? seededOrder(pool, (a) => a.id, order.seed) : [...pool].sort(byArtistThenYear)
+    const ordered = order.kind === 'random' ? seededOrder(pool, (a) => a.id, order.seed) : [...pool].sort(byTitle)
     // While "Resume listening" shows (the row under the first), its album is
     // the first tile (James, 2026-09-11: "in row 1 have the album for that
     // track as item 1") — on the shelf too, where it is the first shelf's
@@ -94,16 +94,16 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
 }
 
 /**
- * Artist, then year, then title — the A–Z order.
- *
- * An artist's records in the order they were made is the order people picture
- * them in; alphabetical-by-title scatters a discography and is the default
- * nobody asks for.
+ * A–Z is by the ALBUM's name (James, 2026-09-11: "it seems to organise by
+ * artist name instead of album name? In album we shouldn't be grouping albums
+ * unless it's a multi-disc album"). Sorted by artist, the grid was an artist
+ * index in all but name — every record by one artist in a run. The artist, then
+ * the year, only break a tie between two albums of the same name.
  */
-function byArtistThenYear(a: Album, b: Album): number {
+function byTitle(a: Album, b: Album): number {
+  const title = a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true })
+  if (title !== 0) return title
   const artist = a.artist.localeCompare(b.artist, undefined, { sensitivity: 'base' })
   if (artist !== 0) return artist
-  const year = (a.year ?? 9999) - (b.year ?? 9999)
-  if (year !== 0) return year
-  return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+  return (a.year ?? 9999) - (b.year ?? 9999)
 }

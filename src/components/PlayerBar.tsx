@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import Cover from './Cover'
 import { clock } from '../lib/format'
 import { currentRoute, navigate } from '../lib/route'
-import { scrollToTop } from '../lib/scrollTop'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -85,12 +84,15 @@ export default function PlayerBar() {
         {/* Identity — tap to reach Now Playing, which at T6 is the only way. */}
         <button
           type="button"
-          // ⚠️ ALWAYS to the top of the deck (James, 2026-09-11: "it should jump
-          // to the top of animation page (even if was on that page)").
-          // Navigating to where you already are does nothing, so on Now
-          // Playing it scrolls up instead; from anywhere else, arriving there
-          // already opens it at its top (`PAGE_VIEWS` in App.tsx).
-          onClick={() => (currentRoute().view === 'playing' ? scrollToTop() : navigate({ view: 'playing' }))}
+          // From anywhere, to Now Playing — which opens at its top
+          // (`PAGE_VIEWS` in App.tsx). From Now Playing itself, to the ALBUM,
+          // as tapping the record on the deck does (James, 2026-09-11: "if on
+          // animation page and then click the art on the media player, take
+          // them to the album view (like clicking the animation)").
+          onClick={() => {
+            if (currentRoute().view !== 'playing') navigate({ view: 'playing' })
+            else if (album) navigate({ view: 'album', albumId: album.id })
+          }}
           className="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
         >
           {/* ⚠️ THE COUNTDOWN, OVER THE SLEEVE (James, 2026-09-10: "you also need

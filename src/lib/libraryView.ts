@@ -5,7 +5,7 @@ import type { Album, Track } from './types'
 import { COLUMN_CYCLE, type LibraryColumns } from '../stores/settingsStore'
 
 /**
- * A–Z is each list's own alphabetical order (albums by artist then year,
+ * A–Z is each list's own alphabetical order (albums by title,
  * artists by name, tracks by title). Random is a shuffle that holds still until
  * it is asked for again — the seed.
  */

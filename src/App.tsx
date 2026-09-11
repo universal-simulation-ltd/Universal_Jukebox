@@ -61,9 +61,10 @@ function togglePill(active: boolean): string {
   }`
 }
 
+// Artists, Albums, Tracks (James, 2026-09-11) — widest to narrowest.
 const TABS: { view: HomeTab; label: string }[] = [
-  { view: 'albums', label: 'Albums' },
   { view: 'artists', label: 'Artists' },
+  { view: 'albums', label: 'Albums' },
   { view: 'tracks', label: 'Tracks' },
 ]
 
@@ -155,7 +156,6 @@ export default function App() {
   const toggle = usePlayerStore((s) => s.toggle)
   const next = usePlayerStore((s) => s.next)
   const previous = usePlayerStore((s) => s.previous)
-  const queueLength = usePlayerStore((s) => s.queue.length)
 
   const homeTab = useSettingsStore((s) => s.homeTab)
   const setSetting = useSettingsStore((s) => s.set)
@@ -429,19 +429,6 @@ export default function App() {
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-slate-100 dark:ring-slate-950" aria-hidden />
                 )}
               </button>
-              {/* On a phone the search box is folded away above the tabs — this,
-                  or pulling down from the top of the page, brings it down. */}
-              {!searchOpen && !query && (
-                <button
-                  type="button"
-                  onClick={() => phoneSearch.current?.open()}
-                  aria-label="Search your library"
-                  title="Search — or pull down from the top of the page"
-                  className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:hidden dark:text-slate-400 dark:hover:bg-slate-800"
-                >
-                  <SearchGlyph />
-                </button>
-              )}
               {/* The wider screens' box, inline with the tabs. A phone uses
                   `PhoneSearch` above them instead. */}
               <input
@@ -452,15 +439,8 @@ export default function App() {
                 aria-label="Search your library"
                 className="ml-auto hidden w-full max-w-xs rounded-full border border-slate-300 bg-white px-4 py-1.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none sm:block dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
-              {queueLength > 0 && !mini && (
-                <button
-                  type="button"
-                  onClick={() => navigate({ view: 'playing' })}
-                  className="rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] font-medium text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400"
-                >
-                  Now playing
-                </button>
-              )}
+              {/* No "Now playing" button here any more (James, 2026-09-11:
+                  "Remove the now playing button (they click mini player)"). */}
             </div>
             {optionsOpen && (
               <div id="jb-list-options" className="-mt-2 mb-5 flex flex-wrap items-center justify-center gap-2">
@@ -511,6 +491,22 @@ export default function App() {
                       <GridGlyph />
                       {columnsLabel(columns)}
                     </span>
+                  </button>
+                )}
+                {/* Search, last in the row (James, 2026-09-11: "Put the
+                    magnifying glass after and inline with jukebox shelf
+                    button"). A phone's box is folded away above the tabs; this,
+                    or pulling down from the top of the page, brings it down.
+                    Wider screens keep the box itself on the tabs row. */}
+                {!searchOpen && !query && (
+                  <button
+                    type="button"
+                    onClick={() => phoneSearch.current?.open()}
+                    aria-label="Search your library"
+                    title="Search — or pull down from the top of the page"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:border-orange-500 hover:text-orange-700 sm:hidden dark:border-slate-700 dark:text-slate-300 dark:hover:text-orange-400"
+                  >
+                    <SearchGlyph />
                   </button>
                 )}
               </div>
