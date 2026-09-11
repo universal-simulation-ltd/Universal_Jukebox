@@ -56,6 +56,7 @@ export default function DeckSwiper({
   const cursor = usePlayerStore((s) => s.cursor)
   const repeat = usePlayerStore((s) => s.repeat)
   const phase = usePlayerStore((s) => s.deckPhase)
+  const blend = usePlayerStore((s) => s.blend)
   const jumpTo = usePlayerStore((s) => s.jumpTo)
   const albums = useLibraryStore((s) => s.albums)
   const setting = useSettingsStore((s) => s.deck)
@@ -76,6 +77,10 @@ export default function DeckSwiper({
   const [reach, setReach] = useState({ toLeft: size, toRight: size })
   /** After a swipe: the record that came in, held at the centre. */
   const [arriving, setArriving] = useState<Arriving | null>(null)
+  /** A record crossfade's incoming record, on its way from the right. */
+  const [incoming, setIncoming] = useState<(Arriving & { run: boolean }) | null>(null)
+  /** How long the records take to move: a swipe's settle, or a whole crossfade. */
+  const [ms, setMs] = useState(SETTLE_MS)
 
   /** The order index `delta` away, honouring repeat-all at either end. */
   const indexAt = (delta: number): number | null => {
@@ -100,6 +105,49 @@ export default function DeckSwiper({
 
   const peek = Math.round(size * PEEK)
 
+  // ⚠️ A CROSSFADE ACROSS A CHANGE OF RECORD SLIDES THE MACHINES (James,
+  // 2026-09-11) — the same move as a swipe, driven by the player over the
+  // whole blend: the record on the deck slides out to the left while the next
+  // one comes in from the right, growing, until it is in the middle and the
+  // blend is over; then it is held there like a swiped one. The player has
+  // already moved the cursor, so the arrival is the CURRENT track, and the
+  // peeks (now a track further on) hide until it lands. Read from a ref so the
+  // effect runs once per blend and not on every render.
+  const latest = useRef({ queue, order, cursor, albums, setting, eras, arriving, reduced })
+  latest.current = { queue, order, cursor, albums, setting, eras, arriving, reduced }
+  const blendTimer = useRef<number | null>(null)
+  useEffect(() => {
+    const now = latest.current
+    if (!blend || now.arriving || now.reduced) return
+    const track = now.queue[now.order[now.cursor]]
+    const album = track ? now.albums.find((a) => a.id === track.albumId) : undefined
+    const style = resolveDeck(now.setting, album ?? track, now.eras)
+    const r = measure()
+    setReach(r)
+    setMs(blend.ms)
+    setIncoming({ album, style, run: false })
+    // Two frames: drawn at the edge first, THEN told to move, or it would jump.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setIncoming((current) => (current ? { ...current, run: true } : current))
+        setAnimate(true)
+        setX(-r.toRight)
+      }),
+    )
+    if (blendTimer.current !== null) window.clearTimeout(blendTimer.current)
+    blendTimer.current = window.setTimeout(() => {
+      blendTimer.current = null
+      setIncoming(null)
+      setArriving({ album, style })
+    }, blend.ms)
+    // `measure` reads refs only; the rest comes through `latest`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blend])
+
+  useEffect(() => () => {
+    if (blendTimer.current !== null) window.clearTimeout(blendTimer.current)
+  }, [])
+
   // Let the held record go once the deck shows it and its own swap is over —
   // or after a while regardless, so a slow change-over cannot leave a picture
   // standing in for the deck.
@@ -110,6 +158,7 @@ export default function DeckSwiper({
       setAnimate(false)
       setX(0)
       setArriving(null)
+      setMs(SETTLE_MS)
     }
     if (heldFor !== undefined && showing === heldFor && phase === 'idle') {
       release()
@@ -145,18 +194,22 @@ export default function DeckSwiper({
 
   const slide: DeckSlide = {
     x,
-    opacity: arriving ? 0 : 1 - 0.6 * progress,
+    opacity: arriving ? 0 : 1 - (incoming ? 0.85 : 0.6) * progress,
     animate,
+    ms,
   }
+
+  /** A record crossfade is sliding the machines — the peeks are a track stale. */
+  const swapping = incoming !== null
 
   /** A peek: the one being swiped towards comes in and grows; the other stays. */
   const peekMotion = (side: 'left' | 'right') => {
-    const incoming = (side === 'right' && x < 0) || (side === 'left' && x > 0)
+    const towards = !swapping && ((side === 'right' && x < 0) || (side === 'left' && x > 0))
     return {
-      shift: incoming ? x : 0,
-      scale: incoming ? 1 + (grow - 1) * progress : 1,
-      opacity: arriving ? 0 : incoming ? 0.6 + 0.4 * progress : 0.6,
-      animate: animate && !arriving,
+      shift: towards ? x : 0,
+      scale: towards ? 1 + (grow - 1) * progress : 1,
+      opacity: arriving || swapping ? 0 : towards ? 0.6 + 0.4 * progress : 0.6,
+      animate: animate && !arriving && !swapping,
     }
   }
 
@@ -188,6 +241,26 @@ export default function DeckSwiper({
           onClick={() => jumpTo(nextIndex)}
         />
       )}
+      {/* A record crossfade's next record: drawn at the right-hand peek's place
+          and size, then sent to the middle over the whole blend. */}
+      {incoming && (
+        <div
+          className="pointer-events-none absolute top-1/2 left-1/2 z-10"
+          style={{
+            width: size,
+            height: size,
+            transform: incoming.run
+              ? 'translate(-50%, -50%)'
+              : `translate(-50%, -50%) translateX(${reach.toRight}px) scale(${peek / size})`,
+            transition: incoming.run ? `transform ${ms}ms cubic-bezier(.4,0,.2,1)` : 'none',
+          }}
+          aria-hidden
+        >
+          <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
+            <Medium album={incoming.album} style={incoming.style} />
+          </span>
+        </div>
+      )}
       {/* The record that came in, standing in at the centre until the deck
           shows it — drawn exactly where, and as big as, the peek finished. */}
       {arriving && (
@@ -205,7 +278,8 @@ export default function DeckSwiper({
         className="relative shrink-0"
         style={{ touchAction: 'pan-y' }}
         onPointerDown={(e) => {
-          if (e.pointerType !== 'touch' || arriving) return
+          if (e.pointerType !== 'touch' || arriving || incoming) return
+          setMs(SETTLE_MS)
           const r = measure()
           setReach(r)
           start.current = { x: e.clientX, y: e.clientY, ...r }

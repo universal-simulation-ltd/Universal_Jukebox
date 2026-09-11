@@ -141,10 +141,23 @@ describe('the blend is audio, not animation', () => {
     expect(planHandover(decision({ reducedMotion: true, change: 'track' })).crossfade).toBe(true)
   })
 
-  it('never blends across a record change, whatever the setting', () => {
+  it('never blends across a record change with “Crossfade between records” off, whatever the animation setting', () => {
     for (const mode of ['always', 'album', 'artist', 'first', 'off'] as const) {
       expect(planHandover(decision({ mode, change: 'album' })).crossfade).toBe(false)
     }
+  })
+})
+
+describe('a different record, with “Crossfade between records” on', () => {
+  it('blends while it changes the record, needle and start-up sound and all', () => {
+    for (const change of ['album', 'artist'] as const) {
+      expect(planHandover(decision({ change, recordCrossfade: true }))).toEqual({
+        crossfade: true, needle: true, cue: true, swap: true,
+      })
+    }
+  })
+  it('still blends with the animation off — the blend is audio', () => {
+    expect(planHandover(decision({ mode: 'off', change: 'album', recordCrossfade: true })).crossfade).toBe(true)
   })
 })
 

@@ -228,7 +228,8 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
  * title occupies the rest of the time — nothing moves that wasn't going to.
  */
 export function CeremonyCount() {
-  const count = usePlayerStore((s) => s.ceremonyCount)
+  // The start's 2, 1 — or a record crossfade's silent 3, 2, 1.
+  const count = usePlayerStore((s) => s.ceremonyCount ?? s.blendCount)
   const reduced = usePrefersReducedMotion()
   // ⚠️ THE NUMBER ON ITS WAY OUT, drawn in the same place as the one coming in
   // (James, 2026-09-10: "When 2,1 starts show a 3 already fading out and then

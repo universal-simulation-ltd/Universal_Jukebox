@@ -16,6 +16,8 @@ export interface DeckSlide {
   opacity: number
   /** Transition to the new value (a release), or follow exactly (a drag). */
   animate: boolean
+  /** How long that transition takes — a swipe's settle, or a whole crossfade. */
+  ms?: number
 }
 
 export const DeckSlideContext = createContext<DeckSlide | null>(null)
@@ -25,6 +27,8 @@ export function slideStyle(slide: DeckSlide): React.CSSProperties {
   return {
     transform: slide.x ? `translateX(${slide.x}px)` : undefined,
     opacity: slide.opacity,
-    transition: slide.animate ? 'transform 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out' : 'none',
+    transition: slide.animate
+      ? `transform ${slide.ms ?? 240}ms cubic-bezier(.2,.8,.2,1), opacity ${slide.ms ?? 240}ms ease-out`
+      : 'none',
   }
 }

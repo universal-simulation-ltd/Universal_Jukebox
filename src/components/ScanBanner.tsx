@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { DropRing } from '@unisim/sdk'
 import FolderAccessButton from './FolderAccessButton'
 import { plural } from '../lib/format'
@@ -98,40 +98,15 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   return (
     <>
       {progress && !progress.done && (
-        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-          <DropRing size={34} motion="busy" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <p className="font-medium text-slate-900 dark:text-slate-100">
-              Reading your folder — {plural(progress.added, 'track')} so far
-            </p>
-            {/* The folder currently being walked. Honest and specific beats a
-                percentage we cannot compute: nothing knows the total until the
-                walk is finished, and a bar that fills to 90% and stops is worse
-                than no bar. */}
-            <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
-              {progress.where || 'Starting…'}
-            </p>
-          </div>
-          {/* ⚠️ "Stop", not "Cancel", and the difference is the whole point: it
-              KEEPS everything found so far. A big library takes minutes, and
-              somebody who realises halfway through that they pointed at their
-              whole drive wants out with what they have — not a choice between
-              waiting and starting again. Everything scanned is already in the
-              store and in IndexedDB, so stopping just stops adding. */}
-          <button
-            type="button"
-            onClick={stopScan}
-            className="shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
-          >
-            {/* The count is live, so for the first moment of a scan it is
-                genuinely zero — and "Stop and keep 0 tracks" is a strange thing
-                to offer somebody. Say plain "Stop" until there is something to
-                keep. */}
-            {progress.added > 0 ? `Stop and keep ${plural(progress.added, 'track')}` : 'Stop'}
-          </button>
-        </div>
+        <ScanningCard
+          progress={progress}
+          onKeep={stopScan}
+          onDelete={() => {
+            stopScan()
+            startAgain()
+          }}
+        />
       )}
-
       {stoppedEarly && (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
           <p className="min-w-0 flex-1">
@@ -250,5 +225,78 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * A scan in progress (James, 2026-09-11: "the right pill doesn't wrap - it could
+ * just say 'x tracks done / x tracks' by the wheel and underneath 'stop' and when
+ * clicked asks 'Stop and... Keep / Delete'").
+ *
+ * ⚠️ The old right-hand pill said "Stop and keep 1,234 tracks" on one line, and
+ * on a phone it would not wrap. The count now sits by the wheel, a quiet "Stop"
+ * under it, and stopping ASKS: keep what has been read so far (everything found
+ * is already in the library and plays), or delete it and start again.
+ *
+ * `seen` is the files the walk has reached; `added`, the tracks taken from them.
+ * Nothing knows the total until the walk is over, so this counts rather than
+ * pretending to a percentage.
+ */
+function ScanningCard({
+  progress, onKeep, onDelete,
+}: {
+  progress: { added: number; seen: number; where: string }
+  onKeep(): void
+  onDelete(): void
+}) {
+  const [asking, setAsking] = useState(false)
+  return (
+    <div className="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+      <div className="flex items-center gap-3">
+        <DropRing size={34} motion="busy" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-slate-900 tabular-nums dark:text-slate-100" aria-live="polite">
+            {progress.added.toLocaleString()} / {progress.seen.toLocaleString()} tracks
+          </p>
+          {/* The folder currently being walked — honest and specific. */}
+          <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">{progress.where || 'Starting…'}</p>
+          {!asking && (
+            <button
+              type="button"
+              onClick={() => setAsking(true)}
+              className="mt-1 text-[12.5px] font-medium text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-300 dark:hover:text-orange-400"
+            >
+              Stop
+            </button>
+          )}
+        </div>
+      </div>
+      {asking && (
+        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Stop reading your folder">
+          <span className="mr-1 text-[13px] font-medium text-slate-800 dark:text-slate-100">Stop and…</span>
+          <button
+            type="button"
+            onClick={onKeep}
+            className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
+          >
+            {progress.added > 0 ? `Keep ${plural(progress.added, 'track')}` : 'Keep what’s read'}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-full border border-red-300 px-4 py-1.5 text-[13px] font-medium text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={() => setAsking(false)}
+            className="px-2 py-1.5 text-[12.5px] text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
+          >
+            Carry on
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

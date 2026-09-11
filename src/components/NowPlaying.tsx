@@ -36,6 +36,7 @@ export default function NowPlaying() {
   // `shownFor` for why.
   useEffect(() => () => useLyricsStore.getState().hideLyrics(), [])
   const ceremony = usePlayerStore((s) => s.ceremony)
+  const blendCount = usePlayerStore((s) => s.blendCount)
   const skipCeremony = usePlayerStore((s) => s.skipCeremony)
   const setSetting = useSettingsStore((s) => s.set)
   const queue = usePlayerStore((s) => s.queue)
@@ -117,6 +118,14 @@ export default function NowPlaying() {
             >
               Don’t show this again
             </button>
+          </div>
+        ) : blendCount !== null ? (
+          // A record crossfade's silent 3, 2, 1 (James, 2026-09-11), in the
+          // start's place — without its "don't show this again", which belongs
+          // to the start. Crossfading has its own switch in Settings.
+          <div className="min-h-[8rem]">
+            <CeremonyCount />
+            <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Changing records…</p>
           </div>
         ) : (
           <div className="min-h-[8rem]">

@@ -95,6 +95,13 @@ interface PlayerState {
   ceremonyDone: boolean
   /** 2, 1 — or null when no countdown is running. */
   ceremonyCount: number | null
+  /**
+   * A crossfade across a change of RECORD is running (`startBlend`): its length,
+   * and a serial so each one is a new value. `DeckSwiper` slides the machines.
+   */
+  blend: { ms: number; n: number } | null
+  /** That crossfade's silent 3, 2, 1 — shown where the start's 2, 1 is. */
+  blendCount: number | null
   /** Whether the tonearm is down. True whenever a ceremony is not running. */
   armDown: boolean
   /**
@@ -218,6 +225,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   lastCeremonyAlbumId: null,
   lastCeremonyArtist: null,
   lastCeremonyAt: 0,
+  blend: null,
+  blendCount: null,
 
   /**
    * Replace the queue and start playing.
@@ -619,7 +628,14 @@ const BEATS = { one: 780, land: 1050, start: 1560 }
  * being seen to change. `SWAP_IN_MS` is how long the new record takes to settle
  * once it is on.
  */
-const CROSSFADE = { SEC: 1.8, MANUAL_SEC: 0.9 }
+const CROSSFADE = {
+  SEC: 1.8,
+  MANUAL_SEC: 0.9,
+  // A change of RECORD crossfades longer — long enough to watch one machine
+  // slide out and the next slide in, counting 3, 2, 1 — and a skip, quicker.
+  RECORD_SEC: 4.5,
+  RECORD_MANUAL_SEC: 1.5,
+}
 const HANDOVER = { LIFT_MS: 420, SWAP_IN_MS: 620, FADE_OUT_SEC: 0.32, FADE_IN_SEC: 0.55 }
 /**
  * How long the pickup takes to get back to the start during a crossfade.
@@ -671,11 +687,15 @@ function runHandover(
   options: { duckFirst: boolean; crossfadeFile?: SourceFile | null; crossfadeSec?: number },
 ): void {
   clearHandover()
+  clearBlend()
 
   // The blend. Both tracks are audible for a moment; the pickup catches up.
   if (plan.crossfade && options.crossfadeFile) {
     const seconds = options.crossfadeSec ?? CROSSFADE.MANUAL_SEC
-    if (plan.needle) {
+    if (plan.swap) {
+      // A change of RECORD, blended — see `startBlend`.
+      startBlend(set, get, plan, seconds)
+    } else if (plan.needle) {
       set({ armDown: false, handover: true })
       handoverTimer = setTimeout(() => {
         handoverTimer = null
@@ -726,6 +746,7 @@ function handoverFor(from: Track | null, to: Track): Handover {
     mode: settings().ceremonyMode,
     reducedMotion: prefersReducedMotion(),
     change: changeBetween(from, to),
+    recordCrossfade: settings().recordCrossfade,
   })
 }
 
@@ -876,6 +897,47 @@ function rememberWhereWeAre(sec: number): void {
   savedFor = track.id
   savedSec = sec
   saveSession(order.map((i) => queue[i]?.id).filter((id): id is string => !!id), cursor, sec)
+}
+
+/**
+ * A crossfade across a change of RECORD (James, 2026-09-11: "crossfade with
+ * crackle by default — in the animation we could see it moving from one device
+ * sliding left to the other one sliding in from the right to show they're both
+ * playing until it's 100% new track and that's in the middle, we could show the
+ * 3,2,1 animation (without the metronome)").
+ *
+ * While both tracks play: the old record stays on the deck (`deckPhase:
+ * 'leaving'`) and `blend` has `DeckSwiper` slide it out as the next slides in;
+ * the pickup is lifted; the start-up sound plays as the new record comes on;
+ * and a long enough blend counts 3, 2, 1 — silently, where the start's 2, 1
+ * goes. When the new record reaches the middle the pickup lands on it.
+ */
+let blendTimers: number[] = []
+let blendSerial = 0
+
+function clearBlend(): void {
+  for (const timer of blendTimers) clearTimeout(timer)
+  blendTimers = []
+  if (usePlayerStore.getState().blendCount !== null) usePlayerStore.setState({ blendCount: null })
+}
+
+function startBlend(set: Set, get: Get, plan: Handover, seconds: number): void {
+  const ms = Math.round(seconds * 1000)
+  set({ deckPhase: 'leaving', armDown: false, handover: true, blend: { ms, n: ++blendSerial } })
+  if (plan.cue) needleDrop(get().volume)
+  // The count only where there is time to read it: the long, end-of-track blend.
+  if (seconds >= 3) {
+    const step = ms / 3
+    set({ blendCount: 3 })
+    blendTimers.push(window.setTimeout(() => set({ blendCount: 2 }), step))
+    blendTimers.push(window.setTimeout(() => set({ blendCount: 1 }), step * 2))
+  }
+  blendTimers.push(
+    window.setTimeout(() => {
+      set({ blendCount: null, deckPhase: 'arriving', armDown: true, handover: false })
+      blendTimers.push(window.setTimeout(() => set({ deckPhase: 'idle' }), HANDOVER.SWAP_IN_MS))
+    }, ms),
+  )
 }
 
 export interface SkippedTrack {
@@ -1162,7 +1224,7 @@ function playPrepared(
   }, {
     duckFirst: !naturalEnd,
     crossfadeFile: file,
-    crossfadeSec: CROSSFADE.MANUAL_SEC,
+    crossfadeSec: plan.swap ? CROSSFADE.RECORD_MANUAL_SEC : CROSSFADE.MANUAL_SEC,
   })
 }
 
@@ -1188,12 +1250,13 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
 
   // Rearm as soon as the new track is far enough from its own end. Anything
   // else — a flag cleared on load — misses the case where the crossfade is
-  // superseded by the user pressing next inside the lead.
-  if (remainingSec > CROSSFADE.SEC + 1) {
+  // superseded by the user pressing next inside the lead. The longest lead is
+  // a record change's, so that is the distance that rearms.
+  if (remainingSec > CROSSFADE.RECORD_SEC + 1) {
     crossfadeArmed = false
     return
   }
-  if (crossfadeArmed || remainingSec > CROSSFADE.SEC) return
+  if (crossfadeArmed) return
   // Nothing to overlap with: the ceremony owns the deck, a change-over is
   // already running, or two tracks are already crossing.
   if (store.ceremony || store.handover || audio.crossfading()) return
@@ -1209,7 +1272,12 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   const from = currentTrack(store)
   const to = store.queue[order[target]]
   if (!from || !to) return
-  if (!handoverFor(from, to).crossfade) return
+  const plan = handoverFor(from, to)
+  if (!plan.crossfade) return
+  // ⚠️ The lead IS the crossfade: a record change starts sooner, because it is
+  // longer.
+  const lead = plan.swap ? CROSSFADE.RECORD_SEC : CROSSFADE.SEC
+  if (remainingSec > lead) return
 
   crossfadeArmed = true
   const file = useLibraryStore.getState().fileFor(to)
@@ -1220,12 +1288,10 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
 
   set({ cursor: target })
   publishNowPlaying(to)
-  runHandover(set, get, handoverFor(from, to), () => {}, {
+  runHandover(set, get, plan, () => {}, {
     duckFirst: false,
     crossfadeFile: file,
-    // The lead and the fade are the same number by definition: the overlap
-    // starts `SEC` before the end and has exactly that long to finish.
-    crossfadeSec: CROSSFADE.SEC,
+    crossfadeSec: lead,
   })
 }
 

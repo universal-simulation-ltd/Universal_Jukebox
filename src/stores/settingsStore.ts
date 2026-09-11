@@ -194,6 +194,12 @@ export interface Settings {
   libraryColumns: LibraryColumns
   /** "Resume listening" above the library lists (`ResumeCard`). */
   resumeCard: boolean
+  /**
+   * A change of RECORD crossfades too — both play while one machine slides out
+   * and the next slides in, counting 3, 2, 1 (James, 2026-09-11). Off, it is
+   * the lift, the gap and the drop. See `planHandover`.
+   */
+  recordCrossfade: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -213,6 +219,7 @@ export const DEFAULTS: Settings = {
   libraryRandom: false,
   libraryColumns: 2,
   resumeCard: true,
+  recordCrossfade: true,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -326,6 +333,7 @@ function read(): Settings {
       ? (stored.libraryColumns as LibraryColumns)
       : DEFAULTS.libraryColumns,
     resumeCard: stored.resumeCard !== false,
+    recordCrossfade: stored.recordCrossfade !== false,
   }
 }
 
@@ -383,6 +391,7 @@ function persist(state: Settings) {
     libraryRandom: state.libraryRandom,
     libraryColumns: state.libraryColumns,
     resumeCard: state.resumeCard,
+    recordCrossfade: state.recordCrossfade,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

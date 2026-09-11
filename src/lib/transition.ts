@@ -18,6 +18,13 @@ import type { Track } from './types'
 //   or different artist            record lifting out and fading away with the
 //                                  new one fading in, and the needle resetting.
 //
+// ⚠️ AND SINCE 2026-09-11 A CHANGE OF RECORD CROSSFADES TOO, BY DEFAULT (James:
+// "crossfade with crackle by default — in the animation we could see it moving
+// from one device sliding left to the other one sliding in from the right to
+// show they're both playing until it's 100% new track … allow to change in
+// settings"). `recordCrossfade` is that setting; off, a record change is the
+// fade out / fade in sequence above.
+//
 // ⚠️ THE CROSSFADE IS NOT PART OF THE ANIMATION SETTING, and that separation is
 // the one judgement call in this file. "How often should the animation appear"
 // is about the picture and the noise it makes; whether two tracks of the same
@@ -77,6 +84,8 @@ export interface HandoverDecision {
   /** `prefers-reduced-motion`. */
   reducedMotion: boolean
   change: Change
+  /** Settings → "Crossfade between records". Absent means off. */
+  recordCrossfade?: boolean
 }
 
 /** What to actually do, as four independent switches. */
@@ -85,8 +94,8 @@ export interface Handover {
    * The two tracks genuinely overlap — the incoming one starts under the
    * outgoing one and they cross.
    *
-   * Only ever within an album. Between records the request is explicitly "fade
-   * out, fade in", which is a sequence and not a blend.
+   * Within an album always; between records only with "Crossfade between
+   * records" on — off, a record change is "fade out, fade in", a sequence.
    */
   crossfade: boolean
   /** The pickup lifts, goes back to the start, and lands again. */
@@ -112,7 +121,7 @@ const CUT: Handover = { crossfade: false, needle: false, cue: false, swap: false
 export function planHandover(d: HandoverDecision): Handover {
   // ⚠️ The blend is decided BEFORE the animation switches, because it does not
   // depend on them — see the note at the top of this file.
-  const crossfade = d.change === 'track'
+  const crossfade = d.change === 'track' || d.recordCrossfade === true
 
   if (d.reducedMotion || d.mode === 'off' || d.mode === 'first') return { ...CUT, crossfade }
   if (!animates(d.mode, d.change)) return { ...CUT, crossfade }

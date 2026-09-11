@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shuffleQueue } from './libraryView'
+import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shelfRows, shuffleQueue } from './libraryView'
 import type { Album, Track } from './types'
 
 const items = Array.from({ length: 50 }, (_, i) => `item-${i}`)
@@ -78,5 +78,26 @@ describe('the per-row button', () => {
     }
     expect(seen).toEqual(['2 per row', '3 per row', '4 per row', 'Jukebox shelf', '1 per row'])
     expect(c).toBe(2)
+  })
+})
+
+describe('the shelves', () => {
+  const n = (count: number) => Array.from({ length: count }, (_, i) => i)
+  const shape = (count: number) => shelfRows(n(count)).map((row) => row.length)
+  it('keeps a small library on one shelf', () => {
+    expect(shape(0)).toEqual([])
+    expect(shape(20)).toEqual([20])
+    expect(shape(29)).toEqual([29])
+  })
+  it('splits evenly, never a shelf under 15', () => {
+    expect(shape(30)).toEqual([15, 15])
+    expect(shape(100)).toEqual([17, 17, 17, 17, 16, 16])
+  })
+  it('stops at ten shelves, each a tenth', () => {
+    expect(shape(150)).toEqual(Array(10).fill(15))
+    expect(shape(2000)).toEqual(Array(10).fill(200))
+  })
+  it('keeps every album, in order', () => {
+    expect(shelfRows(n(123)).flat()).toEqual(n(123))
   })
 })

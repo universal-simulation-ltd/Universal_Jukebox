@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Cover from './Cover'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
+import { shelfRows } from '../lib/libraryView'
 import type { Album } from '../lib/types'
 
 // The jukebox way to browse (James, 2026-09-11: "For jukebox show the records
@@ -14,7 +15,23 @@ import type { Album } from '../lib/types'
 // has the phone's own momentum and feel, and keyboard, trackpad and screen
 // reader all work for free. The middle is measured on scroll.
 
+/**
+ * ⚠️ SEVERAL SHELVES, STACKED (James, 2026-09-11: "limit each row to a max of
+ * 10% of items and then have up to 10 rows so you can swipe down"). Each is its
+ * own swipe; the page scrolls between them. How they split is `shelfRows`.
+ */
 export default function Shelf({ albums }: { albums: Album[] }) {
+  const rows = shelfRows(albums)
+  return (
+    <div className="space-y-10">
+      {rows.map((row, i) => (
+        <ShelfRow key={i} albums={row} label={rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : 'Albums on the shelf'} />
+      ))}
+    </div>
+  )
+}
+
+function ShelfRow({ albums, label }: { albums: Album[]; label: string }) {
   const row = useRef<HTMLDivElement>(null)
   const [middle, setMiddle] = useState(0)
   const reduced = usePrefersReducedMotion()
@@ -56,7 +73,7 @@ export default function Shelf({ albums }: { albums: Album[] }) {
   const current = albums[Math.min(middle, albums.length - 1)]
 
   return (
-    <section aria-label="Albums on the shelf" className="-mx-4 sm:-mx-6 lg:-mx-8">
+    <section aria-label={label} className="-mx-4 sm:-mx-6 lg:-mx-8">
       <div
         ref={row}
         className="flex snap-x snap-mandatory items-end gap-3 overflow-x-auto px-[19%] pt-8 pb-1 [scrollbar-width:none] sm:px-[33%] md:px-[38%] [&::-webkit-scrollbar]:hidden"

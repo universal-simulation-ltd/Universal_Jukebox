@@ -115,3 +115,31 @@ export function nextColumns(columns: LibraryColumns): LibraryColumns {
 export function columnsLabel(columns: LibraryColumns): string {
   return columns === 'jukebox' ? 'Jukebox shelf' : `${columns} per row`
 }
+
+/**
+ * How the jukebox shelf splits (James, 2026-09-11: "limit each row to a max of
+ * 10% of items and then have up to 10 rows so you can swipe down. if there were
+ * just 20 tracks for instance, don't split them to multiple rows").
+ *
+ * No shelf shorter than `SHELF_MIN` — so a small library stays on one — and at
+ * most `SHELF_MAX_ROWS`, which past 150 albums is a tenth of them on each. The
+ * albums are dealt evenly, so the last shelf is never a stub.
+ *   20 → 1 shelf · 30 → 2 · 100 → 6 · 150 → 10 of 15 · 2,000 → 10 of 200
+ */
+export const SHELF_MIN = 15
+export const SHELF_MAX_ROWS = 10
+
+export function shelfRows<T>(items: readonly T[]): T[][] {
+  const rows = Math.max(1, Math.min(SHELF_MAX_ROWS, Math.floor(items.length / SHELF_MIN)))
+  // Dealt evenly: the first `extra` shelves take one more, so none is a stub.
+  const base = Math.floor(items.length / rows)
+  const extra = items.length % rows
+  const out: T[][] = []
+  let at = 0
+  for (let r = 0; r < rows; r++) {
+    const size = base + (r < extra ? 1 : 0)
+    out.push(items.slice(at, at + size))
+    at += size
+  }
+  return out.filter((row) => row.length > 0)
+}

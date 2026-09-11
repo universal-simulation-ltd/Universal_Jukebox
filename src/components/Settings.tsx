@@ -198,6 +198,14 @@ export default function Settings() {
             onChange={(v) => s.set('ceremonyMode', v)}
             copy={ladderCopy}
           />
+          {/* James, 2026-09-11: "crossfade with crackle by default … allow to
+              change in settings". See `planHandover`. */}
+          <Toggle
+            label="Crossfade between records"
+            hint="When the next song is on a different record, the two play together while one machine slides out and the next slides in, counting 3, 2, 1 — with the start-up sound as it arrives. Off, the needle lifts, there’s a moment’s silence, and it drops on the next record."
+            checked={s.recordCrossfade}
+            onChange={(v) => s.set('recordCrossfade', v)}
+          />
           <Toggle
             label={deck.soundLabel}
             hint={deck.soundHint}
