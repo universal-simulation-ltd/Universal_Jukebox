@@ -14,7 +14,7 @@ import VinylDeck from './decks/VinylDeck'
 import PocketDeck from './decks/PocketDeck'
 import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
-import { DeckSlideContext, slideStyle } from './decks/slide'
+import { DeckSlideContext, slideInner, slideOuter } from './decks/slide'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
 // the pickup engaging when you put something on, and the pickup — or the reels
@@ -183,9 +183,10 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           width: size,
           height: Math.round(size * frame.ratio),
           borderRadius: frame.radius,
-          ...(slide && style !== 'vinyl' ? slideStyle(slide) : null),
+          ...(slide && style !== 'vinyl' ? slideOuter(slide) : null),
         }}
       >
+        <div className="absolute inset-0" style={slide && style !== 'vinyl' ? slideInner(slide) : undefined}>
         <Face
           progress={progress}
           engaged={engaged}
@@ -196,6 +197,7 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           labelFade={labelFade}
           slide={slide && style === 'vinyl' ? slide : undefined}
         />
+        </div>
 
         {/* Drifting notes — pure decoration, and only while something is
             playing. Each face says where its own pickup is, so they leave from

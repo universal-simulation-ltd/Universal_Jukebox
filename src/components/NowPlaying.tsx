@@ -77,23 +77,12 @@ export default function NowPlaying() {
     )
   }
 
-  return (
+  // The title, artist and album — or the countdown in their place. Drawn ABOVE
+  // the deck on a phone and beside it from `lg` (James, 2026-09-11: "put the
+  // discs below the artist, track name to make it easier to reach for swipe"):
+  // the records are what a thumb swipes, so they go where a thumb is.
+  const heading = (
     <>
-    <BackToLibrary />
-    <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-14">
-      {/* The cover, stretched across the whole page as the ground (James,
-          2026-09-09: "noticeable but not distracting"). Behind everything, and
-          only when there IS a cover. */}
-      {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
-
-      {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
-      <DeckSwiper size={clampDeck()} showing={onTheDeck?.id}>
-        {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
-            off, the record on the deck is still the OLD one — see below. */}
-        <Deck album={onTheDeck} size={clampDeck()} ceremonial />
-      </DeckSwiper>
-
-      <div className="relative min-w-0 flex-1 text-center lg:text-left">
         {/* ⚠️ The numerals REPLACE the title for two seconds; they do not sit on
             top of anything. This is the corrected design — see Deck.tsx. */}
         {ceremony ? (
@@ -147,6 +136,29 @@ export default function NowPlaying() {
             )}
           </div>
         )}
+    </>
+  )
+
+  return (
+    <>
+    <BackToLibrary />
+    <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-14">
+      {/* The cover, stretched across the whole page as the ground (James,
+          2026-09-09: "noticeable but not distracting"). Behind everything, and
+          only when there IS a cover. */}
+      {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
+
+      <div className="relative w-full text-center lg:hidden">{heading}</div>
+
+      {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
+      <DeckSwiper size={clampDeck()} showing={onTheDeck?.id}>
+        {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
+            off, the record on the deck is still the OLD one — see below. */}
+        <Deck album={onTheDeck} size={clampDeck()} ceremonial />
+      </DeckSwiper>
+
+      <div className="relative min-w-0 flex-1 text-center lg:text-left">
+        <div className="hidden lg:block">{heading}</div>
 
         {/* Spec chips — the honest technical facts about the file that is
             playing. Hidden below 980px (T3). */}

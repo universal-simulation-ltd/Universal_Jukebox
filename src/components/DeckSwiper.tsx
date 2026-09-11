@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { resolveDeck } from '../lib/decks'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
-import { DeckSlideContext, type DeckSlide } from './decks/slide'
+import { ARC_ACROSS, ARC_RISE, DeckSlideContext, type DeckSlide } from './decks/slide'
 import { Medium } from './UpNextReel'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
@@ -69,6 +69,13 @@ export default function DeckSwiper({
   const start = useRef<{ x: number; y: number; toLeft: number; toRight: number } | null>(null)
   const swiped = useRef(false)
   const settle = useRef<number | null>(null)
+  /**
+   * A swipe has been let go and is being finished and held. Set AT the release,
+   * synchronously — a swipe onto another record starts a record crossfade, and
+   * its slide must not run on top of the swipe's own; state would only say so a
+   * render later, after the crossfade's effect had already started.
+   */
+  const holding = useRef(false)
 
   /** The records' offset: the finger's travel, then the end of the swipe. */
   const [x, setX] = useState(0)
@@ -104,6 +111,30 @@ export default function DeckSwiper({
   const styleAt = (index: number | null): DeckStyle => resolveDeck(setting, albumAt(index) ?? trackAt(index), eras)
 
   const peek = Math.round(size * PEEK)
+  /** A peek's size as a share of the deck's. */
+  const peekScale = peek / size
+  /** How much lower the records at the side sit — the wheel's curve. */
+  const sag = Math.round(size * 0.16)
+
+  // ⚠️ THE DECK RECORD'S OWN CENTRE, MEASURED. The box also holds the space
+  // under the deck (its caption, the first-run tip), so its middle is BELOW the
+  // record — and a record brought to the box's middle ended up below where the
+  // one it replaced had been (James, 2026-09-11). Everything that stands in for
+  // the deck is placed against this instead.
+  const deckWrap = useRef<HTMLDivElement>(null)
+  const [centreY, setCentreY] = useState(8 + size / 2)
+  useLayoutEffect(() => {
+    const measureCentre = () => {
+      const deck = deckWrap.current?.querySelector('[role="button"]')
+      const outer = box.current
+      if (!deck || !outer) return
+      const r = deck.getBoundingClientRect()
+      setCentreY(Math.round(r.top - outer.getBoundingClientRect().top + r.height / 2))
+    }
+    measureCentre()
+    window.addEventListener('resize', measureCentre)
+    return () => window.removeEventListener('resize', measureCentre)
+  }, [size, showing])
 
   // ⚠️ A CROSSFADE ACROSS A CHANGE OF RECORD SLIDES THE MACHINES (James,
   // 2026-09-11) — the same move as a swipe, driven by the player over the
@@ -118,7 +149,7 @@ export default function DeckSwiper({
   const blendTimer = useRef<number | null>(null)
   useEffect(() => {
     const now = latest.current
-    if (!blend || now.arriving || now.reduced) return
+    if (!blend || holding.current || now.arriving || now.reduced) return
     const track = now.queue[now.order[now.cursor]]
     const album = track ? now.albums.find((a) => a.id === track.albumId) : undefined
     const style = resolveDeck(now.setting, album ?? track, now.eras)
@@ -155,6 +186,7 @@ export default function DeckSwiper({
   useEffect(() => {
     if (!arriving) return
     const release = () => {
+      holding.current = false
       setAnimate(false)
       setX(0)
       setArriving(null)
@@ -192,8 +224,12 @@ export default function DeckSwiper({
   const progress = travel > 0 ? Math.min(1, Math.abs(x) / travel) : 0
   const grow = size / peek
 
+  // The record leaving sinks and shrinks towards a peek's place — on a curve,
+  // level at first (`ARC_SINK`); during a drag, the same curve from `progress`.
   const slide: DeckSlide = {
     x,
+    y: sag * progress * progress,
+    scale: 1 - (1 - peekScale) * progress,
     opacity: arriving ? 0 : 1 - (incoming ? 0.85 : 0.6) * progress,
     animate,
     ms,
@@ -207,6 +243,8 @@ export default function DeckSwiper({
     const towards = !swapping && ((side === 'right' && x < 0) || (side === 'left' && x > 0))
     return {
       shift: towards ? x : 0,
+      // Rising out of the sag at once, then level — the arriving half of the arc.
+      lift: towards ? -sag * (1 - (1 - progress) * (1 - progress)) : 0,
       scale: towards ? 1 + (grow - 1) * progress : 1,
       opacity: arriving || swapping ? 0 : towards ? 0.6 + 0.4 * progress : 0.6,
       animate: animate && !arriving && !swapping,
@@ -226,6 +264,7 @@ export default function DeckSwiper({
           style={styleAt(prevIndex)}
           side="left"
           size={peek}
+          top={centreY + sag}
           motion={peekMotion('left')}
           onClick={() => jumpTo(prevIndex)}
         />
@@ -237,6 +276,7 @@ export default function DeckSwiper({
           style={styleAt(nextIndex)}
           side="right"
           size={peek}
+          top={centreY + sag}
           motion={peekMotion('right')}
           onClick={() => jumpTo(nextIndex)}
         />
@@ -245,28 +285,38 @@ export default function DeckSwiper({
           and size, then sent to the middle over the whole blend. */}
       {incoming && (
         <div
-          className="pointer-events-none absolute top-1/2 left-1/2 z-10"
-          style={{
-            width: size,
-            height: size,
-            transform: incoming.run
-              ? 'translate(-50%, -50%)'
-              : `translate(-50%, -50%) translateX(${reach.toRight}px) scale(${peek / size})`,
-            transition: incoming.run ? `transform ${ms}ms cubic-bezier(.4,0,.2,1)` : 'none',
-          }}
+          className="pointer-events-none absolute left-1/2 z-10"
+          style={{ top: centreY, width: size, height: size, transform: 'translate(-50%, -50%)' }}
           aria-hidden
         >
-          <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
-            <Medium album={incoming.album} style={incoming.style} />
-          </span>
+          {/* Across on one curve, up and bigger on another: the arc. */}
+          <div
+            className="h-full w-full"
+            style={{
+              transform: incoming.run ? 'translateX(0)' : `translateX(${reach.toRight}px)`,
+              transition: incoming.run ? `transform ${ms}ms ${ARC_ACROSS}` : 'none',
+            }}
+          >
+            <div
+              className="h-full w-full"
+              style={{
+                transform: incoming.run ? 'translateY(0) scale(1)' : `translateY(${sag}px) scale(${peekScale})`,
+                transition: incoming.run ? `transform ${ms}ms ${ARC_RISE}` : 'none',
+              }}
+            >
+              <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
+                <Medium album={incoming.album} style={incoming.style} />
+              </span>
+            </div>
+          </div>
         </div>
       )}
       {/* The record that came in, standing in at the centre until the deck
           shows it — drawn exactly where, and as big as, the peek finished. */}
       {arriving && (
         <div
-          className="pointer-events-none absolute top-1/2 left-1/2 z-10"
-          style={{ width: size, height: size, transform: 'translate(-50%, -50%)' }}
+          className="pointer-events-none absolute left-1/2 z-10"
+          style={{ top: centreY, width: size, height: size, transform: 'translate(-50%, -50%)' }}
           aria-hidden
         >
           <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
@@ -275,10 +325,11 @@ export default function DeckSwiper({
         </div>
       )}
       <div
+        ref={deckWrap}
         className="relative shrink-0"
         style={{ touchAction: 'pan-y' }}
         onPointerDown={(e) => {
-          if (e.pointerType !== 'touch' || arriving || incoming) return
+          if (e.pointerType !== 'touch' || arriving || incoming || holding.current) return
           setMs(SETTLE_MS)
           const r = measure()
           setReach(r)
@@ -314,6 +365,7 @@ export default function DeckSwiper({
             return
           }
           // Finish the move, then hold the arrival and change track.
+          holding.current = true
           setAnimate(true)
           setX(dx < 0 ? -from.toRight : from.toLeft)
           const album = albumAt(target)
@@ -344,6 +396,8 @@ export default function DeckSwiper({
 
 interface PeekMotion {
   shift: number
+  /** Pixels up — out of the sag, towards the deck's level. */
+  lift: number
   scale: number
   opacity: number
   animate: boolean
@@ -354,17 +408,22 @@ interface PeekMotion {
  * (a record, a disc, a cassette, a single, a pocket player), the same drawing
  * the row of records waiting to go on uses, scaled up.
  */
-function Peek({
-  album, style, side, size, motion, onClick, ref,
-}: {
-  album: Album | undefined
-  style: DeckStyle
-  side: 'left' | 'right'
-  size: number
-  motion: PeekMotion
-  onClick(): void
-  ref: React.Ref<HTMLButtonElement>
-}) {
+// ⚠️ `forwardRef`, because this is React 18: a plain `ref` prop on a function
+// component is dropped with only a console warning — and for a while it was, so
+// `measure` never saw the peeks and every swipe travelled a guessed distance.
+const Peek = forwardRef<
+  HTMLButtonElement,
+  {
+    album: Album | undefined
+    style: DeckStyle
+    side: 'left' | 'right'
+    size: number
+    /** The peek's centre, from the top of the box: the deck's, plus the sag. */
+    top: number
+    motion: PeekMotion
+    onClick(): void
+  }
+>(function Peek({ album, style, side, size, top, motion, onClick }, ref) {
   return (
     <button
       ref={ref}
@@ -374,11 +433,12 @@ function Peek({
         onClick()
       }}
       aria-label={`${side === 'left' ? 'Previous' : 'Next'}${album ? `: ${album.title}` : ''}`}
-      className="absolute top-1/2 hover:opacity-90 focus-visible:opacity-100 lg:hidden"
+      className="absolute hover:opacity-90 focus-visible:opacity-100 lg:hidden"
       style={{
+        top,
         width: size,
         height: size,
-        transform: `translateY(-50%) translateX(${motion.shift}px) scale(${motion.scale})`,
+        transform: `translateY(-50%) translateX(${motion.shift}px) translateY(${motion.lift}px) scale(${motion.scale})`,
         opacity: motion.opacity,
         transition: motion.animate ? 'transform 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out' : 'opacity 200ms ease-out',
         // Just under half of it on screen: enough to see WHICH record, and on
@@ -393,4 +453,4 @@ function Peek({
       </span>
     </button>
   )
-}
+})
