@@ -35,6 +35,7 @@ import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
 import { DEFAULTS, useSettingsStore, type HomeTab, type ListTab } from './stores/settingsStore'
 import { useThemeStore } from './stores/themeStore'
+import { usePrefersReducedMotion } from './lib/usePrefersReducedMotion'
 
 // The single page container. The navbar (via the SDK's `contentClassName`), the
 // page body and the player bar all share it, so the suite switcher lines up
@@ -68,6 +69,9 @@ function togglePill(active: boolean): string {
 }
 
 // Artists, Albums, Tracks (James, 2026-09-11) — widest to narrowest.
+/** Two taps on one tab within this long are a double tap. */
+const DOUBLE_TAP_MS = 350
+
 const TABS: { view: HomeTab; label: string }[] = [
   { view: 'artists', label: 'Artists' },
   { view: 'albums', label: 'Albums' },
@@ -222,6 +226,16 @@ export default function App() {
   const [optionsOpen, setOptionsOpen] = useState(false)
   /** The tabs row, which scrolls sideways on a phone. */
   const tabsNav = useRef<HTMLElement>(null)
+  /** The last tap on a tab — a second on the same one soon after is a double tap. */
+  const lastTabTap = useRef<{ view: HomeTab; at: number } | null>(null)
+  /** A tab just double-tapped to be where the library opens: its pop, and the note. */
+  const [homeFlash, setHomeFlash] = useState<{ view: HomeTab; n: number } | null>(null)
+  useEffect(() => {
+    if (!homeFlash) return
+    const timer = window.setTimeout(() => setHomeFlash(null), 1800)
+    return () => window.clearTimeout(timer)
+  }, [homeFlash])
+  const reducedMotion = usePrefersReducedMotion()
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
   /** The search box on a phone: folded away until pulled down — `PhoneSearch`. */
   const [searchOpen, setSearchOpen] = useState(false)
@@ -266,7 +280,6 @@ export default function App() {
     // With "Full albums only" on, the Albums count is of what the grid shows.
     return fullAlbumsOnly ? { ...all, albums: matchAlbums(albums.filter(isFullAlbum), query).length } : all
   }, [albums, tracks, query, fullAlbumsOnly])
-
 
   useEffect(() => {
     void hydrate()
@@ -412,67 +425,63 @@ export default function App() {
           <>
             {/* On a phone, search waits folded above the tabs until pulled down. */}
             <PhoneSearch ref={phoneSearch} query={query} setQuery={setQuery} open={searchOpen} setOpen={setSearchOpen} />
-            <div className="mb-5 flex flex-wrap items-center gap-3">
-              {/* ⚠️ Four tabs and their stars are wider than a phone, so the
-                  row scrolls sideways there — the tab you are on is brought
-                  into view (`tabsNav`). */}
+            <div className="relative mb-5 flex flex-wrap items-center gap-2">
+              {/* If the tabs are ever wider than the screen, the row scrolls
+                  sideways — the tab you are on is brought into view
+                  (`tabsNav`). */}
               <nav
                 ref={tabsNav}
-                className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] sm:flex-none [&::-webkit-scrollbar]:hidden"
+                className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] sm:flex-none [&::-webkit-scrollbar]:hidden"
                 aria-label="Library views"
               >
                 {TABS.map((tab) => {
-                  const starred = homeTab === tab.view
+                  // ⚠️ NO STARS — DOUBLE-TAP A TAB to have the library open on
+                  // it (James, 2026-09-11: "remove the stars by section -
+                  // instead of someone double taps one give it an effect (goes
+                  // as an orange button or something?)"). The tab it opens on is
+                  // orange: a pill while you are on it, outlined while not. A
+                  // single tap only switches, as before; Settings still has the
+                  // same choice for anybody who cannot double-tap.
+                  const active = view === tab.view
+                  const isHome = homeTab === tab.view
                   return (
-                    <span key={tab.view} className="flex items-center">
-                      <button
-                        type="button"
-                        onClick={() => navigate({ view: tab.view })}
-                        aria-current={view === tab.view ? 'page' : undefined}
-                        className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
-                          view === tab.view
-                            ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                    <button
+                      key={tab.view}
+                      type="button"
+                      onClick={() => {
+                        const now = performance.now()
+                        const last = lastTabTap.current
+                        lastTabTap.current = { view: tab.view, at: now }
+                        if (last && last.view === tab.view && now - last.at < DOUBLE_TAP_MS) {
+                          lastTabTap.current = null
+                          setSetting('homeTab', tab.view)
+                          setHomeFlash({ view: tab.view, n: Date.now() })
+                        }
+                        navigate({ view: tab.view })
+                      }}
+                      aria-current={active ? 'page' : undefined}
+                      title={isHome ? `${tab.label} — the library opens here` : `Double-tap to open the library on ${tab.label}`}
+                      className={`shrink-0 touch-manipulation rounded-full px-2.5 py-1.5 text-[13px] font-medium transition ${
+                        active
+                          ? isHome
+                            ? 'bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm'
+                            : 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                          : isHome
+                            ? 'text-orange-700 ring-1 ring-orange-400/70 ring-inset hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/40'
                             : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        {tab.label}
-                        {/* Only while searching. A permanent count is a number
-                            nobody asked for; during a search it is the only way
-                            to know the tab you are NOT looking at has answers. */}
-                        {counts && tab.view !== 'jukebox' && (
-                          <span className="ml-1 tabular-nums opacity-70">
-                            ({counts[tab.view].toLocaleString()})
-                          </span>
-                        )}
-                      </button>
-                      {/* ⚠️ A separate button, not a click target inside the tab
-                          — a button cannot be nested in a button, and starring a
-                          tab must not also switch to it. Always visible rather
-                          than hover-revealed: on a touch screen there is no
-                          hover, and a control that never appears is not one. */}
-                      <button
-                        type="button"
-                        onClick={() => setSetting('homeTab', starred ? 'albums' : tab.view)}
-                        aria-pressed={starred}
-                        title={
-                          starred
-                            ? `${tab.label} is what the library opens on`
-                            : `Open the library on ${tab.label}`
-                        }
-                        aria-label={
-                          starred
-                            ? `${tab.label} is what the library opens on`
-                            : `Open the library on ${tab.label}`
-                        }
-                        className={`mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
-                          starred
-                            ? 'text-orange-500 dark:text-orange-400'
-                            : 'text-slate-300 hover:text-orange-500 dark:text-slate-600 dark:hover:text-orange-400'
-                        }`}
-                      >
-                        <StarGlyph filled={starred} />
-                      </button>
-                    </span>
+                      }`}
+                      style={{ animation: homeFlash?.view === tab.view && !reducedMotion ? 'jb-home-pop 480ms ease-out' : undefined }}
+                    >
+                      {tab.label}
+                      {/* Only while searching. A permanent count is a number
+                          nobody asked for; during a search it is the only way
+                          to know the tab you are NOT looking at has answers. */}
+                      {counts && tab.view !== 'jukebox' && (
+                        <span className="ml-1 tabular-nums opacity-70">
+                          ({counts[tab.view].toLocaleString()})
+                        </span>
+                      )}
+                    </button>
                   )
                 })}
               </nav>
@@ -506,6 +515,15 @@ export default function App() {
                   tab, and not during a search, when the list is not the
                   library. */}
               {!query.trim() && view !== 'jukebox' && <ShuffleLibrary view={listTab} />}
+              {homeFlash && (
+                <p
+                  key={homeFlash.n}
+                  aria-live="polite"
+                  className="pointer-events-none absolute top-full left-1 mt-0.5 text-[12px] font-medium text-orange-700 dark:text-orange-400"
+                >
+                  The library now opens on {TABS.find((t) => t.view === homeFlash.view)?.label}
+                </p>
+              )}
               {/* The wider screens' box, inline with the tabs. A phone uses
                   `PhoneSearch` above them instead. */}
               <input
@@ -674,21 +692,6 @@ function MiniStageNote() {
  * Outlined until it is chosen, then filled — the same shape either way, so the
  * row does not move when you press it.
  */
-function StarGlyph({ filled }: { filled: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="h-[13px] w-[13px]"
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      strokeWidth={filled ? 0 : 1.6}
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M10 2.6l2.32 4.7 5.18.75-3.75 3.66.885 5.16L10 14.44l-4.635 2.43.885-5.16L2.5 8.05l5.18-.75L10 2.6Z" />
-    </svg>
-  )
-}
 
 function SearchGlyph() {
   return (
