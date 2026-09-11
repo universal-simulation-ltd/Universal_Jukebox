@@ -23,6 +23,9 @@ import { useSettingsStore } from '../stores/settingsStore'
 // 2026-09-11: "show them behind the record hand not in front"), centred on the
 // frame.
 
+/** How faint the words still to come in a big line are. */
+const GHOST = 0.28
+
 export default function LyricsAround({ size }: { size: number }) {
   const track = usePlayerStore(currentTrack)
   const currentSec = usePlayerStore((s) => s.currentSec)
@@ -69,9 +72,12 @@ export default function LyricsAround({ size }: { size: number }) {
           <span
             key={`${bigIndex}-${i}`}
             style={{
-              opacity: i < shown ? 1 : 0,
-              transform: i < shown || reduced ? 'none' : 'translateY(6px)',
-              transition: reduced ? undefined : 'opacity 320ms ease-out, transform 320ms ease-out',
+              // The words still to come are a GHOST, not hidden (James,
+              // 2026-09-11: "always show a ghost of the coming words from that
+              // line in case not in sync") — the line reads whole even when
+              // the lyric's timing is off; each word brightens as it is sung.
+              opacity: i < shown ? 1 : GHOST,
+              transition: reduced ? undefined : 'opacity 320ms ease-out',
             }}
           >
             {word}
