@@ -302,8 +302,19 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
         // two the second one counted as the middle (found 2026-09-11). Padding
         // of (100% - item) / 2 each side puts the first and last items dead
         // centre at either end.
-        className={`flex snap-x snap-mandatory items-end gap-3 overflow-x-auto pt-8 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-          size === 'record' ? 'px-[35%] sm:px-[42%] md:px-[45%]' : 'px-[31%] sm:px-[40%] md:px-[43%]'
+        //
+        // From `sm` up it is one rule for every width (James, 2026-09-11, on
+        // the iPad: "zoomed in a bit I.e. selected item and one full item
+        // either side and then one peeking item from edge"). With items of w,
+        // the `gap-3` of 12px and the side ones drawn at 0.82, a neighbour
+        // ends at w + 12 + 0.41w from the middle and the next one starts at
+        // 2(w + 12) - 0.41w. Showing 0.3w of that one puts the edge at 1.89w
+        // + 24px, so w = (50% - 24px) / 1.89 — at most 300px (an iPad on its
+        // side comes to 299), so a desktop window doesn't grow sleeves a foot
+        // wide. The phone keeps its own
+        // sizes; there, this rule would make the records smaller.
+        className={`flex snap-x snap-mandatory items-end gap-3 overflow-x-auto pt-8 pb-1 sm:pt-16 sm:px-[calc((100%_-_min((50%_-_24px)/1.89,300px))/2)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          size === 'record' ? 'px-[35%]' : 'px-[31%]'
         }`}
       >
         {items.map((item, i) => {
@@ -374,8 +385,9 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
  * middle while the next one's fades up.
  *
  * ⚠️ 140% of the item, no more: the shelf scrolls sideways, so it clips
- * up and down too, and the glow has only the row's `pt-8` to spread into —
- * at 160% its top was sliced flat.
+ * up and down too, and the glow has only the row's top padding to spread
+ * into — at 160% its top was sliced flat. The padding is `pt-8` on a phone
+ * and `sm:pt-16` above, where the items (so their glows) grow to 300px.
  */
 function ItemGlow({ album, lit, reduced }: { album: Album; lit: boolean; reduced: boolean }) {
   const url = coverUrl(album.id, album.cover)
