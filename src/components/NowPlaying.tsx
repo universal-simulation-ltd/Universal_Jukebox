@@ -158,14 +158,18 @@ export default function NowPlaying() {
       <DeckSwiper
         size={clampDeck()}
         showing={onTheDeck?.id}
-        // The words around the record, when that is switched on (Settings ›
-        // Lyrics) — with room above it for the arc.
+        // Room above the record for the lyrics' arc, when they are on.
         roomAbove={lyricsAround ? 28 : 0}
-        overlay={lyricsAround ? (at) => <LyricsAround {...at} /> : undefined}
       >
         {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
             off, the record on the deck is still the OLD one — see below. */}
-        <Deck album={onTheDeck} size={clampDeck()} ceremonial />
+        <Deck
+          album={onTheDeck}
+          size={clampDeck()}
+          ceremonial
+          // The words around the record (Settings › Lyrics), drawn under its tonearm.
+          underArm={lyricsAround ? <LyricsAround size={clampDeck()} /> : undefined}
+        />
       </DeckSwiper>
 
       <div className="relative min-w-0 flex-1 text-center lg:text-left">

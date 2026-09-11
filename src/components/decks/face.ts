@@ -55,6 +55,11 @@ export interface DeckFaceProps {
   slide?: DeckSlide
   /** Grooves on the record — as many as its song is long (`lib/grooves.ts`). */
   grooves?: number
+  /**
+   * Drawn over the record and UNDER the pickup — the lyrics around the record
+   * (James, 2026-09-11: "show them behind the record hand not in front").
+   */
+  underArm?: import('react').ReactNode
 }
 
 /** Where the drifting notes leave from, per deck: roughly, the pickup. */

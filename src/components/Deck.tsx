@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { ERA_ORDER, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
@@ -78,9 +78,14 @@ interface DeckProps {
   size: number
   /** Only the Now Playing deck runs the ceremony. */
   ceremonial?: boolean
+  /**
+   * Over the record and under its pickup — the lyrics around the record. The
+   * record player draws it beneath its tonearm; the other machines, on top.
+   */
+  underArm?: ReactNode
 }
 
-export default function Deck({ album, size, ceremonial = false }: DeckProps) {
+export default function Deck({ album, size, ceremonial = false, underArm }: DeckProps) {
   const playing = usePlayerStore((s) => s.playing)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const armDownState = usePlayerStore((s) => s.armDown)
@@ -209,8 +214,10 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           labelFade={labelFade}
           slide={slide && style === 'vinyl' ? slide : undefined}
           grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
+          underArm={style === 'vinyl' ? underArm : undefined}
         />
         </div>
+        {style !== 'vinyl' && underArm}
 
         {/* Drifting notes — pure decoration, and only while something is
             playing. Each face says where its own pickup is, so they leave from

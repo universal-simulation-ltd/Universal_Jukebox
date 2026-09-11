@@ -64,14 +64,12 @@ interface Arriving {
 }
 
 export default function DeckSwiper({
-  size, showing, children, overlay, roomAbove = 0,
+  size, showing, children, roomAbove = 0,
 }: {
   size: number
   showing?: string
   children: React.ReactNode
-  /** Drawn over the deck, told where the record's centre is — the lyrics around it (`LyricsAround`). */
-  overlay?: (at: { centreY: number; size: number }) => React.ReactNode
-  /** Extra room above the record, for an overlay that reaches over it. */
+  /** Extra room above the record — for the lyrics' arc over it (`LyricsAround`). */
   roomAbove?: number
 }) {
   const queue = usePlayerStore((s) => s.queue)
@@ -357,7 +355,6 @@ export default function DeckSwiper({
       className="relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible"
       style={roomAbove ? { paddingTop: 8 + roomAbove } : undefined}
     >
-      {overlay?.({ centreY, size })}
       {prevIndex !== null && (
         <Peek
           ref={leftPeek}

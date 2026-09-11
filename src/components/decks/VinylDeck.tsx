@@ -41,7 +41,7 @@ const ARM = {
   LIFT: -24,
 }
 
-export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, grooves }: DeckFaceProps) {
+export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, grooves, underArm }: DeckFaceProps) {
   const trackAngle = ARM.TRACK_START + progress * ARM.TRACK_TRAVEL
 
   return (
@@ -89,6 +89,9 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
       </div>
       </div>
       </div>
+
+      {/* Over the record, under the arm — the lyrics (`underArm`). */}
+      {underArm}
 
       {/* The tonearm, pivoting about its bearing at the top right — the same
           gesture as the app mark's rest→hover morph, on purpose. */}

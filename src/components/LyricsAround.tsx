@@ -17,10 +17,12 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 // - THEN THE ARC: the line being sung curves over the top of the record and
 //   fades in; the next one waits faintly along the bottom.
 //
-// Synced lyrics only — there is nothing to follow without the times. Drawn in
-// `DeckSwiper`'s overlay, which knows where the record's centre is.
+// Synced lyrics only — there is nothing to follow without the times. Drawn
+// INSIDE the deck, over the record and under the tonearm (`underArm` — James,
+// 2026-09-11: "show them behind the record hand not in front"), centred on the
+// frame.
 
-export default function LyricsAround({ centreY, size }: { centreY: number; size: number }) {
+export default function LyricsAround({ size }: { size: number }) {
   const track = usePlayerStore(currentTrack)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const sheet = useLyricsStore((s) => s.sheet)
@@ -51,8 +53,8 @@ export default function LyricsAround({ centreY, size }: { centreY: number; size:
       <div
         data-lyrics-around="opening"
         aria-hidden
-        className="pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-wrap justify-center gap-x-[0.3em] text-center leading-tight font-bold text-white"
-        style={{ top: centreY, width: size * 0.92, fontSize: Math.max(18, Math.min(30, size / 10)), textShadow: '0 2px 10px rgba(0,0,0,.75), 0 0 2px rgba(0,0,0,.9)' }}
+        className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-wrap justify-center gap-x-[0.3em] text-center leading-tight font-bold text-white"
+        style={{ top: '50%', width: size * 0.92, fontSize: Math.max(18, Math.min(30, size / 10)), textShadow: '0 2px 10px rgba(0,0,0,.75), 0 0 2px rgba(0,0,0,.9)' }}
       >
         {words.map((word, i) => (
           <span
@@ -85,8 +87,8 @@ export default function LyricsAround({ centreY, size }: { centreY: number; size:
     <svg
       data-lyrics-around="arc"
       aria-hidden
-      className="pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 overflow-visible"
-      style={{ top: centreY }}
+      className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-visible"
+      style={{ top: '50%' }}
       width={box}
       height={box}
       viewBox={`0 0 ${box} ${box}`}
