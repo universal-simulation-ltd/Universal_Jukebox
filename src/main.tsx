@@ -4,6 +4,7 @@ import { UniversalProvider } from '@unisim/sdk'
 import App from './App'
 import { startApplyingSettings } from './lib/applySettings'
 import { logNativeDiagnostics } from './lib/nativeDiagnostics'
+import { watchAudioRoute } from './lib/nowPlayingNative'
 import './index.css'
 import { installShortcuts } from './lib/shortcuts'
 
@@ -58,6 +59,7 @@ startApplyingSettings()
 // `lib/nativeDiagnostics.ts`: a device build has no console of its own, and the
 // first two bugs this app shipped with were both invisible from a Mac.
 logNativeDiagnostics()
+void watchAudioRoute()
 installShortcuts()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

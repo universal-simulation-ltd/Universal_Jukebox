@@ -41,6 +41,7 @@ interface NowPlayingPlugin {
   update(options: { elapsed: number; duration: number; rate: number }): Promise<void>
   clear(): Promise<void>
   addListener(event: 'command', fn: (e: { action: string; position?: number }) => void): Promise<unknown>
+  addListener(event: 'audio', fn: (e: { kind: string } & Record<string, unknown>) => void): Promise<unknown>
 }
 
 let plugin: NowPlayingPlugin | null = null
@@ -98,10 +99,8 @@ export async function showOnLockScreen(
     report = `mode=${result.mode} animated=${result.animated} keys=${result.supportedKeys.join(',') || 'none'}`
     if (mode === 'own' && !listening) {
       listening = true
-      await plugin!.addListener('command', (e) => {
-        noteEvent('lock-command', { action: e.action })
-        dispatchAction(e.action, e.position)
-      })
+      // Logged, with its route, by the gate in `dispatchAction`.
+      await plugin!.addListener('command', (e) => dispatchAction(e.action, e.position))
     }
     // Where playback is NOW, not when `show` set off.
     const latest = now()
@@ -113,6 +112,22 @@ export async function showOnLockScreen(
     report = `failed: ${error instanceof Error ? error.message : String(error)}`
   }
   noteEvent('lock-art', { report })
+}
+
+/**
+ * Headphones in and out, and interruptions, into the saved log (`bgLog`) — so a
+ * report like "not sure if it was when I put headphones in" can be checked
+ * against what iOS actually did (James, 2026-09-11). The plugin only observes;
+ * this app never touches its own audio session (see `AppDelegate.swift`).
+ */
+export async function watchAudioRoute(): Promise<void> {
+  if (!nativeNowPlayingAvailable()) return
+  try {
+    await load()
+    await plugin!.addListener('audio', ({ kind, ...detail }) => noteEvent(kind, detail))
+  } catch {
+    /* the log is a nicety */
+  }
 }
 
 export async function clearLockScreen(): Promise<void> {

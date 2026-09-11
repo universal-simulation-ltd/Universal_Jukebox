@@ -9,6 +9,8 @@
 // Nothing else in the UNI·SIM suite uses this API, so the whole of it is here.
 
 import type { Track } from './types'
+import { noteEvent } from './bgLog'
+import { createCommandGate, isGatedCommand, type CommandVia } from './commandGate'
 
 export interface MediaSessionHandlers {
   onPlay(): void
@@ -155,6 +157,24 @@ export function setPosition(currentSec: number, durationSec: number, rate = 1): 
   }
 }
 
+/** Either route's buttons — see `commandGate.ts` for why there is a gate at all. */
+const gate = createCommandGate()
+
+/**
+ * Should this command run? Logged either way, with the route it came by, so
+ * the phone's saved log says which of the two sessions iOS was talking to.
+ */
+function admitted(action: string, via: CommandVia): boolean {
+  if (!isGatedCommand(action)) return true
+  const verdict = gate(action, via)
+  noteEvent(verdict.pass ? 'lock-command' : 'lock-command-dropped', {
+    action,
+    via,
+    ...(verdict.after ? { repeats: `${verdict.after.action} via ${verdict.after.via}, ${verdict.after.ms}ms before` } : {}),
+  })
+  return verdict.pass
+}
+
 /**
  * A button pressed on the iPhone app's OWN lock-screen entry
  * (`nowPlayingNative.ts`, mode `own`), run through the same handlers as the
@@ -163,6 +183,7 @@ export function setPosition(currentSec: number, durationSec: number, rate = 1): 
 export function dispatchAction(action: string, position?: number): void {
   const handlers = current
   if (!handlers) return
+  if (!admitted(action, 'native')) return
   switch (action) {
     case 'play':
       handlers.onPlay()
@@ -218,12 +239,13 @@ export function setHandlers(handlers: MediaSessionHandlers): () => void {
  */
 function register(handlers: MediaSessionHandlers): MediaSessionAction[] {
 
+  // WebKit's route — through the same gate as the app's own (`dispatchAction`).
   const actions: [MediaSessionAction, MediaSessionActionHandler][] = [
-    ['play', () => handlers.onPlay()],
-    ['pause', () => handlers.onPause()],
-    ['stop', () => handlers.onStop()],
-    ['nexttrack', () => handlers.onNext()],
-    ['previoustrack', () => handlers.onPrevious()],
+    ['play', () => admitted('play', 'webkit') && handlers.onPlay()],
+    ['pause', () => admitted('pause', 'webkit') && handlers.onPause()],
+    ['stop', () => admitted('stop', 'webkit') && handlers.onStop()],
+    ['nexttrack', () => admitted('nexttrack', 'webkit') && handlers.onNext()],
+    ['previoustrack', () => admitted('previoustrack', 'webkit') && handlers.onPrevious()],
     ['seekto', (details) => {
       if (typeof details.seekTime === 'number') handlers.onSeekTo(details.seekTime)
     }],

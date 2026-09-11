@@ -39,6 +39,47 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
     private var keeper: Timer?
     private var commandsOn = false
 
+    /// Headphones in or out, and interruptions, for the page's saved log
+    /// (James, 2026-09-11: "still random issues with the lockscreen controls -
+    /// not sure if it was when i put headphone in"). OBSERVED only: this app
+    /// must never touch its own audio session — see `AppDelegate`.
+    override public func load() {
+        let centre = NotificationCenter.default
+        centre.addObserver(self, selector: #selector(routeChanged(_:)),
+                           name: AVAudioSession.routeChangeNotification, object: nil)
+        centre.addObserver(self, selector: #selector(interrupted(_:)),
+                           name: AVAudioSession.interruptionNotification, object: nil)
+    }
+
+    @objc private func routeChanged(_ note: Notification) {
+        let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt ?? 0
+        let reason: String
+        switch AVAudioSession.RouteChangeReason(rawValue: raw) ?? .unknown {
+        case .newDeviceAvailable: reason = "device in"
+        case .oldDeviceUnavailable: reason = "device out"
+        case .categoryChange: reason = "category"
+        case .override: reason = "override"
+        case .wakeFromSleep: reason = "wake"
+        case .noSuitableRouteForCategory: reason = "no route"
+        case .routeConfigurationChange: reason = "configuration"
+        default: reason = "other \(raw)"
+        }
+        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+            .map { $0.portType.rawValue }.joined(separator: ",")
+        DispatchQueue.main.async {
+            self.notifyListeners("audio", data: ["kind": "route", "reason": reason, "outputs": outputs])
+        }
+    }
+
+    @objc private func interrupted(_ note: Notification) {
+        let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt ?? 99
+        let type = raw == AVAudioSession.InterruptionType.began.rawValue ? "began"
+            : raw == AVAudioSession.InterruptionType.ended.rawValue ? "ended" : "other \(raw)"
+        DispatchQueue.main.async {
+            self.notifyListeners("audio", data: ["kind": "interruption", "type": type])
+        }
+    }
+
     @objc func show(_ call: CAPPluginCall) {
         guard let artworkId = call.getString("artworkId"),
               let stillData = call.getString("still").flatMap({ Data(base64Encoded: $0) }),
