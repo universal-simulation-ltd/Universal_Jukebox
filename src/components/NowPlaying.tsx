@@ -15,6 +15,7 @@ import Queue from './Queue'
 import ResumeCard from './ResumeCard'
 import UpNextReel from './UpNextReel'
 import PlayModes from './PlayModes'
+import AddToShelf from './AddToShelf'
 import Visualiser from './Visualiser'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { requestLyricsReveal } from '../lib/lyricsReveal'
@@ -175,6 +176,10 @@ export default function NowPlaying() {
         </p>
 
         <LyricsToggle />
+        {/* This song, onto a Jukebox shelf. */}
+        <div className="mt-3 flex justify-center lg:justify-start">
+          <AddToShelf tracks={[track]} variant="pill" />
+        </div>
 
         {/* Hidden below 560px (T5) — the first thing to go from the words
             column, because it is the only part of it that is decoration. */}

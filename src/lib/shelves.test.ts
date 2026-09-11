@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NEW_SHELF, parseShelves, shelvesToShow, toggleOnShelf } from './shelves'
+import { NEW_SHELF, addToShelf, moveOnShelf, parseShelves, renameShelf, shelfName, shelvesToShow, toggleOnShelf } from './shelves'
 
 describe('jukebox shelves', () => {
   it('always shows one empty shelf after the ones with songs on', () => {
@@ -23,5 +23,31 @@ describe('jukebox shelves', () => {
   it('reads back only well-formed shelves', () => {
     expect(parseShelves([{ id: 's1', trackIds: ['t1', 3] }, { id: 7 }, null, { id: 's2', trackIds: [] }])).toEqual([{ id: 's1', trackIds: ['t1'] }])
     expect(parseShelves('nonsense')).toEqual([])
+  })
+})
+
+describe('naming, moving and adding many', () => {
+  const two = [{ id: 's1', trackIds: ['a', 'b', 'c'] }, { id: 's2', trackIds: ['d'], name: 'Road trip' }]
+  it('names a shelf, and an empty name goes back to its place', () => {
+    expect(shelfName(two[0], 0)).toBe('Shelf 1')
+    expect(shelfName(two[1], 1)).toBe('Road trip')
+    const named = renameShelf(two, 's1', '  Sunday  ')
+    expect(named[0].name).toBe('Sunday')
+    expect('name' in renameShelf(named, 's1', '   ')[0]).toBe(false)
+  })
+  it('moves a song one place, and not past either end', () => {
+    expect(moveOnShelf(two, 's1', 'b', -1)[0].trackIds).toEqual(['b', 'a', 'c'])
+    expect(moveOnShelf(two, 's1', 'b', 1)[0].trackIds).toEqual(['a', 'c', 'b'])
+    expect(moveOnShelf(two, 's1', 'a', -1)[0].trackIds).toEqual(['a', 'b', 'c'])
+    expect(moveOnShelf(two, 's1', 'c', 1)[0].trackIds).toEqual(['a', 'b', 'c'])
+  })
+  it('adds an album without doubling what is already there, or starts a shelf', () => {
+    expect(addToShelf(two, 's1', ['c', 'e', 'e', 'f'], 'x').shelves[0].trackIds).toEqual(['a', 'b', 'c', 'e', 'f'])
+    const fresh = addToShelf(two, NEW_SHELF, ['g', 'h'], 's3')
+    expect(fresh.shelfId).toBe('s3')
+    expect(fresh.shelves[2]).toEqual({ id: 's3', trackIds: ['g', 'h'] })
+  })
+  it('keeps a stored name', () => {
+    expect(parseShelves([{ id: 's2', trackIds: ['d'], name: 'Road trip' }])).toEqual([{ id: 's2', trackIds: ['d'], name: 'Road trip' }])
   })
 })

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import AddToQueue from './AddToQueue'
+import AddToShelf from './AddToShelf'
 import Cover from './Cover'
 import { PlayGlyph, ShuffleGlyph } from './AlbumView'
 import { plural, totalTime } from '../lib/format'
@@ -98,6 +99,7 @@ export default function ArtistView({ name }: { name: string }) {
           Shuffle all
         </button>
         <AddToQueue tracks={tracks} />
+        <AddToShelf tracks={tracks} variant="pill" />
       </div>
 
       <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">

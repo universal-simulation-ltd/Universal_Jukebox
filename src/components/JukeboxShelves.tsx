@@ -5,7 +5,7 @@ import { ShuffleGlyph } from './AlbumView'
 import { plural } from '../lib/format'
 import { grooveRings } from '../lib/grooves'
 import { matchTracks } from '../lib/search'
-import { shelvesToShow } from '../lib/shelves'
+import { NAME_MAX, NEW_SHELF, shelfName, shelvesToShow } from '../lib/shelves'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useShelvesStore } from '../stores/shelvesStore'
@@ -44,7 +44,7 @@ export default function JukeboxShelves() {
         </p>
       )}
       {shelvesToShow(shelves).map((shelf, i) => {
-        const name = `Shelf ${i + 1}`
+        const name = shelfName(shelf, i)
         // A song no longer in the library is left off, not shown as a blank.
         const songs = shelf.trackIds.map((id) => byId.get(id)).filter((t): t is Track => t !== undefined)
         return (
@@ -52,6 +52,7 @@ export default function JukeboxShelves() {
             key={shelf.id}
             shelfId={shelf.id}
             name={name}
+            named={shelf.id !== NEW_SHELF}
             songs={songs}
             albumOf={albumOf}
             onAdd={() => setPicking({ shelfId: shelf.id, name })}
@@ -64,9 +65,15 @@ export default function JukeboxShelves() {
 }
 
 function JukeboxShelfRow({
-  shelfId, name, songs, albumOf, onAdd,
-}: { shelfId: string; name: string; songs: Track[]; albumOf(t: Track): Album | undefined; onAdd(): void }) {
+  shelfId, name, named, songs, albumOf, onAdd,
+}: { shelfId: string; name: string; named: boolean; songs: Track[]; albumOf(t: Track): Album | undefined; onAdd(): void }) {
   const toggle = useShelvesStore((s) => s.toggle)
+  const rename = useShelvesStore((s) => s.rename)
+  const move = useShelvesStore((s) => s.move)
+  /** Editing: the record picked to move or take off. */
+  const [picked, setPicked] = useState<string | null>(null)
+  /** Renaming: the name being typed. */
+  const [draft, setDraft] = useState<string | null>(null)
   const playTracks = usePlayerStore((s) => s.playTracks)
   const shuffle = usePlayerStore((s) => s.shuffle)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
@@ -78,10 +85,39 @@ function JukeboxShelfRow({
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
-          {name}
-          <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">{songs.length > 0 ? plural(songs.length, 'song') : 'empty'}</span>
-        </p>
+        {/* The name: tap it to call the shelf something (James, 2026-09-11). */}
+        {draft !== null ? (
+          <input
+            autoFocus
+            value={draft}
+            maxLength={NAME_MAX}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => {
+              rename(shelfId, draft)
+              setDraft(null)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur()
+              if (e.key === 'Escape') setDraft(null)
+            }}
+            aria-label={`Name for ${name}`}
+            className="min-w-0 flex-1 rounded-lg border border-orange-400 bg-white px-2.5 py-1 text-[14px] font-semibold text-slate-900 focus:outline-none dark:bg-slate-900 dark:text-slate-100"
+          />
+        ) : (
+          <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+            {named ? (
+              <button type="button" onClick={() => setDraft(name)} title="Tap to rename" className="inline-flex items-center gap-1.5 hover:text-orange-700 dark:hover:text-orange-400">
+                {name}
+                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12.5 4.5l3 3L7 16H4v-3z" />
+                </svg>
+              </button>
+            ) : (
+              name
+            )}
+            <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">{songs.length > 0 ? plural(songs.length, 'song') : 'empty'}</span>
+          </p>
+        )}
         {songs.length > 0 && (
           <div className="flex items-center gap-1.5">
             <button type="button" onClick={() => playTracks(songs, 0)} className={pill}>
@@ -98,7 +134,15 @@ function JukeboxShelfRow({
               <ShuffleGlyph />
               Shuffle
             </button>
-            <button type="button" onClick={() => setEditing((e) => !e)} aria-pressed={editing} className={pill}>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing((e) => !e)
+                setPicked(null)
+              }}
+              aria-pressed={editing}
+              className={pill}
+            >
               {editing ? 'Done' : 'Edit'}
             </button>
           </div>
@@ -108,7 +152,7 @@ function JukeboxShelfRow({
         items={slots}
         label={name}
         size="record"
-        verb={editing ? 'Take off' : 'Play from'}
+        verb={editing ? 'Pick' : 'Play from'}
         keyOf={(s) => (isPlus(s) ? 'plus' : s.id)}
         nameOf={(s) => (isPlus(s) ? name : s.title)}
         labelOf={(s) => (isPlus(s) ? `Add a song to ${name}` : undefined)}
@@ -120,13 +164,8 @@ function JukeboxShelfRow({
               </svg>
             </span>
           ) : (
-            <span className="relative block">
+            <span className={`relative block rounded-full ${editing && picked === s.id ? 'ring-4 ring-orange-500 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950' : ''}`}>
               <Record45 album={albumOf(s)} grooves={grooveRings(s.durationSec)} />
-              {editing && (
-                <span className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow ring-2 ring-white dark:ring-slate-900" aria-hidden>
-                  ×
-                </span>
-              )}
             </span>
           )
         }
@@ -134,7 +173,7 @@ function JukeboxShelfRow({
         direct={(s) => isPlus(s) || editing}
         open={(s, i) => {
           if (isPlus(s)) onAdd()
-          else if (editing) toggle(shelfId, s.id)
+          else if (editing) setPicked((p) => (p === s.id ? null : s.id))
           else playTracks(songs, i)
         }}
         caption={(s) =>
@@ -142,10 +181,31 @@ function JukeboxShelfRow({
             ? { title: songs.length > 0 ? 'Add another song' : 'An empty shelf', detail: 'Tap + to put a song on it' }
             : {
                 title: s.title,
-                detail: `${s.artist ?? s.albumArtist ?? 'Unknown artist'} — ${editing ? 'tap a record to take it off' : 'tap the record to play the shelf from here'}`,
+                detail: `${s.artist ?? s.albumArtist ?? 'Unknown artist'} — ${editing ? 'tap a record to move it or take it off' : 'tap the record to play the shelf from here'}`,
               }
         }
       />
+      {editing && picked && (
+        // Move the picked record along the shelf, or take it off.
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <button type="button" onClick={() => move(shelfId, picked, -1)} className={pill} disabled={songs[0]?.id === picked}>
+            ‹ Move left
+          </button>
+          <button type="button" onClick={() => move(shelfId, picked, 1)} className={pill} disabled={songs[songs.length - 1]?.id === picked}>
+            Move right ›
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              toggle(shelfId, picked)
+              setPicked(null)
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-red-300 px-3 py-1 text-[12.5px] font-medium text-red-700 transition hover:border-red-500 dark:border-red-800 dark:text-red-400"
+          >
+            Take off
+          </button>
+        </div>
+      )}
     </div>
   )
 }

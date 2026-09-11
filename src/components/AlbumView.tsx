@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import Cover from './Cover'
 import PreviewButton from './PreviewButton'
 import AddToQueue from './AddToQueue'
+import AddToShelf from './AddToShelf'
 import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
 import { clock, plural, totalTime } from '../lib/format'
@@ -179,6 +180,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               Shuffle
             </button>
             <AddToQueue tracks={tracks} />
+            <AddToShelf tracks={tracks} variant="pill" />
           </div>
         </div>
       </div>
@@ -232,6 +234,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
                   {clock(track.durationSec)}
                 </span>
               </button>
+              <AddToShelf tracks={[track]} variant="icon" />
               <PreviewButton track={track} />
               </div>
             </li>
