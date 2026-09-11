@@ -13,7 +13,7 @@ import { readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
 import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
-import type { Track } from '../lib/types'
+import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from './libraryStore'
 import { newSeed, shuffleQueue, type ShuffleKind } from '../lib/libraryView'
 import { settings, useSettingsStore } from './settingsStore'
@@ -159,9 +159,10 @@ interface PlayerState {
   dismissSkipped(): void
   /** "Resume listening": the last queue, at the song and second you had reached. */
   resume(): void
-  /** The Home Screen shortcuts — see `shuffleQueue`. */
+  /** The Home Screen shortcuts and the library's shuffle button — see `shuffleQueue`. */
   shuffleSongs(): void
-  shuffleAlbums(): void
+  /** Only `albums`, when given — "Full albums only" on the Albums tab. */
+  shuffleAlbums(albums?: readonly Album[]): void
   shuffleArtists(): void
   /**
    * Try the missing track again, once its folder is back. The one thing the
@@ -459,8 +460,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   shuffleSongs() {
     startShuffle(get, 'songs')
   },
-  shuffleAlbums() {
-    startShuffle(get, 'albums')
+  shuffleAlbums(albums) {
+    startShuffle(get, 'albums', albums)
   },
   shuffleArtists() {
     startShuffle(get, 'artists')
@@ -843,9 +844,9 @@ function unreachable(set: Set, track: Track | undefined, message: string): void 
  * button should say so. ALBUMS and ARTISTS turn it OFF, because their queue has
  * an order that shuffling would destroy: a whole album, then the next.
  */
-function startShuffle(get: Get, kind: ShuffleKind): void {
+function startShuffle(get: Get, kind: ShuffleKind, only?: readonly Album[]): void {
   const { tracks, albums } = useLibraryStore.getState()
-  const queue = shuffleQueue(kind, tracks, albums, newSeed(), sortAlbumTracks)
+  const queue = shuffleQueue(kind, tracks, only ?? albums, newSeed(), sortAlbumTracks)
   if (queue.length === 0) return
   const wantShuffle = kind === 'songs'
   if (get().shuffle !== wantShuffle) get().toggleShuffle()

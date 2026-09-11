@@ -60,6 +60,11 @@ describe('shuffleQueue', () => {
       expect(numbers).toEqual([...numbers].sort((x, y) => (x ?? 0) - (y ?? 0)))
     }
   })
+  it('albums: only the albums it is given ("Full albums only")', () => {
+    const queue = shuffleQueue('albums', tracks, [albums[0], albums[2]], 5, byNumber)
+    expect([...new Set(queue.map((t) => t.albumId))].sort()).toEqual(['a1', 'b1'])
+    expect(queue).toHaveLength(6)
+  })
   it('artists: each artist together, all their songs', () => {
     const artistOf = (t: Track) => (t.albumId.startsWith('a') ? 'Ann' : 'Bob')
     const queue = shuffleQueue('artists', tracks, albums, 5, byNumber)

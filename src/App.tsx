@@ -22,6 +22,7 @@ import PlayerBar from './components/PlayerBar'
 import ScrollTopButton from './components/ScrollTopButton'
 import ScanBanner from './components/ScanBanner'
 import SkippedBanner from './components/SkippedBanner'
+import ShuffleLibrary from './components/ShuffleLibrary'
 import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
@@ -512,6 +513,9 @@ export default function App() {
               </div>
             )}
 
+            {/* Shuffle the library the way this tab reads it — not during a
+                search, when the list is not the library. */}
+            {!query.trim() && <ShuffleLibrary view={view === 'artists' ? 'artists' : view === 'tracks' ? 'tracks' : 'albums'} />}
             {view === 'artists' ? (
               <ArtistList query={query} order={order} />
             ) : view === 'tracks' ? (
