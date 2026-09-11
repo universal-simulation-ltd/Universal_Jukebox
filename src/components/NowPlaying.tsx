@@ -14,6 +14,7 @@ import Lyrics from './Lyrics'
 import Queue from './Queue'
 import ResumeCard from './ResumeCard'
 import UpNextReel from './UpNextReel'
+import PlayModes from './PlayModes'
 import Visualiser from './Visualiser'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { requestLyricsReveal } from '../lib/lyricsReveal'
@@ -190,6 +191,7 @@ export default function NowPlaying() {
         order it will go on) and it introduces the queue underneath, which is
         the version with names and a way to remove a row. */}
     <UpNextReel onMore={openQueue} />
+    <PlayModes />
     {queueOpen && <Queue onHide={() => setQueueOpen(false)} />}
     </>
   )

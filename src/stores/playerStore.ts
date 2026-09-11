@@ -143,6 +143,8 @@ interface PlayerState {
   toggleMute(): void
   toggleShuffle(): void
   cycleRepeat(): void
+  /** Straight to a repeat mode — Now Playing's buttons (`PlayModes`). */
+  setRepeat(repeat: Repeat): void
   /** Any click, key, or second press of play cuts straight to the audio. */
   skipCeremony(): void
   /**
@@ -336,6 +338,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   cycleRepeat() {
     const repeat: Repeat = get().repeat === 'off' ? 'all' : get().repeat === 'all' ? 'one' : 'off'
+    persistModes(get().shuffle, repeat)
+    set({ repeat })
+  },
+
+  setRepeat(repeat) {
     persistModes(get().shuffle, repeat)
     set({ repeat })
   },

@@ -21,7 +21,6 @@ export default function PlayerBar() {
   const durationSec = usePlayerStore((s) => s.durationSec)
   const volume = usePlayerStore((s) => s.volume)
   const muted = usePlayerStore((s) => s.muted)
-  const shuffle = usePlayerStore((s) => s.shuffle)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const ceremonyCount = usePlayerStore((s) => s.ceremonyCount)
   const albums = useLibraryStore((s) => s.albums)
@@ -32,7 +31,6 @@ export default function PlayerBar() {
   const seekTo = usePlayerStore((s) => s.seekTo)
   const setVolume = usePlayerStore((s) => s.setVolume)
   const toggleMute = usePlayerStore((s) => s.toggleMute)
-  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
 
   // While dragging, the bar follows the pointer rather than the audio clock —
   // otherwise every `timeupdate` yanks the thumb back under the finger.
@@ -121,13 +119,12 @@ export default function PlayerBar() {
           </span>
         </button>
 
-        {/* Transport. Order is prev / play / next at every width; only the
-            shuffle toggle is shed. No repeat button (James, 2026-09-11:
-            "remove the repeat option from the mini player"). */}
+        {/* Transport: prev / play / next, and the queue. No shuffle or repeat
+            here (James, 2026-09-11: "remove the repeat option from the mini
+            player" — "on the mini player move shuffle into the queue list
+            popup"): shuffle is in the queue popup, and both, with the two
+            repeats, are under the records on Now Playing (`PlayModes`). */}
         <div className="flex shrink-0 items-center gap-1">
-          <IconButton label="Shuffle" onClick={toggleShuffle} active={shuffle} className="hidden sm:inline-flex">
-            <ShuffleGlyph />
-          </IconButton>
           <IconButton label="Previous track" onClick={previous}>
             <PrevGlyph />
           </IconButton>
@@ -216,6 +213,8 @@ function QueuePeek() {
   const order = usePlayerStore((s) => s.order)
   const cursor = usePlayerStore((s) => s.cursor)
   const jumpTo = usePlayerStore((s) => s.jumpTo)
+  const shuffle = usePlayerStore((s) => s.shuffle)
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
 
@@ -280,6 +279,23 @@ function QueuePeek() {
           // a long lookahead pushes the panel off the top of a phone.
           className="absolute right-0 bottom-full z-40 mb-2 max-h-[min(60vh,20rem)] w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900"
         >
+          {/* Shuffle, moved here off the bar — it is about what plays next. */}
+          <div className="sticky top-0 z-10 -mx-1.5 -mt-1.5 mb-1 flex items-center justify-between border-b border-slate-100 bg-white px-3 py-1.5 dark:border-slate-800 dark:bg-slate-900">
+            <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">Playing next</span>
+            <button
+              type="button"
+              onClick={toggleShuffle}
+              aria-pressed={shuffle}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
+                shuffle
+                  ? 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+              }`}
+            >
+              <ShuffleGlyph />
+              Shuffle {shuffle ? 'on' : 'off'}
+            </button>
+          </div>
           {window.map(({ track, orderIndex }) => {
             if (!track) return null
             const isCurrent = orderIndex === cursor
