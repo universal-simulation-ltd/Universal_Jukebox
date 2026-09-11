@@ -5,6 +5,7 @@ import App from './App'
 import { startApplyingSettings } from './lib/applySettings'
 import { logNativeDiagnostics } from './lib/nativeDiagnostics'
 import './index.css'
+import { installShortcuts } from './lib/shortcuts'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
 // mount <UniversalProvider> so the shared navbar works and, when the visitor is
@@ -57,6 +58,7 @@ startApplyingSettings()
 // `lib/nativeDiagnostics.ts`: a device build has no console of its own, and the
 // first two bugs this app shipped with were both invisible from a Mac.
 logNativeDiagnostics()
+installShortcuts()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

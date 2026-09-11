@@ -15,6 +15,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(routeChanged(_:)),
             name: AVAudioSession.routeChangeNotification, object: nil)
+        // A Home Screen shortcut that launched the app — see `ShortcutsPlugin`.
+        if let item = launchOptions?[.shortcutItem] as? UIApplicationShortcutItem {
+            ShortcutsBridge.receive(item.type)
+        }
         return true
     }
 
@@ -82,6 +86,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationWillTerminate(_ application: UIApplication) {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    }
+
+    /// A Home Screen shortcut tapped while the app was already running.
+    func application(_ application: UIApplication, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
+        ShortcutsBridge.receive(shortcutItem.type)
+        completionHandler(true)
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {

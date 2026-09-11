@@ -141,5 +141,32 @@
 		<string>unisim-jukebox</string>
 	</array>
 	<!-- END unisim suite app links -->
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>uk.co.unisim.jukebox.shuffle-songs</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Shuffle songs</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>shuffle</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>uk.co.unisim.jukebox.shuffle-albums</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Shuffle albums</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>square.stack</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>uk.co.unisim.jukebox.shuffle-artists</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Shuffle artists</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>music.mic</string>
+		</dict>
+	</array>
 </dict>
 </plist>

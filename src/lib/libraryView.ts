@@ -1,7 +1,7 @@
 // How the library's three lists are ordered and filtered — the A–Z / Random
 // switch and "Full albums only" (James, 2026-09-10).
 
-import type { Album } from './types'
+import type { Album, Track } from './types'
 
 /**
  * A–Z is each list's own alphabetical order (albums by artist then year,
@@ -44,4 +44,45 @@ export const FULL_ALBUM_MIN = 3
 
 export function isFullAlbum(album: Album): boolean {
   return album.trackCount >= FULL_ALBUM_MIN
+}
+
+export type ShuffleKind = 'songs' | 'albums' | 'artists'
+
+/**
+ * The Home Screen's three shuffles (James, 2026-09-11), as queues:
+ *   songs    every track, in a random order;
+ *   albums   the albums in a random order, each played WHOLE, in running order —
+ *            "it would play a whole album before the next one";
+ *   artists  the artists in a random order, one after another, each one's songs
+ *            shuffled — "a whole artists (shuffling all their songs)".
+ *
+ * Pure: `runningOrder` puts one album's tracks in order (`sortAlbumTracks`).
+ */
+export function shuffleQueue(
+  kind: ShuffleKind,
+  tracks: readonly Track[],
+  albums: readonly Album[],
+  seed: number,
+  runningOrder: (tracks: Track[]) => Track[],
+): Track[] {
+  if (kind === 'songs') return seededOrder(tracks, (t) => t.id, seed)
+  const byAlbum = new Map<string, Track[]>()
+  for (const track of tracks) {
+    const list = byAlbum.get(track.albumId)
+    if (list) list.push(track)
+    else byAlbum.set(track.albumId, [track])
+  }
+  const present = albums.filter((album) => byAlbum.has(album.id))
+  if (kind === 'albums') {
+    return seededOrder(present, (album) => album.id, seed).flatMap((album) => runningOrder(byAlbum.get(album.id) ?? []))
+  }
+  const byArtist = new Map<string, Track[]>()
+  for (const album of present) {
+    const list = byArtist.get(album.artist) ?? []
+    list.push(...(byAlbum.get(album.id) ?? []))
+    byArtist.set(album.artist, list)
+  }
+  return seededOrder([...byArtist.keys()], (name) => name, seed).flatMap((name) =>
+    seededOrder(byArtist.get(name) ?? [], (t) => t.id, seed + 1),
+  )
 }

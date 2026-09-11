@@ -12,7 +12,8 @@ import { lockArt } from '../lib/lockArt'
 import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
 import type { Track } from '../lib/types'
-import { useLibraryStore } from './libraryStore'
+import { sortAlbumTracks, useLibraryStore } from './libraryStore'
+import { newSeed, shuffleQueue, type ShuffleKind } from '../lib/libraryView'
 import { settings, useSettingsStore } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
 import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
@@ -147,6 +148,10 @@ interface PlayerState {
   dismissError(): void
   /** Clear "N tracks couldn't play". */
   dismissSkipped(): void
+  /** The Home Screen shortcuts — see `shuffleQueue`. */
+  shuffleSongs(): void
+  shuffleAlbums(): void
+  shuffleArtists(): void
   /**
    * Try the missing track again, once its folder is back. The one thing the
    * transport cannot do for itself here: `unreachable` stopped and emptied the
@@ -421,6 +426,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   dismissSkipped() {
     set({ skipped: [] })
+  },
+
+  shuffleSongs() {
+    startShuffle(get, 'songs')
+  },
+  shuffleAlbums() {
+    startShuffle(get, 'albums')
+  },
+  shuffleArtists() {
+    startShuffle(get, 'artists')
   },
 
   replayMissing() {
@@ -774,6 +789,22 @@ function unreachable(set: Set, track: Track | undefined, message: string): void 
     // must not be left saying "stop" over nothing.
     previewTrackId: null,
   })
+}
+
+/**
+ * The Home Screen's shuffles (`lib/shortcuts.ts`).
+ *
+ * ⚠️ Shuffle SONGS leaves the shuffle button ON — the queue is random and the
+ * button should say so. ALBUMS and ARTISTS turn it OFF, because their queue has
+ * an order that shuffling would destroy: a whole album, then the next.
+ */
+function startShuffle(get: Get, kind: ShuffleKind): void {
+  const { tracks, albums } = useLibraryStore.getState()
+  const queue = shuffleQueue(kind, tracks, albums, newSeed(), sortAlbumTracks)
+  if (queue.length === 0) return
+  const wantShuffle = kind === 'songs'
+  if (get().shuffle !== wantShuffle) get().toggleShuffle()
+  get().playTracks(queue, 0)
 }
 
 export interface SkippedTrack {
