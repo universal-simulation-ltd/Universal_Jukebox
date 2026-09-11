@@ -156,7 +156,6 @@ function JukeboxShelfRow({
         keyOf={(s) => (isPlus(s) ? 'plus' : s.id)}
         nameOf={(s) => (isPlus(s) ? name : s.title)}
         labelOf={(s) => (isPlus(s) ? `Add a song to ${name}` : undefined)}
-        artOf={(s) => (isPlus(s) ? undefined : albumOf(s))}
         render={(s) =>
           isPlus(s) ? (
             <span className="flex aspect-square w-full items-center justify-center rounded-full border-2 border-dashed border-slate-300 bg-white/40 text-slate-400 dark:border-slate-600 dark:bg-slate-900/30 dark:text-slate-500">
