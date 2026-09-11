@@ -106,3 +106,31 @@ describe('the shelves', () => {
     expect(shelfRows(n(123)).flat()).toEqual(n(123))
   })
 })
+
+describe('shelfRows with a seed (shelves of different lengths)', () => {
+  const list = Array.from({ length: 200 }, (_, i) => i)
+  it('keeps every item once, in order, on the same number of shelves', () => {
+    for (const seed of [1, 7, 12345, 999999]) {
+      const rows = shelfRows(list, seed)
+      expect(rows).toHaveLength(shelfRows(list).length)
+      expect(rows.flat()).toEqual(list)
+    }
+  })
+  it('varies the lengths, within about a half and one and a half times the even share', () => {
+    const rows = shelfRows(list, 42)
+    const lengths = rows.map((r) => r.length)
+    expect(new Set(lengths).size).toBeGreaterThan(1)
+    for (const n of lengths) {
+      expect(n).toBeGreaterThanOrEqual(Math.floor((200 / rows.length) * 0.4))
+      expect(n).toBeLessThanOrEqual(Math.ceil((200 / rows.length) * 1.7))
+    }
+  })
+  it('is the same for the same seed, and different for another', () => {
+    const lengths = (seed: number) => shelfRows(list, seed).map((r) => r.length).join(',')
+    expect(lengths(5)).toBe(lengths(5))
+    expect(new Set([1, 2, 3, 4, 5, 6].map(lengths)).size).toBeGreaterThan(1)
+  })
+  it('leaves a small library on one shelf', () => {
+    expect(shelfRows(Array.from({ length: 20 }, (_, i) => i), 3)).toHaveLength(1)
+  })
+})

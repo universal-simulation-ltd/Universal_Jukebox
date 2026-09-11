@@ -4,7 +4,7 @@ import Record45 from './Record45'
 import { navigate } from '../lib/route'
 import { plural } from '../lib/format'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
-import { shelfRows } from '../lib/libraryView'
+import { newSeed, shelfRows } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import { withResumeRow } from './resumeRow'
 import type { Album, Track } from '../lib/types'
@@ -44,8 +44,14 @@ function Sleeve({ album }: { album: Album | undefined }) {
  * 10% of items and then have up to 10 rows so you can swipe down"). Each is its
  * own swipe; the page scrolls between them. How they split is `shelfRows`.
  */
+/**
+ * How the shelves are cut this time the app is open — different lengths each
+ * launch, the same all the while you browse (`shelfRows`).
+ */
+const LAUNCH_SEED = newSeed()
+
 function Shelves<T>({ items, label, row }: { items: T[]; label: string; row(items: T[], label: string, start: number): ReactNode }) {
-  const rows = shelfRows(items)
+  const rows = shelfRows(items, LAUNCH_SEED)
   return (
     <div className="space-y-10">
       {withResumeRow(

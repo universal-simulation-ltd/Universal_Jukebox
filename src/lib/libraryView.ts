@@ -129,8 +129,19 @@ export function columnsLabel(columns: LibraryColumns): string {
 export const SHELF_MIN = 15
 export const SHELF_MAX_ROWS = 10
 
-export function shelfRows<T>(items: readonly T[]): T[][] {
+/**
+ * ⚠️ WITH A `seed`, THE SHELVES ARE NOT ALL ONE LENGTH (James, 2026-09-11: "to
+ * introduce some variety can we change the row size everytime … so the library
+ * never looks the same and helps you find otherwise missed items"). The number
+ * of shelves is the same; each one's length is drawn between about half and
+ * one and a half times the even share, and they still add up to the whole list.
+ * The same seed gives the same shelves — `Shelf.tsx` takes one per launch, so
+ * the library holds still while you browse (and going back finds it as you
+ * left it) and is different the next time the app opens.
+ */
+export function shelfRows<T>(items: readonly T[], seed?: number): T[][] {
   const rows = Math.max(1, Math.min(SHELF_MAX_ROWS, Math.floor(items.length / SHELF_MIN)))
+  if (seed !== undefined && rows > 1) return cut(items, varied(items.length, rows, seed))
   // Dealt evenly: the first `extra` shelves take one more, so none is a stub.
   const base = Math.floor(items.length / rows)
   const extra = items.length % rows
@@ -138,6 +149,37 @@ export function shelfRows<T>(items: readonly T[]): T[][] {
   let at = 0
   for (let r = 0; r < rows; r++) {
     const size = base + (r < extra ? 1 : 0)
+    out.push(items.slice(at, at + size))
+    at += size
+  }
+  return out.filter((row) => row.length > 0)
+}
+
+/** Each shelf's length: its share of `count`, by weights from 0.5 to 1.5. */
+function varied(count: number, rows: number, seed: number): number[] {
+  const weights = Array.from({ length: rows }, (_, r) => 0.5 + (hash(`${seed}:shelf:${r}:${count}`) % 1001) / 1000)
+  const total = weights.reduce((a, b) => a + b, 0)
+  const exact = weights.map((w) => (count * w) / total)
+  const sizes = exact.map((x) => Math.max(1, Math.floor(x)))
+  // Largest remainders take what rounding down left over (or give back what
+  // the floor of one cost), so the shelves hold every item exactly once.
+  let left = count - sizes.reduce((a, b) => a + b, 0)
+  const byRemainder = exact.map((x, i) => ({ i, r: x - Math.floor(x) })).sort((a, b) => b.r - a.r)
+  for (let k = 0; left > 0; k = (k + 1) % rows, left--) sizes[byRemainder[k].i]++
+  for (let k = rows - 1; left < 0; k = (k + rows - 1) % rows) {
+    const i = byRemainder[k].i
+    if (sizes[i] > 1) {
+      sizes[i]--
+      left++
+    }
+  }
+  return sizes
+}
+
+function cut<T>(items: readonly T[], sizes: number[]): T[][] {
+  const out: T[][] = []
+  let at = 0
+  for (const size of sizes) {
     out.push(items.slice(at, at + size))
     at += size
   }
