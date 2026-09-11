@@ -293,3 +293,9 @@ body {
   40%  { transform: scale(1.14); }
   100% { transform: scale(1); }
 }
+
+/* A lyric line arriving around the record (LyricsAround). */
+@keyframes jb-lyric-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

@@ -64,8 +64,16 @@ interface Arriving {
 }
 
 export default function DeckSwiper({
-  size, showing, children,
-}: { size: number; showing?: string; children: React.ReactNode }) {
+  size, showing, children, overlay, roomAbove = 0,
+}: {
+  size: number
+  showing?: string
+  children: React.ReactNode
+  /** Drawn over the deck, told where the record's centre is — the lyrics around it (`LyricsAround`). */
+  overlay?: (at: { centreY: number; size: number }) => React.ReactNode
+  /** Extra room above the record, for an overlay that reaches over it. */
+  roomAbove?: number
+}) {
   const queue = usePlayerStore((s) => s.queue)
   const order = usePlayerStore((s) => s.order)
   const cursor = usePlayerStore((s) => s.cursor)
@@ -160,7 +168,7 @@ export default function DeckSwiper({
     measureCentre()
     window.addEventListener('resize', measureCentre)
     return () => window.removeEventListener('resize', measureCentre)
-  }, [size, showing])
+  }, [size, showing, roomAbove])
 
   // ⚠️ A CROSSFADE ACROSS A CHANGE OF RECORD SLIDES THE MACHINES (James,
   // 2026-09-11) — the same move as a swipe, driven by the player over the
@@ -344,7 +352,12 @@ export default function DeckSwiper({
     // its edges rather than from the page's padding; clipped, so they never
     // widen the page. From `lg` up the deck sits in a column beside the words,
     // and there is no screen edge next to it to peek from.
-    <div ref={box} className="relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible">
+    <div
+      ref={box}
+      className="relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible"
+      style={roomAbove ? { paddingTop: 8 + roomAbove } : undefined}
+    >
+      {overlay?.({ centreY, size })}
       {prevIndex !== null && (
         <Peek
           ref={leftPeek}

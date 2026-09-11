@@ -103,7 +103,7 @@ export default function Settings() {
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
-    lyrics: s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only',
+    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? ', around the record' : ''}`,
     appearance: labelOf(THEME_OPTIONS, themePref),
   }
 
@@ -310,6 +310,12 @@ export default function Settings() {
             hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
             checked={s.lyricsOnline}
             onChange={(v) => s.set('lyricsOnline', v)}
+          />
+          <Toggle
+            label="Lyrics around the record"
+            hint="On Now Playing, each song opens with its first line across the record, a word at a time; then the line being sung curves over the top of the record and the next waits faintly beneath. Needs lyrics with timings."
+            checked={s.lyricsAround}
+            onChange={(v) => s.set('lyricsAround', v)}
           />
           <DownloadedLyrics />
         </Section>

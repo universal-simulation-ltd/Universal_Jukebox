@@ -182,6 +182,8 @@ export interface Settings {
    * before changing this one.
    */
   lyricsOnline: boolean
+  /** The words around the spinning record on Now Playing (`LyricsAround`). */
+  lyricsAround: boolean
   /** "Full albums only" on the Albums tab — see `isFullAlbum` in `lib/libraryView.ts`. */
   fullAlbumsOnly: boolean
   /**
@@ -218,6 +220,7 @@ export const DEFAULTS: Settings = {
   fadeInSec: 0,
   fadeOutSec: 0,
   lyricsOnline: false,
+  lyricsAround: false,
   fullAlbumsOnly: false,
   tipsSeen: [],
   stableVolume: false,
@@ -360,6 +363,7 @@ function readStored(): Settings {
     // version — has to mean off, because "off unless someone chose otherwise"
     // is the entire guarantee this setting makes.
     lyricsOnline: stored.lyricsOnline === true,
+    lyricsAround: stored.lyricsAround === true,
     fullAlbumsOnly: stored.fullAlbumsOnly === true,
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
@@ -426,6 +430,7 @@ function persist(state: Settings) {
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
     lyricsOnline: state.lyricsOnline,
+    lyricsAround: state.lyricsAround,
     fullAlbumsOnly: state.fullAlbumsOnly,
     tipsSeen: state.tipsSeen,
     stableVolume: state.stableVolume,

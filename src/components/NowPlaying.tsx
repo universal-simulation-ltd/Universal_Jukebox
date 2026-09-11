@@ -15,6 +15,7 @@ import Queue from './Queue'
 import ResumeCard from './ResumeCard'
 import UpNextReel from './UpNextReel'
 import PlayModes from './PlayModes'
+import LyricsAround from './LyricsAround'
 import AddToShelf from './AddToShelf'
 import Visualiser from './Visualiser'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -32,6 +33,7 @@ import { requestLyricsReveal } from '../lib/lyricsReveal'
 // that hides itself while the page still shows a heading reads as a bug.
 
 export default function NowPlaying() {
+  const lyricsAround = useSettingsStore((s) => s.lyricsAround)
   const track = usePlayerStore(currentTrack)
   // Every visit to Now Playing starts with the lyrics closed (James, 2026-09-10):
   // leaving closes them. They stay open across songs while you stay — see
@@ -153,7 +155,14 @@ export default function NowPlaying() {
       <div className="relative w-full text-center lg:hidden">{heading}</div>
 
       {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
-      <DeckSwiper size={clampDeck()} showing={onTheDeck?.id}>
+      <DeckSwiper
+        size={clampDeck()}
+        showing={onTheDeck?.id}
+        // The words around the record, when that is switched on (Settings ›
+        // Lyrics) — with room above it for the arc.
+        roomAbove={lyricsAround ? 28 : 0}
+        overlay={lyricsAround ? (at) => <LyricsAround {...at} /> : undefined}
+      >
         {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
             off, the record on the deck is still the OLD one — see below. */}
         <Deck album={onTheDeck} size={clampDeck()} ceremonial />
