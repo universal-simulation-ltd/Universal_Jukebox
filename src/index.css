@@ -299,3 +299,10 @@ body {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* The glow behind a shelf's middle record, arriving (Shelf.tsx). No `to`: it
+   ends at the element's own opacity — a `to { opacity: 1 }` with fill `both`
+   would override it and draw the glow solid. */
+@keyframes jb-glow-in {
+  from { opacity: 0; }
+}
