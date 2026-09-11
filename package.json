@@ -29,7 +29,7 @@
     "@capacitor/filesystem": "^7.1.8",
     "@capacitor/ios": "^7.6.9",
     "@capacitor/status-bar": "^7.0.6",
-    "@unisim/sdk": "^0.140.0",
+    "@unisim/sdk": "^0.140.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"
