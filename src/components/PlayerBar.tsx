@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Cover from './Cover'
 import { clock } from '../lib/format'
-import { navigate } from '../lib/route'
+import { currentRoute, navigate } from '../lib/route'
+import { scrollToTop } from '../lib/scrollTop'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -52,7 +53,7 @@ export default function PlayerBar() {
     // `contentInset: 'never'`, so without it the transport sits UNDER the home
     // indicator on a phone — the play button and the scrub bar are the things
     // that end up beneath it. 0 on the web, so nothing changes there.
-    <div className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+    <div data-jb-playerbar className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
       {/* The scrub bar spans the full width above the controls: it is the one
           control people aim at without looking, so it gets the whole edge. */}
       <input
@@ -84,7 +85,12 @@ export default function PlayerBar() {
         {/* Identity — tap to reach Now Playing, which at T6 is the only way. */}
         <button
           type="button"
-          onClick={() => navigate({ view: 'playing' })}
+          // ⚠️ ALWAYS to the top of the deck (James, 2026-09-11: "it should jump
+          // to the top of animation page (even if was on that page)").
+          // Navigating to where you already are does nothing, so on Now
+          // Playing it scrolls up instead; from anywhere else, arriving there
+          // already opens it at its top (`PAGE_VIEWS` in App.tsx).
+          onClick={() => (currentRoute().view === 'playing' ? scrollToTop() : navigate({ view: 'playing' }))}
           className="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
         >
           {/* ⚠️ THE COUNTDOWN, OVER THE SLEEVE (James, 2026-09-10: "you also need

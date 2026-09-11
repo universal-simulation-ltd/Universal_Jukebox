@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { revealExpanded } from '@unisim/sdk'
+import { Fragment, useId, useMemo, useState } from 'react'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
-import OpenGroup from './OpenGroup'
+import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
 import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
@@ -17,47 +16,20 @@ import type { Album } from '../lib/types'
 // to scan. Grouping tracks would give a page of names on a compilation-heavy
 // library and nothing to click.
 //
-// ⚠️ A GRID of cards, not a stack of full-width rows.
-//
-// Each artist used to be a full-width block: name, count, and a horizontal rail
-// of covers. That put a line break between every artist and gave a library with
-// forty of them a page you scroll for a minute — most of it whitespace, because
-// an artist with one album still took the full width. Artists now flow one
-// after another, several to a row, and open out in place.
+// ⚠️ AN ARTIST OPENS IN PLACE, AND THEIR RECORDS ARE TINTED (James, 2026-09-11:
+// "grouped artists not opening inline and the different bg colour not showing,
+// I think there's been a regression"). This is the fan the Albums tab had until
+// it stopped grouping (06281a9), moved here: the card becomes the open sleeve in
+// the cell it was in, and the artist's albums follow it in the grid, each on the
+// orange tint, so an opened run is told apart from the artists either side. It
+// replaced a drawer under the WHOLE grid — which on a phone put an artist's
+// records a long scroll away from the card that opened them.
 
 export default function ArtistList({ query, order }: { query: string; order: LibraryOrder }) {
   const albums = useLibraryStore((s) => s.albums)
-  const [openArtist, setOpenArtist] = useState<string | null>(null)
-  const drawer = useRef<HTMLElement>(null)
-  /** Each artist's card, so "Close" can bring you back to the one you opened. */
-  const cards = useRef(new Map<string, HTMLButtonElement>())
-
-  // ⚠️ THE DRAWER IS REVEALED HERE, BY HAND, AND NOT BY THE SDK — and the cards
-  // deliberately carry NO `aria-controls`, which is what keeps the SDK out.
-  //
-  // They used to carry one, so that the SDK's reveal-on-expand would scroll the
-  // drawer into view. But that reveal brings the panel into view TOGETHER WITH
-  // the button that opened it, under a rule that the button never leaves the
-  // top of the screen — and this drawer sits below the WHOLE grid. With a real
-  // library that span is taller than a phone, the rule caps the scroll at almost
-  // nothing, and the drawer stays off the bottom of the page. Found on the first
-  // day of the iPhone's Music library (James, 2026-09-10: "you click it and it
-  // says 'open' but it doesn't show them"). The card changed to "Showing 3
-  // albums" and the albums were a long scroll away.
-  //
-  // `revealExpanded(drawer, null)` is the same SDK routine asked about the
-  // drawer ALONE: it still knows about the sticky navbar, and it still stands
-  // down the moment you scroll yourself.
-  useEffect(() => {
-    if (openArtist && drawer.current) revealExpanded(drawer.current, null)
-  }, [openArtist])
-
-  /** Shut the drawer and put the artist you opened back on screen. */
-  const close = () => {
-    const card = openArtist ? cards.current.get(openArtist) : undefined
-    setOpenArtist(null)
-    if (card) revealExpanded(card, null)
-  }
+  /** Artists opened out. Names, because that is what groups them. */
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const baseId = useId()
 
   const artists = useMemo(() => {
     const byArtist = new Map<string, Album[]>()
@@ -74,11 +46,10 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
       order.kind === 'random'
         ? seededOrder(entries, ([name]) => name, order.seed)
         : entries.sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' }))
-    return ordered
-      .map(([name, list]) => ({
-        name,
-        albums: [...list].sort((x, y) => (x.year ?? 9999) - (y.year ?? 9999)),
-      }))
+    return ordered.map(([name, list]) => ({
+      name,
+      albums: [...list].sort((x, y) => (x.year ?? 9999) - (y.year ?? 9999)),
+    }))
   }, [albums, query, order])
 
   if (artists.length === 0) {
@@ -89,55 +60,75 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
     )
   }
 
-  const open = artists.find((a) => a.name === openArtist)
-
   return (
-    <>
-      <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {artists.map((artist) => {
-          const many = artist.albums.length > 1
-          const isOpen = openArtist === artist.name
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      {artists.map((artist, index) => {
+        // One album is not worth opening — go straight to the record, which is
+        // the only thing behind the door anyway.
+        if (artist.albums.length === 1) {
+          const album = artist.albums[0]
           return (
             <li key={artist.name}>
               <button
                 type="button"
-                onClick={() =>
-                  // One album is not worth opening a drawer for — go straight to
-                  // the record, which is the only thing behind the door anyway.
-                  many
-                    ? setOpenArtist((prev) => (prev === artist.name ? null : artist.name))
-                    : navigate({ view: 'album', albumId: artist.albums[0].id })
-                }
-                ref={(el) => {
-                  if (el) cards.current.set(artist.name, el)
-                  else cards.current.delete(artist.name)
-                }}
-                aria-expanded={many ? openArtist === artist.name : undefined}
+                onClick={() => navigate({ view: 'album', albumId: album.id })}
                 className="group w-full text-left focus:outline-none"
               >
-                {/* ⚠️ Open, the fan becomes the sleeve — the same card the
-                    albums grid uses, for the same reason: the drawer below
-                    holds this artist's records and nothing on screen otherwise
-                    says which card they came out of. */}
-                {many && isOpen ? (
+                <Cover
+                  album={album}
+                  className="aspect-square w-full shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 group-hover:shadow-md group-focus-visible:ring-2 group-focus-visible:ring-orange-600 dark:ring-white/10"
+                />
+                <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
+                  {artist.name}
+                </p>
+                <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">1 album</p>
+              </button>
+            </li>
+          )
+        }
+
+        const isOpen = expanded.has(artist.name)
+        const toggle = () =>
+          setExpanded((prev) => {
+            const next = new Set(prev)
+            if (next.has(artist.name)) next.delete(artist.name)
+            else next.add(artist.name)
+            return next
+          })
+        // ⚠️ The run has no box of its own — its tiles are grid cells among
+        // everybody else's — so the card's `aria-controls` names the LAST of
+        // them. The SDK's reveal-on-expand spans the trigger AND the panel, so
+        // "the card you pressed, down to its last record" is what it brings on
+        // screen; and the records start right after the card, so none of them
+        // is ever a long scroll away. (`aria-controls` may list several ids,
+        // but the SDK looks the value up as ONE id.)
+        const lastTileId = `${baseId}-artist-${index}-last`
+
+        // ⚠️ ONE button for both states — the fan and the opened sleeve — so the
+        // SDK sees `aria-expanded` CHANGE on one element (which is what fires
+        // its reveal) and keyboard focus stays on the button that has it. The
+        // shared `Fragment` key and the stable `li` key are what keep it one.
+        return (
+          <Fragment key={artist.name}>
+            <li key="group">
+              <button
+                type="button"
+                onClick={toggle}
+                aria-expanded={isOpen}
+                aria-controls={lastTileId}
+                className="group w-full text-left focus:outline-none"
+              >
+                {isOpen ? (
                   <div className="aspect-square w-full">
-                    <OpenGroup
-                      albums={artist.albums}
-                      className="h-full w-full transition-transform group-hover:-translate-y-0.5"
-                    />
-                  </div>
-                ) : many ? (
-                  <div className="aspect-square w-full px-3 pt-3">
-                    <CoverFan
-                      albums={artist.albums}
-                      className="h-full w-full transition-transform group-hover:-translate-y-0.5"
-                    />
+                    <OpenGroup albums={artist.albums} className="h-full w-full transition-transform group-hover:-translate-y-0.5" />
                   </div>
                 ) : (
-                  <Cover
-                    album={artist.albums[0]}
-                    className="aspect-square w-full shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 group-hover:shadow-md dark:ring-white/10"
-                  />
+                  // Breathing room inside the tile's own square, so the cards
+                  // behind lean into padding rather than into the neighbouring
+                  // tile — and every cell stays the same size.
+                  <div className="aspect-square w-full px-3 pt-3">
+                    <CoverFan albums={artist.albums} className="h-full w-full transition-transform group-hover:-translate-y-0.5" />
+                  </div>
                 )}
                 <p
                   className={`mt-2 line-clamp-2 text-[13px] font-medium ${
@@ -149,61 +140,36 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
                   {artist.name}
                 </p>
                 <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
-                  {isOpen ? `Showing ${plural(artist.albums.length, 'album')}` : plural(artist.albums.length, 'album')}
+                  {isOpen
+                    ? `Showing ${plural(artist.albums.length, 'album')} — tap to fold up`
+                    : plural(artist.albums.length, 'album')}
                 </p>
               </button>
             </li>
-          )
-        })}
-      </ul>
-
-      {/* ⚠️ The opened artist's records go BELOW the grid rather than inside it.
-          Splicing a variable number of tiles into a responsive grid pushes every
-          artist after them to a new position, so the one you clicked jumps
-          somewhere else on the page at the moment you click it. A drawer under
-          the grid leaves the grid still. */}
-      {open && (
-        <section
-          ref={drawer}
-          aria-label={`${open.name}’s albums`}
-          className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800"
-        >
-          <div className="mb-4 flex items-baseline justify-between gap-4">
-            <h2 className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">
-              {open.name}
-            </h2>
-            <button
-              type="button"
-              onClick={close}
-              className="shrink-0 text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
-            >
-              Close
-            </button>
-          </div>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {open.albums.map((album) => (
-              <li key={album.id}>
-                <button
-                  type="button"
-                  onClick={() => navigate({ view: 'album', albumId: album.id })}
-                  className="group w-full text-left focus:outline-none"
-                >
-                  <Cover
-                    album={album}
-                    className="aspect-square w-full shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 dark:ring-white/10"
-                  />
-                  <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
-                    {album.title}
-                  </p>
-                  {album.year && (
-                    <p className="text-[12px] text-slate-500 dark:text-slate-400">{album.year}</p>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </>
+            {isOpen &&
+              artist.albums.map((album, i) => (
+                <li key={album.id} id={i === artist.albums.length - 1 ? lastTileId : undefined}>
+                  <button
+                    type="button"
+                    onClick={() => navigate({ view: 'album', albumId: album.id })}
+                    // ⚠️ The tint is what answers "which of these tiles are
+                    // this artist's?" once a run is open.
+                    className={`group w-full text-left focus:outline-none ${GROUP_MEMBER_TINT}`}
+                  >
+                    <Cover
+                      album={album}
+                      className="aspect-square w-full shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-orange-600 dark:ring-white/10"
+                    />
+                    <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
+                      {album.title}
+                    </p>
+                    {album.year && <p className="text-[12px] text-slate-500 dark:text-slate-400">{album.year}</p>}
+                  </button>
+                </li>
+              ))}
+          </Fragment>
+        )
+      })}
+    </ul>
   )
 }

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. No event may carry a
@@ -18,7 +17,9 @@ import ErrorBanner from './components/ErrorBanner'
 import ExampleNotice from './components/ExampleNotice'
 import Landing from './components/Landing'
 import NowPlaying from './components/NowPlaying'
+import PhoneSearch, { type PhoneSearchHandle } from './components/PhoneSearch'
 import PlayerBar from './components/PlayerBar'
+import ScrollTopButton from './components/ScrollTopButton'
 import ScanBanner from './components/ScanBanner'
 import Settings from './components/Settings'
 import Tidy from './components/Tidy'
@@ -49,9 +50,6 @@ const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'abo
 
 /** The views the skipped-files report belongs on: the library itself. */
 const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'album', 'artist'])
-
-/** How far a pull from the top of the page has to travel to open search. */
-const PULL_TO_SEARCH_PX = 70
 
 /** The library's two switches: A–Z/Random and "Full albums only". */
 function togglePill(active: boolean): string {
@@ -143,7 +141,7 @@ export default function App() {
   // threw you back to the top would lose your place for nothing.
   useEffect(() => {
     if (PAGE_VIEWS.has(route.view)) window.scrollTo(0, 0)
-  }, [route.view, route.albumId])
+  }, [route.view, route.albumId, route.artist])
   const theme = useThemeStore((s) => s.effective)
 
   const status = useLibraryStore((s) => s.status)
@@ -165,9 +163,9 @@ export default function App() {
   /** A–Z or Random, for all three lists — see `lib/libraryView.ts`. */
   const [order, setOrder] = useState<LibraryOrder>({ kind: 'az' })
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
-  /** The search box on a phone: hidden until pulled down for, or asked for. */
+  /** The search box on a phone: folded away until pulled down — `PhoneSearch`. */
   const [searchOpen, setSearchOpen] = useState(false)
-  const searchBox = useRef<HTMLInputElement>(null)
+  const phoneSearch = useRef<PhoneSearchHandle>(null)
 
   /**
    * The view actually on screen.
@@ -192,51 +190,6 @@ export default function App() {
     return fullAlbumsOnly ? { ...all, albums: matchAlbums(albums.filter(isFullAlbum), query).length } : all
   }, [albums, tracks, query, fullAlbumsOnly])
 
-  /**
-   * Show the search box and put the cursor in it.
-   *
-   * ⚠️ `flushSync` first: on a phone the box is `display: none` until opened,
-   * and a hidden field cannot take focus — and iOS only raises the keyboard for
-   * a focus made DURING the gesture, so it cannot wait for the next render.
-   */
-  const openSearch = useCallback(() => {
-    flushSync(() => setSearchOpen(true))
-    searchBox.current?.focus()
-  }, [])
-
-  /**
-   * ⚠️ PULL DOWN TO SEARCH, on a phone (James, 2026-09-10: "Hide the search your
-   * library in mobile and if at the top of the page and then swipe down reveal
-   * the search field and open the keyboard"). Below Tailwind's `sm` the box is
-   * hidden; a downward drag that STARTS with the page at its very top opens it,
-   * from `touchend` — the gesture iOS will raise the keyboard for.
-   */
-  const onLibraryTab = view === 'albums' || view === 'artists' || view === 'tracks'
-  useEffect(() => {
-    if (!onLibraryTab || searchOpen) return
-    const phone = window.matchMedia('(max-width: 639px)')
-    let startY: number | null = null
-    let pulled = 0
-    const start = (e: TouchEvent) => {
-      startY = phone.matches && window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null
-      pulled = 0
-    }
-    const move = (e: TouchEvent) => {
-      if (startY !== null && e.touches.length === 1) pulled = e.touches[0].clientY - startY
-    }
-    const end = () => {
-      if (startY !== null && pulled > PULL_TO_SEARCH_PX) openSearch()
-      startY = null
-    }
-    window.addEventListener('touchstart', start, { passive: true })
-    window.addEventListener('touchmove', move, { passive: true })
-    window.addEventListener('touchend', end)
-    return () => {
-      window.removeEventListener('touchstart', start)
-      window.removeEventListener('touchmove', move)
-      window.removeEventListener('touchend', end)
-    }
-  }, [onLibraryTab, searchOpen, openSearch])
 
   useEffect(() => {
     void hydrate()
@@ -379,6 +332,8 @@ export default function App() {
           mini ? <MiniStageNote /> : <NowPlaying />
         ) : (
           <>
+            {/* On a phone, search waits folded above the tabs until pulled down. */}
+            <PhoneSearch ref={phoneSearch} query={query} setQuery={setQuery} open={searchOpen} setOpen={setSearchOpen} />
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <nav className="flex items-center gap-0.5" aria-label="Library views">
                 {TABS.map((tab) => {
@@ -468,12 +423,12 @@ export default function App() {
                   </button>
                 )}
               </div>
-              {/* On a phone the search box is hidden until asked for — this, or
-                  pulling down from the top of the page (see `openSearch`). */}
+              {/* On a phone the search box is folded away above the tabs — this,
+                  or pulling down from the top of the page, brings it down. */}
               {!searchOpen && !query && (
                 <button
                   type="button"
-                  onClick={openSearch}
+                  onClick={() => phoneSearch.current?.open()}
                   aria-label="Search your library"
                   title="Search — or pull down from the top of the page"
                   className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:hidden dark:text-slate-400 dark:hover:bg-slate-800"
@@ -481,19 +436,15 @@ export default function App() {
                   <SearchGlyph />
                 </button>
               )}
+              {/* The wider screens' box, inline with the tabs. A phone uses
+                  `PhoneSearch` above them instead. */}
               <input
-                ref={searchBox}
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onBlur={() => {
-                  if (!query.trim()) setSearchOpen(false)
-                }}
                 placeholder="Search your library"
                 aria-label="Search your library"
-                className={`ml-auto w-full max-w-xs rounded-full border border-slate-300 bg-white px-4 py-1.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${
-                  searchOpen || query ? '' : 'hidden sm:block'
-                }`}
+                className="ml-auto hidden w-full max-w-xs rounded-full border border-slate-300 bg-white px-4 py-1.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none sm:block dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
               {queueLength > 0 && !mini && (
                 <button
@@ -518,6 +469,7 @@ export default function App() {
       </main>
 
       <PlayerBar />
+      <ScrollTopButton />
 
       <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className={`${CONTAINER} flex flex-row items-center gap-3 py-4 text-xs text-slate-500 sm:gap-4 dark:text-slate-400`}>
