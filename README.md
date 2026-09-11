@@ -361,6 +361,33 @@ wrong one was copied. This has shipped for real elsewhere in the suite.
 system JDK 25 fails the Gradle sync with a bare `Unsupported class file major
 version 69`.
 
+### The Windows app
+
+```sh
+cd D:/Github/UNISIM/Universal_Apps/Universal_Jukebox
+npm run build:desktop    # the same --mode desktop bundle the phones get
+npm run electron         # the desktop shell, against that build
+npm run dist:win         # the NSIS installer, into release/ — on Windows
+```
+
+An Electron shell (`electron/main.cjs`) around the `--mode desktop` bundle,
+loaded from disk. The music is read exactly as the browser reads it — through
+Chromium's own folder picker — so the renderer stays sandboxed and the preload
+exposes nothing but the SDK's hub handoff. One copy runs at a time (a second
+would share the library's IndexedDB), links out open in the system browser, and
+background throttling is off so a change-over keeps time while minimised.
+
+**The installer is built on GitHub, not on a Mac:** Actions → `windows` → Run
+workflow. electron-builder writes the icon into the `.exe` with rcedit, a
+Windows program, which a Mac can only run under Wine. The run smoke-launches the
+packaged app and keeps the installer as its artifact for 30 days; give it a tag
+and it is attached to that GitHub Release as well. Unsigned, like the suite's
+other desktop apps, so SmartScreen asks once: More info → Run anyway.
+
+⚠️ **An agent's shell sets `ELECTRON_RUN_AS_NODE`,** and with it set any
+Electron app starts as plain Node and exits at once. Launch with
+`env -u ELECTRON_RUN_AS_NODE`.
+
 ### The tag tests are the important ones
 
 `src/lib/tags.ts` is the half of this app that fails **silently**. A misread tag
@@ -748,13 +775,18 @@ nothing here is a form.
 
 | Setting | Notes |
 |---|---|
-| **Open my library on** | Albums · Artists · Tracks. Also settable from the star beside each tab |
+| **Open my library on** | Artists · Albums · Tracks · Jukebox. Also set by double-tapping a tab |
 | **Deck** | Vinyl · CD · Cassette · Jukebox · **Random**. Changes the picture on Now Playing and the start-up sound, never the music — see below |
 | **Record-changing animation** | A slider along a frequency ladder: Every track (default) · When the album changes · When the artist changes · Once per visit · Never. Governs the ceremony, the change-over animation and how often the start-up sound plays |
 | **Needle-drop sound** | The thunk and surface noise — on a new record, between tracks, and on a preview. Its level is a **±5** slider, 0 being the level it has always been |
 | **Volume boost** | 1–4× on top of the volume slider, for quietly-mastered albums |
 | **Fade in / Fade out** | 0–8s, at the ends of a track. Separate from the crossfade between two tracks of one album — see below |
 | **Theme** | Light · Dark · Match my device |
+
+Two rows **do** something rather than set it: **Tidy up library** (under *Your
+library*) and **Show the tips again** (under *Appearance*, beside the theme).
+Both moved out of the Actions menu on 2026-09-11, which now holds only the
+library's folders, Settings and About.
 
 **Adding one** should be a field and a default in `stores/settingsStore.ts` plus
 one `<Choice>` / `<Slider>` / `<Toggle>` in `components/Settings.tsx`. The page
