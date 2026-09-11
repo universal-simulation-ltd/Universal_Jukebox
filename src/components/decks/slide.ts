@@ -30,6 +30,20 @@ export interface DeckSlide {
   animate: boolean
   /** How long that transition takes — a swipe's settle, or a whole crossfade. */
   ms?: number
+  /**
+   * The pickup is OFF — the needle lifted, the laser out, the head back — from
+   * the moment a swipe commits until the record that came in is on the deck
+   * (James, 2026-09-11: "as you're swiping ... move the needle off so there's
+   * no jump when the next one lands"). Left down, the arm hovered over a bare
+   * platter, then lifted and dropped again as the new record landed.
+   */
+  lifted?: boolean
+  /**
+   * A stand-in is covering the deck (the record that came in, held in the
+   * middle). The deck's own record waits unturned beneath it, so that when the
+   * stand-in goes the two are at the same angle — the new record starts upright.
+   */
+  holding?: boolean
 }
 
 export const DeckSlideContext = createContext<DeckSlide | null>(null)

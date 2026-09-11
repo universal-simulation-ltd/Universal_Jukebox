@@ -54,6 +54,11 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
       <div className="absolute inset-0" style={slide ? slideOuter(slide) : undefined}>
       <div className="absolute inset-0" style={slide ? slideInner(slide) : undefined}>
       <div
+        // ⚠️ KEYED ON THE RECORD, so a new one goes on at 0°, as the record that
+        // flew in was drawn, instead of carrying on from wherever the last had
+        // turned to (James, 2026-09-11: "the new track should also start in the
+        // fixed starting position"). Same record, same key: pause still freezes it.
+        key={url ?? hue}
         className="absolute inset-0 rounded-full bg-slate-900 shadow-xl dark:bg-[#12192b]"
         style={{
           // The platter turns at a real 33⅓ rpm — 1.8s a revolution — which is

@@ -110,7 +110,9 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   // A non-ceremonial deck (the mini player) always shows the pickup engaged
   // while something is playing — it is a picture of the state, not of the
   // ceremony.
-  const engaged = ceremonial ? armDownState : playing
+  // ⚠️ And OFF while a swipe carries the record away (`DeckSlide.lifted`), so
+  // it is cued onto the new record once, when it lands.
+  const engaged = ceremonial ? armDownState && !slide?.lifted : playing
 
   /**
    * How far through the track we are, 0 → 1, and so how far the pickup has
@@ -135,7 +137,9 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   // is a record player that is not running, which is the one thing the whole
   // animation is meant to show. This read `playing && !active`, which was
   // exactly backwards for the two seconds anybody is actually watching.
-  const spinning = playing || active
+  // Not while a stand-in covers the deck (`DeckSlide.holding`): the new record
+  // waits at 0° under it, and starts turning from there when it goes.
+  const spinning = (playing || active) && !slide?.holding
 
   /**
    * The album art fading in as a record arrives, and out as one leaves.

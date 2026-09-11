@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { withResumeRow } from './resumeRow'
 import { useGridColumns } from '../lib/useGridColumns'
+import { leadWith, useResumable } from '../lib/resume'
 import Cover from './Cover'
 import { matchAlbums } from '../lib/search'
 import { navigate } from '../lib/route'
@@ -32,6 +33,7 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
   const columns = useSettingsStore((s) => s.libraryColumns)
   const [grid, across] = useGridColumns(columns)
+  const leadId = useResumable()?.album?.id ?? null
 
   // ⚠️ Ordered first, then filtered through `matchAlbums` — the same function
   // the tab count uses, so the number beside "Albums" and the tiles below it
@@ -39,8 +41,12 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
   const shown = useMemo(() => {
     const pool = fullOnly ? albums.filter(isFullAlbum) : albums
     const ordered = order.kind === 'random' ? seededOrder(pool, (a) => a.id, order.seed) : [...pool].sort(byArtistThenYear)
-    return matchAlbums(ordered, query)
-  }, [albums, fullOnly, order, query])
+    // While "Resume listening" shows (the row under the first), its album is
+    // the first tile (James, 2026-09-11: "in row 1 have the album for that
+    // track as item 1") — on the shelf too, where it is the first shelf's
+    // opening record.
+    return leadWith(matchAlbums(ordered, query), leadId ? (a) => a.id === leadId : null)
+  }, [albums, fullOnly, order, query, leadId])
 
   if (shown.length === 0) {
     return (

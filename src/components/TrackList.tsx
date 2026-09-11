@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import PreviewButton from './PreviewButton'
 import { withResumeRow } from './resumeRow'
+import { leadWith, useResumable } from '../lib/resume'
 import { clock } from '../lib/format'
 import { matchTracks } from '../lib/search'
 import { seededOrder, type LibraryOrder } from '../lib/libraryView'
@@ -27,14 +28,17 @@ export default function TrackList({ query, order }: { query: string; order: Libr
   const playing = usePlayerStore((s) => s.playing)
   const nowPlaying = usePlayerStore(currentTrack)
   const [showAll, setShowAll] = useState(false)
+  const leadId = useResumable()?.track.id ?? null
 
   // ⚠️ `matchTracks` and not an inline filter: the count in the tab above comes
   // from the same function, and two copies of "what counts as a match" drift
   // without anything failing.
   const matched = useMemo(() => {
     const found = matchTracks(tracks, query)
-    return order.kind === 'random' ? seededOrder(found, (t) => t.id, order.seed) : [...found].sort(byTitle)
-  }, [tracks, query, order])
+    const ordered = order.kind === 'random' ? seededOrder(found, (t) => t.id, order.seed) : [...found].sort(byTitle)
+    // The song "Resume listening" names, first — as the albums lead with its album.
+    return leadWith(ordered, leadId ? (t) => t.id === leadId : null)
+  }, [tracks, query, order, leadId])
 
   const shown = showAll ? matched : matched.slice(0, CAP)
   const hidden = matched.length - shown.length

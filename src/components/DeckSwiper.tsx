@@ -233,6 +233,10 @@ export default function DeckSwiper({
     opacity: arriving ? 0 : 1 - (incoming ? 0.85 : 0.6) * progress,
     animate,
     ms,
+    // Past the point where letting go would change track — not for a nudge
+    // that springs back, and not for the little give towards an empty side.
+    lifted: Math.abs(x) >= SWIPE_PX || arriving !== null || incoming !== null,
+    holding: arriving !== null,
   }
 
   /** A record crossfade is sliding the machines — the peeks are a track stale. */

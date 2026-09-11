@@ -1,6 +1,7 @@
 import { Fragment, useId, useMemo, useState } from 'react'
 import { withResumeRow } from './resumeRow'
 import { useGridColumns } from '../lib/useGridColumns'
+import { leadWith, useResumable } from '../lib/resume'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
 import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
@@ -35,6 +36,7 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   const baseId = useId()
   const columns = useSettingsStore((s) => s.libraryColumns)
   const [grid, across] = useGridColumns(columns)
+  const leadName = useResumable()?.album?.artist ?? null
 
   const artists = useMemo(() => {
     const byArtist = new Map<string, Album[]>()
@@ -51,11 +53,12 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
       order.kind === 'random'
         ? seededOrder(entries, ([name]) => name, order.seed)
         : entries.sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' }))
-    return ordered.map(([name, list]) => ({
+    // The artist "Resume listening" would play first, as the albums lead with its album.
+    return leadWith(ordered, leadName ? ([name]) => name === leadName : null).map(([name, list]) => ({
       name,
       albums: [...list].sort((x, y) => (x.year ?? 9999) - (y.year ?? 9999)),
     }))
-  }, [albums, query, order])
+  }, [albums, query, order, leadName])
 
   if (artists.length === 0) {
     return (

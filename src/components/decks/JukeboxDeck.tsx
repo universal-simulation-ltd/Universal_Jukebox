@@ -221,6 +221,11 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
             Only its label fades — see `labelFade` in `face.ts`. */}
         <div className="absolute inset-[7%]">
           <div
+            // ⚠️ KEYED ON THE RECORD, so a new one goes on at 0°, as the record that
+            // flew in was drawn, instead of carrying on from wherever the last had
+            // turned to (James, 2026-09-11: "the new track should also start in the
+            // fixed starting position"). Same record, same key: pause still freezes it.
+            key={url ?? hue}
             className="absolute inset-0 rounded-full bg-[#120c09] shadow-xl"
             style={{
               // 45 rpm — 1.33s a revolution, against the turntable's 1.8s.
