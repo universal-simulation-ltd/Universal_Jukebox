@@ -220,6 +220,8 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
             brings across; the platter, the arm and the cabinet are the machine.
             Only its label fades — see `labelFade` in `face.ts`. */}
         <div className="absolute inset-[7%]">
+          {/* The record's shadow, on a disc that does not turn — see VinylDeck. */}
+          <div className="absolute inset-0 rounded-full shadow-xl" aria-hidden />
           <div
             // ⚠️ KEYED ON THE RECORD, so a new one goes on at 0°, as the record that
             // flew in was drawn, instead of carrying on from wherever the last had
@@ -228,7 +230,7 @@ export default function JukeboxDeck({ progress, engaged, spinning, reduced, url,
             key={url ?? hue}
             // What `DeckSwiper` turns upright as a swipe carries it to the side.
             data-record
-            className="absolute inset-0 rounded-full bg-[#120c09] shadow-xl"
+            className="absolute inset-0 rounded-full bg-[#120c09]"
             style={{
               // 45 rpm — 1.33s a revolution, against the turntable's 1.8s.
               //

@@ -8,6 +8,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
 import { ARC_ACROSS, ARC_RISE, DeckSlideContext, type DeckSlide } from './decks/slide'
 import { Medium } from './UpNextReel'
+import { VinylRecord } from './decks/VinylRecord'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
@@ -339,6 +340,7 @@ export default function DeckSwiper({
           style={styleAt(prevIndex)}
           side="left"
           size={peek}
+          deck={size}
           top={centreY + sag}
           motion={peekMotion('left')}
           onClick={() => jumpTo(prevIndex)}
@@ -351,6 +353,7 @@ export default function DeckSwiper({
           style={styleAt(nextIndex)}
           side="right"
           size={peek}
+          deck={size}
           top={centreY + sag}
           motion={peekMotion('right')}
           onClick={() => jumpTo(nextIndex)}
@@ -373,15 +376,13 @@ export default function DeckSwiper({
             }}
           >
             <div
-              className="h-full w-full"
+              className="relative h-full w-full"
               style={{
                 transform: incoming.run ? 'translateY(0) scale(1)' : `translateY(${sag}px) scale(${peekScale})`,
                 transition: incoming.run ? `transform ${ms}ms ${ARC_RISE}` : 'none',
               }}
             >
-              <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
-                <Medium album={incoming.album} style={incoming.style} />
-              </span>
+              <Drawn album={incoming.album} style={incoming.style} deck={size} shown={size} />
             </div>
           </div>
         </div>
@@ -394,9 +395,7 @@ export default function DeckSwiper({
           style={{ top: centreY, width: size, height: size, transform: 'translate(-50%, -50%)' }}
           aria-hidden
         >
-          <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
-            <Medium album={arriving.album} style={arriving.style} />
-          </span>
+          <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} />
         </div>
       )}
       <div
@@ -506,12 +505,14 @@ const Peek = forwardRef<
     style: DeckStyle
     side: 'left' | 'right'
     size: number
+    /** The deck's size — what a record is drawn at before it is scaled to the peek's. */
+    deck: number
     /** The peek's centre, from the top of the box: the deck's, plus the sag. */
     top: number
     motion: PeekMotion
     onClick(): void
   }
->(function Peek({ album, style, side, size, top, motion, onClick }, ref) {
+>(function Peek({ album, style, side, size, deck, top, motion, onClick }, ref) {
   return (
     <button
       ref={ref}
@@ -539,17 +540,32 @@ const Peek = forwardRef<
         [side]: -Math.round(size * 0.58),
       }}
     >
-      {/* `Medium` is drawn at 76px; scaled rather than redrawn, so the two
-          rows can never disagree about what a cassette looks like.
-          ⚠️ PINNED TO THE TOP LEFT, not left in the flow. A button centres its
-          content vertically, so the 76px drawing sat (size − 76) / 2 down the
-          button before the scale — every peek was drawn 38px below its place,
-          and a peek grown to the deck's size landed 61px under the record it
-          was replacing (James, 2026-09-11: "Record still doesn't end in right
-          position"). */}
-      <span className="absolute left-0 top-0 block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
-        <Medium album={album} style={style} />
-      </span>
+      <Drawn album={album} style={style} deck={deck} shown={size} />
     </button>
   )
 })
+
+/**
+ * A record as it is drawn beside the deck, `shown` pixels across.
+ *
+ * ⚠️ VINYL IS THE DECK'S OWN RECORD (`VinylRecord`), drawn at the DECK's size
+ * and only then scaled: the record swiped away shrinks by transform, so a peek
+ * drawn at its own size would have finer grooves than the record it replaces,
+ * and the one arriving would have coarser ones than the record it becomes
+ * (James, 2026-09-11: "New disc doesn't have enough lines"). Every other
+ * machine moves whole (`Deck`), so its stand-in is the reel's `Medium`.
+ *
+ * ⚠️ PINNED TO THE TOP LEFT, not left in the flow. A button centres its content
+ * vertically, so a drawing in the flow sat part-way down a peek before the
+ * scale — every peek drew 38px low, and a grown one landed 61px under the
+ * record it replaced (James, 2026-09-11: "Record still doesn't end in right
+ * position").
+ */
+function Drawn({ album, style, deck, shown }: { album: Album | undefined; style: DeckStyle; deck: number; shown: number }) {
+  const drawn = style === 'vinyl' ? deck : 76
+  return (
+    <span className="absolute left-0 top-0 block origin-top-left" style={{ width: drawn, height: drawn, transform: `scale(${shown / drawn})` }}>
+      {style === 'vinyl' ? <VinylRecord album={album} /> : <Medium album={album} style={style} />}
+    </span>
+  )
+}

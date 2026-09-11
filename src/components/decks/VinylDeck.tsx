@@ -1,5 +1,6 @@
 import type { DeckFaceProps } from './face'
 import { slideInner, slideOuter } from './slide'
+import { VinylRecordFace } from './VinylRecord'
 
 // The record and the tonearm — the original deck, and still the default.
 //
@@ -53,6 +54,13 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           tonearm below stays where it is (`slide`). */}
       <div className="absolute inset-0" style={slide ? slideOuter(slide) : undefined}>
       <div className="absolute inset-0" style={slide ? slideInner(slide) : undefined}>
+      {/* ⚠️ THE SHADOW STAYS STILL (James, 2026-09-11: "There's a strange shadow
+          that appears only as it rotates past"). A box-shadow turns with its
+          element, so on the spinning disc the drop shadow orbited it — above the
+          record at 180°, where the swipe box's edge sliced it flat. It is drawn
+          here, on a disc that does not turn; outer shadows never paint inside
+          their box, so this one shows only round the edge. */}
+      <div className="absolute inset-0 rounded-full shadow-xl" aria-hidden />
       <div
         // ⚠️ KEYED ON THE RECORD, so a new one goes on at 0°, as the record that
         // flew in was drawn, instead of carrying on from wherever the last had
@@ -61,7 +69,7 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
         key={url ?? hue}
         // What `DeckSwiper` turns upright as a swipe carries it to the side.
         data-record
-        className="absolute inset-0 rounded-full bg-slate-900 shadow-xl dark:bg-[#12192b]"
+        className="absolute inset-0 rounded-full bg-slate-900 dark:bg-[#12192b]"
         style={{
           // The platter turns at a real 33⅓ rpm — 1.8s a revolution — which is
           // slow enough to read as a record rather than a loading spinner.
@@ -77,37 +85,7 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           animationPlayState: spinning ? 'running' : 'paused',
         }}
       >
-        {/* Grooves. Rendered as repeating rings in one gradient rather than N
-            elements: at 420px this is one paint instead of twenty. */}
-        <div
-          className="absolute inset-0 rounded-full opacity-[0.16]"
-          style={{
-            background:
-              'repeating-radial-gradient(circle at 50% 50%, transparent 0 3px, rgba(255,255,255,.5) 3px 4px)',
-          }}
-        />
-        {/* The cover IS the centre label — which is what earns the artwork all
-            the extraction work bought. */}
-        <div
-          className="absolute overflow-hidden rounded-full ring-1 ring-white/10"
-          style={{ inset: '30%', animation: labelFade }}
-        >
-          {url ? (
-            <img src={url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div
-              className="h-full w-full"
-              style={{
-                background: `linear-gradient(135deg, hsl(${hue} 46% 62%), hsl(${(hue + 28) % 360} 44% 44%))`,
-              }}
-            />
-          )}
-        </div>
-        {/* Spindle hole. */}
-        <div
-          className="absolute rounded-full bg-slate-100 dark:bg-slate-900"
-          style={{ inset: '48.4%' }}
-        />
+        <VinylRecordFace url={url} hue={hue} labelFade={labelFade} />
       </div>
       </div>
       </div>

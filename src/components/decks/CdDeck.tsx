@@ -148,6 +148,8 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
             and comes out; the body, the sled and the rail are the machine. */}
         <div className="absolute inset-0">
           {/* The disc. Silver in both themes, because a CD is silver in both. */}
+          {/* The disc's shadow, on a disc that does not turn — see VinylDeck. */}
+          <div className="absolute inset-0 rounded-full shadow-lg" aria-hidden />
           <div
             // ⚠️ KEYED ON THE RECORD, so a new one goes on at 0°, as the record that
             // flew in was drawn, instead of carrying on from wherever the last had
@@ -156,7 +158,7 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
             key={url ?? hue}
             // What `DeckSwiper` turns upright as a swipe carries it to the side.
             data-record
-            className="absolute inset-0 overflow-hidden rounded-full shadow-lg"
+            className="absolute inset-0 overflow-hidden rounded-full"
             style={{
               // ⚠️ 0.9s a revolution — twice the vinyl deck's 1.8s, and nowhere
               // near a real CD's 200–500 rpm. A disc turning at its true speed
