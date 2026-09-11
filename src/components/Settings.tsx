@@ -22,6 +22,7 @@ import {
   type CeremonyMode,
   type DeckSetting,
   type HomeTab,
+  type LyricsAroundStyle,
 } from '../stores/settingsStore'
 import { useThemeStore, type ThemePref } from '../stores/themeStore'
 
@@ -103,7 +104,7 @@ export default function Settings() {
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
-    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? ', around the record' : ''}`,
+    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? (s.lyricsAroundStyle === 'lines' ? ', every line on the record' : ', around the record') : ''}`,
     appearance: labelOf(THEME_OPTIONS, themePref),
   }
 
@@ -317,6 +318,14 @@ export default function Settings() {
             checked={s.lyricsAround}
             onChange={(v) => s.set('lyricsAround', v)}
           />
+          {s.lyricsAround && (
+            <Choice<LyricsAroundStyle>
+              label="Style"
+              value={s.lyricsAroundStyle}
+              onChange={(v) => s.set('lyricsAroundStyle', v)}
+              options={LYRICS_STYLE_OPTIONS}
+            />
+          )}
           <DownloadedLyrics />
         </Section>
 
@@ -397,6 +406,11 @@ const HOME_OPTIONS: Option<HomeTab>[] = [
   { value: 'albums', label: 'Albums' },
   { value: 'tracks', label: 'Tracks' },
   { value: 'jukebox', label: 'Jukebox' },
+]
+
+const LYRICS_STYLE_OPTIONS: Option<LyricsAroundStyle>[] = [
+  { value: 'arc', label: 'First line, then around the record' },
+  { value: 'lines', label: 'Every line, word by word' },
 ]
 
 const THEME_OPTIONS: Option<ThemePref>[] = [

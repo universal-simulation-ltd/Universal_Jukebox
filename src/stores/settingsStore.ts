@@ -57,6 +57,14 @@ export const CEREMONY_LADDER: CeremonyMode[] = ['off', 'first', 'artist', 'album
 /** Which library tab the front door opens on. */
 export type HomeTab = 'albums' | 'artists' | 'tracks' | 'jukebox'
 
+/**
+ * The lyrics around the record: `arc` opens on the first line big, word by
+ * word, then puts the rest on an arc; `lines` keeps every line like that first
+ * one (James, 2026-09-11: "an option in settings to have the lyrics always like
+ * the first line lyrics").
+ */
+export type LyricsAroundStyle = 'arc' | 'lines'
+
 /** The three lists, each with its own order and layout (`perTab`). */
 export type ListTab = Exclude<HomeTab, 'jukebox'>
 
@@ -184,6 +192,8 @@ export interface Settings {
   lyricsOnline: boolean
   /** The words around the spinning record on Now Playing (`LyricsAround`). */
   lyricsAround: boolean
+  /** How: the first line big then the rest on an arc, or every line big, word by word. */
+  lyricsAroundStyle: LyricsAroundStyle
   /** "Full albums only" on the Albums tab — see `isFullAlbum` in `lib/libraryView.ts`. */
   fullAlbumsOnly: boolean
   /**
@@ -221,6 +231,7 @@ export const DEFAULTS: Settings = {
   fadeOutSec: 0,
   lyricsOnline: false,
   lyricsAround: false,
+  lyricsAroundStyle: 'arc',
   fullAlbumsOnly: false,
   tipsSeen: [],
   stableVolume: false,
@@ -364,6 +375,7 @@ function readStored(): Settings {
     // is the entire guarantee this setting makes.
     lyricsOnline: stored.lyricsOnline === true,
     lyricsAround: stored.lyricsAround === true,
+    lyricsAroundStyle: stored.lyricsAroundStyle === 'lines' ? 'lines' : 'arc',
     fullAlbumsOnly: stored.fullAlbumsOnly === true,
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
@@ -431,6 +443,7 @@ function persist(state: Settings) {
     fadeOutSec: state.fadeOutSec,
     lyricsOnline: state.lyricsOnline,
     lyricsAround: state.lyricsAround,
+    lyricsAroundStyle: state.lyricsAroundStyle,
     fullAlbumsOnly: state.fullAlbumsOnly,
     tipsSeen: state.tipsSeen,
     stableVolume: state.stableVolume,

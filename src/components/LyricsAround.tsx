@@ -4,6 +4,7 @@ import { nextSungLine } from '../lib/singing'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { useSettingsStore } from '../stores/settingsStore'
 
 // The words around the spinning record (James, 2026-09-11: "could we have a
 // lyrics visualiser option? So you see the record spinning and the words fading
@@ -29,6 +30,7 @@ export default function LyricsAround({ size }: { size: number }) {
   const lyricsFor = useLyricsStore((s) => s.trackId)
   const status = useLyricsStore((s) => s.status)
   const load = useLyricsStore((s) => s.load)
+  const style = useSettingsStore((s) => s.lyricsAroundStyle)
   const reduced = usePrefersReducedMotion()
 
   // Fetched for the record, whether or not the lyrics list is open.
@@ -42,23 +44,30 @@ export default function LyricsAround({ size }: { size: number }) {
   const first = nextSungLine(lines, -1)
   if (first < 0) return null
 
-  // ── The opening line, word by word ──
-  if (active <= first) {
-    const line = lines[first]
+  // ── A line big across the record, word by word ──
+  // The opening line in the `arc` style; EVERY line in `lines` (James,
+  // 2026-09-11: "have the lyrics always like the first line lyrics"). Between
+  // lines — before one, or in an instrumental gap — the one coming next waits,
+  // its words not yet shown.
+  const bigIndex =
+    style === 'lines' ? (active >= 0 && lines[active]?.text.trim() ? active : nextSungLine(lines, active)) : active <= first ? first : -1
+  if (bigIndex >= 0) {
+    const line = lines[bigIndex]
     const start = line.timeSec ?? 0
-    const end = lines[first + 1]?.timeSec ?? start + 4
+    const end = lines[bigIndex + 1]?.timeSec ?? start + 4
     const words = line.text.split(/\s+/).filter(Boolean)
     const shown = currentSec < start ? 0 : Math.max(1, Math.min(words.length, Math.ceil(((currentSec - start) / Math.max(0.5, end - start)) * words.length)))
     return (
       <div
-        data-lyrics-around="opening"
+        key={`line-${bigIndex}`}
+        data-lyrics-around="line"
         aria-hidden
         className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-wrap justify-center gap-x-[0.3em] text-center leading-tight font-bold text-white"
         style={{ top: '50%', width: size * 0.92, fontSize: Math.max(18, Math.min(30, size / 10)), textShadow: '0 2px 10px rgba(0,0,0,.75), 0 0 2px rgba(0,0,0,.9)' }}
       >
         {words.map((word, i) => (
           <span
-            key={`${first}-${i}`}
+            key={`${bigIndex}-${i}`}
             style={{
               opacity: i < shown ? 1 : 0,
               transform: i < shown || reduced ? 'none' : 'translateY(6px)',
@@ -71,6 +80,7 @@ export default function LyricsAround({ size }: { size: number }) {
       </div>
     )
   }
+  if (style === 'lines') return null
 
   // ── The arc: now over the top, next along the bottom ──
   const now = lines[active]?.text.trim() ? lines[active].text.trim() : ''
