@@ -41,7 +41,7 @@ const ARM = {
   LIFT: -24,
 }
 
-export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide }: DeckFaceProps) {
+export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, grooves }: DeckFaceProps) {
   const trackAngle = ARM.TRACK_START + progress * ARM.TRACK_TRAVEL
 
   return (
@@ -85,7 +85,7 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           animationPlayState: spinning ? 'running' : 'paused',
         }}
       >
-        <VinylRecordFace url={url} hue={hue} labelFade={labelFade} />
+        <VinylRecordFace url={url} hue={hue} labelFade={labelFade} grooves={grooves} />
       </div>
       </div>
       </div>

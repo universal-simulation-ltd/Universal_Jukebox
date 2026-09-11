@@ -53,6 +53,8 @@ export interface DeckFaceProps {
    * it (its record moves, its tonearm stays); `Deck` moves the others whole.
    */
   slide?: DeckSlide
+  /** Grooves on the record — as many as its song is long (`lib/grooves.ts`). */
+  grooves?: number
 }
 
 /** Where the drifting notes leave from, per deck: roughly, the pickup. */

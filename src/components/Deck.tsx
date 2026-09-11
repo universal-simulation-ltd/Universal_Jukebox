@@ -1,4 +1,4 @@
-import { useEffect, useRef, useContext } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { ERA_ORDER, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
@@ -15,6 +15,7 @@ import PocketDeck from './decks/PocketDeck'
 import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
 import { DeckSlideContext, slideInner, slideOuter } from './decks/slide'
+import { grooveRings } from '../lib/grooves'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
 // the pickup engaging when you put something on, and the pickup — or the reels
@@ -86,6 +87,13 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   const phase = usePlayerStore((s) => s.deckPhase)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const durationSec = usePlayerStore((s) => s.durationSec)
+  // The length of the song whose record is ON the deck — kept while one is on
+  // its way off, since the player moves to the next song (and its length) as
+  // the change-over starts, and the departing record's grooves must not change.
+  const [heldSec, setHeldSec] = useState(0)
+  useEffect(() => {
+    if (phase !== 'leaving' && Number.isFinite(durationSec) && durationSec > 0) setHeldSec(durationSec)
+  }, [phase, durationSec])
   const setting = useSettingsStore((s) => s.deck)
   // ⚠️ The machine comes from the ALBUM ON THE DECK — under `automatic`, its
   // year decides (`resolveDeck`). The start-up sound in `playerStore`, the
@@ -200,6 +208,7 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           hue={hue}
           labelFade={labelFade}
           slide={slide && style === 'vinyl' ? slide : undefined}
+          grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
         />
         </div>
 

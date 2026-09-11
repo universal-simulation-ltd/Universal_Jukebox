@@ -3,6 +3,7 @@ import Cover from './Cover'
 import Record45 from './Record45'
 import { navigate } from '../lib/route'
 import { plural } from '../lib/format'
+import { grooveRings } from '../lib/grooves'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { newSeed, shelfRows } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -164,7 +165,7 @@ export function TrackShelf({ tracks, onPlay }: { tracks: Track[]; onPlay(track: 
           verb="Play"
           keyOf={(t) => t.id}
           nameOf={(t) => t.title}
-          render={(t) => <Record45 album={albumOf(t)} />}
+          render={(t) => <Record45 album={albumOf(t)} grooves={grooveRings(t.durationSec)} />}
           open={(t) => onPlay(t)}
           caption={(t) => ({ title: t.title, detail: `${t.artist ?? t.albumArtist ?? 'Unknown artist'} — tap the record to play` })}
         />

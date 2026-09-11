@@ -9,6 +9,7 @@ import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
 import { ARC_ACROSS, ARC_RISE, DeckSlideContext, type DeckSlide } from './decks/slide'
 import { Medium } from './UpNextReel'
 import { VinylRecord } from './decks/VinylRecord'
+import { grooveRings } from '../lib/grooves'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
@@ -54,6 +55,8 @@ const UPRIGHT_MS = 380
 interface Arriving {
   album: Album | undefined
   style: DeckStyle
+  /** Its song — for the grooves, which say how long it is. */
+  track?: Track
   /** A swipe's arrival: the side the new record came in from. */
   from?: 'left' | 'right'
   /** The record beyond it has started coming in from that edge. */
@@ -70,6 +73,7 @@ export default function DeckSwiper({
   const phase = usePlayerStore((s) => s.deckPhase)
   const blend = usePlayerStore((s) => s.blend)
   const jumpTo = usePlayerStore((s) => s.jumpTo)
+  const liveSec = usePlayerStore((s) => s.durationSec)
   const albums = useLibraryStore((s) => s.albums)
   const setting = useSettingsStore((s) => s.deck)
   const eras = useSettingsStore((s) => s.deckEras)
@@ -124,6 +128,14 @@ export default function DeckSwiper({
   // peek shows what a swipe will actually put on.
   const styleAt = (index: number | null): DeckStyle => resolveDeck(setting, albumAt(index) ?? trackAt(index), eras)
 
+  /**
+   * A stand-in's grooves: the song it stands in for is the one now CURRENT, so
+   * its length is the player's own once it has loaded — the same number the
+   * deck draws, so nothing changes when the deck takes over.
+   */
+  const standInGrooves = (track: Track | undefined) =>
+    grooveRings(track && track.id === trackAt(cursor)?.id && liveSec > 0 ? liveSec : track?.durationSec)
+
   const peek = Math.round(size * PEEK)
   /** A peek's size as a share of the deck's. */
   const peekScale = peek / size
@@ -170,7 +182,7 @@ export default function DeckSwiper({
     const r = measure()
     setReach(r)
     setMs(blend.ms)
-    setIncoming({ album, style, run: false })
+    setIncoming({ album, style, track, run: false })
     // Two frames: drawn at the edge first, THEN told to move, or it would jump.
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
@@ -183,7 +195,7 @@ export default function DeckSwiper({
     blendTimer.current = window.setTimeout(() => {
       blendTimer.current = null
       setIncoming(null)
-      setArriving({ album, style })
+      setArriving({ album, style, track })
     }, blend.ms)
     // `measure` reads refs only; the rest comes through `latest`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -337,6 +349,7 @@ export default function DeckSwiper({
         <Peek
           ref={leftPeek}
           album={albumAt(prevIndex)}
+          grooves={grooveRings(trackAt(prevIndex)?.durationSec)}
           style={styleAt(prevIndex)}
           side="left"
           size={peek}
@@ -350,6 +363,7 @@ export default function DeckSwiper({
         <Peek
           ref={rightPeek}
           album={albumAt(nextIndex)}
+          grooves={grooveRings(trackAt(nextIndex)?.durationSec)}
           style={styleAt(nextIndex)}
           side="right"
           size={peek}
@@ -382,7 +396,7 @@ export default function DeckSwiper({
                 transition: incoming.run ? `transform ${ms}ms ${ARC_RISE}` : 'none',
               }}
             >
-              <Drawn album={incoming.album} style={incoming.style} deck={size} shown={size} />
+              <Drawn album={incoming.album} style={incoming.style} deck={size} shown={size} grooves={standInGrooves(incoming.track)} />
             </div>
           </div>
         </div>
@@ -395,7 +409,7 @@ export default function DeckSwiper({
           style={{ top: centreY, width: size, height: size, transform: 'translate(-50%, -50%)' }}
           aria-hidden
         >
-          <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} />
+          <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} grooves={standInGrooves(arriving.track)} />
         </div>
       )}
       <div
@@ -444,6 +458,7 @@ export default function DeckSwiper({
           setX(dx < 0 ? -from.toRight : from.toLeft)
           turnUpright()
           const album = albumAt(target)
+          const track = trackAt(target)
           const style = styleAt(target)
           const cameFrom = dx < 0 ? 'right' : 'left'
           settle.current = window.setTimeout(() => {
@@ -453,7 +468,7 @@ export default function DeckSwiper({
             // flash up in the middle, or the old neighbour back at the side.
             flushSync(() => {
               setAnimate(false)
-              setArriving({ album, style, from: cameFrom })
+              setArriving({ album, style, track, from: cameFrom })
               jumpTo(target)
             })
             // Then the record beyond comes in from the edge: drawn there first.
@@ -507,12 +522,14 @@ const Peek = forwardRef<
     size: number
     /** The deck's size — what a record is drawn at before it is scaled to the peek's. */
     deck: number
+    /** Its grooves — as many as its song is long. */
+    grooves?: number
     /** The peek's centre, from the top of the box: the deck's, plus the sag. */
     top: number
     motion: PeekMotion
     onClick(): void
   }
->(function Peek({ album, style, side, size, deck, top, motion, onClick }, ref) {
+>(function Peek({ album, style, side, size, deck, grooves, top, motion, onClick }, ref) {
   return (
     <button
       ref={ref}
@@ -540,7 +557,7 @@ const Peek = forwardRef<
         [side]: -Math.round(size * 0.58),
       }}
     >
-      <Drawn album={album} style={style} deck={deck} shown={size} />
+      <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} />
     </button>
   )
 })
@@ -561,11 +578,13 @@ const Peek = forwardRef<
  * record it replaced (James, 2026-09-11: "Record still doesn't end in right
  * position").
  */
-function Drawn({ album, style, deck, shown }: { album: Album | undefined; style: DeckStyle; deck: number; shown: number }) {
+function Drawn({
+  album, style, deck, shown, grooves,
+}: { album: Album | undefined; style: DeckStyle; deck: number; shown: number; grooves?: number }) {
   const drawn = style === 'vinyl' ? deck : 76
   return (
     <span className="absolute left-0 top-0 block origin-top-left" style={{ width: drawn, height: drawn, transform: `scale(${shown / drawn})` }}>
-      {style === 'vinyl' ? <VinylRecord album={album} /> : <Medium album={album} style={style} />}
+      {style === 'vinyl' ? <VinylRecord album={album} grooves={grooves} /> : <Medium album={album} style={style} />}
     </span>
   )
 }

@@ -3,6 +3,7 @@ import Record45 from './Record45'
 import { ShelfRow } from './Shelf'
 import { ShuffleGlyph } from './AlbumView'
 import { plural } from '../lib/format'
+import { grooveRings } from '../lib/grooves'
 import { matchTracks } from '../lib/search'
 import { shelvesToShow } from '../lib/shelves'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -120,7 +121,7 @@ function JukeboxShelfRow({
             </span>
           ) : (
             <span className="relative block">
-              <Record45 album={albumOf(s)} />
+              <Record45 album={albumOf(s)} grooves={grooveRings(s.durationSec)} />
               {editing && (
                 <span className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow ring-2 ring-white dark:ring-slate-900" aria-hidden>
                   ×
