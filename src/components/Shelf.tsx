@@ -163,6 +163,13 @@ interface ShelfRowProps<T> {
   labelOf?(item: T): string | undefined
 }
 
+/**
+ * Where each shelf was left, by page, shelf and first record — so a shelf you
+ * come back to is where you left it (James, 2026-09-11: "preserve the state it
+ * was on"). A reordered or refilled shelf starts afresh.
+ */
+const shelfMemory = new Map<string, number>()
+
 export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf }: ShelfRowProps<T>) {
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
@@ -170,15 +177,22 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
   const reduced = usePrefersReducedMotion()
   /** The ticker's width, as a share of the shelf: a record's share, within reason. */
   const tickerWidth = Math.max(6, Math.min(30, 100 / Math.max(1, items.length)))
+  const memoryKey = `${typeof location === 'undefined' ? '' : location.hash || '#/'}|${label}|${items.length > 0 ? keyOf(items[0]) : ''}`
 
-  // Open with the `start`th record in the middle — before the first paint, so
-  // the shelf never shows itself at the wrong place and then jumps.
+  // Open where this shelf was left, or else with the `start`th record in the
+  // middle — before the first paint, so it never shows itself at the wrong
+  // place and then jumps.
   useLayoutEffect(() => {
     const el = row.current
-    const item = el?.querySelectorAll<HTMLElement>('[data-shelf-item]')[start]
-    if (!el || !item) return
-    el.scrollLeft = item.offsetLeft + item.offsetWidth / 2 - el.clientWidth / 2
-  }, [items, start])
+    if (!el) return
+    const left = shelfMemory.get(memoryKey)
+    if (left !== undefined) {
+      el.scrollLeft = left
+      return
+    }
+    const item = el.querySelectorAll<HTMLElement>('[data-shelf-item]')[start]
+    if (item) el.scrollLeft = item.offsetLeft + item.offsetWidth / 2 - el.clientWidth / 2
+  }, [items, start, memoryKey])
 
   useEffect(() => {
     const el = row.current
@@ -197,6 +211,7 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
         }
       })
       setMiddle(best)
+      shelfMemory.set(memoryKey, el.scrollLeft)
       // The ticker follows the scroll itself, not the record in the middle, so
       // it glides with the finger — written straight to the element, since a
       // re-render of a hundred sleeves every frame is what would make it jerk.
@@ -212,7 +227,7 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
       el.removeEventListener('scroll', onScroll)
       if (frame) cancelAnimationFrame(frame)
     }
-  }, [items, tickerWidth])
+  }, [items, tickerWidth, memoryKey])
 
   const bringToMiddle = (i: number) => {
     const all = row.current?.querySelectorAll<HTMLElement>('[data-shelf-item]')

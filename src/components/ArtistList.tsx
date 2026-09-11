@@ -1,4 +1,4 @@
-import { Fragment, useId, useMemo, useState } from 'react'
+import { Fragment, useEffect, useId, useMemo, useState } from 'react'
 import { withResumeRow } from './resumeRow'
 import { ArtistShelf } from './Shelf'
 import { useGridColumns } from '../lib/useGridColumns'
@@ -30,10 +30,18 @@ import type { Album } from '../lib/types'
 // replaced a drawer under the WHOLE grid — which on a phone put an artist's
 // records a long scroll away from the card that opened them.
 
+/** The artist groups left open — see `expanded`. */
+let openArtists: ReadonlySet<string> = new Set()
+
 export default function ArtistList({ query, order }: { query: string; order: LibraryOrder }) {
   const albums = useLibraryStore((s) => s.albums)
   /** Artists opened out. Names, because that is what groups them. */
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(openArtists))
+  // Kept outside the list, which is unmounted while an album is open — so the
+  // groups you had open are still open when you come back.
+  useEffect(() => {
+    openArtists = expanded
+  }, [expanded])
   const baseId = useId()
   const columns = useSettingsStore((s) => s.libraryColumns.artists)
   const [grid, across] = useGridColumns(columns)

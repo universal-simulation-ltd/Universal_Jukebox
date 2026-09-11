@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PreviewButton from './PreviewButton'
 import { withResumeRow } from './resumeRow'
 import { TrackShelf } from './Shelf'
@@ -24,12 +24,20 @@ import type { Track } from '../lib/types'
 // that makes the cap acceptable rather than a lie.
 const CAP = 400
 
+/** Whether the list was opened past its first few hundred — see `showAll`. */
+let shownAll = false
+
 export default function TrackList({ query, order }: { query: string; order: LibraryOrder }) {
   const tracks = useLibraryStore((s) => s.tracks)
   const playTracks = usePlayerStore((s) => s.playTracks)
   const playing = usePlayerStore((s) => s.playing)
   const nowPlaying = usePlayerStore(currentTrack)
-  const [showAll, setShowAll] = useState(false)
+  const [showAll, setShowAll] = useState(() => shownAll)
+  // Kept outside the list, as the scroll is — back from Now Playing, a list you
+  // had opened all the way is still open all the way.
+  useEffect(() => {
+    shownAll = showAll
+  }, [showAll])
   const columns = useSettingsStore((s) => s.libraryColumns.tracks)
   const leadId = useResumable()?.track.id ?? null
 

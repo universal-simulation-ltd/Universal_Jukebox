@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. No event may carry a
@@ -27,7 +27,7 @@ import JukeboxShelves from './components/JukeboxShelves'
 import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
-import { NAVIGATED, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
+import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, tabCounts } from './lib/search'
 import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, newSeed, nextColumns, type LibraryOrder } from './lib/libraryView'
@@ -50,6 +50,10 @@ const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_Jukebox'
 
 /** Screens that are a PAGE of their own, and so open at their top. */
 const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'about', 'tidy'])
+
+/** Where each page was scrolled to, by its hash — put back when you come back to it. */
+const scrollMemory = new Map<string, number>()
+const hashKey = () => location.hash || '#/'
 
 /** The views the skipped-files report belongs on: the library itself. */
 const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'jukebox', 'album', 'artist'])
@@ -145,9 +149,44 @@ export default function App() {
   // record and its countdown above the fold. The library tabs are left where
   // they are: they are the same list seen differently, and a tab switch that
   // threw you back to the top would lose your place for nothing.
-  useEffect(() => {
+  //
+  // ⚠️ …BUT A PAGE YOU GO BACK TO IS AS YOU LEFT IT (James, 2026-09-11: "when
+  // going back on swipe to a page, don't auto reset it on load, instead can it
+  // preserve the state it was on"). A change that came from history (the
+  // swipe, `arrivedByHistory`) puts back where that page was scrolled to,
+  // before it is painted, and again once it has laid itself out.
+  useLayoutEffect(() => {
+    if (arrivedByHistory()) {
+      const y = scrollMemory.get(hashKey())
+      if (y !== undefined) {
+        window.scrollTo(0, y)
+        requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)))
+      }
+      return
+    }
     if (PAGE_VIEWS.has(route.view)) window.scrollTo(0, 0)
   }, [route.view, route.albumId, route.artist])
+
+  // Where each page is scrolled to, kept as it scrolls.
+  useEffect(() => {
+    // Ours to put back, not the browser's — two restorers fight.
+    try {
+      history.scrollRestoration = 'manual'
+    } catch { /* not allowed here */ }
+    let frame = 0
+    const remember = () => {
+      frame = 0
+      scrollMemory.set(hashKey(), window.scrollY)
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(remember)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
   const theme = useThemeStore((s) => s.effective)
 
   const status = useLibraryStore((s) => s.status)

@@ -153,6 +153,18 @@ const home = (hash: string) => (hash === '' || hash === '#' ? '#/' : hash)
 
 /** Our entries, oldest first; the last is the one on screen. */
 let stack: string[] = []
+/** The last change of screen came from history — the swipe back, a browser button — not the app. */
+let byHistory = false
+
+/**
+ * Did the screen just change because of history rather than the app? Then it
+ * should come back as it was left (James, 2026-09-11: "when going back on
+ * swipe to a page, don't auto reset it on load, instead can it preserve the
+ * state it was on") — App.tsx puts the scroll back instead of opening at the top.
+ */
+export function arrivedByHistory(): boolean {
+  return byHistory
+}
 /** Where a multi-step move is going, while its `history.go(-n)` lands. */
 let pending: { then: 'push' | 'replace'; hash: string } | null = null
 
@@ -168,6 +180,7 @@ function depthOfState(): number | null {
 }
 
 function apply(then: 'push' | 'replace', hash: string): void {
+  byHistory = false
   if (then === 'push') {
     history.pushState({ jbDepth: stack.length }, '', hash)
     stack.push(hash)
@@ -226,6 +239,7 @@ if (typeof window !== 'undefined' && typeof history !== 'undefined') {
       return
     }
     // A real back or forward: the swipe, a browser button, a hash typed in.
+    byHistory = true
     const at = depthOfState()
     const hash = home(location.hash)
     if (at === null) {
