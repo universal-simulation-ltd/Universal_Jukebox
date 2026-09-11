@@ -3,7 +3,7 @@ import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearLyrics, countLyrics } from '../lib/library'
-import { goHome } from '../lib/route'
+import { goHome, navigate } from '../lib/route'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { DeckMiniature } from './Deck'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -43,6 +43,7 @@ export default function Settings() {
   const s = useSettingsStore()
   const themePref = useThemeStore((t) => t.pref)
   const setTheme = useThemeStore((t) => t.setPref)
+  const libraryReady = useLibraryStore((l) => l.status === 'ready')
 
   // The boost is the one setting that can be genuinely unavailable: it needs a
   // Web Audio graph, and a browser can refuse us one. Saying so is better than
@@ -149,6 +150,12 @@ export default function Settings() {
             checked={s.resumeCard}
             onChange={(v) => s.set('resumeCard', v)}
           />
+          {/* This, the theme and the tips were in the Actions menu (James,
+              2026-09-11: "Appearance, tidy, show tips again should all go into
+              settings"). */}
+          {libraryReady && (
+            <Action label="Tidy up library" button="Open" onClick={() => navigate({ view: 'tidy' })} />
+          )}
         </Section>
 
         {/* ⚠️ ABOVE the animation section, not inside it, and that order is the
@@ -335,6 +342,18 @@ export default function Settings() {
             value={themePref}
             onChange={setTheme}
             options={THEME_OPTIONS}
+          />
+          {/* The first-run "Tap here" pointers (`components/Tip.tsx`), back. */}
+          <Action
+            label="Show the tips again"
+            hint={
+              s.tipsSeen.length > 0
+                ? 'The “Tap here” pointers you have dismissed come back.'
+                : 'None of the “Tap here” pointers have been dismissed.'
+            }
+            button="Show them"
+            disabled={s.tipsSeen.length === 0}
+            onClick={() => s.set('tipsSeen', [])}
           />
         </Section>
       </div>
@@ -667,6 +686,29 @@ function Ladder({
       <p className="mt-2 min-h-[2.6rem] text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
         {here.hint}
       </p>
+    </Row>
+  )
+}
+
+/** A row that DOES something rather than setting something: its name, and a button. */
+function Action({
+  label, hint, button, onClick, disabled = false,
+}: { label: string; hint?: string; button: string; onClick(): void; disabled?: boolean }) {
+  return (
+    <Row>
+      <div className="flex items-center justify-between gap-4">
+        <span className="min-w-0">
+          <Label text={label} hint={hint} />
+        </span>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          className="shrink-0 rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-default disabled:opacity-50 disabled:hover:border-slate-300 disabled:hover:text-slate-700 dark:border-slate-600 dark:text-slate-200 dark:hover:text-orange-400 dark:disabled:hover:border-slate-600 dark:disabled:hover:text-slate-200"
+        >
+          {button}
+        </button>
+      </div>
     </Row>
   )
 }

@@ -2,13 +2,11 @@ import { useRef } from 'react'
 import { useLibraryStore } from '../../stores/libraryStore'
 import { trackCountFor } from '../../lib/roots'
 import { plural } from '../../lib/format'
-import { useThemeStore, type ThemePref } from '../../stores/themeStore'
 import { navigate } from '../../lib/route'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
 import { hasMusicLibrary } from '../../lib/appleMusic'
 import { hasNativeImporter } from '../../lib/nativeImport'
 import { useCloseAppMenu } from '@unisim/sdk'
-import { useSettingsStore } from '../../stores/settingsStore'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
 //
@@ -20,11 +18,13 @@ import { useSettingsStore } from '../../stores/settingsStore'
 // documented in `new-universal-app.md` §2 and is easy to forget, because it
 // looks fine until someone switches to dark.
 //
-// ⚠️ This menu is for what you reach FOR — the library actions and the theme
-// switch you flip in the evening. Everything you set once and leave lives on
-// the Settings page. The needle-drop toggle was here and moved there when it
-// stopped being the only preference; a dropdown that grows a settings panel
-// inside it is a settings page with worse ergonomics.
+// ⚠️ This menu is for what you DO to the library — its folders, and adding to
+// them — and the way to Settings and About. Everything else lives on the
+// Settings page: the theme, "Tidy up library" and "Show the tips again" were
+// here and moved there (James, 2026-09-11: "Appearance, tidy, show tips again
+// should all go into settings"). The needle-drop toggle went the same way
+// earlier; a dropdown that grows a settings panel inside it is a settings page
+// with worse ergonomics.
 //
 // ⚠️ THERE IS AN "ADD A FOLDER" NOW, AND THERE DELIBERATELY WASN'T (2026-09-09).
 //
@@ -40,15 +40,14 @@ import { useSettingsStore } from '../../stores/settingsStore'
 // and adding one adds. Removing the last one leaves an empty library rather
 // than a broken one.
 //
-// Tidy-up used to sit in this group and doesn't any more, for the same reason:
-// it is a page you visit, like Settings and About, not one of the three things
-// you can do to the library itself.
+// Tidy-up used to sit in this group and doesn't any more: it is a page you
+// visit, not one of the things you do to a folder — reached from Settings'
+// "Your library" now.
 
 export default function AppMenu() {
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const removeFolder = useLibraryStore((s) => s.removeFolder)
   const clear = useLibraryStore((s) => s.clear)
-  const tipsSeen = useSettingsStore((s) => s.tipsSeen.length)
   const status = useLibraryStore((s) => s.status)
   const roots = useLibraryStore((s) => s.roots)
   const tracks = useLibraryStore((s) => s.tracks)
@@ -69,8 +68,6 @@ export default function AppMenu() {
   // iOS: the Music app's library, and a native picker for audio files.
   const musicLibrary = hasMusicLibrary()
   const nativePicker = hasNativeImporter()
-  const pref = useThemeStore((s) => s.pref)
-  const setPref = useThemeStore((s) => s.setPref)
   const folderInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -199,35 +196,8 @@ export default function AppMenu() {
         </>
       )}
 
-      <p className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
-        Appearance
-      </p>
-      <div className="flex gap-1 px-3 pb-2">
-        {(['light', 'dark', 'system'] as ThemePref[]).map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => setPref(option)}
-            aria-pressed={pref === option}
-            className={`flex-1 rounded-md border px-2 py-1 text-[12px] capitalize transition ${
-              pref === option
-                ? 'border-orange-500 bg-orange-50 font-medium text-orange-700 dark:bg-orange-950/40 dark:text-orange-300'
-                : 'border-slate-200 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-300'
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-
-      <Divider />
-      {hasLibrary && <Row onClick={() => navigate({ view: 'tidy' })}>Tidy up library…</Row>}
       <Row onClick={() => navigate({ view: 'settings' })}>Settings…</Row>
       <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
-      {/* The first-run "Tap here" tips, back again (`components/Tip.tsx`). */}
-      {tipsSeen > 0 && (
-        <Row onClick={() => useSettingsStore.getState().set('tipsSeen', [])}>Show the tips again</Row>
-      )}
 
       {/* ⚠️ Always mounted, even when the picker path is the one in use: this is
           also the fallback if `showDirectoryPicker` throws — an iframe, a
