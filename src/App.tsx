@@ -367,7 +367,17 @@ export default function App() {
     // note claims it "repairs an app that FORGOT the wrapper padding" — that is
     // true of the old static bar and NOT true of the sticky one.
     <div className="flex min-h-screen flex-col pt-[env(safe-area-inset-top)]">
+      {/* ⚠️ `productHomeHref`, IN-APP (James, 2026-09-11: "clicking the logo
+          (twice because of suite switcher) should go to the homepage app on
+          that device, not the web app"). Without it the SDK falls back to the
+          catalogue's address for Jukebox — the WEBSITE — and while the switcher
+          is open, a second tap on the logo went there, out of the app. `#/` is
+          the library's front door: the mark goes home in one tap, the name
+          opens the switcher, and a second tap on it stays put (`#/` counts as
+          the page you are on). The link itself is taken over by `lib/route.ts`,
+          so it steps back up a level rather than pushing a history entry. */}
       <UniversalAppsNavBar
+        productHomeHref="#/"
         contentClassName={CONTAINER}
         product="jukebox"
         productLogo={<ProductLogo />}

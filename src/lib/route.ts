@@ -227,6 +227,19 @@ if (typeof window !== 'undefined' && typeof history !== 'undefined') {
   }
   save()
 
+  // ⚠️ IN-APP LINKS GO THROUGH `go`. The nav bar's logo is an `<a href="#/">`
+  // (`productHomeHref`), and a plain hash link would push a raw history entry
+  // on top — so back from the library would reopen the album you left, which
+  // is the opposite of "back goes up a level". Any same-document `#/…` link
+  // is taken over here instead; modified clicks (a new tab) are left alone.
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const link = event.target instanceof Element ? event.target.closest('a[href^="#/"], a[href="#"]') : null
+    if (!link || link.getAttribute('target')) return
+    event.preventDefault()
+    go(link.getAttribute('href') ?? '#/')
+  })
+
   // ⚠️ Registered at module load, so it runs BEFORE `useRoute`'s own popstate
   // listener in App.tsx. A multi-step move therefore completes — replaced and
   // announced — before the app re-reads the hash, and the level it passed
