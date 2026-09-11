@@ -1,20 +1,28 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { resolveDeck } from '../lib/decks'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
+import { DeckSlideContext, type DeckSlide } from './decks/slide'
 import { Medium } from './UpNextReel'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
 // to previous or next track easily from the animation").
 //
-// Swipe the deck left for the next record and right for the previous one, or
-// tap the one peeking in from that side. The peeking records are the queue's
-// own neighbours — the tracks `jumpTo` goes to — so what you see at the edge is
-// exactly what a swipe brings on.
+// ⚠️ THE RECORDS MOVE WITH THE FINGER (James, 2026-09-11: "have the prev or
+// next track swipe in at same time. On the vinyl the needle could stay and just
+// the records move"). The record on the deck follows the drag — on vinyl only
+// the record, so the tonearm stays put (`DeckSlide`) — while the neighbour on
+// the side it is going towards slides in and grows to the deck's size. Let go
+// past `SWIPE_PX` and both finish the move; the arriving record is then HELD at
+// the centre (`arriving`) until the deck itself shows it, so the change-over's
+// own record swap happens underneath rather than as a jump.
+//
+// Tap a peeking record to change track too. The peeks are the queue's own
+// neighbours — the tracks `jumpTo` goes to.
 //
 // ⚠️ TOUCH ONLY for the swipe. A mouse drag across the deck is not a gesture
 // anybody expects, and the deck is also a button (it opens the album), so a
@@ -30,21 +38,44 @@ import { Medium } from './UpNextReel'
 
 const SWIPE_PX = 56
 const PEEK = 0.62
+/** How long the records take to finish a swipe once the finger lets go. */
+const SETTLE_MS = 240
+/** The longest the arriving record is held, waiting for the deck to show it. */
+const HOLD_MAX_MS = 2500
 
-export default function DeckSwiper({ size, children }: { size: number; children: React.ReactNode }) {
+interface Arriving {
+  album: Album | undefined
+  style: DeckStyle
+}
+
+export default function DeckSwiper({
+  size, showing, children,
+}: { size: number; showing?: string; children: React.ReactNode }) {
   const queue = usePlayerStore((s) => s.queue)
   const order = usePlayerStore((s) => s.order)
   const cursor = usePlayerStore((s) => s.cursor)
   const repeat = usePlayerStore((s) => s.repeat)
+  const phase = usePlayerStore((s) => s.deckPhase)
   const jumpTo = usePlayerStore((s) => s.jumpTo)
   const albums = useLibraryStore((s) => s.albums)
   const setting = useSettingsStore((s) => s.deck)
   const eras = useSettingsStore((s) => s.deckEras)
   const reduced = usePrefersReducedMotion()
 
-  const start = useRef<{ x: number; y: number } | null>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const leftPeek = useRef<HTMLButtonElement>(null)
+  const rightPeek = useRef<HTMLButtonElement>(null)
+  const start = useRef<{ x: number; y: number; toLeft: number; toRight: number } | null>(null)
   const swiped = useRef(false)
-  const [drag, setDrag] = useState(0)
+  const settle = useRef<number | null>(null)
+
+  /** The records' offset: the finger's travel, then the end of the swipe. */
+  const [x, setX] = useState(0)
+  const [animate, setAnimate] = useState(false)
+  /** How far a full swipe travels, each way — measured at the touch. */
+  const [reach, setReach] = useState({ toLeft: size, toRight: size })
+  /** After a swipe: the record that came in, held at the centre. */
+  const [arriving, setArriving] = useState<Arriving | null>(null)
 
   /** The order index `delta` away, honouring repeat-all at either end. */
   const indexAt = (delta: number): number | null => {
@@ -69,53 +100,160 @@ export default function DeckSwiper({ size, children }: { size: number; children:
 
   const peek = Math.round(size * PEEK)
 
+  // Let the held record go once the deck shows it and its own swap is over —
+  // or after a while regardless, so a slow change-over cannot leave a picture
+  // standing in for the deck.
+  const heldFor = arriving?.album?.id
+  useEffect(() => {
+    if (!arriving) return
+    const release = () => {
+      setAnimate(false)
+      setX(0)
+      setArriving(null)
+    }
+    if (heldFor !== undefined && showing === heldFor && phase === 'idle') {
+      release()
+      return
+    }
+    const timer = window.setTimeout(release, HOLD_MAX_MS)
+    return () => window.clearTimeout(timer)
+  }, [arriving, heldFor, showing, phase])
+
+  useEffect(() => () => {
+    if (settle.current !== null) window.clearTimeout(settle.current)
+  }, [])
+
+  /** From the centre of the deck to the centre of each peek. */
+  const measure = () => {
+    const centre = (el: Element | null) => {
+      const r = el?.getBoundingClientRect()
+      return r ? r.left + r.width / 2 : null
+    }
+    const mid = centre(box.current)
+    const left = centre(leftPeek.current)
+    const right = centre(rightPeek.current)
+    return {
+      toLeft: mid !== null && left !== null ? Math.abs(mid - left) : size,
+      toRight: mid !== null && right !== null ? Math.abs(right - mid) : size,
+    }
+  }
+
+  // How far through a swipe the records are, 0 → 1, towards whichever side.
+  const travel = x < 0 ? reach.toRight : reach.toLeft
+  const progress = travel > 0 ? Math.min(1, Math.abs(x) / travel) : 0
+  const grow = size / peek
+
+  const slide: DeckSlide = {
+    x,
+    opacity: arriving ? 0 : 1 - 0.6 * progress,
+    animate,
+  }
+
+  /** A peek: the one being swiped towards comes in and grows; the other stays. */
+  const peekMotion = (side: 'left' | 'right') => {
+    const incoming = (side === 'right' && x < 0) || (side === 'left' && x > 0)
+    return {
+      shift: incoming ? x : 0,
+      scale: incoming ? 1 + (grow - 1) * progress : 1,
+      opacity: arriving ? 0 : incoming ? 0.6 + 0.4 * progress : 0.6,
+      animate: animate && !arriving,
+    }
+  }
+
   return (
     // Full width of the SCREEN on a phone, so the neighbours can come in from
     // its edges rather than from the page's padding; clipped, so they never
     // widen the page. From `lg` up the deck sits in a column beside the words,
     // and there is no screen edge next to it to peek from.
-    <div className="relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible">
+    <div ref={box} className="relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible">
       {prevIndex !== null && (
-        <Peek album={albumAt(prevIndex)} style={styleAt(prevIndex)} side="left" size={peek} onClick={() => jumpTo(prevIndex)} />
+        <Peek
+          ref={leftPeek}
+          album={albumAt(prevIndex)}
+          style={styleAt(prevIndex)}
+          side="left"
+          size={peek}
+          motion={peekMotion('left')}
+          onClick={() => jumpTo(prevIndex)}
+        />
       )}
       {nextIndex !== null && (
-        <Peek album={albumAt(nextIndex)} style={styleAt(nextIndex)} side="right" size={peek} onClick={() => jumpTo(nextIndex)} />
+        <Peek
+          ref={rightPeek}
+          album={albumAt(nextIndex)}
+          style={styleAt(nextIndex)}
+          side="right"
+          size={peek}
+          motion={peekMotion('right')}
+          onClick={() => jumpTo(nextIndex)}
+        />
+      )}
+      {/* The record that came in, standing in at the centre until the deck
+          shows it — drawn exactly where, and as big as, the peek finished. */}
+      {arriving && (
+        <div
+          className="pointer-events-none absolute top-1/2 left-1/2 z-10"
+          style={{ width: size, height: size, transform: 'translate(-50%, -50%)' }}
+          aria-hidden
+        >
+          <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
+            <Medium album={arriving.album} style={arriving.style} />
+          </span>
+        </div>
       )}
       <div
         className="relative shrink-0"
-        style={{
-          touchAction: 'pan-y',
-          transform: drag ? `translateX(${drag}px)` : undefined,
-          transition: drag || reduced ? 'none' : 'transform 220ms ease-out',
-        }}
+        style={{ touchAction: 'pan-y' }}
         onPointerDown={(e) => {
-          if (e.pointerType !== 'touch') return
-          start.current = { x: e.clientX, y: e.clientY }
+          if (e.pointerType !== 'touch' || arriving) return
+          const r = measure()
+          setReach(r)
+          start.current = { x: e.clientX, y: e.clientY, ...r }
           swiped.current = false
+          setAnimate(false)
         }}
         onPointerMove={(e) => {
-          if (!start.current) return
-          const dx = e.clientX - start.current.x
-          const dy = e.clientY - start.current.y
-          if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) && !reduced) {
-            setDrag(Math.max(-110, Math.min(110, dx * 0.6)))
-          }
+          const from = start.current
+          if (!from || reduced) return
+          const dx = e.clientX - from.x
+          const dy = e.clientY - from.y
+          if (Math.abs(dx) <= 8 || Math.abs(dx) <= Math.abs(dy)) return
+          // Towards a side with no record, the deck only gives a little.
+          const open = dx < 0 ? nextIndex !== null : prevIndex !== null
+          setX(open ? Math.max(-from.toRight, Math.min(from.toLeft, dx)) : Math.max(-40, Math.min(40, dx * 0.25)))
         }}
         onPointerUp={(e) => {
           const from = start.current
           start.current = null
-          setDrag(0)
           if (!from) return
           const dx = e.clientX - from.x
           const dy = e.clientY - from.y
-          if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * 1.3) return
+          const target = dx < 0 ? nextIndex : prevIndex
+          if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * 1.3 || target === null) {
+            setAnimate(true)
+            setX(0)
+            return
+          }
           swiped.current = true
-          if (dx < 0 && nextIndex !== null) jumpTo(nextIndex)
-          else if (dx > 0 && prevIndex !== null) jumpTo(prevIndex)
+          if (reduced) {
+            jumpTo(target)
+            return
+          }
+          // Finish the move, then hold the arrival and change track.
+          setAnimate(true)
+          setX(dx < 0 ? -from.toRight : from.toLeft)
+          const album = albumAt(target)
+          const style = styleAt(target)
+          settle.current = window.setTimeout(() => {
+            settle.current = null
+            setArriving({ album, style })
+            jumpTo(target)
+          }, SETTLE_MS)
         }}
         onPointerCancel={() => {
           start.current = null
-          setDrag(0)
+          setAnimate(true)
+          setX(0)
         }}
         onClickCapture={(e) => {
           if (!swiped.current) return
@@ -124,10 +262,17 @@ export default function DeckSwiper({ size, children }: { size: number; children:
           e.preventDefault()
         }}
       >
-        {children}
+        <DeckSlideContext.Provider value={slide}>{children}</DeckSlideContext.Provider>
       </div>
     </div>
   )
+}
+
+interface PeekMotion {
+  shift: number
+  scale: number
+  opacity: number
+  animate: boolean
 }
 
 /**
@@ -136,21 +281,32 @@ export default function DeckSwiper({ size, children }: { size: number; children:
  * the row of records waiting to go on uses, scaled up.
  */
 function Peek({
-  album, style, side, size, onClick,
-}: { album: Album | undefined; style: DeckStyle; side: 'left' | 'right'; size: number; onClick(): void }) {
+  album, style, side, size, motion, onClick, ref,
+}: {
+  album: Album | undefined
+  style: DeckStyle
+  side: 'left' | 'right'
+  size: number
+  motion: PeekMotion
+  onClick(): void
+  ref: React.Ref<HTMLButtonElement>
+}) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={(e) => {
         e.stopPropagation()
         onClick()
       }}
       aria-label={`${side === 'left' ? 'Previous' : 'Next'}${album ? `: ${album.title}` : ''}`}
-      className="absolute top-1/2 opacity-60 transition-opacity hover:opacity-90 focus-visible:opacity-100 lg:hidden"
+      className="absolute top-1/2 hover:opacity-90 focus-visible:opacity-100 lg:hidden"
       style={{
         width: size,
         height: size,
-        transform: 'translateY(-50%)',
+        transform: `translateY(-50%) translateX(${motion.shift}px) scale(${motion.scale})`,
+        opacity: motion.opacity,
+        transition: motion.animate ? 'transform 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out' : 'opacity 200ms ease-out',
         // Just under half of it on screen: enough to see WHICH record, and on
         // what, not enough to compete with the one that is playing.
         [side]: -Math.round(size * 0.58),

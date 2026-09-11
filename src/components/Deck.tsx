@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useContext } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { ERA_ORDER, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
@@ -14,6 +14,7 @@ import VinylDeck from './decks/VinylDeck'
 import PocketDeck from './decks/PocketDeck'
 import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
+import { DeckSlideContext, slideStyle } from './decks/slide'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
 // the pickup engaging when you put something on, and the pickup — or the reels
@@ -94,6 +95,10 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
   const eras = useSettingsStore((s) => s.deckEras)
   const style = resolveDeck(setting, album, eras)
   const reduced = usePrefersReducedMotion()
+  // A swipe in progress on Now Playing (`DeckSwiper`). The vinyl face moves
+  // only its record; every other face is moved whole, below.
+  const swipe = useContext(DeckSlideContext)
+  const slide = ceremonial ? swipe : null
 
   // The `??`s are not dead code: a settings blob edited by hand, or written by
   // a future version and then opened in this one, can carry a style this build
@@ -174,7 +179,12 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
         // hover target a long way from the thing being aimed at. `size` stays
         // the WIDTH for all three, so `clampDeck()` in NowPlaying still owns how
         // big the stage is.
-        style={{ width: size, height: Math.round(size * frame.ratio), borderRadius: frame.radius }}
+        style={{
+          width: size,
+          height: Math.round(size * frame.ratio),
+          borderRadius: frame.radius,
+          ...(slide && style !== 'vinyl' ? slideStyle(slide) : null),
+        }}
       >
         <Face
           progress={progress}
@@ -184,6 +194,7 @@ export default function Deck({ album, size, ceremonial = false }: DeckProps) {
           url={url}
           hue={hue}
           labelFade={labelFade}
+          slide={slide && style === 'vinyl' ? slide : undefined}
         />
 
         {/* Drifting notes — pure decoration, and only while something is

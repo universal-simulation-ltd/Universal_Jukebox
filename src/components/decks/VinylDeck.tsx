@@ -1,4 +1,5 @@
 import type { DeckFaceProps } from './face'
+import { slideStyle } from './slide'
 
 // The record and the tonearm — the original deck, and still the default.
 //
@@ -39,7 +40,7 @@ const ARM = {
   LIFT: -24,
 }
 
-export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade }: DeckFaceProps) {
+export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide }: DeckFaceProps) {
   const trackAngle = ARM.TRACK_START + progress * ARM.TRACK_TRAVEL
 
   return (
@@ -47,8 +48,10 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
       {/* The record — in its own wrapper, which fills the frame exactly: the
           record positions itself with `absolute inset-0` against the FRAME, so
           anything between the two has to. Only its label fades as a record
-          arrives or leaves (`labelFade` in `face.ts`); the record stays put. */}
-      <div className="absolute inset-0">
+          arrives or leaves (`labelFade` in `face.ts`); the record stays put —
+          except under a swipe, when it alone follows the finger and the
+          tonearm below stays where it is (`slide`). */}
+      <div className="absolute inset-0" style={slide ? slideStyle(slide) : undefined}>
       <div
         className="absolute inset-0 rounded-full bg-slate-900 shadow-xl dark:bg-[#12192b]"
         style={{

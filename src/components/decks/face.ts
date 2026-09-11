@@ -1,4 +1,5 @@
 import type { DeckStyle } from '../../stores/settingsStore'
+import type { DeckSlide } from './slide'
 
 // What every deck face is handed, and nothing more.
 //
@@ -47,6 +48,11 @@ export interface DeckFaceProps {
    * `animation-play-state`, which the spin pauses when the music stops.
    */
   labelFade?: string
+  /**
+   * The record following a swipe — see `DeckSlide`. Only the vinyl face takes
+   * it (its record moves, its tonearm stays); `Deck` moves the others whole.
+   */
+  slide?: DeckSlide
 }
 
 /** Where the drifting notes leave from, per deck: roughly, the pickup. */

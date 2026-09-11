@@ -79,7 +79,7 @@ export default function NowPlaying() {
       {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
 
       {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
-      <DeckSwiper size={clampDeck()}>
+      <DeckSwiper size={clampDeck()} showing={onTheDeck?.id}>
         {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
             off, the record on the deck is still the OLD one — see below. */}
         <Deck album={onTheDeck} size={clampDeck()} ceremonial />
