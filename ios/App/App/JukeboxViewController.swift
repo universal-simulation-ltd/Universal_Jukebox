@@ -28,6 +28,8 @@ class JukeboxViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(NowPlayingPlugin())
         // The Home Screen's Shuffle songs / albums / artists.
         bridge?.registerPluginInstance(ShortcutsPlugin())
+        // How loud a song is, for "Stable volume".
+        bridge?.registerPluginInstance(LoudnessPlugin())
 
         // ⚠️ THE EDGE SWIPE BACK (James, 2026-09-10: "Mobile should also have
         // the edge of screen side swipe to go back instead of having to use

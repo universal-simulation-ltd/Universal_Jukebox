@@ -99,6 +99,7 @@ export default function Settings() {
       !s.needleDrop ? 'off' : levelToStep(s.needleDropLevel) === 0 ? 'on' : `at ${formatStep(levelToStep(s.needleDropLevel))}`
     }`,
     sound: sentence([
+      ...(s.stableVolume ? ['stable volume'] : []),
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
@@ -234,6 +235,15 @@ export default function Settings() {
           note="Applied as the music plays. Nothing here changes your files."
           summary={summaries.sound}
         >
+          {/* James, 2026-09-11: "an option for stable volume - keeps the volume
+              at in a sensible min / max range so a track doesn't blast your
+              ears off". See `lib/loudness.ts`. */}
+          <Toggle
+            label="Stable volume"
+            hint="Loud songs are turned down to meet the rest, so a track doesn’t blast your ears off. Each song is measured once, on this device, the first time it plays; quiet songs are left as they are."
+            checked={s.stableVolume}
+            onChange={(v) => s.set('stableVolume', v)}
+          />
           <Slider
             label="Volume boost"
             hint="Extra gain on top of the volume slider, for quietly-mastered albums. Above about 2× a loud record will start to distort — that is the recording clipping, not a fault."

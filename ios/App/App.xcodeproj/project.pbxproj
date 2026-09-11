@@ -14,6 +14,7 @@
 		A1B2C3D4E5F6071800000008 /* FileImportPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071800000007 /* FileImportPlugin.swift */; };
 		A1B2C3D4E5F607180000000A /* NowPlayingPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071800000009 /* NowPlayingPlugin.swift */; };
 		A1B2C3D4E5F607180000000C /* ShortcutsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F607180000000B /* ShortcutsPlugin.swift */; };
+		A1B2C3D4E5F607180000000E /* LoudnessPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F607180000000D /* LoudnessPlugin.swift */; };
 		A1B2C3D4E5F6071800000002 /* MusicFolderPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071800000001 /* MusicFolderPlugin.swift */; };
 		A1B2C3D4E5F6071800000004 /* JukeboxViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071800000003 /* JukeboxViewController.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
@@ -32,6 +33,7 @@
 		A1B2C3D4E5F6071800000007 /* FileImportPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileImportPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6071800000009 /* NowPlayingPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F607180000000B /* ShortcutsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsPlugin.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F607180000000D /* LoudnessPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoudnessPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6071800000001 /* MusicFolderPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicFolderPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6071800000003 /* JukeboxViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JukeboxViewController.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -91,6 +93,7 @@
 				A1B2C3D4E5F6071800000007 /* FileImportPlugin.swift */,
 				A1B2C3D4E5F6071800000009 /* NowPlayingPlugin.swift */,
 				A1B2C3D4E5F607180000000B /* ShortcutsPlugin.swift */,
+				A1B2C3D4E5F607180000000D /* LoudnessPlugin.swift */,
 				A1B2C3D4E5F6071800000001 /* MusicFolderPlugin.swift */,
 				A1B2C3D4E5F6071800000003 /* JukeboxViewController.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -232,6 +235,7 @@
 				A1B2C3D4E5F6071800000008 /* FileImportPlugin.swift in Sources */,
 				A1B2C3D4E5F607180000000A /* NowPlayingPlugin.swift in Sources */,
 				A1B2C3D4E5F607180000000C /* ShortcutsPlugin.swift in Sources */,
+				A1B2C3D4E5F607180000000E /* LoudnessPlugin.swift in Sources */,
 				A1B2C3D4E5F6071800000002 /* MusicFolderPlugin.swift in Sources */,
 				A1B2C3D4E5F6071800000004 /* JukeboxViewController.swift in Sources */,
 			);

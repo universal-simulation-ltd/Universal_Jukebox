@@ -8,6 +8,7 @@ import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
+import { cachedGain, measureGain } from '../lib/loudness'
 import { lockArt } from '../lib/lockArt'
 import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
@@ -505,6 +506,11 @@ function persistModes(shuffle: boolean, repeat: Repeat) {
 function publishNowPlaying(track: Track | null): void {
   // A track that goes on ends a run of skips — see `skipPast`.
   if (track) consecutiveSkips = 0
+  // …and gets its "Stable volume" level before it is loaded.
+  if (track && track.id !== levelledFor) {
+    levelledFor = track.id
+    levelTrack(track)
+  }
   if (!track) {
     ms.setMetadata(null, null)
     void clearLockScreen()
@@ -807,6 +813,36 @@ function startShuffle(get: Get, kind: ShuffleKind): void {
   get().playTracks(queue, 0)
 }
 
+/**
+ * "Stable volume" (`lib/loudness.ts`): the level for a track about to go on.
+ *
+ * Called from `publishNowPlaying`, which runs just BEFORE every load and
+ * crossfade — so a level already measured goes to `setNextLevel` and the track
+ * starts at it. One not yet measured starts at full level and comes down when
+ * the measurement lands, if that track is still the one playing. The next track
+ * is measured ahead of time (`prefetchNext`), so that is mostly the first song.
+ */
+let levelledFor: string | null = null
+
+function levelTrack(track: Track): void {
+  if (!settings().stableVolume) {
+    audio.setNextLevel(1)
+    return
+  }
+  const cached = cachedGain(track.id)
+  audio.setNextLevel(cached ?? 1)
+  if (cached === null) levelLater(track)
+}
+
+function levelLater(track: Track): void {
+  const file = useLibraryStore.getState().fileFor(track)
+  if (!file) return
+  void measureGain(track.id, file).then((gain) => {
+    if (gain === null || !settings().stableVolume) return
+    if (currentTrack(usePlayerStore.getState())?.id === track.id) audio.setLevel(gain)
+  })
+}
+
 export interface SkippedTrack {
   id: string
   title: string
@@ -910,7 +946,12 @@ function prefetchNext(get: Get): void {
   const track = queue[order[next]]
   if (!track) return
   const library = useLibraryStore.getState()
-  if (library.needsPreparing(track)) void library.prepare(track)
+  // Measured ahead too, so "Stable volume" has its level before it starts.
+  const measure = (file: SourceFile | null) => {
+    if (file && settings().stableVolume && cachedGain(track.id) === null) void measureGain(track.id, file)
+  }
+  if (library.needsPreparing(track)) void library.prepare(track).then(measure)
+  else measure(library.fileFor(track))
 }
 
 /**
@@ -1301,3 +1342,18 @@ useSettingsStore.subscribe((next, prev) => {
 // On the iPhone app the start-up sounds are clips played through <audio>, which
 // iOS keeps playing off screen — see `setCueOutput` in `lib/crackle.ts`.
 if (isNativeShell()) setCueOutput('clip')
+
+// "Stable volume" switched while something plays takes effect on it at once.
+useSettingsStore.subscribe((next, prev) => {
+  if (next.stableVolume === prev.stableVolume) return
+  const track = currentTrack(usePlayerStore.getState())
+  if (!next.stableVolume) {
+    audio.setNextLevel(1)
+    audio.setLevel(1)
+    return
+  }
+  if (!track) return
+  const cached = cachedGain(track.id)
+  if (cached !== null) audio.setLevel(cached)
+  else levelLater(track)
+})

@@ -133,12 +133,15 @@ export class NativeFile implements SourceFile {
    * whether it is being scanned or played.
    */
   readonly playbackUrl: string
+  /** The file's own `file://` URL — for native code that reads it (`LoudnessPlugin`). */
+  readonly uri: string
 
   constructor(entry: NativeEntry) {
     this.name = entry.name
     this.size = entry.size
     this.lastModified = entry.mtime
     this.playbackUrl = nativeFileUrl(entry.uri)
+    this.uri = entry.uri
   }
 
   slice(start: number, end: number): { arrayBuffer(): Promise<ArrayBuffer> } {

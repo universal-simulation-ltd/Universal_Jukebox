@@ -83,13 +83,18 @@ interface Deck {
   el: HTMLAudioElement | null
   url: string | null
   fade: number
+  /**
+   * "Stable volume": this track's own factor, ≤ 1, so a loud song comes down
+   * to meet the rest (`lib/loudness.ts`). 1 with the setting off.
+   */
+  level: number
   /** The interval running this deck's ramp, if any. */
   timer: number | null
 }
 
 const decks: [Deck, Deck] = [
-  { el: null, url: null, fade: 1, timer: null },
-  { el: null, url: null, fade: 1, timer: null },
+  { el: null, url: null, fade: 1, level: 1, timer: null },
+  { el: null, url: null, fade: 1, level: 1, timer: null },
 ]
 
 /** Which deck the app is about. The other is idle or retiring. */
@@ -312,6 +317,7 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
   const previous = deck.url
   const url = trackUrl(file)
   deck.url = url
+  deck.level = pendingLevel
 
   set({ loading: true, currentSec: 0, durationSec: 0 })
   audio.src = url
@@ -384,6 +390,7 @@ export async function crossfade(file: SourceFile, seconds: number): Promise<void
   const previous = incoming.url
   const url = trackUrl(file)
   incoming.url = url
+  incoming.level = pendingLevel
 
   // Silence first, then the source: assigning `src` to a deck still at full
   // volume can leak a few milliseconds of the new track at full level on a slow
@@ -523,12 +530,29 @@ let userVolume = 1
 function applyVolume(index: 0 | 1): void {
   const deck = decks[index]
   if (!deck.el) return
-  deck.el.volume = Math.max(0, Math.min(1, userVolume * deck.fade))
+  deck.el.volume = Math.max(0, Math.min(1, userVolume * deck.fade * deck.level))
 }
 
 function setFade(index: 0 | 1, value: number): void {
   decks[index].fade = value
   applyVolume(index)
+}
+
+/**
+ * "Stable volume" (`lib/loudness.ts`). The level for the NEXT track to be
+ * loaded or crossfaded in — set just before it starts, when the player already
+ * knows how loud it is — and the level for the one playing now, once a
+ * measurement arrives after it started.
+ */
+let pendingLevel = 1
+
+export function setNextLevel(level: number): void {
+  pendingLevel = Math.max(0, Math.min(1, level))
+}
+
+export function setLevel(level: number): void {
+  decks[active].level = Math.max(0, Math.min(1, level))
+  applyVolume(active)
 }
 
 export function setVolume(volume: number): void {

@@ -181,6 +181,8 @@ export interface Settings {
    * menu empties this.
    */
   tipsSeen: TipId[]
+  /** "Stable volume": loud songs turned down to meet the rest — `lib/loudness.ts`. */
+  stableVolume: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -196,6 +198,7 @@ export const DEFAULTS: Settings = {
   lyricsOnline: false,
   fullAlbumsOnly: false,
   tipsSeen: [],
+  stableVolume: false,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -303,6 +306,7 @@ function read(): Settings {
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
       : [],
+    stableVolume: stored.stableVolume === true,
   }
 }
 
@@ -356,6 +360,7 @@ function persist(state: Settings) {
     lyricsOnline: state.lyricsOnline,
     fullAlbumsOnly: state.fullAlbumsOnly,
     tipsSeen: state.tipsSeen,
+    stableVolume: state.stableVolume,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }
