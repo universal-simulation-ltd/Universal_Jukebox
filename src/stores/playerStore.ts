@@ -20,6 +20,7 @@ import { settings, useSettingsStore } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
 import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
+import { INTRO_HOLD_MAX, cachedIntro, introHold, measureIntro } from '../lib/intro'
 
 // Playback: the queue, what is on, and the transport.
 //
@@ -692,7 +693,7 @@ function runHandover(
   get: Get,
   plan: Handover,
   land: (fadeInSec: number | undefined) => void,
-  options: { duckFirst: boolean; crossfadeFile?: SourceFile | null; crossfadeSec?: number },
+  options: { duckFirst: boolean; crossfadeFile?: SourceFile | null; crossfadeSec?: number; holdSec?: number },
 ): void {
   clearHandover()
   clearBlend()
@@ -711,7 +712,7 @@ function runHandover(
         if (plan.cue) needleDrop(get().volume)
       }, NEEDLE_RETURN_MS) as unknown as number
     }
-    void audio.crossfade(options.crossfadeFile, seconds)
+    void audio.crossfade(options.crossfadeFile, seconds, options.holdSec ?? 0)
     return
   }
 
@@ -1054,6 +1055,8 @@ function prefetchNext(get: Get): void {
   // Measured ahead too, so "Stable volume" has its level before it starts.
   const measure = (file: SourceFile | null) => {
     if (file && settings().stableVolume && cachedGain(track.id) === null) void measureGain(track.id, file)
+    // How quiet its opening is, for the crossfade into it (`lib/intro.ts`).
+    if (file && cachedIntro(track.id) === null) void measureIntro(track.id, file)
   }
   if (library.needsPreparing(track)) void library.prepare(track).then(measure)
   else measure(library.fileFor(track))
@@ -1260,7 +1263,7 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   // else — a flag cleared on load — misses the case where the crossfade is
   // superseded by the user pressing next inside the lead. The longest lead is
   // a record change's, so that is the distance that rearms.
-  if (remainingSec > CROSSFADE.RECORD_SEC + 1) {
+  if (remainingSec > CROSSFADE.RECORD_SEC + INTRO_HOLD_MAX + 1) {
     crossfadeArmed = false
     return
   }
@@ -1284,7 +1287,10 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   if (!plan.crossfade) return
   // ⚠️ The lead IS the crossfade: a record change starts sooner, because it is
   // longer.
-  const lead = plan.swap ? CROSSFADE.RECORD_SEC : CROSSFADE.SEC
+  // …and a next song that starts QUIETLY comes in that much earlier, the song
+  // ending holding at full through its quiet opening (`lib/intro.ts`).
+  const hold = introHold(to.id)
+  const lead = (plan.swap ? CROSSFADE.RECORD_SEC : CROSSFADE.SEC) + hold
   if (remainingSec > lead) return
 
   crossfadeArmed = true
@@ -1300,6 +1306,7 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
     duckFirst: false,
     crossfadeFile: file,
     crossfadeSec: lead,
+    holdSec: hold,
   })
 }
 

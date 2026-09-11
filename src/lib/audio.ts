@@ -375,7 +375,7 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
  * full-volume one — and that dip is exactly the seam a crossfade exists to
  * hide. See `rampTo`, which takes the curve.
  */
-export async function crossfade(file: SourceFile, seconds: number): Promise<void> {
+export async function crossfade(file: SourceFile, seconds: number, holdSec = 0): Promise<void> {
   // ⚠️ A CROSSFADE WITHOUT WORKING GAIN IS NOT A CROSSFADE, IT IS TWO TRACKS AT
   // ONCE. Every ramp below writes to `element.volume`; where that does nothing,
   // the overlap this function creates ON PURPOSE plays both records at full
@@ -432,8 +432,13 @@ export async function crossfade(file: SourceFile, seconds: number): Promise<void
     return
   }
 
-  rampTo(to, 1, seconds, 'equal-power')
-  rampTo(from, 0, seconds, 'equal-power', () => finishRetirement())
+  // A next song with a quiet start came in `holdSec` early (`lib/intro.ts`):
+  // the one ending holds at full through that quiet, then the two cross over
+  // the rest of the time as the new one's music arrives.
+  const hold = Math.max(0, Math.min(holdSec, seconds - 0.5))
+  const blend = seconds - hold
+  rampTo(to, 1, blend, 'equal-power')
+  rampTo(from, 0, blend, 'equal-power', () => finishRetirement(), hold)
 }
 
 /** True while two tracks are genuinely overlapping. */
@@ -661,6 +666,8 @@ function rampTo(
   seconds: number,
   curve: FadeCurve = 'linear',
   done?: () => void,
+  /** Hold where it is this long first — a song ending, over the next one's quiet start. */
+  delaySec = 0,
 ): void {
   stopRamp(index)
   if (seconds <= 0) {
@@ -672,7 +679,7 @@ function rampTo(
   const from = deck.fade
   const started = Date.now()
   deck.timer = setInterval(() => {
-    const t = Math.min(1, (Date.now() - started) / (seconds * 1000))
+    const t = Math.min(1, Math.max(0, (Date.now() - started - delaySec * 1000) / (seconds * 1000)))
     // sin rising, cos falling for a crossfade — see `fadeCurve.ts`.
     setFade(index, fadeLevel(from, target, t, curve))
     if (t >= 1) {

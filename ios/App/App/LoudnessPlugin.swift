@@ -20,7 +20,8 @@ public class LoudnessPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "LoudnessPlugin"
     public let jsName = "JukeboxLoudness"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "measure", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "measure", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "intro", returnType: CAPPluginReturnPromise)
     ]
 
     private let queue = DispatchQueue(label: "uk.co.unisim.jukebox.loudness", qos: .utility)
@@ -42,7 +43,70 @@ public class LoudnessPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
+extension LoudnessPlugin {
+    /// The level of each short block of a song's OPENING, for the crossfade
+    /// into it — `src/lib/intro.ts` decides from these how long it stays quiet,
+    /// so the phone and the web judge a song alike.
+    @objc func intro(_ call: CAPPluginCall) {
+        guard let raw = call.getString("uri"), let url = URL(string: raw), url.isFileURL else {
+            call.reject("No file was named.", "NO_FILE")
+            return
+        }
+        let seconds = call.getDouble("seconds") ?? 20
+        let block = call.getDouble("block") ?? 0.2
+        DispatchQueue.global(qos: .utility).async {
+            guard let levels = Loudness.opening(url, seconds: seconds, block: block) else {
+                call.reject("That file could not be read.", "UNREADABLE")
+                return
+            }
+            call.resolve(["blocksDb": levels])
+        }
+    }
+}
+
 enum Loudness {
+    /// Mean-square level (dBFS, mono) of each `block` seconds of the first `seconds`.
+    static func opening(_ url: URL, seconds: Double, block: Double) -> [Double]? {
+        let asset = AVURLAsset(url: url)
+        guard let track = asset.tracks(withMediaType: .audio).first,
+              let reader = try? AVAssetReader(asset: asset) else { return nil }
+        let rate = 22050.0
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVLinearPCMBitDepthKey: 32,
+            AVLinearPCMIsFloatKey: true,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false,
+            AVNumberOfChannelsKey: 1,
+            AVSampleRateKey: rate
+        ])
+        reader.timeRange = CMTimeRange(start: .zero, duration: CMTime(seconds: seconds, preferredTimescale: 600))
+        guard reader.canAdd(output) else { return nil }
+        reader.add(output)
+        guard reader.startReading() else { return nil }
+        let size = max(1, Int(rate * block))
+        var levels: [Double] = []
+        var sum = 0.0
+        var count = 0
+        while let sample = output.copyNextSampleBuffer() {
+            guard let data = CMSampleBufferGetDataBuffer(sample) else { continue }
+            let n = CMBlockBufferGetDataLength(data) / MemoryLayout<Float>.size
+            guard n > 0 else { continue }
+            var floats = [Float](repeating: 0, count: n)
+            guard CMBlockBufferCopyDataBytes(data, atOffset: 0, dataLength: n * MemoryLayout<Float>.size, destination: &floats) == kCMBlockBufferNoErr else { continue }
+            for value in floats {
+                sum += Double(value * value)
+                count += 1
+                if count == size {
+                    levels.append(10 * log10(max(sum / Double(size), 1e-10)))
+                    sum = 0
+                    count = 0
+                }
+            }
+        }
+        return levels.isEmpty ? nil : levels
+    }
+
     static func measure(_ url: URL) -> (rms: Double, peak: Double, seconds: Double)? {
         let asset = AVURLAsset(url: url)
         guard let track = asset.tracks(withMediaType: .audio).first,
