@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { usePlayerStore } from '../stores/playerStore'
 
 // What is coming up.
@@ -10,34 +11,57 @@ import { usePlayerStore } from '../stores/playerStore'
 //
 // Rows are clickable, and `jumpTo` takes an index into `order` for that same
 // reason — see the note on `orderIndex` below, which was already the hard part.
+//
+// ⚠️ OPENED FROM THE "+N" RECORD, AND TEN AT A TIME (James, 2026-09-11: "Only
+// show the up next when they click the + X record … if the up next section has
+// too many show 'Show more' and then show 10 more each time and 'show all' for
+// the full queue"). A shuffled library is a queue of thousands, and all of
+// them as rows made Now Playing a page you scrolled for minutes.
 
-export default function Queue() {
+/** Rows shown at first, and added by each "Show more". */
+const PAGE = 10
+
+export default function Queue({ onHide }: { onHide?: () => void }) {
   const queue = usePlayerStore((s) => s.queue)
   const order = usePlayerStore((s) => s.order)
   const cursor = usePlayerStore((s) => s.cursor)
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue)
   const clearQueue = usePlayerStore((s) => s.clearQueue)
   const jumpTo = usePlayerStore((s) => s.jumpTo)
+  const [limit, setLimit] = useState(PAGE)
 
   if (order.length === 0) return null
 
   // Only what is still to come. A queue view that lists what has already played
   // is a history, and the two want different screens.
   const upcoming = order.slice(cursor + 1)
+  const shown = upcoming.slice(0, limit)
+  const hidden = upcoming.length - shown.length
 
   return (
-    <section className="mt-12">
-      <div className="mb-3 flex items-center justify-between">
+    <section id="jb-up-next" className="mt-12">
+      <div className="mb-3 flex items-center justify-between gap-4">
         <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-          Up next
+          Up next <span className="font-normal tabular-nums normal-case opacity-80">({upcoming.length.toLocaleString()})</span>
         </h2>
-        <button
-          type="button"
-          onClick={clearQueue}
-          className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
-        >
-          Clear
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={clearQueue}
+            className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+          >
+            Clear
+          </button>
+          {onHide && (
+            <button
+              type="button"
+              onClick={onHide}
+              className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+            >
+              Hide
+            </button>
+          )}
+        </div>
       </div>
 
       {upcoming.length === 0 ? (
@@ -46,7 +70,7 @@ export default function Queue() {
         </p>
       ) : (
         <ol className="divide-y divide-slate-200 dark:divide-slate-800">
-          {upcoming.map((queueIndex, i) => {
+          {shown.map((queueIndex, i) => {
             const track = queue[queueIndex]
             if (!track) return null
             // The index this row occupies in `order` — which is what
@@ -85,6 +109,25 @@ export default function Queue() {
             )
           })}
         </ol>
+      )}
+
+      {hidden > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setLimit((l) => l + PAGE)}
+            className="rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400"
+          >
+            Show {Math.min(PAGE, hidden)} more
+          </button>
+          <button
+            type="button"
+            onClick={() => setLimit(Number.POSITIVE_INFINITY)}
+            className="rounded-full px-4 py-1.5 text-[13px] font-medium text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+          >
+            Show all {upcoming.length.toLocaleString()}
+          </button>
+        </div>
       )}
     </section>
   )

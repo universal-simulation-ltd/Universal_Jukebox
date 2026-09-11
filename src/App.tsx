@@ -21,6 +21,7 @@ import PhoneSearch, { type PhoneSearchHandle } from './components/PhoneSearch'
 import PlayerBar from './components/PlayerBar'
 import ScrollTopButton from './components/ScrollTopButton'
 import ScanBanner from './components/ScanBanner'
+import SkippedBanner from './components/SkippedBanner'
 import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
@@ -300,6 +301,7 @@ export default function App() {
         {/* The error slot — and, for a track whose file was not there, the
             way back to its folder. See `ErrorBanner`. */}
         <ErrorBanner />
+        <SkippedBanner />
 
         {/* ⚠️ Only on the LIBRARY views. The skipped-files list is a report
             about a scan and belongs with the library it describes. Parked above

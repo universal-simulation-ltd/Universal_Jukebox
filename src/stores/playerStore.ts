@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { isMiniMode } from '../lib/miniMode'
 import type { SourceFile } from '../lib/types'
 import { coverUrl, fallbackHue } from '../lib/art'
-import { followMusic, playCountTick, playTransportCue } from '../lib/crackle'
+import { followMusic, playCountTick, playTransportCue, setCueOutput } from '../lib/crackle'
+import { isNativeShell } from '../lib/nativeFile'
 import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
 import * as db from '../lib/library'
@@ -72,6 +73,11 @@ interface PlayerState {
    * comes back. Cleared everywhere `error` is.
    */
   missingTrack: Track | null
+  /**
+   * Tracks skipped because they could not be played — gone from the Music
+   * library, a file moved — for "N tracks couldn't play" (`SkippedBanner`).
+   */
+  skipped: SkippedTrack[]
 
   /**
    * The first-play ceremony (§22.9 of next-products.md): the platter spins up,
@@ -139,6 +145,8 @@ interface PlayerState {
   removeFromQueue(index: number): void
   clearQueue(): void
   dismissError(): void
+  /** Clear "N tracks couldn't play". */
+  dismissSkipped(): void
   /**
    * Try the missing track again, once its folder is back. The one thing the
    * transport cannot do for itself here: `unreachable` stopped and emptied the
@@ -188,6 +196,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeat: modes.repeat,
   error: null,
   missingTrack: null,
+  skipped: [],
   ceremony: false,
   ceremonyDone: false,
   ceremonyCount: null,
@@ -410,6 +419,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ error: null, missingTrack: null })
   },
 
+  dismissSkipped() {
+    set({ skipped: [] })
+  },
+
   replayMissing() {
     const track = get().missingTrack
     if (!track) return
@@ -475,6 +488,8 @@ function persistModes(shuffle: boolean, repeat: Repeat) {
  * showed a blank card for every track, and nothing anywhere failed.
  */
 function publishNowPlaying(track: Track | null): void {
+  // A track that goes on ends a run of skips — see `skipPast`.
+  if (track) consecutiveSkips = 0
   if (!track) {
     ms.setMetadata(null, null)
     void clearLockScreen()
@@ -761,6 +776,49 @@ function unreachable(set: Set, track: Track | undefined, message: string): void 
   })
 }
 
+export interface SkippedTrack {
+  id: string
+  title: string
+  artist?: string
+  reason: string
+}
+
+/**
+ * Skip a track that cannot be played, and note it for `SkippedBanner`.
+ *
+ * ⚠️ THE MUSIC NO LONGER STOPS FOR ONE MISSING TRACK (James, 2026-09-11: "The
+ * playing stops and breaks the lock play when a track is no longer in library.
+ * It should skip to next"). It used to stop the deck and clear the lock screen
+ * — with the phone in a pocket, silence and no way to know why.
+ *
+ * ⚠️ But not for ever: `MAX_SKIPS` misses IN A ROW means something bigger — a
+ * folder whose permission lapsed, a library that is gone — and skipping would
+ * race through the whole queue saying nothing useful. Then it returns false
+ * and the caller stops with the usual error, which knows how to explain a
+ * folder and offer its button. A track that plays resets the count.
+ */
+const MAX_SKIPS = 8
+let consecutiveSkips = 0
+
+function skipPast(track: Track, reason: string): boolean {
+  const get = usePlayerStore.getState
+  const set = usePlayerStore.setState
+  if (get().order.length < 2) return false
+  consecutiveSkips++
+  if (consecutiveSkips > Math.min(MAX_SKIPS, get().order.length - 1)) {
+    consecutiveSkips = 0
+    return false
+  }
+  set({
+    skipped: [...get().skipped, { id: track.id, title: track.title, artist: track.artist ?? track.albumArtist, reason }],
+    error: null,
+    missingTrack: null,
+  })
+  // `naturalEnd`: the missing track never played, so there is nothing to fade.
+  advance(set, get, 1, true)
+  return true
+}
+
 /**
  * The song's copy is being made — see `whenPlayable`. Bumped by every start,
  * so an export that finishes after the user has moved on starts nothing.
@@ -797,7 +855,7 @@ function whenPlayable(set: Set, track: Track, resume: () => void): boolean {
   void library.prepare(track).then((file) => {
     if (token !== preparing) return
     if (!file) {
-      unreachable(set, track, UNPLAYABLE)
+      if (!skipPast(track, 'not on this iPhone any more')) unreachable(set, track, UNPLAYABLE)
       return
     }
     resume()
@@ -836,6 +894,7 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   if (whenPlayable(set, track, () => startCeremonyOrPlay(set, get, track))) return
   const file = useLibraryStore.getState().fileFor(track)
   if (!file) {
+    if (skipPast(track, 'its file is missing')) return
     unreachable(set, track, 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.')
     return
   }
@@ -977,6 +1036,7 @@ function playPrepared(
 ) {
   const file = track ? useLibraryStore.getState().fileFor(track) : null
   if (!file || !track) {
+    if (track && skipPast(track, 'its file is missing')) return
     unreachable(set, track, 'That file isn’t reachable any more. Choose the folder again to restore playback.')
     return
   }
@@ -1168,6 +1228,8 @@ audio.setCallbacks({
     })
   },
   onError(message) {
+    const track = currentTrack(usePlayerStore.getState())
+    if (track && skipPast(track, message)) return
     usePlayerStore.setState({ error: message, missingTrack: null })
   },
   onApproachingEnd(remainingSec) {
@@ -1204,3 +1266,7 @@ useSettingsStore.subscribe((next, prev) => {
   const track = currentTrack(usePlayerStore.getState())
   if (track) publishNowPlaying(track)
 })
+
+// On the iPhone app the start-up sounds are clips played through <audio>, which
+// iOS keeps playing off screen — see `setCueOutput` in `lib/crackle.ts`.
+if (isNativeShell()) setCueOutput('clip')

@@ -72,6 +72,10 @@ function ctx(): AudioContext | null {
  * rather than silently giving the new deck the vinyl needle drop.
  */
 export function playTransportCue(style: DeckStyle, volume = 0.8, level = 1): void {
+  if (output === 'clip') {
+    playClip(`cue:${style}`, CUES[style] ?? CUES.vinyl, gainOf(volume, level))
+    return
+  }
   const audio = ctx()
   if (!audio) return
   // A context created before any gesture starts suspended; resuming inside the
@@ -190,7 +194,7 @@ const MAX_LEVEL = 2
  * Falling (120 → 46) it is the arm meeting the record; rising (70 → 190) it is
  * a disc spinning up. Same six lines either way.
  */
-function tone(audio: AudioContext, at: number, level: number, spec: ToneSpec): void {
+function tone(audio: BaseAudioContext, at: number, level: number, spec: ToneSpec): void {
   try {
     const osc = audio.createOscillator()
     const gain = audio.createGain()
@@ -219,7 +223,7 @@ function tone(audio: AudioContext, at: number, level: number, spec: ToneSpec): v
  * of mono at the context's own rate — about 40 KB — and caching it would mean
  * holding a buffer tied to a context that may have been closed.
  */
-function noise(audio: AudioContext, at: number, level: number, spec: NoiseSpec): void {
+function noise(audio: BaseAudioContext, at: number, level: number, spec: NoiseSpec): void {
   try {
     const frames = Math.max(1, Math.floor(audio.sampleRate * spec.seconds))
     const buffer = audio.createBuffer(1, frames, audio.sampleRate)
@@ -296,15 +300,29 @@ const TICK: ToneSpec[] = [
 ]
 
 export function playCountTick(volume = 0.8, level = 1, downbeat = false): void {
+  if (output === 'clip') {
+    playClip(downbeat ? 'tick:down' : 'tick:up', tickParts(downbeat), gainOf(volume, level))
+    return
+  }
   const audio = ctx()
   if (!audio) return
   if (audio.state === 'suspended') void audio.resume().catch(() => {})
-  const gain = Math.max(0, Math.min(1, volume)) * Math.max(0, Math.min(MAX_LEVEL, level))
+  const gain = gainOf(volume, level)
   if (gain <= 0) return
-  const pitch = downbeat ? 1.26 : 1
   const now = audio.currentTime
-  for (const part of TICK) tone(audio, now + part.at, gain, { ...part, from: part.from * pitch, to: part.to * pitch })
+  for (const part of tickParts(downbeat)) tone(audio, now + part.at, gain, part)
   idleAfter(0.12)
+}
+
+/** The tick, a little higher on the 1 — the way a metronome marks the downbeat. */
+function tickParts(downbeat: boolean): ToneSpec[] {
+  const pitch = downbeat ? 1.26 : 1
+  return TICK.map((part) => ({ ...part, from: part.from * pitch, to: part.to * pitch }))
+}
+
+/** Each part clamped on its own, so a corrupt stored setting cannot produce a bang. */
+function gainOf(volume: number, level: number): number {
+  return Math.max(0, Math.min(1, volume)) * Math.max(0, Math.min(MAX_LEVEL, level))
 }
 
 /**
@@ -343,6 +361,7 @@ function idleAfter(seconds: number): void {
 let musicPlaying = false
 
 export function followMusic(playing: boolean): void {
+  if (output === 'clip') return
   if (playing === musicPlaying) return
   musicPlaying = playing
   if (!context) return
@@ -359,6 +378,7 @@ function sleep(): void {
 
 /** For the iPhone diagnostics: `none`, `running`, `suspended` or `closed`. */
 export function effectsState(): string {
+  if (output === 'clip') return 'clips'
   return context ? context.state : 'none'
 }
 
@@ -375,4 +395,116 @@ export function closeAudioContext(): void {
     /* ignore */
   }
   context = null
+}
+
+// ─── Clips: how the iPhone app plays a cue ────────────────────────────────
+//
+// ⚠️ ON THE IPHONE APP A CUE IS A RENDERED CLIP PLAYED THROUGH AN <audio>
+// ELEMENT — NOT A LIVE AudioContext (2026-09-11). The phone's saved log found
+// this file's context "interrupted" by iOS with the app in the background; with
+// it the music stalled while the lock screen kept counting, and the crackle
+// went silent for good, since an interrupted context only resumes inside a tap
+// ("I would like to hear the crackle on disc change … doesn't seem to work on
+// random play"). An <audio> element is what iOS keeps playing off screen — the
+// music is two of them. So each cue is synthesised ONCE, by the same `tone` and
+// `noise` as ever, into an OfflineAudioContext, kept as a WAV, and played like
+// a song: on the lock screen too, and with no Web Audio left running at all.
+
+let output: 'context' | 'clip' = 'context'
+
+/** Switch how cues are played. The iPhone app asks for clips at start-up. */
+export function setCueOutput(mode: 'context' | 'clip'): void {
+  output = mode
+  if (mode !== 'clip') return
+  closeAudioContext()
+  // Made now, while nothing is waiting on them, so the first needle drop is on time.
+  for (const style of Object.keys(CUES) as DeckStyle[]) void clipFor(`cue:${style}`, CUES[style])
+  void clipFor('tick:up', tickParts(false))
+  void clipFor('tick:down', tickParts(true))
+}
+
+/**
+ * Clips are rendered this much louder than 1, so an element's volume — capped
+ * at 1 by the spec — can still reach the level slider's 2×.
+ */
+const CLIP_HEADROOM = MAX_LEVEL
+const clips = new Map<string, Promise<string | null>>()
+
+function clipFor(key: string, parts: CuePart[]): Promise<string | null> {
+  let made = clips.get(key)
+  if (!made) {
+    made = renderClip(parts).catch(() => null)
+    clips.set(key, made)
+  }
+  return made
+}
+
+async function renderClip(parts: CuePart[]): Promise<string | null> {
+  const Offline =
+    window.OfflineAudioContext ??
+    (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext
+  if (!Offline) return null
+  const rate = 44100
+  const seconds = Math.max(...parts.map((part) => part.at + part.seconds)) + 0.05
+  const offline = new Offline(1, Math.ceil(seconds * rate), rate)
+  for (const part of parts) {
+    if (part.kind === 'tone') tone(offline, part.at, CLIP_HEADROOM, part)
+    else noise(offline, part.at, CLIP_HEADROOM, part)
+  }
+  return URL.createObjectURL(wav(await offline.startRendering()))
+}
+
+/** A mono buffer as a 16-bit PCM WAV. Exported for its test. */
+export function wav(buffer: { sampleRate: number; getChannelData(channel: number): Float32Array }): Blob {
+  const data = buffer.getChannelData(0)
+  const rate = buffer.sampleRate
+  const bytes = new ArrayBuffer(44 + data.length * 2)
+  const view = new DataView(bytes)
+  const text = (at: number, value: string) => {
+    for (let i = 0; i < value.length; i++) view.setUint8(at + i, value.charCodeAt(i))
+  }
+  text(0, 'RIFF')
+  view.setUint32(4, 36 + data.length * 2, true)
+  text(8, 'WAVE')
+  text(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, rate, true)
+  view.setUint32(28, rate * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  text(36, 'data')
+  view.setUint32(40, data.length * 2, true)
+  for (let i = 0; i < data.length; i++) {
+    const sample = Math.max(-1, Math.min(1, data[i]))
+    view.setInt16(44 + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+  }
+  return new Blob([bytes], { type: 'audio/wav' })
+}
+
+/** Three players, taken in turn, so a tick and a needle drop can overlap. */
+const players: HTMLAudioElement[] = []
+let turn = 0
+
+function playClip(key: string, parts: CuePart[], gain: number): void {
+  if (gain <= 0) return
+  void clipFor(key, parts).then((url) => {
+    if (!url) return
+    if (players.length === 0) {
+      for (let i = 0; i < 3; i++) {
+        const player = new Audio()
+        player.preload = 'auto'
+        player.setAttribute('data-jukebox-cue', '')
+        players.push(player)
+      }
+    }
+    const player = players[turn++ % players.length]
+    if (player.src !== url) player.src = url
+    player.volume = Math.max(0, Math.min(1, gain / CLIP_HEADROOM))
+    try {
+      player.currentTime = 0
+    } catch { /* not loaded yet — it starts at 0 anyway */ }
+    void player.play().catch(() => {})
+  })
 }

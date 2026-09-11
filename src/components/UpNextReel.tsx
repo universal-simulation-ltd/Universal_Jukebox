@@ -73,7 +73,7 @@ interface Waiting {
   track: Track
 }
 
-export default function UpNextReel() {
+export default function UpNextReel({ onMore }: { onMore?: () => void } = {}) {
   const queue = usePlayerStore((s) => s.queue)
   const order = usePlayerStore((s) => s.order)
   const cursor = usePlayerStore((s) => s.cursor)
@@ -173,7 +173,7 @@ export default function UpNextReel() {
             onJump={() => jumpTo(w.orderIndex)}
           />
         ))}
-        {counting && <MoreRecords count={more} />}
+        {counting && <MoreRecords count={more} onOpen={onMore} />}
       </div>
     </section>
   )
@@ -323,20 +323,26 @@ function Waiting({
  * The last column: a stack of records with a number on it, standing for
  * everything that did not fit on the line.
  *
- * ⚠️ NOT a button, and not a link to anywhere. "Up next" underneath this row is
- * the complete list, with names and a remove button on every entry — it is
- * already the answer to "what are the other five?", it is three inches below
- * this, and a control here would be a second way to reach it that behaves
- * differently. This is a count, and a count is allowed to be just a count.
+ * ⚠️ IT IS THE WAY INTO "UP NEXT" (James, 2026-09-11: "Only show the up next
+ * when they click the + X record"). The full list — names, a remove button on
+ * every entry — is hidden until this is tapped; it used to sit permanently under
+ * a row that already showed most of it.
  *
  * ⚠️ It is drawn as a STACK — two edges peeking out behind the front disc —
  * rather than as one more record with a number on it. Every other item in the
  * row is exactly one record going on the deck; this one is several, and the
  * only thing that says so at 76px is the shape.
  */
-function MoreRecords({ count }: { count: number }) {
+function MoreRecords({ count, onOpen }: { count: number; onOpen?: () => void }) {
   return (
     <div className="shrink-0 pt-1 text-center" style={{ maxWidth: ITEM, width: ITEM }}>
+      <button
+        type="button"
+        onClick={onOpen}
+        disabled={!onOpen}
+        aria-label={`Show the ${count} more records in Up next`}
+        className="w-full cursor-pointer rounded-lg text-center transition enabled:hover:-translate-y-[3px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] disabled:cursor-default"
+      >
       <div className="mx-auto" style={{ width: MEDIA }} aria-hidden>
         <div className="relative" style={{ height: MEDIA, width: MEDIA }}>
           {/* The two behind, offset up and to the right so they read as edges
@@ -373,6 +379,7 @@ function MoreRecords({ count }: { count: number }) {
       <span className="mt-0.5 block text-[10.5px] text-slate-400 dark:text-slate-500">
         in the queue
       </span>
+      </button>
     </div>
   )
 }

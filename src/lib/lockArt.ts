@@ -33,7 +33,7 @@ export interface LockArt {
 
 /** Bumped whenever the drawing changes, so no stale picture is reused — the
  *  native side caches its videos under the key this is part of. */
-const VERSION = 2
+const VERSION = 3
 const STILL = 600
 const DISC = 1024
 

@@ -204,6 +204,7 @@ final class SpinArt {
     }
 
     func preview(_ size: CGSize) -> UIImage? {
+        print("[jukebox:native] spin art: preview asked for \(Int(size.width))x\(Int(size.height))")
         let (w, h) = SpinArt.pixels(size)
         guard let ctx = SpinArt.context(w, h, data: nil, bytesPerRow: 0) else { return nil }
         draw(ctx, w, h, angle: 0)
@@ -218,8 +219,15 @@ final class SpinArt {
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             let safe = self.id.replacingOccurrences(of: "[^A-Za-z0-9._-]", with: "_", options: .regularExpression)
             let url = dir.appendingPathComponent("\(safe)-\(w)x\(h).mov")
-            if FileManager.default.fileExists(atPath: url.path) { done(url); return }
-            done(self.write(w, h, to: url) ? url : nil)
+            if FileManager.default.fileExists(atPath: url.path) {
+                print("[jukebox:native] spin art: video asked for \(w)x\(h) — cached")
+                done(url)
+                return
+            }
+            let started = Date()
+            let ok = self.write(w, h, to: url)
+            print("[jukebox:native] spin art: video asked for \(w)x\(h) — written=\(ok) in \(Int(Date().timeIntervalSince(started) * 1000))ms")
+            done(ok ? url : nil)
         }
     }
 
@@ -243,7 +251,12 @@ final class SpinArt {
         writer.startSession(atSourceTime: .zero)
 
         let fps: Int32 = 30
-        let frames = max(12, Int((seconds * Double(fps)).rounded()))
+        // ⚠️ SEVERAL WHOLE TURNS, at least six seconds a loop. One turn was a
+        // 1.8-second video, and nobody saw it move on the lock screen
+        // (2026-09-11); the system's own animated covers run for many seconds.
+        // Whole turns keep the loop seamless.
+        let turns = max(1, Int((6.0 / seconds).rounded(.up)))
+        let frames = max(12, Int((seconds * Double(turns) * Double(fps)).rounded()))
         for i in 0..<frames {
             while !input.isReadyForMoreMediaData { Thread.sleep(forTimeInterval: 0.005) }
             guard let pool = adaptor.pixelBufferPool else { return false }
@@ -253,7 +266,7 @@ final class SpinArt {
             CVPixelBufferLockBaseAddress(buffer, [])
             if let ctx = SpinArt.context(w, h, data: CVPixelBufferGetBaseAddress(buffer),
                                          bytesPerRow: CVPixelBufferGetBytesPerRow(buffer)) {
-                draw(ctx, w, h, angle: 2 * .pi * CGFloat(i) / CGFloat(frames))
+                draw(ctx, w, h, angle: 2 * .pi * CGFloat(turns) * CGFloat(i) / CGFloat(frames))
             }
             CVPixelBufferUnlockBaseAddress(buffer, [])
             guard adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: fps)) else { return false }

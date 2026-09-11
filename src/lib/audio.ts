@@ -152,7 +152,24 @@ function element(index: 0 | 1): HTMLAudioElement {
   // queue advances twice.
   const mine = () => active === index
 
-  audio.addEventListener('play', () => { if (mine()) set({ playing: true }) })
+  audio.addEventListener('play', () => {
+    if (!mine()) return
+    set({ playing: true })
+    // ⚠️ ONE DECK AUDIBLE OUTSIDE A CROSSFADE. Two tracks were heard at once on
+    // the phone (James, 2026-09-11: "Blue" by Ed Sheeran under "I Wanna Go"),
+    // and pausing stopped only one of them — the other deck was playing while
+    // being neither the active one nor the retiring one, so nothing owned it.
+    // Whatever path started it, the active deck starting while no crossfade is
+    // running now stops the other.
+    if (retiring === null) {
+      const other = decks[index === 0 ? 1 : 0].el
+      if (other && !other.paused) {
+        noteEvent('stray-stopped', { deck: other.dataset.jukeboxAudio, sec: other.currentTime })
+        markOwnPause()
+        other.pause()
+      }
+    }
+  })
   audio.addEventListener('pause', () => {
     // ⚠️ A PAUSE NOBODY HERE ASKED FOR, WITH THE APP OFF SCREEN, is the
     // background-playback failure (2026-09-10): the music was found already
@@ -161,8 +178,11 @@ function element(index: 0 | 1): HTMLAudioElement {
     // carry on — if WebKit lets a hidden page resume, this is the moment. The
     // lock screen's own pause button comes through `pause()` below, which marks
     // itself, so a person pausing from there is never fought.
-    const external = Date.now() - ownPauseAt > 400
-    noteEvent('pause', { deck: audio.dataset.jukeboxAudio, external, sec: audio.currentTime })
+    // ⚠️ A track reaching its END fires `pause` too, and that is not an outside
+    // pause: rescuing it restarted the finished song from 0:00 until the next
+    // one loaded (the phone's saved log, 2026-09-11).
+    const external = Date.now() - ownPauseAt > 400 && !audio.ended
+    noteEvent('pause', { deck: audio.dataset.jukeboxAudio, external, ended: audio.ended, sec: audio.currentTime })
     if (external && !document.hidden && mine()) lastOutsidePause = { at: Date.now(), index }
     if (external && document.hidden && mine()) {
       audio
@@ -449,7 +469,11 @@ export function pause(reason = 'app'): void {
   finishRetirement()
   noteEvent('pause-call', { reason })
   markOwnPause()
+  // BOTH decks, not just the active one: a pause is a request for silence, and
+  // a second deck still sounding after it is the "one track keeps playing"
+  // report (2026-09-11).
   el().pause()
+  for (const deck of decks) if (deck.el && !deck.el.paused) deck.el.pause()
 }
 
 // The other half of `lastOutsidePause`: the page has just gone hidden, and

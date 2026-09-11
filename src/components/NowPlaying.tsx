@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { revealExpanded } from '@unisim/sdk'
+import { scrollToTop } from '../lib/scrollTop'
 import { coverUrl } from '../lib/art'
 import { plural } from '../lib/format'
 import { goHome, navigate } from '../lib/route'
@@ -39,6 +41,15 @@ export default function NowPlaying() {
   const cursor = usePlayerStore((s) => s.cursor)
   const albums = useLibraryStore((s) => s.albums)
   const deckPhase = usePlayerStore((s) => s.deckPhase)
+  /** "Up next", opened from the "+N" record — see `Queue`. */
+  const [queueOpen, setQueueOpen] = useState(false)
+  const openQueue = () => {
+    setQueueOpen(true)
+    requestAnimationFrame(() => {
+      const list = document.getElementById('jb-up-next')
+      if (list) revealExpanded(list, null)
+    })
+  }
 
   const album = track ? albums.find((a) => a.id === track.albumId) : undefined
   const onTheDeck = useLeavingAlbum(album, deckPhase === 'leaving')
@@ -150,8 +161,8 @@ export default function NowPlaying() {
         list on purpose: it belongs to the deck (it is the same medium, in the
         order it will go on) and it introduces the queue underneath, which is
         the version with names and a way to remove a row. */}
-    <UpNextReel />
-    <Queue />
+    <UpNextReel onMore={openQueue} />
+    {queueOpen && <Queue onHide={() => setQueueOpen(false)} />}
     </>
   )
 }
@@ -180,6 +191,9 @@ function LyricsToggle() {
         if (!track) return
         if (show) {
           hideLyrics()
+          // Back up to the record (James, 2026-09-11: "When clicking hide
+          // lyrics scroll back up to top for animation").
+          scrollToTop()
           return
         }
         // Opening them scrolls down to them — see `lib/lyricsReveal.ts`.
