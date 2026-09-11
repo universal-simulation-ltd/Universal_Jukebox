@@ -447,8 +447,14 @@ const Peek = forwardRef<
       }}
     >
       {/* `Medium` is drawn at 76px; scaled rather than redrawn, so the two
-          rows can never disagree about what a cassette looks like. */}
-      <span className="block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
+          rows can never disagree about what a cassette looks like.
+          ⚠️ PINNED TO THE TOP LEFT, not left in the flow. A button centres its
+          content vertically, so the 76px drawing sat (size − 76) / 2 down the
+          button before the scale — every peek was drawn 38px below its place,
+          and a peek grown to the deck's size landed 61px under the record it
+          was replacing (James, 2026-09-11: "Record still doesn't end in right
+          position"). */}
+      <span className="absolute left-0 top-0 block origin-top-left" style={{ width: 76, height: 76, transform: `scale(${size / 76})` }}>
         <Medium album={album} style={style} />
       </span>
     </button>
