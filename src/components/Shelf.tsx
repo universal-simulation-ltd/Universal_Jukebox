@@ -52,8 +52,32 @@ const LAUNCH_SEED = newSeed()
 
 function Shelves<T>({ items, label, row }: { items: T[]; label: string; row(items: T[], label: string, start: number): ReactNode }) {
   const rows = shelfRows(items, LAUNCH_SEED)
+  const box = useRef<HTMLDivElement>(null)
+  const [lift, setLift] = useState(0)
+
+  // ⚠️ THE FIRST SHELF STANDS IN THE MIDDLE OF THE SCREEN (James, 2026-09-11:
+  // "centre the first row to the middle height of the screen on library view
+  // so it doesn't look like you're already mid scroll"). Opened near the top,
+  // with the next shelf showing under it, the page looked as if you had
+  // already scrolled into it. The space above the first shelf is whatever
+  // puts its middle at the screen's middle — none, if it is already there or
+  // lower. Measured from where the shelves START (the space is padding inside
+  // them), so it never feeds back into itself.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = box.current
+      const first = el?.querySelector('section')
+      if (!el || !first) return
+      const top = el.getBoundingClientRect().top + window.scrollY
+      setLift(Math.max(0, Math.round(window.innerHeight / 2 - top - first.offsetHeight / 2)))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [items])
+
   return (
-    <div className="space-y-10">
+    <div ref={box} className="space-y-10" style={{ paddingTop: lift }}>
       {withResumeRow(
         rows.map((r, i) => (
           <Fragment key={i}>
