@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import PreviewButton from './PreviewButton'
 import { withResumeRow } from './resumeRow'
+import { TrackShelf } from './Shelf'
+import { useSettingsStore } from '../stores/settingsStore'
 import { leadWith, useResumable } from '../lib/resume'
 import { clock } from '../lib/format'
 import { matchTracks } from '../lib/search'
@@ -28,6 +30,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
   const playing = usePlayerStore((s) => s.playing)
   const nowPlaying = usePlayerStore(currentTrack)
   const [showAll, setShowAll] = useState(false)
+  const columns = useSettingsStore((s) => s.libraryColumns)
   const leadId = useResumable()?.track.id ?? null
 
   // ⚠️ `matchTracks` and not an inline filter: the count in the tab above comes
@@ -53,6 +56,13 @@ export default function TrackList({ query, order }: { query: string; order: Libr
 
   return (
     <>
+      {/* The shelf view shows the songs as the records themselves (James,
+          2026-09-11: "on tracks show the actual records on the shelf, not the
+          album + record"); a tap plays the matched list from there, as a row
+          in the list does. */}
+      {columns === 'jukebox' ? (
+        <TrackShelf tracks={shown} onPlay={(track) => playTracks(matched, matched.indexOf(track))} />
+      ) : (
       <ul className="divide-y divide-slate-200 dark:divide-slate-800">
         {withResumeRow(shown.map((track) => {
           const isCurrent = nowPlaying?.id === track.id
@@ -99,6 +109,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
           )
         }), 1, 'row')}
       </ul>
+      )}
 
       {hidden > 0 && (
         <div className="py-6 text-center">

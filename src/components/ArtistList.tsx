@@ -1,5 +1,6 @@
 import { Fragment, useId, useMemo, useState } from 'react'
 import { withResumeRow } from './resumeRow'
+import { ArtistShelf } from './Shelf'
 import { useGridColumns } from '../lib/useGridColumns'
 import { leadWith, useResumable } from '../lib/resume'
 import Cover from './Cover'
@@ -59,6 +60,8 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
       albums: [...list].sort((x, y) => (x.year ?? 9999) - (y.year ?? 9999)),
     }))
   }, [albums, query, order, leadName])
+
+  if (artists.length > 0 && columns === 'jukebox') return <ArtistShelf artists={artists} />
 
   if (artists.length === 0) {
     return (

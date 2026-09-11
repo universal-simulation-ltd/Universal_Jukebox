@@ -54,7 +54,7 @@ export type CeremonyMode = 'always' | 'album' | 'artist' | 'first' | 'off'
 export const CEREMONY_LADDER: CeremonyMode[] = ['off', 'first', 'artist', 'album', 'always']
 
 /** Which library tab the front door opens on. */
-export type HomeTab = 'albums' | 'artists' | 'tracks'
+export type HomeTab = 'albums' | 'artists' | 'tracks' | 'jukebox'
 
 /**
  * What the thing turning on Now Playing is.
@@ -340,7 +340,7 @@ function readStored(): Settings {
     ceremonyMode: CEREMONY_LADDER.includes(mode as CeremonyMode)
       ? (mode as CeremonyMode)
       : DEFAULTS.ceremonyMode,
-    homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' ? tab : DEFAULTS.homeTab,
+    homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' || tab === 'jukebox' ? tab : DEFAULTS.homeTab,
     // `automatic` was retired for `automatic` on 2026-09-10; somebody who had
     // chosen "a different machine each time" gets the closest thing to it.
     deck: deck === 'random' ? 'automatic' : DECK_SETTINGS.includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,

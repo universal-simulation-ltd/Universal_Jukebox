@@ -112,7 +112,7 @@ export default function Settings() {
       <button
         type="button"
         onClick={goHome}
-        className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400"
+        className="mb-5 hidden items-center gap-1.5 text-[13px] text-slate-600 sm:inline-flex hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
@@ -387,9 +387,10 @@ function DownloadedLyrics() {
 // ── Labels and formats, shared by the controls and the fold summaries ────────
 
 const HOME_OPTIONS: Option<HomeTab>[] = [
-  { value: 'albums', label: 'Albums' },
   { value: 'artists', label: 'Artists' },
+  { value: 'albums', label: 'Albums' },
   { value: 'tracks', label: 'Tracks' },
+  { value: 'jukebox', label: 'Jukebox' },
 ]
 
 const THEME_OPTIONS: Option<ThemePref>[] = [

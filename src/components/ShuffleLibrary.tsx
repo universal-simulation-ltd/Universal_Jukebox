@@ -16,13 +16,15 @@ import { useSettingsStore, type HomeTab } from '../stores/settingsStore'
 // button is not shown during a search (App.tsx): a whole-library shuffle under
 // a list of search results would not be shuffling what is on the screen.
 
-const COPY: Record<HomeTab, { label: string; detail?: string }> = {
+type ListTab = Exclude<HomeTab, 'jukebox'>
+
+const COPY: Record<ListTab, { label: string; detail?: string }> = {
   artists: { label: 'Shuffle artists', detail: 'Each artist in full, their songs shuffled' },
   albums: { label: 'Shuffle albums', detail: 'Each album in full, in order' },
   tracks: { label: 'Shuffle all songs' },
 }
 
-export default function ShuffleLibrary({ view }: { view: HomeTab }) {
+export default function ShuffleLibrary({ view }: { view: ListTab }) {
   const trackCount = useLibraryStore((s) => s.tracks.length)
   const albums = useLibraryStore((s) => s.albums)
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
@@ -39,7 +41,8 @@ export default function ShuffleLibrary({ view }: { view: HomeTab }) {
   }
 
   return (
-    <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+    // Centred on a phone (James, 2026-09-11), beside its line from `sm` up.
+    <div className="mb-5 flex flex-col items-center gap-1.5 text-center sm:flex-row sm:gap-3 sm:text-left">
       <button
         type="button"
         onClick={start}

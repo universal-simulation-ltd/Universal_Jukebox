@@ -23,6 +23,7 @@ import ScrollTopButton from './components/ScrollTopButton'
 import ScanBanner from './components/ScanBanner'
 import SkippedBanner from './components/SkippedBanner'
 import ShuffleLibrary from './components/ShuffleLibrary'
+import JukeboxShelves from './components/JukeboxShelves'
 import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
@@ -51,7 +52,7 @@ const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_Jukebox'
 const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'about', 'tidy'])
 
 /** The views the skipped-files report belongs on: the library itself. */
-const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'album', 'artist'])
+const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'jukebox', 'album', 'artist'])
 
 /** The library's two switches: A–Z/Random and "Full albums only". */
 function togglePill(active: boolean): string {
@@ -67,6 +68,8 @@ const TABS: { view: HomeTab; label: string }[] = [
   { view: 'artists', label: 'Artists' },
   { view: 'albums', label: 'Albums' },
   { view: 'tracks', label: 'Tracks' },
+  // Your own shelves of songs — `JukeboxShelves` (James, 2026-09-11).
+  { view: 'jukebox', label: 'Jukebox' },
 ]
 
 function useRoute(): Route {
@@ -173,6 +176,8 @@ export default function App() {
   const columns = useSettingsStore((s) => s.libraryColumns)
   /** The row of list options, behind the icon after the tabs. */
   const [optionsOpen, setOptionsOpen] = useState(false)
+  /** The tabs row, which scrolls sideways on a phone. */
+  const tabsNav = useRef<HTMLElement>(null)
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
   // ⚠️ Below `fullAlbumsOnly`, which it reads — above it, it is a TDZ error on
   // every render and the whole app fails to draw.
@@ -189,6 +194,16 @@ export default function App() {
    * what its label says even for somebody who has starred Tracks.
    */
   const view: View = route.home ? homeTab : route.view
+
+  useEffect(() => {
+    const nav = tabsNav.current
+    const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!nav || !tab) return
+    const left = tab.offsetLeft - nav.offsetLeft
+    if (left < nav.scrollLeft || left + tab.offsetWidth > nav.scrollLeft + nav.clientWidth) {
+      nav.scrollLeft = left - (nav.clientWidth - tab.offsetWidth) / 2
+    }
+  }, [view])
 
   /**
    * How many results each tab holds, computed only while there is a query.
@@ -350,7 +365,14 @@ export default function App() {
             {/* On a phone, search waits folded above the tabs until pulled down. */}
             <PhoneSearch ref={phoneSearch} query={query} setQuery={setQuery} open={searchOpen} setOpen={setSearchOpen} />
             <div className="mb-5 flex flex-wrap items-center gap-3">
-              <nav className="flex items-center gap-0.5" aria-label="Library views">
+              {/* ⚠️ Four tabs and their stars are wider than a phone, so the
+                  row scrolls sideways there — the tab you are on is brought
+                  into view (`tabsNav`). */}
+              <nav
+                ref={tabsNav}
+                className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] sm:flex-none [&::-webkit-scrollbar]:hidden"
+                aria-label="Library views"
+              >
                 {TABS.map((tab) => {
                   const starred = homeTab === tab.view
                   return (
@@ -369,7 +391,7 @@ export default function App() {
                         {/* Only while searching. A permanent count is a number
                             nobody asked for; during a search it is the only way
                             to know the tab you are NOT looking at has answers. */}
-                        {counts && (
+                        {counts && tab.view !== 'jukebox' && (
                           <span className="ml-1 tabular-nums opacity-70">
                             ({counts[tab.view].toLocaleString()})
                           </span>
@@ -412,6 +434,7 @@ export default function App() {
                   / full album to keep the UI clean"). A dot on it while any of
                   them is changed from its usual, so a filtered list never looks
                   like a missing one. */}
+              {view !== 'jukebox' && (
               <button
                 type="button"
                 onClick={() => setOptionsOpen((o) => !o)}
@@ -430,6 +453,7 @@ export default function App() {
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-slate-100 dark:ring-slate-950" aria-hidden />
                 )}
               </button>
+              )}
               {/* The wider screens' box, inline with the tabs. A phone uses
                   `PhoneSearch` above them instead. */}
               <input
@@ -443,7 +467,7 @@ export default function App() {
               {/* No "Now playing" button here any more (James, 2026-09-11:
                   "Remove the now playing button (they click mini player)"). */}
             </div>
-            {optionsOpen && (
+            {optionsOpen && view !== 'jukebox' && (
               <div id="jb-list-options" className="-mt-2 mb-5 flex flex-wrap items-center justify-center gap-2">
                 {/* A–Z ↔ Random: the label says the order you are IN. */}
                 <button
@@ -480,6 +504,22 @@ export default function App() {
                 {/* Albums per row: 2, 3, 4, the jukebox shelf, 1 (James,
                     2026-09-11) — one button that cycles, labelled with what
                     it is on now. */}
+                {/* Tracks: the list, or the shelf of records — the same
+                    setting, so the shelf is the shelf everywhere. */}
+                {view === 'tracks' && (
+                  <button
+                    type="button"
+                    onClick={() => setSetting('libraryColumns', columns === 'jukebox' ? 2 : 'jukebox')}
+                    aria-label={columns === 'jukebox' ? 'Jukebox shelf. Tap for the list' : 'List. Tap for the jukebox shelf'}
+                    title="The list, or the shelf of records — tap to change"
+                    className={togglePill(columns === 'jukebox')}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      <GridGlyph />
+                      {columns === 'jukebox' ? 'Jukebox shelf' : 'List'}
+                    </span>
+                  </button>
+                )}
                 {(view === 'albums' || view === 'artists') && (
                   <button
                     type="button"
@@ -515,8 +555,12 @@ export default function App() {
 
             {/* Shuffle the library the way this tab reads it — not during a
                 search, when the list is not the library. */}
-            {!query.trim() && <ShuffleLibrary view={view === 'artists' ? 'artists' : view === 'tracks' ? 'tracks' : 'albums'} />}
-            {view === 'artists' ? (
+            {!query.trim() && view !== 'jukebox' && (
+              <ShuffleLibrary view={view === 'artists' ? 'artists' : view === 'tracks' ? 'tracks' : 'albums'} />
+            )}
+            {view === 'jukebox' ? (
+              <JukeboxShelves />
+            ) : view === 'artists' ? (
               <ArtistList query={query} order={order} />
             ) : view === 'tracks' ? (
               <TrackList query={query} order={order} />
