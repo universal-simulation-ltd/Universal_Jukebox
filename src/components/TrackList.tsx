@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import PreviewButton from './PreviewButton'
+import { withResumeRow } from './resumeRow'
 import { clock } from '../lib/format'
 import { matchTracks } from '../lib/search'
 import { seededOrder, type LibraryOrder } from '../lib/libraryView'
@@ -49,7 +50,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
   return (
     <>
       <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-        {shown.map((track) => {
+        {withResumeRow(shown.map((track) => {
           const isCurrent = nowPlaying?.id === track.id
           return (
             <li key={track.id} className="flex items-center gap-2">
@@ -92,7 +93,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
               <PreviewButton track={track} />
             </li>
           )
-        })}
+        }), 1, 'row')}
       </ul>
 
       {hidden > 0 && (

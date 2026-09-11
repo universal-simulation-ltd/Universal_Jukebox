@@ -29,7 +29,6 @@ import { NAVIGATED, currentRoute, goHome, navigate, type Route, type View } from
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, tabCounts } from './lib/search'
 import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, newSeed, nextColumns, type LibraryOrder } from './lib/libraryView'
-import ResumeCard from './components/ResumeCard'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
 import { useSettingsStore, type HomeTab } from './stores/settingsStore'
@@ -516,7 +515,6 @@ export default function App() {
                 )}
               </div>
             )}
-            <ResumeCard />
 
             {view === 'artists' ? (
               <ArtistList query={query} order={order} />

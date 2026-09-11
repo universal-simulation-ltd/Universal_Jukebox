@@ -21,7 +21,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 /** "Hide" lasts until the app is next opened — held here, across tab switches. */
 let hiddenThisVisit = false
 
-export default function ResumeCard() {
+export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) => React.ReactNode } = {}) {
   const enabled = useSettingsStore((s) => s.resumeCard)
   const setSetting = useSettingsStore((s) => s.set)
   const deckSetting = useSettingsStore((s) => s.deck)
@@ -57,10 +57,10 @@ export default function ResumeCard() {
 
   if (!enabled || hidden || queued > 0 || !session || !track) return null
 
-  return (
+  const card = (
     <section
       aria-label="Resume listening"
-      className="mb-6 flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-900 dark:ring-white/10"
+      className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-900 dark:ring-white/10"
     >
       <button
         type="button"
@@ -109,4 +109,5 @@ export default function ResumeCard() {
       </div>
     </section>
   )
+  return wrap ? wrap(card) : card
 }

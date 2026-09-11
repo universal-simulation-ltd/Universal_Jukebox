@@ -3,6 +3,7 @@ import Cover from './Cover'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { shelfRows } from '../lib/libraryView'
+import { withResumeRow } from './resumeRow'
 import type { Album } from '../lib/types'
 
 // The jukebox way to browse (James, 2026-09-11: "For jukebox show the records
@@ -24,7 +25,7 @@ export default function Shelf({ albums }: { albums: Album[] }) {
   const rows = shelfRows(albums)
   return (
     <div className="space-y-10">
-      {rows.map((row, i) => (
+      {withResumeRow(rows.map((row, i) => (
         <ShelfRow
           key={i}
           albums={row}
@@ -34,7 +35,7 @@ export default function Shelf({ albums }: { albums: Album[] }) {
           // again"), so the shelves don't stack into one straight column.
           start={i % 2 === 1 && row.length > 1 ? 1 : 0}
         />
-      ))}
+      )), 1, 'block')}
     </div>
   )
 }

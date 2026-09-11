@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { withResumeRow } from './resumeRow'
+import { useGridColumns } from '../lib/useGridColumns'
 import Cover from './Cover'
 import { matchAlbums } from '../lib/search'
 import { navigate } from '../lib/route'
@@ -29,6 +31,7 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
   const albums = useLibraryStore((s) => s.albums)
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
   const columns = useSettingsStore((s) => s.libraryColumns)
+  const [grid, across] = useGridColumns(columns)
 
   // ⚠️ Ordered first, then filtered through `matchAlbums` — the same function
   // the tab count uses, so the number beside "Albums" and the tiles below it
@@ -56,8 +59,8 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
   const small = columns === 3 || columns === 4
 
   return (
-    <ul className={gridClass(columns)}>
-      {shown.map((album) => (
+    <ul ref={grid} className={gridClass(columns)}>
+      {withResumeRow(shown.map((album) => (
         <li key={album.id}>
           <button
             type="button"
@@ -79,7 +82,7 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
             </p>
           </button>
         </li>
-      ))}
+      )), across)}
     </ul>
   )
 }

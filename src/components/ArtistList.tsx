@@ -1,4 +1,6 @@
 import { Fragment, useId, useMemo, useState } from 'react'
+import { withResumeRow } from './resumeRow'
+import { useGridColumns } from '../lib/useGridColumns'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
 import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
@@ -32,6 +34,7 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const baseId = useId()
   const columns = useSettingsStore((s) => s.libraryColumns)
+  const [grid, across] = useGridColumns(columns)
 
   const artists = useMemo(() => {
     const byArtist = new Map<string, Album[]>()
@@ -63,8 +66,8 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   }
 
   return (
-    <ul className={gridClass(columns === 'jukebox' ? 2 : columns)}>
-      {artists.map((artist, index) => {
+    <ul ref={grid} className={gridClass(columns === 'jukebox' ? 2 : columns)}>
+      {withResumeRow(artists.map((artist, index) => {
         // One album is not worth opening — go straight to the record, which is
         // the only thing behind the door anyway.
         if (artist.albums.length === 1) {
@@ -171,7 +174,7 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
               ))}
           </Fragment>
         )
-      })}
+      }), across)}
     </ul>
   )
 }
