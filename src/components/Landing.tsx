@@ -62,6 +62,69 @@ export default function Landing() {
   // press twice.
   const [building, setBuilding] = useState(false)
 
+  // ⚠️ ONE BUTTON, THEN THE CHOICE (James, 2026-09-11: "on the landing page no
+  // library only have the 'Scan my music folder' button and on clicking ask
+  // them which one i.e. Files/Jukebox, Music Library, Custom Folder(s), Example
+  // Library — will give a much cleaner and less confusing UI"). The front door
+  // used to show every route at once — a main button, two links, a second
+  // button and a demo section — with a paragraph under each. Now it asks one
+  // question, and each answer carries its own sentence. Which answers appear is
+  // still decided per platform, exactly as before: only what can work here.
+  const [choosing, setChoosing] = useState(false)
+  const busy = importProgress !== null || building
+
+  const sources: { key: SourceKind; title: string; hint: string; act(): void }[] = []
+  if (native && (own || !chosen)) {
+    sources.push({
+      key: 'files',
+      title: 'Files — the Universal Jukebox folder',
+      hint: 'Music copied into the Universal Jukebox folder in the Files app — AirDropped, dragged over from a computer, or saved there. Sub-folders are fine.',
+      act: () => void scanNativeFolder(),
+    })
+  }
+  // ⚠️ THE ONE MOST PEOPLE WITH AN iPHONE ACTUALLY NEED. Songs synced from a
+  // Mac live in the Music app's library, which no folder — ours or one chosen —
+  // can see (James, 2026-09-10). See `lib/appleMusic.ts`.
+  if (musicLibrary) {
+    sources.push({
+      key: 'music',
+      title: 'My Music library',
+      hint: 'The songs synced to this iPhone from your computer, as they are in the Music app. Apple Music subscription downloads are protected, and iOS doesn’t let other apps play them.',
+      act: () => void importMusicLibrary(),
+    })
+  }
+  if (chosen) {
+    sources.push({
+      key: 'folder',
+      title: own ? 'A different folder' : 'A folder of my choice',
+      hint: own
+        ? 'iCloud Drive, On My iPhone, a connected drive — the app keeps permission to read it, so your library is still here next time.'
+        : 'Pick the folder your music is in — usually Music. Sub-folders are fine, and the app keeps permission to read it.',
+      act: () => void chooseNativeFolder(),
+    })
+  } else if (!native) {
+    sources.push({
+      key: 'folder',
+      title: 'A folder on this computer',
+      hint: canPersist
+        ? `This browser can remember the folder, so your library will still be here next time — you’ll just be asked to confirm access once.${
+            keepsFolderWhenInstalled() ? ' Install it as an app from Chrome’s address bar and it won’t ask even that.' : ''
+          }`
+        : 'This browser can’t remember a folder, so you’ll choose it again each visit. Your library and its artwork are kept, so it comes back instantly.',
+      act: () => (canPersist ? void pickFolder() : folderInput.current?.click()),
+    })
+  }
+  // Visibly the side door: last in the list, and it says what it is.
+  sources.push({
+    key: 'example',
+    title: building ? 'Cutting the records…' : 'The example library',
+    hint: 'Nine records by four artists that don’t exist — the music and the sleeves are both made on this device. Nothing is downloaded, and choosing your own afterwards replaces it.',
+    act: () => {
+      setBuilding(true)
+      void loadExample().finally(() => setBuilding(false))
+    },
+  })
+
   return (
     <div className="mx-auto max-w-2xl text-center">
       <Turntable />
@@ -70,160 +133,68 @@ export default function Landing() {
         {native ? 'Plays the music on your phone' : 'Plays your whole music library, in your browser'}
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
-        {native ? (
-          <>
-            It reads the tags and the real album art out of your own files and plays them —
-            MP3, M4A, FLAC and WAV. Nothing is uploaded, nothing needs an account, and there
-            is no catalogue to sign into.
-          </>
-        ) : (
-          <>
-            Point it at a folder. It reads the tags and the real album art out of your own
-            files and plays them — MP3, M4A, FLAC and WAV. Nothing is uploaded, nothing needs
-            an account, and there is no catalogue to sign into.
-          </>
-        )}
+        It reads the tags and the real album art out of your own files and plays them — MP3, M4A,
+        FLAC and WAV. Nothing is uploaded, nothing needs an account, and there is no catalogue to
+        sign into.
       </p>
 
       <div className="mt-7 flex flex-col items-center gap-3">
         <button
           type="button"
-          disabled={importProgress !== null}
-          onClick={() =>
-            chosen && !own
-              ? void chooseNativeFolder()
-              : native
-                ? void scanNativeFolder()
-                : canPersist
-                  ? void pickFolder()
-                  : folderInput.current?.click()
-          }
-          className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60"
+          onClick={() => setChoosing((c) => !c)}
+          aria-expanded={choosing}
+          aria-controls="jb-sources"
+          className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
           <FolderGlyph />
-          {native && (own || !chosen) ? 'Scan my music folder' : 'Choose your music folder'}
+          Scan my music folder
         </button>
 
-        <p className="max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-          {chosen && !own ? (
-            <>
-              Pick the folder your music is in — usually <strong>Music</strong>. Sub-folders
-              are fine. The app keeps permission to read it, so your library is still here
-              next time you open the app.
-            </>
-          ) : native ? (
-            <>
-              Your music goes in the <strong>Universal Jukebox</strong> folder in the Files
-              app — copy it in, AirDrop it, or drag it over from a computer. Sub-folders are
-              fine. Once it’s scanned, your library is still here next time you open the app.
-            </>
-          ) : canPersist ? (
-            <>
-              This browser can remember the folder, so your library will still be here next
-              time — you’ll just be asked to confirm access once.
-              {/* Only where it is true — Chrome 122+, not yet installed. See
-                  `lib/persistence.ts`. */}
-              {keepsFolderWhenInstalled() && (
-                <> Install it as an app from Chrome’s address bar and it won’t ask even that.</>
-              )}
-            </>
-          ) : (
-            <>
-              This browser can’t remember a folder, so you’ll choose it again each visit.
-              Your library and its artwork <em>are</em> kept, so it comes back instantly.
-            </>
-          )}
-        </p>
-
-        {/* ⚠️ Not on Android. The importer copies into `Directory.Documents`,
-            which there is the phone's SHARED Documents folder — not the folder
-            the library reads — so it would copy files somewhere they are never
-            found. Music goes into the chosen folder, the way it gets onto an
-            Android phone anyway. */}
-        {(!chosen || own) && (
-          <button
-            type="button"
-            disabled={importProgress !== null}
-            onClick={() => (nativePicker ? void pickNativeFiles() : fileInput.current?.click())}
-            className="mt-1 text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
-          >
-            {native ? 'Or add music from this device' : 'Or pick individual files'}
-          </button>
-        )}
-
-        {/* iOS: a folder of your own choosing — iCloud Drive, On My iPhone, a
-            connected drive — as well as the app's. The picker opens IN the
-            app's folder, so going back to it is one tap. */}
-        {chosen && own && (
-          <button
-            type="button"
-            disabled={importProgress !== null}
-            onClick={() => void chooseNativeFolder()}
-            className="text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
-          >
-            Or choose a different folder — iCloud Drive, On My iPhone…
-          </button>
-        )}
-
-        {/* ⚠️ THE ONE MOST PEOPLE WITH AN iPHONE ACTUALLY NEED. Songs synced
-            from a Mac live in the Music app's library, which no folder — ours
-            or one chosen — can see (James, 2026-09-10: "I always transfer my
-            music from my Mac to iPhone and used to use Marvis"). A full button,
-            not a link, for that reason. See `lib/appleMusic.ts`. */}
-        {musicLibrary && (
-          <div className="mt-3 flex flex-col items-center gap-1.5">
-            <button
-              type="button"
-              disabled={importProgress !== null}
-              onClick={() => void importMusicLibrary()}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-[14px] font-medium text-slate-800 transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-orange-500 dark:hover:text-orange-400"
-            >
-              Use my Music library
-            </button>
-            <p className="max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-              The songs synced to this iPhone from your computer, as they are in the Music
-              app. Apple Music subscription downloads are protected, and iOS doesn’t let
-              other apps play them.
-            </p>
+        {choosing && (
+          <div id="jb-sources" className="mt-2 w-full max-w-md space-y-2.5 text-left" role="group" aria-label="Where is your music?">
+            <p className="text-center text-[13px] font-medium text-slate-600 dark:text-slate-300">Where is your music?</p>
+            {sources.map((source) => (
+              <button
+                key={source.key}
+                type="button"
+                disabled={busy}
+                onClick={source.act}
+                className="flex w-full items-start gap-3.5 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-900/5 transition hover:ring-2 hover:ring-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60 dark:bg-slate-900 dark:ring-white/10"
+              >
+                <SourceGlyph kind={source.key} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14.5px] font-semibold text-slate-900 dark:text-slate-100">{source.title}</span>
+                  <span className="mt-0.5 block text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">{source.hint}</span>
+                </span>
+              </button>
+            ))}
+            {/* ⚠️ Not on Android. The importer copies into `Directory.Documents`,
+                which there is the phone's SHARED Documents folder — not the
+                folder the library reads — so it would copy files somewhere they
+                are never found. */}
+            {(!chosen || own) && (
+              <p className="pt-1 text-center">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => (nativePicker ? void pickNativeFiles() : fileInput.current?.click())}
+                  className="text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
+                >
+                  {native ? 'Or add individual songs from this device' : 'Or pick individual files'}
+                </button>
+              </p>
+            )}
           </div>
         )}
 
         {/* ⚠️ An import COPIES, through the Capacitor bridge, so a big one is
-            genuinely slow — and a silent slow thing reads as a crash. This is
-            also why the Files app is presented above as the main route and this
-            as the convenience. */}
+            genuinely slow — and a silent slow thing reads as a crash. */}
         {importProgress !== null && (
           <p className="text-[12.5px] text-slate-600 dark:text-slate-300" aria-live="polite">
             Copying {importProgress.done + 1} of {importProgress.total}
             {importProgress.name ? ` — ${importProgress.name}` : ''}…
           </p>
         )}
-      </div>
-
-      {/* ⚠️ Below the fold of the real thing, and visibly a side door. The app
-          is for the music you already have; an example library is for deciding
-          whether to point it at yours. Putting it level with the main button
-          would advertise the demo as the product. */}
-      <div className="mt-9 border-t border-slate-200 pt-7 dark:border-slate-800">
-        <p className="text-[13px] text-slate-600 dark:text-slate-300">
-          Nothing to hand? Take it for a spin.
-        </p>
-        <button
-          type="button"
-          disabled={building}
-          onClick={() => {
-            setBuilding(true)
-            void loadExample().finally(() => setBuilding(false))
-          }}
-          className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2.5 text-[14px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
-        >
-          {building ? 'Cutting the records…' : 'Load the example library'}
-        </button>
-        <p className="mx-auto mt-2.5 max-w-md text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-          Nine records by four artists that don’t exist — the music and the sleeves are
-          both generated on this device, in this tab. Nothing is downloaded. Choosing your
-          own folder afterwards replaces it.
-        </p>
       </div>
 
       {/* Both inputs are always present. The folder one is the Firefox/Safari
@@ -311,5 +282,24 @@ function Turntable() {
       <path d="M160 44 L128 96" stroke="currentColor" className="text-slate-300 dark:text-slate-600" strokeWidth="7" strokeLinecap="round" />
       <path d="M128 96 L122 106" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="13" strokeLinecap="round" />
     </svg>
+  )
+}
+
+type SourceKind = 'files' | 'music' | 'folder' | 'example'
+
+/** The little picture beside each answer to "Where is your music?". */
+function SourceGlyph({ kind }: { kind: SourceKind }) {
+  const paths: Record<SourceKind, React.ReactNode> = {
+    files: <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.2c.4 0 .8.16 1.06.44L9 5.5h7.5A1.5 1.5 0 0 1 18 7v7.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5v-9Z" />,
+    music: <path d="M15.5 3.2v9.3a2.5 2.5 0 1 1-1.5-2.3V6.1L8 7.4v6.6a2.5 2.5 0 1 1-1.5-2.3V5.2a1 1 0 0 1 .78-.98l7-1.55a1 1 0 0 1 1.22.98Z" />,
+    folder: <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.2c.4 0 .8.16 1.06.44L9 5.5h7.5A1.5 1.5 0 0 1 18 7v7.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5v-9Zm8 2.75a.75.75 0 0 0-.75.75v1.25H8a.75.75 0 0 0 0 1.5h1.25V13a.75.75 0 0 0 1.5 0v-1.25H12a.75.75 0 0 0 0-1.5h-1.25V9a.75.75 0 0 0-.75-.75Z" />,
+    example: <path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 1.75a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5Z" />,
+  }
+  return (
+    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400">
+      <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden>
+        {paths[kind]}
+      </svg>
+    </span>
   )
 }

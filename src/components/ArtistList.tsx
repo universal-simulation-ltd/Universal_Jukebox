@@ -5,7 +5,8 @@ import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
 import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
-import { seededOrder, type LibraryOrder } from '../lib/libraryView'
+import { gridClass, seededOrder, type LibraryOrder } from '../lib/libraryView'
+import { useSettingsStore } from '../stores/settingsStore'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Album } from '../lib/types'
 
@@ -30,6 +31,7 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   /** Artists opened out. Names, because that is what groups them. */
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const baseId = useId()
+  const columns = useSettingsStore((s) => s.libraryColumns)
 
   const artists = useMemo(() => {
     const byArtist = new Map<string, Album[]>()
@@ -61,7 +63,7 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <ul className={gridClass(columns === 'jukebox' ? 2 : columns)}>
       {artists.map((artist, index) => {
         // One album is not worth opening — go straight to the record, which is
         // the only thing behind the door anyway.

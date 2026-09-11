@@ -318,6 +318,19 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
   const url = trackUrl(file)
   deck.url = url
   deck.level = pendingLevel
+  if (pendingStart > 0) {
+    const from = pendingStart
+    audio.addEventListener(
+      'loadedmetadata',
+      () => {
+        try {
+          audio.currentTime = Math.min(from, Math.max(0, audio.duration - 2))
+        } catch { /* not seekable — it starts from the top */ }
+      },
+      { once: true },
+    )
+  }
+  pendingStart = 0
 
   set({ loading: true, currentSec: 0, durationSec: 0 })
   audio.src = url
@@ -545,6 +558,16 @@ function setFade(index: 0 | 1, value: number): void {
  * measurement arrives after it started.
  */
 let pendingLevel = 1
+
+/**
+ * "Resume listening": the second the next LOADED track should start from, once
+ * its length is known — setting `currentTime` before that is silently ignored.
+ */
+let pendingStart = 0
+
+export function setStartAt(seconds: number): void {
+  pendingStart = Math.max(0, seconds)
+}
 
 export function setNextLevel(level: number): void {
   pendingLevel = Math.max(0, Math.min(1, level))

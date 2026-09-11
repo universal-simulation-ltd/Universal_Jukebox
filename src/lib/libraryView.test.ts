@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isFullAlbum, seededOrder, shuffleQueue } from './libraryView'
+import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shuffleQueue } from './libraryView'
 import type { Album, Track } from './types'
 
 const items = Array.from({ length: 50 }, (_, i) => `item-${i}`)
@@ -65,5 +65,18 @@ describe('shuffleQueue', () => {
     const queue = shuffleQueue('artists', tracks, albums, 5, byNumber)
     expect(runs(queue, artistOf)).toHaveLength(2)
     expect(queue).toHaveLength(tracks.length)
+  })
+})
+
+describe('the per-row button', () => {
+  it('cycles 2 → 3 → 4 → jukebox → 1 → 2', () => {
+    const seen: string[] = []
+    let c: Parameters<typeof nextColumns>[0] = 2
+    for (let i = 0; i < 5; i++) {
+      seen.push(columnsLabel(c))
+      c = nextColumns(c)
+    }
+    expect(seen).toEqual(['2 per row', '3 per row', '4 per row', 'Jukebox shelf', '1 per row'])
+    expect(c).toBe(2)
   })
 })

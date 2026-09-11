@@ -115,6 +115,11 @@ export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'jukebox
 export type TipId = 'record' | 'cover'
 export const TIP_IDS: TipId[] = ['record', 'cover']
 
+/** How many albums across (James, 2026-09-11) — or the jukebox shelf. */
+export type LibraryColumns = 1 | 2 | 3 | 4 | 'jukebox'
+/** The order the "per row" button cycles through. */
+export const COLUMN_CYCLE: LibraryColumns[] = [2, 3, 4, 'jukebox', 1]
+
 export interface Settings {
   ceremonyMode: CeremonyMode
   /**
@@ -183,6 +188,12 @@ export interface Settings {
   tipsSeen: TipId[]
   /** "Stable volume": loud songs turned down to meet the rest — `lib/loudness.ts`. */
   stableVolume: boolean
+  /** The library lists in random order — remembered, freshly shuffled each visit. */
+  libraryRandom: boolean
+  /** Albums per row, or the jukebox shelf — see `COLUMN_CYCLE`. */
+  libraryColumns: LibraryColumns
+  /** "Resume listening" above the library lists (`ResumeCard`). */
+  resumeCard: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -199,6 +210,9 @@ export const DEFAULTS: Settings = {
   fullAlbumsOnly: false,
   tipsSeen: [],
   stableVolume: false,
+  libraryRandom: false,
+  libraryColumns: 2,
+  resumeCard: true,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -307,6 +321,11 @@ function read(): Settings {
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
       : [],
     stableVolume: stored.stableVolume === true,
+    libraryRandom: stored.libraryRandom === true,
+    libraryColumns: COLUMN_CYCLE.includes(stored.libraryColumns as LibraryColumns)
+      ? (stored.libraryColumns as LibraryColumns)
+      : DEFAULTS.libraryColumns,
+    resumeCard: stored.resumeCard !== false,
   }
 }
 
@@ -361,6 +380,9 @@ function persist(state: Settings) {
     fullAlbumsOnly: state.fullAlbumsOnly,
     tipsSeen: state.tipsSeen,
     stableVolume: state.stableVolume,
+    libraryRandom: state.libraryRandom,
+    libraryColumns: state.libraryColumns,
+    resumeCard: state.resumeCard,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

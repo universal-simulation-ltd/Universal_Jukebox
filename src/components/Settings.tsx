@@ -142,6 +142,12 @@ export default function Settings() {
             onChange={(v) => s.set('homeTab', v)}
             options={HOME_OPTIONS}
           />
+          <Toggle
+            label="Show “Resume listening”"
+            hint="Above your albums, artists and tracks: the song you were last playing, on its machine — tap it to carry on where you left off."
+            checked={s.resumeCard}
+            onChange={(v) => s.set('resumeCard', v)}
+          />
         </Section>
 
         {/* ⚠️ ABOVE the animation section, not inside it, and that order is the

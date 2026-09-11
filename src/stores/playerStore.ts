@@ -9,6 +9,7 @@ import * as audio from '../lib/audio'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
 import { cachedGain, measureGain } from '../lib/loudness'
+import { readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
 import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
@@ -149,6 +150,8 @@ interface PlayerState {
   dismissError(): void
   /** Clear "N tracks couldn't play". */
   dismissSkipped(): void
+  /** "Resume listening": the last queue, at the song and second you had reached. */
+  resume(): void
   /** The Home Screen shortcuts — see `shuffleQueue`. */
   shuffleSongs(): void
   shuffleAlbums(): void
@@ -427,6 +430,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   dismissSkipped() {
     set({ skipped: [] })
+  },
+
+  resume() {
+    const saved = readSession()
+    if (!saved) return
+    const byId = new Map(useLibraryStore.getState().tracks.map((t) => [t.id, t]))
+    // Kept in PLAY order; tracks gone from the library since are left out.
+    const sequence = saved.ids.map((id) => byId.get(id)).filter((t): t is Track => !!t)
+    const at = sequence.findIndex((t) => t.id === saved.trackId)
+    if (at < 0) return
+    get().stopPreview()
+    showTheDeck()
+    set({ queue: sequence, order: sequence.map((_, i) => i), cursor: at, error: null, missingTrack: null })
+    audio.setStartAt(saved.sec)
+    startCeremonyOrPlay(set, get, sequence[at])
   },
 
   shuffleSongs() {
@@ -843,6 +861,23 @@ function levelLater(track: Track): void {
   })
 }
 
+/**
+ * Keep "Resume listening" up to date (`lib/session.ts`): on every change of
+ * track, and every five seconds of playback. Cheap — a few kilobytes of ids.
+ */
+let savedFor = ''
+let savedSec = -10
+
+function rememberWhereWeAre(sec: number): void {
+  const { queue, order, cursor } = usePlayerStore.getState()
+  const track = queue[order[cursor]]
+  if (!track) return
+  if (track.id === savedFor && Math.abs(sec - savedSec) < 5) return
+  savedFor = track.id
+  savedSec = sec
+  saveSession(order.map((i) => queue[i]?.id).filter((id): id is string => !!id), cursor, sec)
+}
+
 export interface SkippedTrack {
   id: string
   title: string
@@ -1257,6 +1292,7 @@ audio.subscribe((state) => {
   followMusic(state.playing)
   ms.setPlaybackState(state.playing)
   followProgress(state.playing, state.currentSec, state.durationSec)
+  rememberWhereWeAre(state.currentSec)
   ms.setPosition(state.currentSec, state.durationSec)
 })
 

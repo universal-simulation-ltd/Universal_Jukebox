@@ -28,7 +28,8 @@ import TrackList from './components/TrackList'
 import { NAVIGATED, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, tabCounts } from './lib/search'
-import { FULL_ALBUM_MIN, isFullAlbum, newSeed, type LibraryOrder } from './lib/libraryView'
+import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, newSeed, nextColumns, type LibraryOrder } from './lib/libraryView'
+import ResumeCard from './components/ResumeCard'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
 import { useSettingsStore, type HomeTab } from './stores/settingsStore'
@@ -161,9 +162,21 @@ export default function App() {
   const setSetting = useSettingsStore((s) => s.set)
 
   const [query, setQuery] = useState('')
-  /** A–Z or Random, for all three lists — see `lib/libraryView.ts`. */
-  const [order, setOrder] = useState<LibraryOrder>({ kind: 'az' })
+  /**
+   * A–Z or Random, for all three lists — see `lib/libraryView.ts`. Random is
+   * REMEMBERED (James, 2026-09-11: "on app relaunch remember if they had random
+   * button selected"), and each visit gets a fresh shuffle.
+   */
+  const [order, setOrder] = useState<LibraryOrder>(() =>
+    useSettingsStore.getState().libraryRandom ? { kind: 'random', seed: newSeed() } : { kind: 'az' },
+  )
+  const columns = useSettingsStore((s) => s.libraryColumns)
+  /** The row of list options, behind the icon after the tabs. */
+  const [optionsOpen, setOptionsOpen] = useState(false)
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
+  // ⚠️ Below `fullAlbumsOnly`, which it reads — above it, it is a TDZ error on
+  // every render and the whole app fails to draw.
+  const optionsActive = order.kind === 'random' || fullAlbumsOnly || columns !== 2
   /** The search box on a phone: folded away until pulled down — `PhoneSearch`. */
   const [searchOpen, setSearchOpen] = useState(false)
   const phoneSearch = useRef<PhoneSearchHandle>(null)
@@ -393,38 +406,30 @@ export default function App() {
                   )
                 })}
               </nav>
-              <div className="flex items-center gap-1.5">
-                {/* A–Z ↔ Random, for whichever list is showing (James,
-                    2026-09-10). The label says the order you are IN; pressing it
-                    switches, and each switch to Random is a fresh shuffle. */}
-                <button
-                  type="button"
-                  onClick={() => setOrder((o) => (o.kind === 'az' ? { kind: 'random', seed: newSeed() } : { kind: 'az' }))}
-                  aria-label={order.kind === 'az' ? 'In A to Z order. Switch to random' : 'In random order. Switch to A to Z'}
-                  title={order.kind === 'az' ? 'Show in random order' : 'Show A to Z'}
-                  className={togglePill(order.kind === 'random')}
-                >
-                  {order.kind === 'az' ? (
-                    'A–Z'
-                  ) : (
-                    <span className="inline-flex items-center gap-1">
-                      <ShuffleGlyph />
-                      Random
-                    </span>
-                  )}
-                </button>
-                {view === 'albums' && (
-                  <button
-                    type="button"
-                    onClick={() => setSetting('fullAlbumsOnly', !fullAlbumsOnly)}
-                    aria-pressed={fullAlbumsOnly}
-                    title={`Only albums with ${FULL_ALBUM_MIN} or more tracks`}
-                    className={togglePill(fullAlbumsOnly)}
-                  >
-                    Full albums only
-                  </button>
+              {/* ⚠️ THE LIST OPTIONS LIVE BEHIND ONE ICON (James, 2026-09-11:
+                  "something looks not quite right UI wise at the top … maybe a
+                  settings icon after tracks that opens up the next row of random
+                  / full album to keep the UI clean"). A dot on it while any of
+                  them is changed from its usual, so a filtered list never looks
+                  like a missing one. */}
+              <button
+                type="button"
+                onClick={() => setOptionsOpen((o) => !o)}
+                aria-expanded={optionsOpen}
+                aria-controls="jb-list-options"
+                aria-label="List options"
+                title="List options"
+                className={`relative inline-flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
+                  optionsOpen
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                    : 'text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'
+                }`}
+              >
+                <OptionsGlyph />
+                {optionsActive && !optionsOpen && (
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-slate-100 dark:ring-slate-950" aria-hidden />
                 )}
-              </div>
+              </button>
               {/* On a phone the search box is folded away above the tabs — this,
                   or pulling down from the top of the page, brings it down. */}
               {!searchOpen && !query && (
@@ -458,6 +463,60 @@ export default function App() {
                 </button>
               )}
             </div>
+            {optionsOpen && (
+              <div id="jb-list-options" className="-mt-2 mb-5 flex flex-wrap items-center justify-center gap-2">
+                {/* A–Z ↔ Random: the label says the order you are IN. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const random = order.kind === 'az'
+                    setOrder(random ? { kind: 'random', seed: newSeed() } : { kind: 'az' })
+                    setSetting('libraryRandom', random)
+                  }}
+                  aria-label={order.kind === 'az' ? 'In A to Z order. Switch to random' : 'In random order. Switch to A to Z'}
+                  title={order.kind === 'az' ? 'Show in random order' : 'Show A to Z'}
+                  className={togglePill(order.kind === 'random')}
+                >
+                  {order.kind === 'az' ? (
+                    'A–Z'
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      <ShuffleGlyph />
+                      Random
+                    </span>
+                  )}
+                </button>
+                {view === 'albums' && (
+                  <button
+                    type="button"
+                    onClick={() => setSetting('fullAlbumsOnly', !fullAlbumsOnly)}
+                    aria-pressed={fullAlbumsOnly}
+                    title={`Only albums with ${FULL_ALBUM_MIN} or more tracks`}
+                    className={togglePill(fullAlbumsOnly)}
+                  >
+                    Full albums only
+                  </button>
+                )}
+                {/* Albums per row: 2, 3, 4, the jukebox shelf, 1 (James,
+                    2026-09-11) — one button that cycles, labelled with what
+                    it is on now. */}
+                {(view === 'albums' || view === 'artists') && (
+                  <button
+                    type="button"
+                    onClick={() => setSetting('libraryColumns', nextColumns(columns))}
+                    aria-label={`${columnsLabel(columns)}. Tap for ${columnsLabel(nextColumns(columns))}`}
+                    title="How many albums in a row — tap to change"
+                    className={togglePill(columns !== 2)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      <GridGlyph />
+                      {columnsLabel(columns)}
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
+            <ResumeCard />
 
             {view === 'artists' ? (
               <ArtistList query={query} order={order} />
@@ -547,6 +606,27 @@ function SearchGlyph() {
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
       <circle cx="8.8" cy="8.8" r="5.3" />
       <path d="m12.8 12.8 4 4" />
+    </svg>
+  )
+}
+
+function OptionsGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+      <path d="M3.5 6h8M15.5 6h1M3.5 14h1M8.5 14h8" />
+      <circle cx="13.5" cy="6" r="2" />
+      <circle cx="6.5" cy="14" r="2" />
+    </svg>
+  )
+}
+
+function GridGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+      <rect x="3" y="3" width="6" height="6" rx="1.2" />
+      <rect x="11" y="3" width="6" height="6" rx="1.2" />
+      <rect x="3" y="11" width="6" height="6" rx="1.2" />
+      <rect x="11" y="11" width="6" height="6" rx="1.2" />
     </svg>
   )
 }

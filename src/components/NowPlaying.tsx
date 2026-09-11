@@ -12,6 +12,7 @@ import DeckSwiper from './DeckSwiper'
 import type { Album } from '../lib/types'
 import Lyrics from './Lyrics'
 import Queue from './Queue'
+import ResumeCard from './ResumeCard'
 import UpNextReel from './UpNextReel'
 import Visualiser from './Visualiser'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -57,6 +58,12 @@ export default function NowPlaying() {
   if (!track) {
     return (
       <div className="py-20 text-center">
+        {/* The app reopens on the page it was last on, so "Nothing playing"
+            is often the FIRST screen after a relaunch — exactly when the way
+            back to where you were is wanted. */}
+        <div className="mx-auto mb-8 max-w-md text-left">
+          <ResumeCard />
+        </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">Nothing playing.</p>
         <button
           type="button"

@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import Cover from './Cover'
 import { matchAlbums } from '../lib/search'
 import { navigate } from '../lib/route'
-import { FULL_ALBUM_MIN, isFullAlbum, seededOrder, type LibraryOrder } from '../lib/libraryView'
+import Shelf from './Shelf'
+import { FULL_ALBUM_MIN, gridClass, isFullAlbum, seededOrder, type LibraryOrder } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import type { Album } from '../lib/types'
@@ -27,6 +28,7 @@ interface AlbumGridProps {
 export default function AlbumGrid({ query, order }: AlbumGridProps) {
   const albums = useLibraryStore((s) => s.albums)
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
+  const columns = useSettingsStore((s) => s.libraryColumns)
 
   // ⚠️ Ordered first, then filtered through `matchAlbums` — the same function
   // the tab count uses, so the number beside "Albums" and the tiles below it
@@ -49,8 +51,12 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
     )
   }
 
+  if (columns === 'jukebox') return <Shelf albums={shown} />
+  // Smaller words when the tiles are small.
+  const small = columns === 3 || columns === 4
+
   return (
-    <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <ul className={gridClass(columns)}>
       {shown.map((album) => (
         <li key={album.id}>
           <button
@@ -64,12 +70,12 @@ export default function AlbumGrid({ query, order }: AlbumGridProps) {
             />
             {/* `line-clamp-2` and not `truncate`: album titles are long and the
                 second line is usually the half that identifies the record. */}
-            <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
+            <p className={`mt-2 line-clamp-2 font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400 ${small ? 'text-[11.5px] leading-snug' : 'text-[13px]'}`}>
               {album.title}
             </p>
-            <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
+            <p className={`line-clamp-1 text-slate-500 dark:text-slate-400 ${small ? 'text-[10.5px]' : 'text-[12px]'}`}>
               {album.artist}
-              {album.year ? ` · ${album.year}` : ''}
+              {album.year && columns !== 4 ? ` · ${album.year}` : ''}
             </p>
           </button>
         </li>
