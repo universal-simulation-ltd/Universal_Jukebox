@@ -59,6 +59,7 @@ function markOwnPause(): void {
 }
 import { canSetElementVolume } from './volumeSupport'
 import type { SourceFile } from './types'
+import { fadeLevel, type FadeCurve } from './fadeCurve'
 
 /** Where playback is, as far as anything outside this file is concerned. */
 export interface AudioState {
@@ -644,15 +645,21 @@ function endFade(index: 0 | 1, factor: number): void {
  * `equal-power` for the two halves of a CROSSFADE, where something else is
  * doing the opposite at the same time. Two linear ramps crossing produce an
  * audible dip in the middle: at the halfway point both tracks are at 0.5, and
- * two uncorrelated signals at half amplitude do not sum to one. Taking the
- * square root holds the perceived loudness flat across the overlap, which is
- * the difference between a crossfade and a dip.
+ * two uncorrelated signals at half amplitude do not sum to one. sin for the
+ * deck rising and cos for the deck falling hold their summed power at exactly
+ * one track's all the way across (`fadeCurve.ts`), which is the difference
+ * between a crossfade and a dip.
+ *
+ * ⚠️ It was √t for BOTH decks until 2026-09-11 — right for the rising one, but
+ * the falling one (1 − √t) lost half its level in the first quarter of the
+ * blend, so a next track with a quiet start left a hole (James: "the
+ * crossfade is quite harsh sometimes").
  */
 function rampTo(
   index: 0 | 1,
   target: number,
   seconds: number,
-  curve: 'linear' | 'equal-power' = 'linear',
+  curve: FadeCurve = 'linear',
   done?: () => void,
 ): void {
   stopRamp(index)
@@ -666,8 +673,8 @@ function rampTo(
   const started = Date.now()
   deck.timer = setInterval(() => {
     const t = Math.min(1, (Date.now() - started) / (seconds * 1000))
-    const shaped = curve === 'equal-power' ? Math.sqrt(t) : t
-    setFade(index, from + (target - from) * shaped)
+    // sin rising, cos falling for a crossfade — see `fadeCurve.ts`.
+    setFade(index, fadeLevel(from, target, t, curve))
     if (t >= 1) {
       endFade(index, target)
       done?.()
