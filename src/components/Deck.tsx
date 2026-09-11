@@ -120,6 +120,15 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
   const { frame, notes } = SHAPES[style] ?? SHAPES.vinyl
 
   const active = ceremonial && ceremony
+  // ⚠️ An arrival already under way when this deck appeared is not played
+  // again. A change-over's is over in 620ms, so one still 'arriving' as Now
+  // Playing opens is nearly done — or stranded (`settleDeck` in the store) —
+  // and replaying it made every visit look like the record going on again
+  // (James, 2026-09-11, iPad). The ceremony's is exempt: a play from a shelf
+  // starts it and opens this screen in the same moment. Written during render,
+  // as `useLeavingAlbum` does — idempotent.
+  const staleArrival = useRef(phase === 'arriving' && !active)
+  if (phase !== 'arriving') staleArrival.current = false
   // A non-ceremonial deck (the mini player) always shows the pickup engaged
   // while something is playing — it is a picture of the state, not of the
   // ceremony.
@@ -166,7 +175,7 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
    * state, not a stage.
    */
   const labelFade =
-    !ceremonial || reduced || phase === 'idle'
+    !ceremonial || reduced || phase === 'idle' || staleArrival.current
       ? undefined
       : phase === 'arriving'
         ? `jb-label-in ${active ? 1000 : 450}ms ease-out both`

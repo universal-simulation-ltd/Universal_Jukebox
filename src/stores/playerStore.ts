@@ -668,7 +668,25 @@ function clearHandover(): void {
   if (handoverTimer !== null) {
     clearTimeout(handoverTimer)
     handoverTimer = null
+    settleDeck()
   }
+}
+
+/**
+ * A cancelled change-over's phase, put back to rest.
+ *
+ * ⚠️ `deckPhase` goes to 'arriving' and then, ON A TIMER, back to 'idle'.
+ * Clearing that timer — a second change-over starting inside the 620ms, the end
+ * of the queue — left nothing to set it back when the new one kept the same
+ * record: it stayed 'arriving' for good, and every deck opened afterwards
+ * played the record going on again (James, 2026-09-11, iPad: "every time I
+ * click the art in MiniPlayer … shows the animation of the disc going to record
+ * player again"). Not while the ceremony runs: that arrival has its own timers
+ * and its own end (`skipCeremony`).
+ */
+function settleDeck(): void {
+  const s = usePlayerStore.getState()
+  if (s.deckPhase !== 'idle' && !s.ceremony) usePlayerStore.setState({ deckPhase: 'idle' })
 }
 
 /**
@@ -927,6 +945,8 @@ let blendSerial = 0
 
 function clearBlend(): void {
   for (const timer of blendTimers) clearTimeout(timer)
+  // Its last timer is the one that sets the deck back to 'idle' (`settleDeck`).
+  if (blendTimers.length > 0) settleDeck()
   blendTimers = []
   if (usePlayerStore.getState().blendCount !== null) usePlayerStore.setState({ blendCount: null })
 }
