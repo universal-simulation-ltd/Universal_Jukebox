@@ -216,8 +216,9 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
           grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
           underArm={style === 'vinyl' ? underArm : undefined}
         />
-        </div>
+        {/* Other machines move whole under a swipe; the lyrics go with them. */}
         {style !== 'vinyl' && underArm}
+        </div>
 
         {/* Drifting notes — pure decoration, and only while something is
             playing. Each face says where its own pickup is, so they leave from

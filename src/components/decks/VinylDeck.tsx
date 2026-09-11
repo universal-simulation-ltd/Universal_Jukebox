@@ -87,11 +87,14 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
       >
         <VinylRecordFace url={url} hue={hue} labelFade={labelFade} grooves={grooves} />
       </div>
+      {/* Over the record and under the arm, INSIDE the slide layers — so a
+          swipe carries the lyrics off with the record (James, 2026-09-11:
+          "When swiping left right the lyrics need to go with the record
+          too"). Not inside the spinning disc: they must not turn. */}
+      {underArm}
       </div>
       </div>
 
-      {/* Over the record, under the arm — the lyrics (`underArm`). */}
-      {underArm}
 
       {/* The tonearm, pivoting about its bearing at the top right — the same
           gesture as the app mark's rest→hover morph, on purpose. */}
