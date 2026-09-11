@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Cover from './Cover'
+import { coverUrl, fallbackHue } from '../lib/art'
 import Record45 from './Record45'
 import { navigate } from '../lib/route'
 import { plural } from '../lib/format'
@@ -122,6 +123,7 @@ export default function Shelf({ albums, lead }: { albums: Album[]; lead?: Album 
           keyOf={(a) => a.id}
           nameOf={(a) => a.title}
           render={(a) => <Sleeve album={a} />}
+          artOf={(a) => a}
           open={(a) => navigate({ view: 'album', albumId: a.id })}
           caption={(a) => ({ title: a.title, detail: `${[a.artist, a.year].filter(Boolean).join(' · ')} — tap the record to open it` })}
         />
@@ -147,6 +149,7 @@ export function ArtistShelf({
           keyOf={(a) => a.name}
           nameOf={(a) => a.name}
           render={(a) => <Sleeve album={a.albums[a.albums.length - 1]} />}
+          artOf={(a) => a.albums[a.albums.length - 1]}
           // One album is not worth an artist page — straight to the record, as the grid does.
           open={(a) =>
             a.albums.length === 1 ? navigate({ view: 'album', albumId: a.albums[0].id }) : navigate({ view: 'artist', artist: a.name })
@@ -180,6 +183,7 @@ export function TrackShelf({ tracks, onPlay, lead }: { tracks: Track[]; onPlay(t
           keyOf={(t) => t.id}
           nameOf={(t) => t.title}
           render={(t) => <Record45 album={albumOf(t)} grooves={grooveRings(t.durationSec)} />}
+          artOf={albumOf}
           open={(t) => onPlay(t)}
           caption={(t) => ({ title: t.title, detail: `${t.artist ?? t.albumArtist ?? 'Unknown artist'} — tap the record to play` })}
         />
@@ -206,6 +210,8 @@ interface ShelfRowProps<T> {
   direct?(item: T): boolean
   /** A button's whole label, where "verb + name" does not fit (the + tile). */
   labelOf?(item: T): string | undefined
+  /** The art behind the shelf while this item is in the middle (`ShelfGround`). */
+  artOf?(item: T): Album | undefined
 }
 
 /**
@@ -215,7 +221,7 @@ interface ShelfRowProps<T> {
  */
 const shelfMemory = new Map<string, number>()
 
-export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf }: ShelfRowProps<T>) {
+export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf }: ShelfRowProps<T>) {
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
   const [middle, setMiddle] = useState(0)
@@ -281,9 +287,11 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
 
   const current = items[Math.min(middle, items.length - 1)]
   const text = current === undefined ? null : caption(current)
+  const art = current === undefined ? undefined : artOf?.(current)
 
   return (
-    <section aria-label={label} className="-mx-4 sm:-mx-6 lg:-mx-8">
+    <section aria-label={label} className="relative isolate -mx-4 sm:-mx-6 lg:-mx-8">
+      {art && <ShelfGround album={art} />}
       <div
         ref={row}
         // A sideways swipe — never the page's pull-down to search (`PhoneSearch`).
@@ -347,5 +355,32 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
         </div>
       )}
     </section>
+  )
+}
+
+/**
+ * The art of the record in the middle, faint and soft behind its shelf (James,
+ * 2026-09-11: "Have a faint bg of the item currently selected on that shelf as
+ * that items art"). It changes as the shelf is swiped, fading in; faded out
+ * top and bottom so it lies in the page rather than on it — the same idea as
+ * Now Playing's ground, one per shelf.
+ */
+function ShelfGround({ album }: { album: Album }) {
+  const url = coverUrl(album.id, album.cover)
+  const hue = fallbackHue(album.id)
+  const fade = 'linear-gradient(to bottom, transparent 0%, black 22%, black 72%, transparent 100%)'
+  const common = { maskImage: fade, WebkitMaskImage: fade, animation: 'jb-ground-in 500ms ease-out both' }
+  return (
+    <div aria-hidden data-shelf-ground={album.id} className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      {url ? (
+        <img key={album.id} src={url} alt="" className="h-full w-full scale-125 object-cover opacity-[0.2] blur-2xl dark:opacity-[0.28]" style={common} />
+      ) : (
+        <div
+          key={album.id}
+          className="h-full w-full opacity-[0.16]"
+          style={{ ...common, background: `linear-gradient(135deg, hsl(${hue} 46% 62%), hsl(${(hue + 28) % 360} 44% 44%))` }}
+        />
+      )}
+    </div>
   )
 }
