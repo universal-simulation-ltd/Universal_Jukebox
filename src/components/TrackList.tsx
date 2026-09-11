@@ -30,7 +30,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
   const playing = usePlayerStore((s) => s.playing)
   const nowPlaying = usePlayerStore(currentTrack)
   const [showAll, setShowAll] = useState(false)
-  const columns = useSettingsStore((s) => s.libraryColumns)
+  const columns = useSettingsStore((s) => s.libraryColumns.tracks)
   const leadId = useResumable()?.track.id ?? null
 
   // ⚠️ `matchTracks` and not an inline filter: the count in the tab above comes

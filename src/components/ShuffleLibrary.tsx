@@ -2,7 +2,7 @@ import { ShuffleGlyph } from './AlbumView'
 import { isFullAlbum } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
-import { useSettingsStore, type HomeTab } from '../stores/settingsStore'
+import { useSettingsStore, type ListTab } from '../stores/settingsStore'
 
 // Shuffle the whole library, the way the tab you are on reads it (James,
 // 2026-09-11: "Is there a shuffle all button e.g. shuffle all artists (plays the
@@ -15,8 +15,6 @@ import { useSettingsStore, type HomeTab } from '../stores/settingsStore'
 // ⚠️ Albums honours "Full albums only" — it shuffles what the tab lists. The
 // button is not shown during a search (App.tsx): a whole-library shuffle under
 // a list of search results would not be shuffling what is on the screen.
-
-type ListTab = Exclude<HomeTab, 'jukebox'>
 
 const COPY: Record<ListTab, { label: string; detail?: string }> = {
   artists: { label: 'Shuffle artists', detail: 'Each artist in full, their songs shuffled' },

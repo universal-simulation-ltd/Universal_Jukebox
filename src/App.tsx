@@ -33,7 +33,7 @@ import { matchAlbums, tabCounts } from './lib/search'
 import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, newSeed, nextColumns, type LibraryOrder } from './lib/libraryView'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
-import { useSettingsStore, type HomeTab } from './stores/settingsStore'
+import { DEFAULTS, useSettingsStore, type HomeTab, type ListTab } from './stores/settingsStore'
 import { useThemeStore } from './stores/themeStore'
 
 // The single page container. The navbar (via the SDK's `contentClassName`), the
@@ -170,18 +170,20 @@ export default function App() {
    * REMEMBERED (James, 2026-09-11: "on app relaunch remember if they had random
    * button selected"), and each visit gets a fresh shuffle.
    */
-  const [order, setOrder] = useState<LibraryOrder>(() =>
-    useSettingsStore.getState().libraryRandom ? { kind: 'random', seed: newSeed() } : { kind: 'az' },
-  )
-  const columns = useSettingsStore((s) => s.libraryColumns)
+  // Per list, each its own (James, 2026-09-11: "keep each setting separate in
+  // the library i.e. jukebox shelf on artist doesn't auto apply to albums and
+  // tracks") — and the same for the layout, `libraryColumns`.
+  const [orders, setOrders] = useState<Record<ListTab, LibraryOrder>>(() => {
+    const random = useSettingsStore.getState().libraryRandom
+    const start = (on: boolean): LibraryOrder => (on ? { kind: 'random', seed: newSeed() } : { kind: 'az' })
+    return { artists: start(random.artists), albums: start(random.albums), tracks: start(random.tracks) }
+  })
+  const allColumns = useSettingsStore((s) => s.libraryColumns)
   /** The row of list options, behind the icon after the tabs. */
   const [optionsOpen, setOptionsOpen] = useState(false)
   /** The tabs row, which scrolls sideways on a phone. */
   const tabsNav = useRef<HTMLElement>(null)
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
-  // ⚠️ Below `fullAlbumsOnly`, which it reads — above it, it is a TDZ error on
-  // every render and the whole app fails to draw.
-  const optionsActive = order.kind === 'random' || fullAlbumsOnly || columns !== 2
   /** The search box on a phone: folded away until pulled down — `PhoneSearch`. */
   const [searchOpen, setSearchOpen] = useState(false)
   const phoneSearch = useRef<PhoneSearchHandle>(null)
@@ -194,6 +196,13 @@ export default function App() {
    * what its label says even for somebody who has starred Tracks.
    */
   const view: View = route.home ? homeTab : route.view
+  /** The list on screen — whose order and layout the options row shows and changes. */
+  const listTab: ListTab = view === 'artists' ? 'artists' : view === 'tracks' ? 'tracks' : 'albums'
+  const order = orders[listTab]
+  const columns = allColumns[listTab]
+  /** Anything in this list's options changed from its usual — the dot on the icon. */
+  const optionsActive =
+    order.kind === 'random' || (listTab === 'albums' && fullAlbumsOnly) || columns !== DEFAULTS.libraryColumns[listTab]
 
   useEffect(() => {
     const nav = tabsNav.current
@@ -474,8 +483,8 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     const random = order.kind === 'az'
-                    setOrder(random ? { kind: 'random', seed: newSeed() } : { kind: 'az' })
-                    setSetting('libraryRandom', random)
+                    setOrders((all) => ({ ...all, [listTab]: random ? { kind: 'random', seed: newSeed() } : { kind: 'az' } }))
+                    setSetting('libraryRandom', { ...useSettingsStore.getState().libraryRandom, [listTab]: random })
                   }}
                   aria-label={order.kind === 'az' ? 'In A to Z order. Switch to random' : 'In random order. Switch to A to Z'}
                   title={order.kind === 'az' ? 'Show in random order' : 'Show A to Z'}
@@ -509,7 +518,7 @@ export default function App() {
                 {view === 'tracks' && (
                   <button
                     type="button"
-                    onClick={() => setSetting('libraryColumns', columns === 'jukebox' ? 2 : 'jukebox')}
+                    onClick={() => setSetting('libraryColumns', { ...allColumns, tracks: columns === 'jukebox' ? 2 : 'jukebox' })}
                     aria-label={columns === 'jukebox' ? 'Jukebox shelf. Tap for the list' : 'List. Tap for the jukebox shelf'}
                     title="The list, or the shelf of records — tap to change"
                     className={togglePill(columns === 'jukebox')}
@@ -523,10 +532,10 @@ export default function App() {
                 {(view === 'albums' || view === 'artists') && (
                   <button
                     type="button"
-                    onClick={() => setSetting('libraryColumns', nextColumns(columns))}
+                    onClick={() => setSetting('libraryColumns', { ...allColumns, [listTab]: nextColumns(columns) })}
                     aria-label={`${columnsLabel(columns)}. Tap for ${columnsLabel(nextColumns(columns))}`}
                     title="How many albums in a row — tap to change"
-                    className={togglePill(columns !== 2)}
+                    className={togglePill(columns !== DEFAULTS.libraryColumns[listTab])}
                   >
                     <span className="inline-flex items-center gap-1">
                       <GridGlyph />
@@ -561,11 +570,11 @@ export default function App() {
             {view === 'jukebox' ? (
               <JukeboxShelves />
             ) : view === 'artists' ? (
-              <ArtistList query={query} order={order} />
+              <ArtistList query={query} order={orders.artists} />
             ) : view === 'tracks' ? (
-              <TrackList query={query} order={order} />
+              <TrackList query={query} order={orders.tracks} />
             ) : (
-              <AlbumGrid query={query} order={order} />
+              <AlbumGrid query={query} order={orders.albums} />
             )}
           </>
         )}

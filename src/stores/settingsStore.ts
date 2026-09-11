@@ -1,5 +1,6 @@
 import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
 import { create } from 'zustand'
+import { perTab } from '../lib/perTab'
 
 // Everything on the Settings page, in one store, persisted to localStorage.
 //
@@ -55,6 +56,9 @@ export const CEREMONY_LADDER: CeremonyMode[] = ['off', 'first', 'artist', 'album
 
 /** Which library tab the front door opens on. */
 export type HomeTab = 'albums' | 'artists' | 'tracks' | 'jukebox'
+
+/** The three lists, each with its own order and layout (`perTab`). */
+export type ListTab = Exclude<HomeTab, 'jukebox'>
 
 /**
  * What the thing turning on Now Playing is.
@@ -189,9 +193,10 @@ export interface Settings {
   /** "Stable volume": loud songs turned down to meet the rest — `lib/loudness.ts`. */
   stableVolume: boolean
   /** The library lists in random order — remembered, freshly shuffled each visit. */
-  libraryRandom: boolean
+  /** A–Z or Random, per list. */
+  libraryRandom: Record<ListTab, boolean>
   /** Albums per row, or the jukebox shelf — see `COLUMN_CYCLE`. */
-  libraryColumns: LibraryColumns
+  libraryColumns: Record<ListTab, LibraryColumns>
   /** "Resume listening" above the library lists (`ResumeCard`). */
   resumeCard: boolean
   /**
@@ -216,11 +221,11 @@ export const DEFAULTS: Settings = {
   fullAlbumsOnly: false,
   tipsSeen: [],
   stableVolume: false,
-  libraryRandom: false,
+  libraryRandom: { artists: false, albums: false, tracks: false },
   // The shelf is the standard (James, 2026-09-11: "put jukebox shelf as
   // standard") — and everyone who had the old default is moved to it once,
   // `adoptShelf` below.
-  libraryColumns: 'jukebox',
+  libraryColumns: { artists: 'jukebox', albums: 'jukebox', tracks: 2 },
   resumeCard: true,
   recordCrossfade: true,
 }
@@ -299,7 +304,7 @@ function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
 function read(): Settings {
   const settings = readStored()
   if (adoptShelf()) {
-    settings.libraryColumns = 'jukebox'
+    settings.libraryColumns = { ...settings.libraryColumns, artists: 'jukebox', albums: 'jukebox' }
     persist(settings)
   }
   return settings
@@ -360,10 +365,14 @@ function readStored(): Settings {
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
       : [],
     stableVolume: stored.stableVolume === true,
-    libraryRandom: stored.libraryRandom === true,
-    libraryColumns: COLUMN_CYCLE.includes(stored.libraryColumns as LibraryColumns)
-      ? (stored.libraryColumns as LibraryColumns)
-      : DEFAULTS.libraryColumns,
+    // Per list since 2026-09-11; a value from before, when the lists shared
+    // one, is where each of them starts (`perTab`).
+    libraryRandom: perTab(stored.libraryRandom, (v): v is boolean => typeof v === 'boolean', DEFAULTS.libraryRandom),
+    libraryColumns: perTab(
+      stored.libraryColumns,
+      (v): v is LibraryColumns => COLUMN_CYCLE.includes(v as LibraryColumns),
+      DEFAULTS.libraryColumns,
+    ),
     resumeCard: stored.resumeCard !== false,
     recordCrossfade: stored.recordCrossfade !== false,
   }

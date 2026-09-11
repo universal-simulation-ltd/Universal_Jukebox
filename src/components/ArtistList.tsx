@@ -35,7 +35,7 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   /** Artists opened out. Names, because that is what groups them. */
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const baseId = useId()
-  const columns = useSettingsStore((s) => s.libraryColumns)
+  const columns = useSettingsStore((s) => s.libraryColumns.artists)
   const [grid, across] = useGridColumns(columns)
   const leadName = useResumable()?.album?.artist ?? null
 

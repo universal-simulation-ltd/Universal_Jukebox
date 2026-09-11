@@ -31,7 +31,7 @@ interface AlbumGridProps {
 export default function AlbumGrid({ query, order }: AlbumGridProps) {
   const albums = useLibraryStore((s) => s.albums)
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
-  const columns = useSettingsStore((s) => s.libraryColumns)
+  const columns = useSettingsStore((s) => s.libraryColumns.albums)
   const [grid, across] = useGridColumns(columns)
   const leadId = useResumable()?.album?.id ?? null
 
