@@ -5,6 +5,11 @@
   "type": "module",
   "license": "AGPL-3.0-or-later",
   "description": "Universal Jukebox — a player for the music already on your device. Point it at a folder and it reads the tags and the embedded album art out of your own files, builds a library, and plays it. Nothing is uploaded and there is no account.",
+  "author": {
+    "name": "Universal Simulation Ltd",
+    "email": "inbox@unisim.co.uk"
+  },
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -19,7 +24,9 @@
     "cap:sync": "npm run build:desktop && npx cap sync && npm run check:mobile-bundle",
     "check:mobile-bundle": "node scripts/verify-mobile-bundle.mjs",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "electron": "electron .",
+    "dist:win": "npm run build:desktop && electron-builder --win"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",
@@ -40,6 +47,8 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
@@ -51,5 +60,35 @@
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^2.1.8",
     "wrangler": "^4.0.0"
+  },
+  "build": {
+    "appId": "uk.co.unisim.jukebox",
+    "productName": "Universal Jukebox",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!node_modules/**/*",
+      "node_modules/@unisim/sdk/package.json",
+      "node_modules/@unisim/sdk/electron/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Universal-Jukebox-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "icon": "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png",
+      "category": "public.app-category.music"
+    }
   }
 }

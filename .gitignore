@@ -1,6 +1,8 @@
 node_modules
 dist
 dist-ssr
+# electron-builder output (npm run dist:win)
+release
 dev-dist
 *.local
 .vite

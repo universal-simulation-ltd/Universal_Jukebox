@@ -1,0 +1,100 @@
+# The Windows installer, built on a Windows runner.
+#
+# Run it by hand (Actions → windows → Run workflow). With no tag it only BUILDS:
+# the installer is kept as this run's artifact for 30 days, and nothing is
+# published. Give it a tag — or push a `v*` tag — and it is attached to that
+# GitHub Release as well, creating the release if there is none. Releases in
+# this suite are deliberate, not a side effect of pushing to main.
+#
+# Why a runner and not a Mac: electron-builder writes the app's icon and
+# version into the .exe with rcedit, a Windows program, which a Mac can only
+# run under Wine. On Windows it simply works.
+#
+# Unsigned, as the suite's desktop apps are: SmartScreen says "Windows
+# protected your PC" on first run — More info → Run anyway.
+#
+# No secrets needed: the platform Supabase URL and anon key have fallbacks in
+# src/main.tsx (the anon key is public by design).
+#
+# Modelled on Universal PDF's release.yml; its `--publish never` and
+# `shell: bash` comments apply here unchanged.
+
+name: windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach the installer to (leave empty to only build it)"
+        required: false
+        default: ""
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      # --publish never: electron-builder otherwise tries to publish on a tag
+      # ref and fails on the missing GH_TOKEN before the steps below run.
+      - name: Build the installer
+        shell: bash
+        run: npm run dist:win -- --publish never
+
+      # A packaged Electron app that dies on launch looks identical to a
+      # healthy one until somebody double-clicks it. Still running after 15s =
+      # the window came up and nothing crashed on boot.
+      - name: Smoke-check the packaged app launches
+        shell: pwsh
+        run: |
+          Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
+          $exe = "release/win-unpacked/Universal Jukebox.exe"
+          if (-not (Test-Path $exe)) { Write-Host "::error::$exe was not built"; exit 1 }
+          $p = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { Write-Host "::error::The app exited on launch (code $($p.ExitCode))"; exit 1 }
+          Stop-Process -Id $p.Id -Force
+          Write-Host "Still running after 15s."
+
+      - name: Checksum
+        shell: bash
+        run: cd release && sha256sum Universal-Jukebox-Setup-*.exe | tee SHA256-windows.txt
+
+      - name: Keep the installer as this run's artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: universal-jukebox-windows
+          path: |
+            release/Universal-Jukebox-Setup-*.exe
+            release/SHA256-windows.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      # ⚠️ shell: bash is REQUIRED on this runner — PowerShell would not expand
+      # $TAG or the glob, and `gh release upload ""` fails as "not found".
+      - name: Attach to the GitHub Release
+        if: ${{ inputs.tag != '' || startsWith(github.ref, 'refs/tags/') }}
+        shell: bash
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          gh release upload "$TAG" release/Universal-Jukebox-Setup-*.exe release/SHA256-windows.txt --clobber
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
