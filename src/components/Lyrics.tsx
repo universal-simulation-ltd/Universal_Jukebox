@@ -146,6 +146,9 @@ function Body() {
  * freely and stops following. Locking again goes straight back to the line
  * being sung.
  */
+/** How far ahead of the next line its count-in starts, in seconds. */
+const COUNT_IN_SEC = 5
+
 function Synced() {
   const sheet = useLyricsStore((s) => s.sheet)
   const currentSec = usePlayerStore((s) => s.currentSec)
@@ -161,6 +164,14 @@ function Synced() {
   // arrives. During the intro that is the first line.
   const next = nextSungLine(lines, active)
   const phase = micPhase(lines, active, currentSec, playing)
+  // ⚠️ THE NEXT LINE COUNTS ITSELF IN (James, 2026-09-11: "On the lyrics show to
+  // the right of the line when the next one starts (only for next line) e.g.
+  // 5,4,3…"). Whole seconds to go, from 5 — beside that line only, so the one
+  // being sung stays the one being read.
+  const nextAt = next >= 0 ? lines[next]?.timeSec : null
+  const countIn = typeof nextAt === 'number' && nextAt - currentSec > 0 && nextAt - currentSec <= COUNT_IN_SEC
+    ? Math.ceil(nextAt - currentSec)
+    : null
 
   useEffect(() => {
     if (!locked) return
@@ -208,7 +219,7 @@ function Synced() {
             // way of getting there. Free, and it is what anybody tries once they
             // realise the sheet is following the music.
             onClick={() => line.timeSec !== null && seekTo(line.timeSec)}
-            className={`block w-full py-1.5 text-left text-[15px] leading-relaxed text-balance transition-colors ${
+            className={`flex w-full items-baseline gap-3 py-1.5 text-left text-[15px] leading-relaxed text-balance transition-colors ${
               i === active
                 ? 'font-bold text-slate-900 dark:text-slate-50'
                 : i === next
@@ -218,7 +229,17 @@ function Synced() {
           >
             {/* An empty timed line is an instrumental gap, and it has to keep its
                 height or the highlight jumps a verse ahead during the solo. */}
-            {line.text || '\u00a0'}
+            <span className="min-w-0 flex-1">{line.text || '\u00a0'}</span>
+            {i === next && countIn !== null && (
+              <span
+                key={countIn}
+                aria-hidden
+                className="shrink-0 text-[13px] font-semibold text-orange-600 tabular-nums dark:text-orange-400"
+                style={{ animation: reduced ? undefined : 'jb-count-in 420ms ease-out both' }}
+              >
+                {countIn}
+              </span>
+            )}
           </button>
         ))}
       </div>
