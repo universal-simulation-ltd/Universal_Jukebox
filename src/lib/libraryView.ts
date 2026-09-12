@@ -155,6 +155,43 @@ export function shelfRows<T>(items: readonly T[], seed?: number): T[][] {
   return out.filter((row) => row.length > 0)
 }
 
+/**
+ * Where each shelf OPENS — which record of its own it stands in the middle of.
+ *
+ * ⚠️ Random per shelf, not the brick-stagger it replaces (James, 2026-09-12:
+ * "instead of staggering the shelves item 1 then item 2 have them random i.e.
+ * top shelf might start on item 6 for aesthetics though always have shelf 1 or
+ * 2 start with item one … all the other shelves 3+ should be random starting
+ * position of that shelf"). The old rule alternated 1st, 2nd, 1st, 2nd, which
+ * broke the vertical column but was itself a visible pattern once there were
+ * ten shelves.
+ *
+ * ⚠️ ONE of the first two shelves always opens on its first record, and which
+ * one is the coin flip. That is what keeps the top of the library from being
+ * an arbitrary handful of records with no beginning in sight — you can always
+ * see where the list starts, in one of the two places you are already looking.
+ *
+ * ⚠️ `pinFirst` is NOT the same rule, and the resume row is why it exists. When
+ * `Shelf.tsx` has a `lead` — the artist or album you were listening to — that
+ * item is put at the FRONT of the first shelf, so a first shelf that opened
+ * anywhere else would hide the one record it was moved there to show. Then the
+ * coin flip is off and shelf 1 takes item one; shelf 2 is random like the rest.
+ *
+ * Seeded, like everything else here: the same seed gives the same shelves in
+ * the same places, so the library holds still while you browse and is laid out
+ * afresh the next time the app opens.
+ */
+export function shelfStarts(lengths: readonly number[], seed: number, pinFirst = false): number[] {
+  if (lengths.length === 0) return []
+  // The one that shows item one: shelf 1 or shelf 2 — or shelf 1 outright when
+  // there is a lead to show, or when it is the only shelf there is.
+  const first = pinFirst || lengths.length < 2 ? 0 : hash(`${seed}:shelf-start-pin`) % 2
+  return lengths.map((length, i) => {
+    if (i === first || length <= 1) return 0
+    return hash(`${seed}:shelf-start:${i}:${length}`) % length
+  })
+}
+
 /** Each shelf's length: its share of `count`, by weights from 0.5 to 1.5. */
 function varied(count: number, rows: number, seed: number): number[] {
   const weights = Array.from({ length: rows }, (_, r) => 0.5 + (hash(`${seed}:shelf:${r}:${count}`) % 1001) / 1000)

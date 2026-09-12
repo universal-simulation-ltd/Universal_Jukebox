@@ -6,7 +6,7 @@ import { navigate } from '../lib/route'
 import { plural } from '../lib/format'
 import { grooveRings } from '../lib/grooves'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
-import { newSeed, shelfRows } from '../lib/libraryView'
+import { newSeed, shelfRows, shelfStarts } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import { withResumeRow } from './resumeRow'
 import type { Album, Track } from '../lib/types'
@@ -63,6 +63,9 @@ function Shelves<T>({
   // already had it). Leading the whole list instead shifted every shelf by one.
   const cut = shelfRows(items, LAUNCH_SEED)
   const rows = lead === undefined || cut.length === 0 ? cut : [[lead, ...cut[0].filter((item) => item !== lead)], ...cut.slice(1)]
+  // Where each shelf opens — see `shelfStarts`. A lead pins the first shelf to
+  // its first record, because the lead IS that record.
+  const starts = shelfStarts(rows.map((r) => r.length), LAUNCH_SEED, lead !== undefined && rows.length > 0)
   const box = useRef<HTMLDivElement>(null)
   const [lift, setLift] = useState(0)
 
@@ -95,10 +98,12 @@ function Shelves<T>({
             {row(
               r,
               rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : label,
-              // ⚠️ STAGGERED, like bricks (James, 2026-09-11: "first line has
-              // first track selected and second line has second track then third
-              // has 1st again"), so the shelves don't stack into one column.
-              i % 2 === 1 && r.length > 1 ? 1 : 0,
+              // ⚠️ EACH SHELF OPENS SOMEWHERE OF ITS OWN — `shelfStarts` holds
+              // the rule and the reasoning. It replaced a 1st/2nd/1st/2nd
+              // brick stagger (James, 2026-09-11), which stopped the records
+              // stacking into a column but was its own pattern down ten
+              // shelves.
+              starts[i] ?? 0,
             )}
           </Fragment>
         )),

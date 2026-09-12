@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shelfRows, shuffleQueue } from './libraryView'
+import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shelfRows, shelfStarts, shuffleQueue } from './libraryView'
 import type { Album, Track } from './types'
 
 const items = Array.from({ length: 50 }, (_, i) => `item-${i}`)
@@ -132,5 +132,68 @@ describe('shelfRows with a seed (shelves of different lengths)', () => {
   })
   it('leaves a small library on one shelf', () => {
     expect(shelfRows(Array.from({ length: 20 }, (_, i) => i), 3)).toHaveLength(1)
+  })
+})
+
+describe('where each shelf opens (shelfStarts)', () => {
+  const lengths = [40, 35, 50, 20, 60, 25, 30, 45, 15, 55]
+  /** Every seed a run of the app might pick — the rules have to hold for all of them. */
+  const seeds = Array.from({ length: 200 }, (_, i) => i * 7919)
+
+  it('always opens shelf 1 OR shelf 2 on its first record', () => {
+    for (const seed of seeds) {
+      const starts = shelfStarts(lengths, seed)
+      expect(starts[0] === 0 || starts[1] === 0).toBe(true)
+    }
+  })
+
+  it('uses both shelf 1 and shelf 2 across runs — it is a coin flip, not a fixed shelf', () => {
+    const firsts = new Set(seeds.map((seed) => (shelfStarts(lengths, seed)[0] === 0 ? 1 : 2)))
+    expect(firsts).toEqual(new Set([1, 2]))
+  })
+
+  it('never runs off the end of a shelf', () => {
+    for (const seed of seeds) {
+      shelfStarts(lengths, seed).forEach((start, i) => {
+        expect(start).toBeGreaterThanOrEqual(0)
+        expect(start).toBeLessThan(lengths[i])
+      })
+    }
+  })
+
+  it('starts shelves 3 and beyond somewhere of their own, not at the front', () => {
+    // Not "never 0" — a random start may land on 0 — but across 200 runs the
+    // shelves below the top two must be somewhere else the vast majority of
+    // the time, or this is the old stagger wearing a hat.
+    const belowTheTop = seeds.flatMap((seed) => shelfStarts(lengths, seed).slice(2))
+    const atTheFront = belowTheTop.filter((start) => start === 0).length
+    expect(atTheFront / belowTheTop.length).toBeLessThan(0.05)
+  })
+
+  it('is not the old 1st/2nd/1st/2nd stagger', () => {
+    expect(shelfStarts(lengths, 12345)).not.toEqual([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+  })
+
+  it('holds still for the same seed and moves for a different one', () => {
+    expect(shelfStarts(lengths, 42)).toEqual(shelfStarts(lengths, 42))
+    expect(shelfStarts(lengths, 42)).not.toEqual(shelfStarts(lengths, 43))
+  })
+
+  it('pins shelf 1 when a lead record was moved to the front of it', () => {
+    for (const seed of seeds) expect(shelfStarts(lengths, seed, true)[0]).toBe(0)
+  })
+
+  it('leaves shelf 2 free to be random even with a lead', () => {
+    const seconds = new Set(seeds.map((seed) => shelfStarts(lengths, seed, true)[1]))
+    expect(seconds.size).toBeGreaterThan(1)
+  })
+
+  it('opens a lone shelf on its first record', () => {
+    expect(shelfStarts([30], 7)).toEqual([0])
+    expect(shelfStarts([], 7)).toEqual([])
+  })
+
+  it('opens a one-record shelf on the record it has', () => {
+    expect(shelfStarts([1, 1, 1], 7)).toEqual([0, 0, 0])
   })
 })
