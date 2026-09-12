@@ -3,13 +3,31 @@
 
 import type { Album, Track } from './types'
 import { COLUMN_CYCLE, type LibraryColumns } from '../stores/settingsStore'
+import { ORDER_KINDS, type OrderKind } from './order'
 
 /**
  * A–Z is each list's own alphabetical order (albums by title,
  * artists by name, tracks by title). Random is a shuffle that holds still until
- * it is asked for again — the seed.
+ * it is asked for again — the seed. Genre is not an order at all but a
+ * GROUPING: one shelf per genre, A–Z within each (`lib/genres.ts`).
  */
-export type LibraryOrder = { kind: 'az' } | { kind: 'random'; seed: number }
+export type LibraryOrder = { kind: 'az' } | { kind: 'random'; seed: number } | { kind: 'genre' }
+
+// The kinds themselves live in `lib/order.ts`, which imports nothing — see the
+// note there about the import cycle that costs.
+export { ORDER_KINDS, type OrderKind } from './order'
+
+/** The next order the pill moves to — A–Z → Random → Genre → A–Z. */
+export function nextOrder(order: LibraryOrder): LibraryOrder {
+  const kind = ORDER_KINDS[(ORDER_KINDS.indexOf(order.kind) + 1) % ORDER_KINDS.length]
+  // Every visit to Random is a fresh shuffle, as it always was.
+  return kind === 'random' ? { kind, seed: newSeed() } : { kind }
+}
+
+/** The order a stored preference names — a fresh shuffle each time for Random. */
+export function orderFrom(kind: OrderKind): LibraryOrder {
+  return kind === 'random' ? { kind, seed: newSeed() } : { kind }
+}
 
 /**
  * A shuffle that holds still.

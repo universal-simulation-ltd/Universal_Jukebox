@@ -1,6 +1,7 @@
 import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
 import { create } from 'zustand'
 import { perTab } from '../lib/perTab'
+import { ORDER_KINDS, type OrderKind } from '../lib/order'
 
 // Everything on the Settings page, in one store, persisted to localStorage.
 //
@@ -204,9 +205,16 @@ export interface Settings {
   tipsSeen: TipId[]
   /** "Stable volume": loud songs turned down to meet the rest — `lib/loudness.ts`. */
   stableVolume: boolean
-  /** The library lists in random order — remembered, freshly shuffled each visit. */
-  /** A–Z or Random, per list. */
-  libraryRandom: Record<ListTab, boolean>
+  /**
+   * A–Z, Random or Genre, per list — the one pill in the list options.
+   *
+   * ⚠️ Replaced the boolean `libraryRandom` on 2026-09-12, when Genre made it a
+   * third choice rather than a switch. A stored `libraryRandom` is still read
+   * once and honoured (`readStored`), because "random, please" is a choice
+   * somebody made and losing it silently is the small betrayal this file keeps
+   * warning about.
+   */
+  libraryOrder: Record<ListTab, OrderKind>
   /** Albums per row, or the jukebox shelf — see `COLUMN_CYCLE`. */
   libraryColumns: Record<ListTab, LibraryColumns>
   /** "Resume listening" above the library lists (`ResumeCard`). */
@@ -235,7 +243,7 @@ export const DEFAULTS: Settings = {
   fullAlbumsOnly: false,
   tipsSeen: [],
   stableVolume: false,
-  libraryRandom: { artists: false, albums: false, tracks: false },
+  libraryOrder: { artists: 'az', albums: 'az', tracks: 'az' },
   // The shelf is the standard (James, 2026-09-11: "put jukebox shelf as
   // standard") — and everyone who had the old default is moved to it once,
   // `adoptShelf` below.
@@ -382,8 +390,14 @@ function readStored(): Settings {
       : [],
     stableVolume: stored.stableVolume === true,
     // Per list since 2026-09-11; a value from before, when the lists shared
-    // one, is where each of them starts (`perTab`).
-    libraryRandom: perTab(stored.libraryRandom, (v): v is boolean => typeof v === 'boolean', DEFAULTS.libraryRandom),
+    // one, is where each of them starts (`perTab`). `libraryRandom`, the
+    // boolean this replaced, is honoured where no `libraryOrder` was ever
+    // written — see the note on the field.
+    libraryOrder: perTab(
+      stored.libraryOrder ?? legacyOrder((stored as { libraryRandom?: unknown }).libraryRandom),
+      (v): v is OrderKind => ORDER_KINDS.includes(v as OrderKind),
+      DEFAULTS.libraryOrder,
+    ),
     libraryColumns: perTab(
       stored.libraryColumns,
       (v): v is LibraryColumns => COLUMN_CYCLE.includes(v as LibraryColumns),
@@ -392,6 +406,22 @@ function readStored(): Settings {
     resumeCard: stored.resumeCard !== false,
     recordCrossfade: stored.recordCrossfade !== false,
   }
+}
+
+/**
+ * The old `libraryRandom` boolean as an order kind — per list, or one value for
+ * all of them, exactly as `perTab` reads any other shape.
+ *
+ * Returns `undefined` for anything else, so an absent key falls to the default
+ * rather than to "A–Z" by accident.
+ */
+function legacyOrder(stored: unknown): unknown {
+  const kind = (v: unknown) => (v === true ? 'random' : v === false ? 'az' : undefined)
+  if (typeof stored === 'boolean') return kind(stored)
+  if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+    return Object.fromEntries(Object.entries(stored as Record<string, unknown>).map(([tab, v]) => [tab, kind(v)]))
+  }
+  return undefined
 }
 
 /**
@@ -447,7 +477,7 @@ function persist(state: Settings) {
     fullAlbumsOnly: state.fullAlbumsOnly,
     tipsSeen: state.tipsSeen,
     stableVolume: state.stableVolume,
-    libraryRandom: state.libraryRandom,
+    libraryOrder: state.libraryOrder,
     libraryColumns: state.libraryColumns,
     resumeCard: state.resumeCard,
     recordCrossfade: state.recordCrossfade,

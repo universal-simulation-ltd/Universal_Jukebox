@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useMemo, useState } from 'react'
+import { Fragment, useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { withResumeRow } from './resumeRow'
 import { ArtistShelf } from './Shelf'
 import { useGridColumns } from '../lib/useGridColumns'
@@ -10,6 +10,8 @@ import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
 import { gridClass, seededOrder, type LibraryOrder } from '../lib/libraryView'
+import { GENRE_MIN, albumGenres, groupByGenre, hiddenByGenre, shownGenres, tallyGenres } from '../lib/genres'
+import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Album } from '../lib/types'
@@ -30,11 +32,22 @@ import type { Album } from '../lib/types'
 // replaced a drawer under the WHOLE grid — which on a phone put an artist's
 // records a long scroll away from the card that opened them.
 
+/**
+ * "Resume listening" among the tiles — but NOT while the list is grouped by
+ * genre. Its slot is a fixed number of cells in, which in a grouped grid lands
+ * in the middle of whichever genre happens to be first, under a heading that
+ * then describes the wrong thing.
+ */
+function maybeResumeRow(cells: ReactNode[], at: number | undefined, grouped: boolean): ReactNode[] {
+  return grouped ? cells : withResumeRow(cells, at ?? 0)
+}
+
 /** The artist groups left open — see `expanded`. */
 let openArtists: ReadonlySet<string> = new Set()
 
 export default function ArtistList({ query, order }: { query: string; order: LibraryOrder }) {
   const albums = useLibraryStore((s) => s.albums)
+  const tracks = useLibraryStore((s) => s.tracks)
   /** Artists opened out. Names, because that is what groups them. */
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(openArtists))
   // Kept outside the list, which is unmounted while an album is open — so the
@@ -72,19 +85,66 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
   const resumeArtist = leadName ? all.find((a) => a.name === leadName) : undefined
   const artists = useMemo(() => leadWith(all, leadName ? (a) => a.name === leadName : null), [all, leadName])
 
-  if (all.length > 0 && columns === 'jukebox') return <ArtistShelf artists={all} lead={resumeArtist} />
+  // ⚠️ An artist's genres are their RECORDS' songs' genres — see `lib/genres.ts`.
+  // Somebody who made a blues record and a country one stands on both shelves,
+  // which is the truthful answer and the useful one.
+  const genre = useMemo(() => {
+    if (order.kind !== 'genre') return null
+    const tally = tallyGenres(tracks)
+    const genresOf = albumGenres(tracks)
+    const forArtist = (artist: { albums: Album[] }) => [...new Set(artist.albums.flatMap(genresOf))]
+    return { groups: groupByGenre(all, forArtist, shownGenres(tally)), hidden: hiddenByGenre(tally) }
+  }, [order.kind, tracks, all])
 
-  if (artists.length === 0) {
+  if (all.length > 0 && columns === 'jukebox' && !genre) return <ArtistShelf artists={all} lead={resumeArtist} />
+  if (all.length > 0 && columns === 'jukebox' && genre && genre.groups.length > 0) {
+    return (
+      <>
+        {/* No `lead` in genre mode — the resume artist belongs on their own
+            genre's shelf, not at the front of whichever genre is first. */}
+        <ArtistShelf artists={all} groups={genre.groups} />
+        <GenreFootnote hidden={genre.hidden} />
+      </>
+    )
+  }
+
+  if (artists.length === 0 || (genre && genre.groups.length === 0)) {
     return (
       <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
-        {query.trim() ? `No artist matching “${query}”.` : 'No artists yet.'}
+        {query.trim()
+          ? `No artist matching “${query}”.`
+          : genre && albums.length > 0
+            ? `No genre here has ${GENRE_MIN} songs or more, so there is nothing to file. Switch back to A–Z.`
+            : 'No artists yet.'}
       </p>
     )
   }
 
+  /**
+   * The cells, with a genre heading before each run when the list is grouped.
+   *
+   * ⚠️ ONE grid, headings as full-width cells — not a grid per genre as the
+   * Albums tab does. An artist card here can be OPENED, and its records then
+   * follow it as cells in this same grid; splitting the grid per genre would
+   * mean re-threading `expanded`, the measured column count and the id an
+   * opened run's last tile is named by. A `col-span-full` row costs none of
+   * that and reads the same.
+   */
+  const cells: ({ heading: string; count: number } | (typeof artists)[number])[] = genre
+    ? genre.groups.flatMap((group) => [{ heading: group.genre, count: group.items.length }, ...group.items])
+    : artists
+
   return (
+    <>
     <ul ref={grid} className={gridClass(columns === 'jukebox' ? 2 : columns)}>
-      {withResumeRow(artists.map((artist, index) => {
+      {maybeResumeRow(cells.map((artist, index) => {
+        if ('heading' in artist) {
+          return (
+            <li key={`genre-${artist.heading}`} className="col-span-full mt-4 first:mt-0">
+              <GenreHeading genre={artist.heading} count={artist.count} />
+            </li>
+          )
+        }
         // One album is not worth opening — go straight to the record, which is
         // the only thing behind the door anyway.
         if (artist.albums.length === 1) {
@@ -191,7 +251,9 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
               ))}
           </Fragment>
         )
-      }), across)}
+      }), across, genre !== null)}
     </ul>
+    {genre && <GenreFootnote hidden={genre.hidden} />}
+    </>
   )
 }

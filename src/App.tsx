@@ -31,7 +31,7 @@ import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route
 import { useBooting } from './lib/boot'
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, tabCounts } from './lib/search'
-import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, newSeed, nextColumns, type LibraryOrder } from './lib/libraryView'
+import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, nextColumns, nextOrder, orderFrom, type LibraryOrder } from './lib/libraryView'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
 import { DEFAULTS, useSettingsStore, type HomeTab, type ListTab } from './stores/settingsStore'
@@ -67,6 +67,17 @@ function togglePill(active: boolean): string {
       ? 'border-orange-500 bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300'
       : 'border-slate-300 text-slate-600 hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:text-orange-400'
   }`
+}
+
+/**
+ * What the order pill says it is on, and what it says it will do next. One
+ * table, so the button's own label and the label a screen reader hears can
+ * never say different things.
+ */
+const ORDER_SAID: Record<LibraryOrder['kind'], { now: string; next: string }> = {
+  az: { now: 'In A to Z order', next: 'A to Z' },
+  random: { now: 'In random order', next: 'random order' },
+  genre: { now: 'Grouped by genre', next: 'genre shelves' },
 }
 
 // Artists, Albums, Tracks (James, 2026-09-11) — widest to narrowest.
@@ -218,9 +229,8 @@ export default function App() {
   // the library i.e. jukebox shelf on artist doesn't auto apply to albums and
   // tracks") — and the same for the layout, `libraryColumns`.
   const [orders, setOrders] = useState<Record<ListTab, LibraryOrder>>(() => {
-    const random = useSettingsStore.getState().libraryRandom
-    const start = (on: boolean): LibraryOrder => (on ? { kind: 'random', seed: newSeed() } : { kind: 'az' })
-    return { artists: start(random.artists), albums: start(random.albums), tracks: start(random.tracks) }
+    const stored = useSettingsStore.getState().libraryOrder
+    return { artists: orderFrom(stored.artists), albums: orderFrom(stored.albums), tracks: orderFrom(stored.tracks) }
   })
   const allColumns = useSettingsStore((s) => s.libraryColumns)
   /** The row of list options, behind the icon after the tabs. */
@@ -568,20 +578,20 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    const random = order.kind === 'az'
-                    setOrders((all) => ({ ...all, [listTab]: random ? { kind: 'random', seed: newSeed() } : { kind: 'az' } }))
-                    setSetting('libraryRandom', { ...useSettingsStore.getState().libraryRandom, [listTab]: random })
+                    const next = nextOrder(order)
+                    setOrders((all) => ({ ...all, [listTab]: next }))
+                    setSetting('libraryOrder', { ...useSettingsStore.getState().libraryOrder, [listTab]: next.kind })
                   }}
-                  aria-label={order.kind === 'az' ? 'In A to Z order. Switch to random' : 'In random order. Switch to A to Z'}
-                  title={order.kind === 'az' ? 'Show in random order' : 'Show A to Z'}
-                  className={togglePill(order.kind === 'random')}
+                  aria-label={`${ORDER_SAID[order.kind].now}. Tap for ${ORDER_SAID[nextOrder(order).kind].next}`}
+                  title={`Tap for ${ORDER_SAID[nextOrder(order).kind].next}`}
+                  className={togglePill(order.kind !== 'az')}
                 >
                   {order.kind === 'az' ? (
                     'A–Z'
                   ) : (
                     <span className="inline-flex items-center gap-1">
-                      <ShuffleGlyph />
-                      Random
+                      {order.kind === 'random' ? <ShuffleGlyph /> : <GenreGlyph />}
+                      {order.kind === 'random' ? 'Random' : 'Genre'}
                     </span>
                   )}
                 </button>
@@ -733,6 +743,16 @@ function OptionsGlyph() {
       <path d="M3.5 6h8M15.5 6h1M3.5 14h1M8.5 14h8" />
       <circle cx="13.5" cy="6" r="2" />
       <circle cx="6.5" cy="14" r="2" />
+    </svg>
+  )
+}
+
+/** The genre pill's mark: records filed in a rack, which is what genre mode is. */
+function GenreGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+      <path d="M4 4.5v11M7.5 4.5v11M11 5l3.5 10" />
+      <path d="M2.5 16.5h15" />
     </svg>
   )
 }

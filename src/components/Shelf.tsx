@@ -52,20 +52,37 @@ function Sleeve({ album }: { album: Album | undefined }) {
  */
 const LAUNCH_SEED = newSeed()
 
+/**
+ * ⚠️ GENRE MODE HANDS THE SHELVES IN READY-CUT, and they are then NOT cut by
+ * length: one shelf per genre is the whole point of it (James, 2026-09-12:
+ * "shelves organised by blues, rock etc"), so `shelfRows`, the resume item's
+ * place at the front of the first shelf, and the "shelf 3 of 10" labels all
+ * stand aside for the genre's own name. `lib/genres.ts` decides which genres
+ * get a shelf at all.
+ */
 function Shelves<T>({
-  items, label, row, lead,
-}: { items: T[]; label: string; row(items: T[], label: string, start: number): ReactNode; lead?: T }) {
+  items, label, row, lead, groups,
+}: {
+  items: T[]
+  label: string
+  row(items: T[], label: string, start: number, heading?: string): ReactNode
+  lead?: T
+  groups?: { genre: string; items: T[] }[]
+}) {
   // ⚠️ THE RESUME ITEM JOINS THE FIRST SHELF; IT DOES NOT RESHUFFLE THE REST
   // (James, 2026-09-11: "When having the resume listening card show that songs
   // artist in the shelf above as first item - keep the other items the same in
   // the shelf"). The shelves are cut from the list as it would be without it,
   // then `lead` goes to the front of the first one (moved there if that shelf
   // already had it). Leading the whole list instead shifted every shelf by one.
-  const cut = shelfRows(items, LAUNCH_SEED)
-  const rows = lead === undefined || cut.length === 0 ? cut : [[lead, ...cut[0].filter((item) => item !== lead)], ...cut.slice(1)]
+  const cut = groups ? groups.map((g) => g.items) : shelfRows(items, LAUNCH_SEED)
+  const rows =
+    groups || lead === undefined || cut.length === 0
+      ? cut
+      : [[lead, ...cut[0].filter((item) => item !== lead)], ...cut.slice(1)]
   // Where each shelf opens — see `shelfStarts`. A lead pins the first shelf to
   // its first record, because the lead IS that record.
-  const starts = shelfStarts(rows.map((r) => r.length), LAUNCH_SEED, lead !== undefined && rows.length > 0)
+  const starts = shelfStarts(rows.map((r) => r.length), LAUNCH_SEED, lead !== undefined && !groups && rows.length > 0)
   const box = useRef<HTMLDivElement>(null)
   const [lift, setLift] = useState(0)
 
@@ -97,13 +114,14 @@ function Shelves<T>({
           <Fragment key={i}>
             {row(
               r,
-              rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : label,
+              groups ? `${groups[i].genre} — ${r.length} on the shelf` : rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : label,
               // ⚠️ EACH SHELF OPENS SOMEWHERE OF ITS OWN — `shelfStarts` holds
               // the rule and the reasoning. It replaced a 1st/2nd/1st/2nd
               // brick stagger (James, 2026-09-11), which stopped the records
               // stacking into a column but was its own pattern down ten
               // shelves.
               starts[i] ?? 0,
+              groups?.[i].genre,
             )}
           </Fragment>
         )),
@@ -114,17 +132,19 @@ function Shelves<T>({
   )
 }
 
-export default function Shelf({ albums, lead }: { albums: Album[]; lead?: Album }) {
+export default function Shelf({ albums, lead, groups }: { albums: Album[]; lead?: Album; groups?: { genre: string; items: Album[] }[] }) {
   return (
     <Shelves
       items={albums}
       lead={lead}
+      groups={groups}
       label="Albums on the shelf"
-      row={(row, label, start) => (
+      row={(row, label, start, heading) => (
         <ShelfRow
           items={row}
           label={label}
           start={start}
+          heading={heading}
           keyOf={(a) => a.id}
           nameOf={(a) => a.title}
           render={(a) => <Sleeve album={a} />}
@@ -139,18 +159,24 @@ export default function Shelf({ albums, lead }: { albums: Album[]; lead?: Album 
 
 /** The artists on the shelf, each as their latest record. */
 export function ArtistShelf({
-  artists, lead,
-}: { artists: { name: string; albums: Album[] }[]; lead?: { name: string; albums: Album[] } }) {
+  artists, lead, groups,
+}: {
+  artists: { name: string; albums: Album[] }[]
+  lead?: { name: string; albums: Album[] }
+  groups?: { genre: string; items: { name: string; albums: Album[] }[] }[]
+}) {
   return (
     <Shelves
       items={artists}
       lead={lead}
+      groups={groups}
       label="Artists on the shelf"
-      row={(row, label, start) => (
+      row={(row, label, start, heading) => (
         <ShelfRow
           items={row}
           label={label}
           start={start}
+          heading={heading}
           keyOf={(a) => a.name}
           nameOf={(a) => a.name}
           render={(a) => <Sleeve album={a.albums[a.albums.length - 1]} />}
@@ -167,7 +193,9 @@ export function ArtistShelf({
 }
 
 /** The songs on the shelf, as the records themselves. */
-export function TrackShelf({ tracks, onPlay, lead }: { tracks: Track[]; onPlay(track: Track): void; lead?: Track }) {
+export function TrackShelf({
+  tracks, onPlay, lead, groups,
+}: { tracks: Track[]; onPlay(track: Track): void; lead?: Track; groups?: { genre: string; items: Track[] }[] }) {
   const albums = useLibraryStore((s) => s.albums)
   const albumOf = useMemo(() => {
     const byId = new Map(albums.map((a) => [a.id, a]))
@@ -177,12 +205,14 @@ export function TrackShelf({ tracks, onPlay, lead }: { tracks: Track[]; onPlay(t
     <Shelves
       items={tracks}
       lead={lead}
+      groups={groups}
       label="Songs on the shelf"
-      row={(row, label, start) => (
+      row={(row, label, start, heading) => (
         <ShelfRow
           items={row}
           label={label}
           start={start}
+          heading={heading}
           size="record"
           verb="Play"
           keyOf={(t) => t.id}
@@ -217,6 +247,16 @@ interface ShelfRowProps<T> {
   labelOf?(item: T): string | undefined
   /** The art whose glow is behind this item while it is in the middle (`ItemGlow`). */
   artOf?(item: T): Album | undefined
+  /**
+   * A name written above the shelf — the genre, and only in genre mode.
+   *
+   * ⚠️ The shelves are otherwise deliberately unlabelled: the caption under the
+   * middle record says what you are looking at, and a "Shelf 4 of 10" over each
+   * one would be ten headings saying nothing. A genre is the exception because
+   * the shelf now MEANS something, and a shelf of blues you cannot tell from
+   * the shelf of jazz under it is not organised at all.
+   */
+  heading?: string
 }
 
 /**
@@ -226,7 +266,7 @@ interface ShelfRowProps<T> {
  */
 const shelfMemory = new Map<string, number>()
 
-export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf }: ShelfRowProps<T>) {
+export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading }: ShelfRowProps<T>) {
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
   const [middle, setMiddle] = useState(0)
@@ -295,6 +335,14 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
 
   return (
     <section aria-label={label} className="-mx-4 sm:-mx-6 lg:-mx-8">
+      {/* The genre, where there is one. Full-bleed section, so the page's own
+          side padding has to be put back on just this line. */}
+      {heading && (
+        <h3 className="mb-1 flex items-baseline gap-2 px-4 text-[13px] font-semibold text-slate-900 sm:px-6 lg:px-8 dark:text-slate-100">
+          {heading}
+          <span className="text-[12px] font-normal text-slate-500 tabular-nums dark:text-slate-400">{items.length}</span>
+        </h3>
+      )}
       <div
         ref={row}
         // A sideways swipe — never the page's pull-down to search (`PhoneSearch`).

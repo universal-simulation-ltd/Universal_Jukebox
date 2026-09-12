@@ -621,6 +621,24 @@ function readMp4Tags(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): 
         if (name === 'trkn') out.trackNo ??= n
         else out.discNo ??= n
       }
+    } else if (name === 'gnre' && size >= 26) {
+      // ⚠️ THE OTHER GENRE ATOM, AND THE ONE ITUNES WRITES. `gnre` is the
+      // numbered ID3v1 genre — binary, like `trkn`, a single 16-bit word — and
+      // a file that has it usually has no `©gen` at all. Without this branch a
+      // whole CD collection ripped in iTunes comes in with no genre whatsoever,
+      // which the genre shelves (`lib/genres.ts`) would then honestly report as
+      // "No genre" for the entire library.
+      //
+      // ⚠️ ONE-BASED, unlike ID3v1's own codes: `gnre` 1 is Blues, which is
+      // ID3v1 0. Off by one here files every record under the genre next door.
+      //
+      // ⚠️ STORED AS THE NUMBER, as a string, and deliberately: this file has
+      // no imports and keeps none (it is a copy of Universal Converter's
+      // reader — see the header), while the ID3v1 genre table lives in
+      // `lib/genres.ts`, which already has to resolve a `TCON` of "17" out of
+      // MP3s that have been in libraries for years. One table, one place. The
+      // number written here is the ID3v1 code, i.e. `gnre` minus one.
+      out.genre ??= String(view.getUint16(at + 24) - 1)
     } else if (wantLyrics && name === '©lyr' && size > 24) {
       // The one text atom that is not in the map above, because it must not be
       // read on a scan — see `lyrics` on `TagsAndArt`.
