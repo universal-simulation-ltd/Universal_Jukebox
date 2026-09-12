@@ -220,29 +220,21 @@ export function sortAlbumTracks(tracks: Track[]): Track[] {
   })
 }
 
-export const useLibraryStore = create<LibraryState>((set, get) => ({
-  status: 'loading',
-  tracks: [],
-  albums: [],
-  roots: [],
-  progress: null,
-  refusals: [],
-  error: null,
-  filesByPath: new Map(),
-  importProgress: null,
-  folderImages: new Map(),
-  canPersistFolder: hasDirectoryPicker(),
-  stoppedEarly: false,
-
-  /**
-   * Load whatever last session left behind.
-   *
-   * Note what this does NOT do: ask for permission. A permission prompt fired
-   * on page load is one the browser rejects (it needs a user gesture) and one
-   * the user has no context for. The library is shown from the cache, and the
-   * re-grant is a button.
-   */
-  async hydrate() {
+/**
+ * The one read of the stored library, per page.
+ *
+ * ⚠️ `status` MUST leave `'loading'`, on every path including a thrown one.
+ * The app renders nothing at all while it is loading (`lib/boot.ts`), so a
+ * hydrate that never finished used to cost a flash of the landing page and now
+ * costs the whole screen. Nothing below is expected to throw — `library.ts`
+ * resolves rather than rejects when storage is unavailable — but "expected" is
+ * not a guarantee, and the native branch talks to a plugin.
+ */
+async function hydrateOnce(
+  set: (partial: Partial<LibraryState>) => void,
+  get: () => LibraryState,
+): Promise<void> {
+  try {
     const [storedTracks, storedAlbums, roots] = await Promise.all([db.allTracks(), db.allAlbums(), db.allRoots()])
     // A disc set stored as separate albums comes back as one — `lib/discs.ts`.
     const { tracks, albums } = mergeDiscSets(storedTracks, storedAlbums)
@@ -271,6 +263,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // all that is missing after a relaunch is the live handles, which is
     // exactly what this puts back. Anything the walk no longer finds is simply
     // absent from the map, which `needAccess` already reads as unplayable.
+    //
+    // ⚠️ AFTER the `set` above, not before it, and that ordering is now what
+    // gets the app on screen: the shelves are shown from the cache the instant
+    // it is read, while the folder walk that puts the live handles back carries
+    // on behind them.
     if (isNativeShell()) {
       // ⚠️ Before anything else native: on a fresh install iOS will not show
       // this app in the Files app until its Documents folder has something in
@@ -279,6 +276,54 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       await ensureNativeMusicFolder()
       if (roots.some((r) => r.nativePath != null)) await reattachNative(set, get)
     }
+  } catch (err) {
+    console.error('[jukebox] Could not read the stored library:', err)
+    // Show the app rather than an empty page: the front door is a working
+    // screen, and every button on it still does what it says.
+    if (get().status === 'loading') set({ status: 'empty' })
+  }
+}
+
+/**
+ * The in-flight (or finished) read of the stored library — see `hydrate`.
+ *
+ * ⚠️ Deliberately NOT reset by `clear()` or a rescan. This is "has the page
+ * already loaded what was on disk when it opened", which happens exactly once;
+ * everything after it is the store's own state and needs no re-read.
+ */
+let hydration: Promise<void> | null = null
+
+export const useLibraryStore = create<LibraryState>((set, get) => ({
+  status: 'loading',
+  tracks: [],
+  albums: [],
+  roots: [],
+  progress: null,
+  refusals: [],
+  error: null,
+  filesByPath: new Map(),
+  importProgress: null,
+  folderImages: new Map(),
+  canPersistFolder: hasDirectoryPicker(),
+  stoppedEarly: false,
+
+  /**
+   * Load whatever last session left behind.
+   *
+   * Note what this does NOT do: ask for permission. A permission prompt fired
+   * on page load is one the browser rejects (it needs a user gesture) and one
+   * the user has no context for. The library is shown from the cache, and the
+   * re-grant is a button.
+   *
+   * ⚠️ ONCE PER PAGE, however many times it is called. `main.tsx` starts it
+   * before React renders (the read then overlaps mounting instead of following
+   * it) and `App` awaits it again from an effect, which under StrictMode is
+   * itself two calls — three reads of the whole library where one will do. The
+   * promise is the memo, so every caller gets the same one.
+   */
+  hydrate() {
+    hydration ??= hydrateOnce(set, get)
+    return hydration
   },
 
   async pickFolder() {

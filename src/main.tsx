@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { UniversalProvider } from '@unisim/sdk'
 import App from './App'
 import { startApplyingSettings } from './lib/applySettings'
+import { useLibraryStore } from './stores/libraryStore'
 import { logNativeDiagnostics } from './lib/nativeDiagnostics'
 import { watchAudioRoute } from './lib/nowPlayingNative'
 import './index.css'
@@ -49,6 +50,15 @@ const universalConfig = {
   product: 'jukebox' as const,
   cookieDomain: import.meta.env.PROD ? '.unisim.co.uk' : undefined,
 }
+
+// ⚠️ THE LIBRARY IS READ BEFORE REACT RENDERS, not from an effect afterwards.
+//
+// Nothing is shown until this resolves (`lib/boot.ts`: the app used to flash its
+// landing page while the read was in flight), so the read is the length of the
+// blank — and starting it here overlaps it with mounting the tree rather than
+// queueing it behind. `hydrate()` is memoised, so `App`'s own call is the same
+// promise and the database is still read exactly once.
+void useLibraryStore.getState().hydrate()
 
 // Settings reach the audio layer through one subscription, set up before the
 // first render so a boost or a fade chosen last visit is already in force when

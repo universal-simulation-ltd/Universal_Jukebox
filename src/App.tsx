@@ -28,6 +28,7 @@ import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
 import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
+import { useBooting } from './lib/boot'
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, tabCounts } from './lib/search'
 import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, newSeed, nextColumns, type LibraryOrder } from './lib/libraryView'
@@ -342,6 +343,20 @@ export default function App() {
   }, [toggle, next, previous])
 
   const hasLibrary = status === 'ready' || status === 'scanning'
+
+  /**
+   * ⚠️ NOTHING IS SHOWN UNTIL THE LIBRARY IS BACK — read `lib/boot.ts`, which
+   * is where the whole reasoning lives.
+   *
+   * The short version: `status` is `'loading'` until IndexedDB has been read,
+   * `hasLibrary` is false for all of that time, and the branch below therefore
+   * used to render `<Landing />` — so everybody with a library was shown "Scan
+   * my music folder" for a few hundred milliseconds on every open. The page
+   * holds the ground colour instead, and the app arrives once, finished.
+   *
+   * ⚠️ It must go BELOW every hook in this component. React counts them.
+   */
+  if (useBooting(status === 'loading')) return null
 
   // ⚠️ No background class on the root div. The page colour is on `<html>` —
   // see the note in `index.css`: an opaque background here is what made Now
