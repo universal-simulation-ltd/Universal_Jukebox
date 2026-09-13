@@ -5,7 +5,7 @@ import { plural } from '../lib/format'
 import { folderAccess } from '../lib/roots'
 import { goHome } from '../lib/route'
 import { useMissingFile } from '../lib/useMissingFile'
-import { needAccessFrom, useLibraryStore } from '../stores/libraryStore'
+import { needAccessFrom, refusalLabel, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 
 // Live scan progress, and the two things a scan has to say afterwards: the
@@ -73,6 +73,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const stopScan = useLibraryStore((s) => s.stopScan)
   const stoppedEarly = useLibraryStore((s) => s.stoppedEarly)
+  // The root that was stopped — gone if it has since been removed, and then
+  // there is nothing left to finish.
+  const stoppedRoot = stoppedEarly ? roots.find((r) => r.id === stoppedEarly) : undefined
   const clear = useLibraryStore((s) => s.clear)
 
   /**
@@ -107,18 +110,22 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
           }}
         />
       )}
-      {stoppedEarly && (
+      {stoppedRoot && (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          {/* ⚠️ A stopped Music-library import is a different thing kept: it
+              has every song (iOS lists them all up front) and is short only of
+              sleeves — see `readMusicLibrary`. */}
           <p className="min-w-0 flex-1">
-            Stopped early — everything found up to that point is in your library and
-            plays normally. Scanning again reads the whole folder from the start.
+            {stoppedRoot.source === 'music-library'
+              ? 'Stopped early — every song is in your library and plays normally, but some records have no sleeve yet. Refreshing fetches the rest.'
+              : 'Stopped early — everything found up to that point is in your library and plays normally. Scanning again reads the whole folder from the start.'}
           </p>
           <button
             type="button"
-            onClick={() => void rescanFolder(roots[0]?.id ?? '')}
+            onClick={() => void rescanFolder(stoppedRoot.id)}
             className="shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
           >
-            Scan the rest
+            {stoppedRoot.source === 'music-library' ? 'Fetch the sleeves' : 'Scan the rest'}
           </button>
         </div>
       )}
@@ -217,7 +224,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
           <ul className="mt-2 space-y-1.5">
             {refusals.map((r) => (
               <li key={r.ext} className="text-[12.5px] leading-relaxed text-slate-600 dark:text-slate-300">
-                <span className="font-medium text-slate-800 uppercase dark:text-slate-200">.{r.ext}</span>
+                {/* In words where there are some — the Music library's skips
+                    are kinds of song, not formats (`musicLibrarySkips`). */}
+                <span className="font-medium text-slate-800 dark:text-slate-200">{refusalLabel(r)}</span>
                 {' '}({r.count}) — {r.why}
               </li>
             ))}

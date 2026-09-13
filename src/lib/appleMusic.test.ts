@@ -119,6 +119,21 @@ describe('readMusicLibrary', () => {
     expect(read.tracks).toHaveLength(70)
   })
 
+  it('stopped, still hands back every song — only the sleeves are cut short', async () => {
+    const stop = new AbortController()
+    stop.abort()
+    const onReady = vi.fn()
+    plugin.artwork.mockClear()
+    const read = await readMusicLibrary(MUSIC_LIBRARY_LABEL, undefined, onReady, stop.signal)
+    expect(read.tracks).toHaveLength(70)
+    expect(read.albums).toHaveLength(70)
+    expect(read.albums.every((a) => a.cover === null)).toBe(true)
+    // No sleeve asked for, and nothing handed over early: the caller puts the
+    // whole library up at once.
+    expect(plugin.artwork).not.toHaveBeenCalled()
+    expect(onReady).not.toHaveBeenCalled()
+  })
+
   it('hands nothing over early for a library smaller than the first lot', async () => {
     plugin.songs.mockResolvedValueOnce({ songs: songs.slice(0, FIRST_SHOWN), total: FIRST_SHOWN, cloudOnly: 0, protected: 0 })
     const onReady = vi.fn()

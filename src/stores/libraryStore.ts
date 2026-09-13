@@ -85,8 +85,8 @@ interface LibraryState {
   albums: Album[]
   roots: Root[]
   progress: ScanProgress | null
-  /** Extension → sentence, for the formats found and refused in the last scan. */
-  refusals: { ext: string; count: number; why: string }[]
+  /** What the last scan found and could not take — formats, or kinds of song — and why. */
+  refusals: Refusal[]
   error: string | null
   /** path → the file, for everything currently reachable. Never persisted. */
   filesByPath: Map<string, SourceFile>
@@ -94,8 +94,16 @@ interface LibraryState {
   folderImages: Map<string, FoundImage[]>
   canPersistFolder: boolean
 
-  /** True once a scan has been stopped early, so the UI can say what it kept. */
-  stoppedEarly: boolean
+  /**
+   * The id of the root whose scan was stopped early, or null — so the UI can
+   * say what it kept, and "Scan the rest" reads THAT root.
+   *
+   * ⚠️ An id, not a flag (2026-09-13). As a flag the banner rescanned
+   * `roots[0]`, which is the OLDEST root, not the one just stopped — with a
+   * folder and then the Music library, stopping the import offered to rescan
+   * the folder.
+   */
+  stoppedEarly: string | null
 
   hydrate(): Promise<void>
   /** Stop a running scan, keeping everything found so far. */
@@ -195,6 +203,25 @@ export function needAccessFrom(
   filesByPath: Map<string, SourceFile>,
 ): Root[] {
   return rootsNeedingAccess(roots, tracks, filesByPath, isGenerated)
+}
+
+/** One kind of file a scan found and could not take, and why. */
+export interface Refusal {
+  ext: string
+  /**
+   * What to call it on screen, where `.EXT` would be wrong. The Music
+   * library's skips are kinds of SONG, not formats, and shown as extensions
+   * they read as ".PROTECTED" and ".ICLOUD" (2026-09-10). Absent for a folder
+   * scan's refused format, which is named by its extension.
+   */
+  label?: string
+  count: number
+  why: string
+}
+
+/** How a refusal is named in the skipped-files report: its label, else `.EXT`. */
+export function refusalLabel(refusal: Refusal): string {
+  return refusal.label ?? `.${refusal.ext.toUpperCase()}`
 }
 
 /** The example library's records are made on demand — no folder, ever. */
@@ -305,7 +332,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   importProgress: null,
   folderImages: new Map(),
   canPersistFolder: hasDirectoryPicker(),
-  stoppedEarly: false,
+  stoppedEarly: null,
 
   /**
    * Load whatever last session left behind.
@@ -357,8 +384,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   async loadExample() {
     releaseAllCovers()
     scanAbort?.abort()
+    // Replaces everything, so a scan still finishing must not write over it.
+    generation++
     await db.clearLibrary()
-    set({ status: 'scanning', tracks: [], albums: [], roots: [], error: null, stoppedEarly: false, refusals: [], progress: null })
+    set({ status: 'scanning', tracks: [], albums: [], roots: [], error: null, stoppedEarly: null, refusals: [], progress: null })
 
     const { tracks, albums } = await buildExampleLibrary()
     const root: Root = {
@@ -443,6 +472,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       await get().loadExample()
       return
     }
+    // ⚠️ Nor has the Music library — it is read through iOS, never chosen.
+    // Without this it fell through to "choose Music library again", a folder
+    // that does not exist, from the banner's "Scan the rest" after a stopped
+    // import (2026-09-13). Rescanning it is a refresh.
+    if (root.source === 'music-library') {
+      await get().importMusicLibrary()
+      return
+    }
     if (root.handle) {
       await get().regrantFolder(id)
       return
@@ -509,14 +546,22 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     scanAbort?.abort()
   },
 
+  /**
+   * ⚠️ Stops any scan or import FIRST, and makes sure it writes nothing when it
+   * finishes (`generation`). The scan card's "Delete" is a stop and then this,
+   * and a stopped scan KEEPS what it read — so without the bump it wrote the
+   * library straight back a moment after it had been cleared.
+   */
   async clear() {
+    scanAbort?.abort()
+    generation++
     releaseAllCovers()
     await db.clearLibrary()
     set({
       status: 'empty', tracks: [], albums: [], roots: [], progress: null,
       refusals: [], filesByPath: new Map(), folderImages: new Map(),
       error: null,
-      stoppedEarly: false,
+      stoppedEarly: null,
     })
   },
 
@@ -628,8 +673,19 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // A folder scan running at the same time would merge into the same library
     // from under this one.
     scanAbort?.abort()
+    // ⚠️ AND THIS IMPORT IS NOW THE SCAN THAT "STOP" REACHES (2026-09-13). It
+    // never set `scanAbort`, so the scan card's "Keep …" was a no-op and the
+    // import ran to its end, and "Delete" cleared the library only for the
+    // import to put it straight back. Stopping now ends the art fetch and keeps
+    // every song (see `readMusicLibrary`); `generation` is what makes Delete
+    // stick.
+    const abort = new AbortController()
+    scanAbort = abort
+    const started = generation
+    const current = () => generation === started
     // The demo steps aside for real music, exactly as it does for a folder.
     if (get().roots.some((r) => r.id === EXAMPLE_ROOT_ID)) await get().removeFolder(EXAMPLE_ROOT_ID)
+    if (!current()) return
 
     // ⚠️ Refreshing keeps the root's prefix, like a rescan does — the prefix IS
     // the identity (`lib/roots.ts`), and a new one would file the same songs a
@@ -660,6 +716,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     const onReady = existing
       ? undefined
       : (sofar: { tracks: Track[]; albums: Album[] }) => {
+          if (!current()) return
           const merged = addScan({ tracks: get().tracks, albums: get().albums }, prefix, sofar)
           const joined = mergeDiscSets(merged.tracks, merged.albums)
           const root = rootWith(sofar.tracks.length)
@@ -669,13 +726,24 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({
       status: 'scanning',
       error: null,
-      stoppedEarly: false,
+      stoppedEarly: null,
       progress: { seen: 0, added: 0, skipped: 0, where: MUSIC_LIBRARY_LABEL, done: false },
     })
     let read: MusicLibraryRead
     try {
-      read = await readMusicLibrary(prefix, (progress) => set({ progress }), onReady)
+      read = await readMusicLibrary(
+        prefix,
+        // A sleeve still landing after a Delete would otherwise bring the scan
+        // card back over an empty library.
+        (progress) => {
+          if (current()) set({ progress })
+        },
+        onReady,
+        abort.signal,
+      )
     } catch (err) {
+      if (scanAbort === abort) scanAbort = null
+      if (!current()) return
       console.error('[jukebox] Could not read the Music library:', err)
       // Whatever a first import had already put on the shelves comes off again.
       if (!existing) {
@@ -689,6 +757,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       })
       return
     }
+    const stopped = abort.signal.aborted
+    if (scanAbort === abort) scanAbort = null
+    // ⚠️ Stopped alone is "Keep": every song goes in below. But a library
+    // forgotten since this started ("Delete") stays forgotten.
+    if (!current()) return
 
     if (read.tracks.length === 0) {
       set({
@@ -699,22 +772,28 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return
     }
 
+    // ⚠️ `addScan` keeps a record's old sleeve where the new read has none, so
+    // a REFRESH that is stopped early loses no art it already had; only a first
+    // import's unread records are left blank.
     const before = { tracks: get().tracks, albums: get().albums }
     const merged = addScan(before, prefix, { tracks: read.tracks, albums: read.albums })
     // Tidy-up fixes are keyed to track and album ids, which a refresh
     // reproduces exactly — so they come back, as they do after a folder rescan.
     const fixes = await db.allFixes()
+    if (!current()) return
     const tidied = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
     // Disc sets joined AFTER the fixes, which are keyed to the parts' own ids.
     const fixed = mergeDiscSets(tidied.tracks, tidied.albums)
     const root = rootWith(read.tracks.length)
     await Promise.all([db.replaceLibrary(fixed.tracks, fixed.albums), db.putRoot(root)])
+    if (!current()) return
     set({
       status: 'ready',
       tracks: fixed.tracks,
       albums: fixed.albums,
       roots: [...get().roots.filter((r) => r.id !== root.id), root],
       progress: null,
+      stoppedEarly: stopped ? root.id : null,
       // ⚠️ What was left out is SAID, in the same place a folder scan names the
       // formats it refused — somebody whose library is half Apple Music
       // downloads should not be left wondering where half of it went.
@@ -808,27 +887,44 @@ function emptyMusicLibraryMessage(read: MusicLibraryRead): string {
 /**
  * The songs a Music-library import left out, in the shape of the refused-format
  * report a folder scan fills — so they are named in the same place, once.
+ *
+ * ⚠️ Each carries a `label`, because these are kinds of song, not formats: the
+ * report names a refusal by its extension otherwise, and "Apple Music
+ * downloads" came out as ".PROTECTED". `ext` stays as the list key.
  */
-function musicLibrarySkips(read: MusicLibraryRead): { ext: string; count: number; why: string }[] {
-  const skips: { ext: string; count: number; why: string }[] = []
+export function musicLibrarySkips(read: Pick<MusicLibraryRead, 'protected' | 'cloudOnly'>): Refusal[] {
+  const skips: Refusal[] = []
   if (read.protected > 0) {
     skips.push({
       ext: 'protected',
+      label: 'Apple Music downloads',
       count: read.protected,
-      why: 'Apple Music downloads are protected, and iOS doesn’t let other apps play them. Songs synced from your Mac aren’t affected.',
+      why: 'protected, and iOS doesn’t let other apps play them. Songs synced from your Mac aren’t affected.',
     })
   }
   if (read.cloudOnly > 0) {
     skips.push({
       ext: 'icloud',
+      label: 'iCloud-only songs',
       count: read.cloudOnly,
-      why: 'In iCloud but not downloaded to this iPhone. Download them in the Music app, then refresh the Music library.',
+      why: 'not downloaded to this iPhone. Download them in the Music app, then refresh the Music library.',
     })
   }
   return skips
 }
 
 let scanAbort: AbortController | null = null
+
+/**
+ * Bumped by everything that throws the whole library away — `clear` and
+ * `loadExample`. A scan or import records it when it starts and writes nothing
+ * once it has moved on.
+ *
+ * ⚠️ Aborting is not enough on its own, because a stopped scan KEEPS what it
+ * read — that is what "Keep …" means. "Delete" is the same stop followed by a
+ * clear, and the stopped scan finishing a moment later wrote the library back.
+ */
+let generation = 0
 
 /**
  * Walk a native music folder and scan what is in it — the part of a native
@@ -954,6 +1050,9 @@ async function runScan(
   scanAbort?.abort()
   const abort = new AbortController()
   scanAbort = abort
+  // See `generation`: a library cleared while this runs stays cleared.
+  const started = generation
+  const current = () => generation === started
 
   // ⚠️ THE EXAMPLE LIBRARY STEPS ASIDE FOR REAL MUSIC. Adding a folder now ADDS,
   // which for every real folder is the point — and for the demo would mean
@@ -986,10 +1085,11 @@ async function runScan(
   const scanned: Track[] = []
   const scannedAlbums = new Map<string, Album>()
 
+  if (!current()) return
   set({
     status: 'scanning',
     error: null,
-    stoppedEarly: false,
+    stoppedEarly: null,
     progress: { seen: 0, added: 0, skipped: 0, where: '', done: false },
   })
 
@@ -998,6 +1098,7 @@ async function runScan(
     result = await scan(source, {
       prefix,
       onBatch: (newTracks, newAlbums) => {
+        if (!current()) return
         for (const t of newTracks) scanned.push(t)
         for (const a of newAlbums) scannedAlbums.set(a.id, a)
         // ⚠️ The GRID fills in from the merge, not from the batch. Setting the
@@ -1009,10 +1110,14 @@ async function runScan(
         const joined = mergeDiscSets(merged.tracks, merged.albums)
         set({ tracks: joined.tracks, albums: joined.albums })
       },
-      onProgress: (progress) => set({ progress }),
+      onProgress: (progress) => {
+        if (current()) set({ progress })
+      },
       signal: abort.signal,
     })
   } catch {
+    if (scanAbort === abort) scanAbort = null
+    if (!current()) return
     set({
       status: get().tracks.length > 0 ? 'ready' : 'empty',
       progress: null,
@@ -1023,6 +1128,7 @@ async function runScan(
 
   const stopped = abort.signal.aborted
   if (scanAbort === abort) scanAbort = null
+  if (!current()) return
 
   // ⚠️ Fold the user's tidy-up back in, because a scan has just rebuilt this
   // folder from the files and thrown its corrections away. Fixes are keyed by
@@ -1039,6 +1145,7 @@ async function runScan(
     albums: result.albums,
   })
   const fixes = await db.allFixes()
+  if (!current()) return
   const tidied = fixes.length > 0 ? applyFixes(merged.tracks, merged.albums, fixes) : merged
   // Disc sets joined AFTER the fixes, which are keyed to the parts' own ids.
   const fixed = mergeDiscSets(tidied.tracks, tidied.albums)
@@ -1056,8 +1163,9 @@ async function runScan(
   // The whole picture, written in one go — see `db.replaceLibrary` for why this
   // is a rewrite rather than a diff.
   await Promise.all([db.replaceLibrary(fixed.tracks, fixed.albums), db.putRoot(root)])
+  if (!current()) return
 
-  const refusals = [...result.refused.entries()]
+  const refusals: Refusal[] = [...result.refused.entries()]
     .map(([ext, count]) => ({ ext, count, why: REFUSED[ext] ?? '' }))
     .filter((r) => r.why)
     .sort((a, b) => b.count - a.count)
@@ -1082,7 +1190,7 @@ async function runScan(
     folderImages: images,
     refusals,
     progress: null,
-    stoppedEarly: stopped,
+    stoppedEarly: stopped ? rootId : null,
     // ⚠️ A stopped scan is not an error, so it does not get the error slot. It
     // is a library that is complete as far as it goes, and `ScanBanner` says so
     // with the button to finish the job — putting it in red would tell someone

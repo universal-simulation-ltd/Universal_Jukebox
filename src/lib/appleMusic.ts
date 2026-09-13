@@ -209,11 +209,21 @@ export const FIRST_SHOWN = 30
  * double that, and so on. Doubling keeps the shelves from being re-cut every
  * few records while somebody is looking at them. Only albums whose art has
  * been asked for are passed, so no sleeve goes up blank and changes later.
+ *
+ * ⚠️ `signal` STOPS THE ART, NOT THE SONGS (2026-09-13). Every song is already
+ * known the moment `songs()` answers — the rest is sleeves — so a stopped
+ * import still hands back the WHOLE library, with the records whose art had
+ * not been asked for yet left blank. The sleeves already in flight finish (a
+ * native call cannot be taken back); nothing new is asked for, and `onReady`
+ * goes quiet, because the caller puts the whole library up at the end anyway.
+ * Without this the scan card's "Keep …" and "Delete" did nothing at all during
+ * a Music-library import: the art fetch ran to its end regardless.
  */
 export async function readMusicLibrary(
   prefix: string,
   onProgress?: (progress: ScanProgress) => void,
   onReady?: (sofar: { tracks: Track[]; albums: Album[] }) => void,
+  signal?: AbortSignal,
 ): Promise<MusicLibraryRead> {
   await load()
   const answer = await plugin!.songs()
@@ -236,7 +246,7 @@ export async function readMusicLibrary(
 
   report('Reading the album art…')
   let fetched = 0
-  await inLanes(order, 4, async (album) => {
+  await inLanes(order, 4, signal, async (album) => {
     const libraryAlbumId = artworkFor.get(album.id)
     if (libraryAlbumId) {
       try {
@@ -250,7 +260,7 @@ export async function readMusicLibrary(
     }
     fetched++
     if (fetched % 10 === 0) report(`Reading the album art — ${fetched} of ${albums.length}`)
-    if (onReady) {
+    if (onReady && !signal?.aborted) {
       ready.push(album)
       // Not once it is all in — the caller puts the whole library up then.
       if (ready.length >= showAt && ready.length < albums.length) {
@@ -263,11 +273,16 @@ export async function readMusicLibrary(
   return { tracks, albums, total: answer.total, cloudOnly: answer.cloudOnly, protected: answer.protected }
 }
 
-/** Run `work` over `items`, at most `width` at a time. */
-async function inLanes<T>(items: T[], width: number, work: (item: T) => Promise<void>): Promise<void> {
+/** Run `work` over `items`, at most `width` at a time; none started once `signal` aborts. */
+async function inLanes<T>(
+  items: T[],
+  width: number,
+  signal: AbortSignal | undefined,
+  work: (item: T) => Promise<void>,
+): Promise<void> {
   let next = 0
   const lanes = Array.from({ length: Math.min(width, items.length) }, async () => {
-    while (next < items.length) await work(items[next++])
+    while (next < items.length && !signal?.aborted) await work(items[next++])
   })
   await Promise.all(lanes)
 }
