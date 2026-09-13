@@ -234,6 +234,15 @@ export interface Settings {
    * Settings switch only stores `true` once the answer was yes.
    */
   trackNotifications: boolean
+  /**
+   * Whether "About this track" may ask Wikipedia about the song and the artist
+   * (James, 2026-09-13) — `lib/aboutTrack.ts`.
+   *
+   * ⚠️ The second setting that reaches the network, and bound by exactly the
+   * rules `lyricsOnline` is: false by default, read `=== true`, turned on only
+   * beside a sentence saying what is sent.
+   */
+  aboutOnline: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -260,6 +269,7 @@ export const DEFAULTS: Settings = {
   resumeCard: true,
   recordCrossfade: true,
   trackNotifications: false,
+  aboutOnline: false,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -416,6 +426,8 @@ function readStored(): Settings {
     resumeCard: stored.resumeCard !== false,
     recordCrossfade: stored.recordCrossfade !== false,
     trackNotifications: stored.trackNotifications === true,
+    // `=== true`, for the reason `lyricsOnline` gives above.
+    aboutOnline: stored.aboutOnline === true,
   }
 }
 
@@ -493,6 +505,7 @@ function persist(state: Settings) {
     resumeCard: state.resumeCard,
     recordCrossfade: state.recordCrossfade,
     trackNotifications: state.trackNotifications,
+    aboutOnline: state.aboutOnline,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

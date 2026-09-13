@@ -152,6 +152,14 @@ let seq = 0
  */
 export function announceTrack(track: Track, coverUrl: string | null): void {
   if (track.id === announced) return
+  // ⚠️ Not while Jukebox is on screen (James, 2026-09-13: "Dont show the
+  // notification if the app is open for track details") — the song is right
+  // there. The last song's card is taken away instead, so the notification
+  // centre never names a song that has stopped playing.
+  if (appInView()) {
+    withdrawTrack()
+    return
+  }
   announced = track.id
   const mine = ++seq
   const title = track.title
@@ -181,6 +189,26 @@ export function withdrawTrack(): void {
     void native().then((p) => p.clear()).catch(() => {})
   } else if (support === 'web') {
     void closeWorkerCards().catch(() => {})
+  }
+}
+
+/**
+ * Is Jukebox what the person is looking at?
+ *
+ * In the phone apps, "on screen" is the page being visible: iOS and Android
+ * hide it when the app goes to the background or the phone locks. ⚠️ Not
+ * `hasFocus()` there — a web view's focus follows the keyboard's first
+ * responder, not the app, and reading it would show cards over the open app.
+ * In a browser or the Windows app, a window left visible behind another app is
+ * not being looked at, so focus counts too.
+ */
+function appInView(): boolean {
+  if (typeof document === 'undefined' || document.visibilityState !== 'visible') return false
+  if (notifySupport() === 'native') return true
+  try {
+    return document.hasFocus()
+  } catch {
+    return true
   }
 }
 

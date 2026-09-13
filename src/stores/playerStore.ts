@@ -1511,18 +1511,11 @@ useSettingsStore.subscribe((next, prev) => {
   if (track) publishNowPlaying(track)
 })
 
-// The notification switch, flipped with a song on: on shows that song's card
-// straight away — the proof the switch worked — and off takes it away.
+// The notification switch turned off takes the card away. Turned ON it shows
+// nothing: that happens in Settings, with the app on screen, which is exactly
+// when no card is shown (`announceTrack`).
 useSettingsStore.subscribe((next, prev) => {
-  if (next.trackNotifications === prev.trackNotifications) return
-  if (!next.trackNotifications) {
-    withdrawTrack()
-    return
-  }
-  const track = currentTrack(usePlayerStore.getState())
-  if (!track) return
-  const album = useLibraryStore.getState().albums.find((a) => a.id === track.albumId)
-  announceTrack(track, album ? coverUrl(album.id, album.cover) : null)
+  if (prev.trackNotifications && !next.trackNotifications) withdrawTrack()
 })
 
 // On the iPhone app the start-up sounds are clips played through <audio>, which

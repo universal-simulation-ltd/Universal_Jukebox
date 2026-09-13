@@ -17,8 +17,8 @@ import type { Album, Root, Track } from './types'
 
 const DB_NAME = 'unisim-jukebox'
 /**
- * ⚠️ Bumped to 2 for the `fixes` store (2026-09-08), and to 3 for the `lyrics`
- * cache (2026-09-09).
+ * ⚠️ Bumped to 2 for the `fixes` store (2026-09-08), to 3 for the `lyrics`
+ * cache (2026-09-09), and to 4 for the `about` cache (2026-09-13).
  *
  * `onupgradeneeded` below creates only what is missing, so it runs correctly
  * for a brand-new database AND for one already holding somebody's library —
@@ -26,13 +26,14 @@ const DB_NAME = 'unisim-jukebox'
  * five thousand files, which is the sort of thing a version bump does when
  * nobody thinks about it.
  */
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 export const STORE_TRACKS = 'tracks'
 export const STORE_ALBUMS = 'albums'
 export const STORE_ROOTS = 'roots'
 export const STORE_FIXES = 'fixes'
 export const STORE_LYRICS = 'lyrics'
+export const STORE_ABOUT = 'about'
 
 let dbPromise: Promise<IDBDatabase | null> | null = null
 
@@ -84,6 +85,11 @@ function open(): Promise<IDBDatabase | null> {
       // privacy cost the feature has.
       if (!db.objectStoreNames.contains(STORE_LYRICS)) {
         db.createObjectStore(STORE_LYRICS, { keyPath: 'id' })
+      }
+      // What Wikipedia said about a track ("About this track"), for the same
+      // reason as the lyrics: asked once, not on every play. See `aboutTrack.ts`.
+      if (!db.objectStoreNames.contains(STORE_ABOUT)) {
+        db.createObjectStore(STORE_ABOUT, { keyPath: 'id' })
       }
     }
     request.onsuccess = () => {
@@ -335,6 +341,49 @@ export async function clearLyrics(): Promise<void> {
 
 export async function countLyrics(): Promise<number> {
   return (await tx<number>(STORE_LYRICS, 'readonly', (s) => s.count())) ?? 0
+}
+
+// ── About this track ─────────────────────────────────────────────────────────
+
+/** One Wikipedia article's opening, as "About this track" shows it. */
+export interface WikiPage {
+  title: string
+  url: string
+  paragraphs: string[]
+  /** The article's picture, on upload.wikimedia.org, or null. */
+  thumbnail: string | null
+}
+
+/**
+ * What Wikipedia said about one track, kept so it is only asked once.
+ *
+ * ⚠️ Both null is a real answer — "asked, nothing found" — and it is stored,
+ * for the reason `LyricRecord` gives. `aboutTrack.ts` asks again after three
+ * days rather than never.
+ */
+export interface AboutRecord {
+  id: string
+  song: WikiPage | null
+  artist: WikiPage | null
+  at: number
+  v: number
+}
+
+export async function getAboutRecord(trackId: string): Promise<AboutRecord | null> {
+  return (await tx<AboutRecord>(STORE_ABOUT, 'readonly', (s) => s.get(trackId))) ?? null
+}
+
+export async function putAboutRecord(record: AboutRecord): Promise<void> {
+  await tx(STORE_ABOUT, 'readwrite', (s) => s.put(record))
+}
+
+/** "Forget them" under About this track, on the Settings page. */
+export async function clearAbout(): Promise<void> {
+  await tx(STORE_ABOUT, 'readwrite', (s) => s.clear())
+}
+
+export async function countAbout(): Promise<number> {
+  return (await tx<number>(STORE_ABOUT, 'readonly', (s) => s.count())) ?? 0
 }
 
 // ── Wholesale ────────────────────────────────────────────────────────────────

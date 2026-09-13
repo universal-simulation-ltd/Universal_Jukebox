@@ -179,6 +179,20 @@ export default function DeckSwiper({
   const latest = useRef({ queue, order, cursor, albums, setting, eras, arriving, reduced })
   latest.current = { queue, order, cursor, albums, setting, eras, arriving, reduced }
   const blendTimer = useRef<number | null>(null)
+  /**
+   * The blend whose slide is still to START, or null.
+   *
+   * ⚠️ THE TWO FRAMES BELOW CAN OUTLIVE THEIR BLEND. With the app in the
+   * background the page gets no animation frames at all, but its timers still
+   * run — so the blend's timer finished the change-over while hidden, and the
+   * two frames, queued all along, ran the moment the app came back: they slid
+   * the deck a record's width to the left and grew the NEXT record into the
+   * middle, standing still, over a song that was playing fine (James,
+   * 2026-09-13, iPhone: "when I came back to the app it showed the wrong disc
+   * (not spinning) for the song, when I tapped it then switched"). The frames
+   * now check they are still wanted.
+   */
+  const slideFor = useRef<number | null>(null)
   useEffect(() => {
     const now = latest.current
     if (!blend || holding.current || now.arriving || now.reduced) return
@@ -189,9 +203,13 @@ export default function DeckSwiper({
     setReach(r)
     setMs(blend.ms)
     setIncoming({ album, style, track, run: false })
+    const serial = blend.n
+    slideFor.current = serial
     // Two frames: drawn at the edge first, THEN told to move, or it would jump.
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
+        if (slideFor.current !== serial) return
+        slideFor.current = null
         setIncoming((current) => (current ? { ...current, run: true } : current))
         setAnimate(true)
         setX(-r.toRight)
@@ -200,6 +218,8 @@ export default function DeckSwiper({
     if (blendTimer.current !== null) window.clearTimeout(blendTimer.current)
     blendTimer.current = window.setTimeout(() => {
       blendTimer.current = null
+      // Over — a slide that never got its frames must not start now.
+      slideFor.current = null
       setIncoming(null)
       setArriving({ album, style, track })
     }, blend.ms)
@@ -208,6 +228,7 @@ export default function DeckSwiper({
   }, [blend])
 
   useEffect(() => () => {
+    slideFor.current = null
     if (blendTimer.current !== null) window.clearTimeout(blendTimer.current)
   }, [])
 

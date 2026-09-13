@@ -12,6 +12,8 @@ import Deck, { CeremonyCount } from './Deck'
 import DeckSwiper from './DeckSwiper'
 import type { Album } from '../lib/types'
 import Lyrics from './Lyrics'
+import AboutTrack, { AboutToggle } from './AboutTrack'
+import { useAboutStore } from '../stores/aboutStore'
 import Queue from './Queue'
 import ResumeCard from './ResumeCard'
 import UpNextReel from './UpNextReel'
@@ -39,7 +41,14 @@ export default function NowPlaying() {
   // Every visit to Now Playing starts with the lyrics closed (James, 2026-09-10):
   // leaving closes them. They stay open across songs while you stay — see
   // `shownFor` for why.
-  useEffect(() => () => useLyricsStore.getState().hideLyrics(), [])
+  // "About this track" follows the same rule.
+  useEffect(
+    () => () => {
+      useLyricsStore.getState().hideLyrics()
+      useAboutStore.getState().setOpen(false)
+    },
+    [],
+  )
   const ceremony = usePlayerStore((s) => s.ceremony)
   const blendCount = usePlayerStore((s) => s.blendCount)
   const skipCeremony = usePlayerStore((s) => s.skipCeremony)
@@ -196,7 +205,10 @@ export default function NowPlaying() {
           {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
         </p>
 
-        <LyricsToggle />
+        <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
+          <LyricsToggle />
+          <AboutToggle />
+        </div>
         {/* This song, onto a Jukebox shelf. */}
         <div className="mt-3 flex justify-center lg:justify-start">
           <AddToShelf tracks={[track]} variant="pill" />
@@ -212,6 +224,8 @@ export default function NowPlaying() {
     {/* The words, directly under the deck and above everything about what
         comes NEXT — because they are about the track that is on. */}
     <Lyrics />
+    {/* What Wikipedia says about the song and the artist — `AboutTrack`. */}
+    <AboutTrack />
     {/* The records waiting their turn, as pictures. Between the stage and the
         list on purpose: it belongs to the deck (it is the same medium, in the
         order it will go on) and it introduces the queue underneath, which is
@@ -258,7 +272,7 @@ function LyricsToggle() {
       }}
       id="jb-lyrics-toggle"
       aria-pressed={show}
-      className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
+      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
     >
       <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
         <path d="M4 3h9a1 1 0 0 1 1 1v11.5a.5.5 0 0 1-.79.4L9 13.6l-4.21 2.3A.5.5 0 0 1 4 15.5V4a1 1 0 0 1 1-1Zm2 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5H6Zm0 3a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Z" />

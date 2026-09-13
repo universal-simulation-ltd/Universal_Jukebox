@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
-import { clearLyrics, countLyrics } from '../lib/library'
+import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
 import { goHome, navigate } from '../lib/route'
 import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { DeckMiniature } from './Deck'
+import { useAboutStore } from '../stores/aboutStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -107,6 +108,7 @@ export default function Settings() {
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
     lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? (s.lyricsAroundStyle === 'lines' ? ', every line on the record' : ', around the record') : ''}`,
+    about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: s.trackNotifications ? 'One for each new song' : 'Off',
     appearance: labelOf(THEME_OPTIONS, themePref),
   }
@@ -338,6 +340,22 @@ export default function Settings() {
           <DownloadedLyrics />
         </Section>
 
+        {/* James, 2026-09-13: "an about this track feature where you click it
+            and it gives you some info". See `lib/aboutTrack.ts`. */}
+        <Section
+          title="About this track"
+          note="The story of the song on the deck, and of who’s singing it, from Wikipedia."
+          summary={summaries.about}
+        >
+          <Toggle
+            label="Look songs up on Wikipedia"
+            hint="When you open “About this track” on Now Playing, ask Wikipedia about the song and the artist. This sends the song’s title and the artist’s name — nothing else, and nothing at all while this is off. Answers are kept on this device, so each song is only looked up once."
+            checked={s.aboutOnline}
+            onChange={(v) => s.set('aboutOnline', v)}
+          />
+          <SavedAbout />
+        </Section>
+
         {/* James, 2026-09-13: "an option for a notification everytime a new
             song plays, replace each notification and don't stack them". */}
         <Section
@@ -469,7 +487,7 @@ function NotifyToggle() {
   return (
     <Toggle
       label="Notify me of each new song"
-      hint="The song, the artist and the cover, as each song starts. There’s only ever one: the next song’s takes its place, rather than a pile building up. It makes no sound of its own."
+      hint="The song, the artist and the cover, as each song starts — while Jukebox isn’t on screen, since when it is, the song is right in front of you. There’s only ever one: the next song’s takes its place, rather than a pile building up. It makes no sound of its own."
       checked={on && !blocked}
       disabled={support === 'none' || blocked}
       disabledHint={
@@ -490,6 +508,43 @@ function NotifyToggle() {
         })
       }}
     />
+  )
+}
+
+/**
+ * What "About this track" has kept, and the way to undo it — `DownloadedLyrics`
+ * for Wikipedia, for the same reason: a claim about stored data the person
+ * cannot see or clear is worth very little.
+ */
+function SavedAbout() {
+  const [count, setCount] = useState<number | null>(null)
+  const forget = useAboutStore((a) => a.forget)
+
+  useEffect(() => {
+    let live = true
+    void countAbout().then((n) => { if (live) setCount(n) })
+    return () => { live = false }
+  }, [])
+
+  if (count === null || count === 0) return null
+  return (
+    <div className="px-5 py-4">
+      <p className="text-[13px] text-slate-600 dark:text-slate-300">
+        {count === 1 ? '1 song has been looked up' : `${count} songs have been looked up`} on Wikipedia.
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          void clearAbout().then(() => {
+            setCount(0)
+            forget()
+          })
+        }}
+        className="mt-1.5 text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+      >
+        Forget them
+      </button>
+    </div>
   )
 }
 

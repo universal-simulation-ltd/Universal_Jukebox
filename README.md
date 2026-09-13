@@ -8,12 +8,13 @@ Nothing is uploaded. There is no account. **It is not a streaming service and
 has no catalogue of its own** — it plays files you already have, and it cannot
 reach music that is anywhere else.
 
-> **One qualification, and only one.** If you switch on the lyrics lookup, the
-> app asks lrclib.net for the words to a track whose own tags carry none —
-> sending that track's artist, title, album and length, and nothing else. It is
-> off until you turn it on, no audio ever leaves the device either way, and it
-> is the only feature in the app that opens a connection. See
-> [Lyrics](#lyrics).
+> **Two qualifications, both off until you turn them on.** The lyrics lookup
+> asks lrclib.net for the words to a track whose own tags carry none, sending
+> that track's artist, title, album and length. **About this track** asks
+> Wikipedia about the song and the artist, sending the song's title and the
+> artist's name. Nothing else goes with either, no audio ever leaves the device,
+> and they are the only features in the app that open a connection. See
+> [Lyrics](#lyrics) and [About this track](#about-this-track).
 
 Live at **<https://opensource.unisim.co.uk/jukebox>**.
 
@@ -435,7 +436,7 @@ src/
 │   ├── scan.ts        # the folder walk — header-only reads, streaming results
 │   ├── library.ts     # IndexedDB: tracks / albums / roots / fixes / lyrics
 │   ├── lyrics.ts      # LRC in, timed lines out — + the on-demand read. Pure, tested
-│   ├── lrclib.ts      # ⚠️ THE ONLY FILE THAT TOUCHES THE NETWORK. Off by default
+│   ├── lrclib.ts      # ⚠️ ONE OF TWO FILES THAT TOUCH THE NETWORK (the other: aboutTrack.ts). Off by default
 │   ├── art.ts         # extract → downscale → cache → object URLs (bounded)
 │   ├── audio.ts       # two <audio> decks, the crossfade, a real shuffle, the fades
 │   ├── audioGraph.ts  # the OPTIONAL Web Audio graph — boost + analyser. Read it first
@@ -723,8 +724,9 @@ arriving by default — it is guarding the memory decision, not the parser.
 
 ### ⚠️ The online lookup, and why it is a real exception
 
-This is the only part of the app that touches the network, and it contradicts a
-heading three sections up. It is worth being exact about what makes it
+This is one of the two parts of the app that touch the network — [About this
+track](#about-this-track) is the other, and keeps the same four rules — and it
+contradicts a heading three sections up. It is worth being exact about what makes it
 different, because "it's fine, it's opt-in" is not by itself an argument:
 
 - **It is off until somebody turns it on**, having read one sentence saying what
@@ -767,6 +769,48 @@ should be. The FLAC and v2.4 fixtures both carry one, next to the real field.
 
 ---
 
+## About this track
+
+A button beside **Show lyrics** on Now Playing. It opens what Wikipedia says
+about the song — who wrote it, whose it was first, how it charted — and about
+the artist, with their picture. The asking is `src/lib/aboutTrack.ts`, when it
+may ask is `stores/aboutStore.ts`, and the panel is `components/AboutTrack.tsx`.
+
+It keeps the lyrics lookup's four rules:
+- **Off until it is turned on**, either in Settings or with **Look it up on
+  Wikipedia** in the panel itself, beside the sentence saying what it sends.
+- **The browser asks en.wikipedia.org directly**, with no referrer.
+- **Only the song's title and the artist's name.**
+- **Asked once.** Each answer, "nothing found" included, goes in the `about`
+  IndexedDB store: 90 days for an answer, 3 for a miss. Settings counts them
+  and can forget them.
+
+How it finds the right article:
+
+- **The song:** a Wikipedia search for `"title" artist song`. A result counts
+  only if all of these hold:
+  - its title, less any "(…)", is the song's;
+  - its "(…)" says song or single, or names the artist without naming an
+    album, EP, film and so on;
+  - its opening calls itself a song;
+  - it mentions this artist.
+
+  That last rule means a cover is found under its **original** artist.
+  "Hurt" by Johnny Cash gets the Nine Inch Nails article, whose opening says
+  whose song it is. It also means a song nobody has written about gets nothing,
+  rather than the famous song of the same name.
+- **The artist:** their name as a title, then `(band)`, `(musician)`,
+  `(singer)`, `(rapper)` and `(group)`. The page it lands on must still carry
+  that name, because "Prince (band)" redirects to The Revolution, and it must
+  be about a musician. Failing that, a title search.
+- ⚠️ **MusicBrainz was tried and left out (2026-09-13).** Half its answers were
+  503 "busy", and its `cover` flag was empty on two famous covers. Its
+  re-releases also made "first released" read 2023 for a 1963 recording. A
+  second service that learns what someone listens to has to earn its place.
+
+Wikipedia's text is CC BY-SA 4.0, and the panel says so, with a link to each
+article.
+
 ## Settings
 
 `#/settings`, reachable from the app menu. Everything is per-device and written
@@ -806,7 +850,11 @@ Off until it is turned on under Settings → *Notifications*. Turning it on is
 what asks the system for permission, and the setting is stored only once the
 answer is yes. Each song that goes on then gets one notification — its title,
 artist and album, and the cover — and the next song's **replaces** it rather
-than joining a stack. None of them makes a sound. Previews don't notify, and
+than joining a stack. None of them makes a sound. **None is shown while
+Jukebox is on screen** (James, 2026-09-13): the song is in front of you then,
+so the last song's card is taken away instead. In the phone apps "on screen"
+means the page is visible; in a browser or the Windows app the window must
+also have focus. Previews don't notify, and
 neither does choosing a different deck mid-song or repeat-one bringing the same
 song round again. The code is `src/lib/trackNotify.ts`.
 

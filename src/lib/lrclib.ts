@@ -1,4 +1,5 @@
-// The one file in this app that touches the network.
+// One of the two files in this app that touch the network — `aboutTrack.ts`
+// (Wikipedia, for "About this track") is the other, and keeps these rules too.
 //
 // ⚠️ READ THIS BEFORE CHANGING ANYTHING HERE. The app's first promise is
 // "nothing is uploaded, there is no account", and every other file keeps it
