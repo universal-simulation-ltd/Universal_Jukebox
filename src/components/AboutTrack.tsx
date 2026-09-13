@@ -143,11 +143,10 @@ function Body() {
   }
   return (
     <div className="space-y-4">
-      {song ? (
-        <Article key={`${trackId}:song`} label="The song" page={song} />
-      ) : (
-        <Note>Wikipedia doesn’t seem to have an article about this song itself.</Note>
-      )}
+      {/* No article about the song: nothing is said about it, the artist is
+          simply shown (James, 2026-09-13: "just hide that part don't say it
+          doesn't have one"). */}
+      {song && <Article key={`${trackId}:song`} label="The song" page={song} />}
       {artist && <Article key={`${trackId}:artist`} label="The artist" page={artist} brief />}
       {/* Wikipedia's text is CC BY-SA: reusing it means saying where it came
           from and under what licence, next to it. Each article links above. */}
