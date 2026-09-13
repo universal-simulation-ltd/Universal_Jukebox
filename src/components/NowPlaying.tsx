@@ -2,6 +2,7 @@ import { trackGenres } from '../lib/genres'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { revealExpanded } from '@unisim/sdk'
 import { scrollToTop } from '../lib/scrollTop'
+import { useLandscapeStage } from '../lib/stageLayout'
 import { navBarBottom } from '../lib/scrollBelowBar'
 import { coverUrl } from '../lib/art'
 import { plural } from '../lib/format'
@@ -35,9 +36,21 @@ import { requestLyricsReveal } from '../lib/lyricsReveal'
 // centred. Below 430px (T6) the whole stage is hidden and the player bar
 // becomes the app — see `App.tsx`, which owns that decision, because a stage
 // that hides itself while the page still shows a heading reads as a bug.
+//
+// ⚠️ AND A THIRD: LYING DOWN. A landscape phone is below `lg` and so would
+// stack, but has no height to stack in — the record ends up below the fold on
+// the one screen whose job is to show it. There the columns come back, words
+// LEFT and record RIGHT (the mirror of `lg`, asked for that way, and the right
+// way round for two hands). `lib/stageLayout.ts` owns the rule and the
+// reasoning.
 
 export default function NowPlaying() {
   const lyricsAround = useSettingsStore((s) => s.lyricsAround)
+  /** Wide and short — the words beside the record rather than above it. */
+  const landscape = useLandscapeStage()
+  /** The stage row, and how much height is left for it — see `useDeckRoom`. */
+  const stage = useRef<HTMLDivElement>(null)
+  const room = useDeckRoom(stage, landscape)
   const track = usePlayerStore(currentTrack)
   // Every visit to Now Playing starts with the lyrics closed (James, 2026-09-10):
   // leaving closes them. They stay open across songs while you stay — see
@@ -77,7 +90,9 @@ export default function NowPlaying() {
   // The phone's song details, midway between the navbar and the record — see
   // `useMidway`. Keyed on what can move either edge of the gap.
   const phoneHeading = useRef<HTMLDivElement>(null)
-  const nudge = useMidway(phoneHeading, `${track?.id}|${onTheDeck?.id}|${lyricsAround}|${ceremony}`)
+  // ⚠️ Not while lying down: `useMidway` centres the words in the gap ABOVE
+  // the record, and lying down there is no such gap — the words are beside it.
+  const nudge = useMidway(phoneHeading, `${track?.id}|${onTheDeck?.id}|${lyricsAround}|${ceremony}|${landscape}`)
 
   if (!track) {
     return (
@@ -104,12 +119,15 @@ export default function NowPlaying() {
   // the deck on a phone and beside it from `lg` (James, 2026-09-11: "put the
   // discs below the artist, track name to make it easier to reach for swipe"):
   // the records are what a thumb swipes, so they go where a thumb is.
+  /** Centred while stacked; hard left in both column layouts. */
+  const startAligned = landscape ? 'items-start' : 'items-center lg:items-start'
+
   const heading = (
     <>
         {/* ⚠️ The numerals REPLACE the title for two seconds; they do not sit on
             top of anything. This is the corrected design — see Deck.tsx. */}
         {ceremony ? (
-          <div className="flex min-h-[8rem] flex-col items-center justify-center lg:items-start">
+          <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Cueing up…</p>
             {/* ⚠️ The way out, offered AT THE MOMENT the thing happens.
@@ -135,12 +153,12 @@ export default function NowPlaying() {
           // A record crossfade's silent 3, 2, 1 (James, 2026-09-11), in the
           // start's place — without its "don't show this again", which belongs
           // to the start. Crossfading has its own switch in Settings.
-          <div className="flex min-h-[8rem] flex-col items-center justify-center lg:items-start">
+          <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Changing records…</p>
           </div>
         ) : (
-          <div className="flex min-h-[8rem] flex-col items-center justify-center lg:items-start">
+          <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
             <h1 className="text-2xl font-semibold text-balance text-slate-900 sm:text-3xl dark:text-slate-100">
               {track.title}
             </h1>
@@ -165,24 +183,38 @@ export default function NowPlaying() {
   return (
     <>
     <BackToLibrary />
-    <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-14">
+    <div
+      ref={stage}
+      className={
+        landscape
+          ? 'flex flex-row items-center gap-6'
+          : 'flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-14'
+      }
+    >
       {/* The cover, stretched across the whole page as the ground (James,
           2026-09-09: "noticeable but not distracting"). Behind everything, and
           only when there IS a cover. */}
       {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
 
+      {/* The stacked layout's words, above the record. Lying down they move
+          into the column beside it instead — the same `heading`, one copy of
+          the markup, rendered in one place or the other. */}
       <div
         ref={phoneHeading}
-        className="relative w-full text-center lg:hidden"
-        style={nudge ? { transform: `translateY(${nudge}px)` } : undefined}
+        className={landscape ? 'hidden' : 'relative w-full text-center lg:hidden'}
+        style={!landscape && nudge ? { transform: `translateY(${nudge}px)` } : undefined}
       >
         {heading}
       </div>
 
       {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
       <DeckSwiper
-        size={clampDeck()}
+        size={clampDeck(landscape, room)}
         showing={onTheDeck?.id}
+        beside={landscape}
+        // Off the screen's own edge — the record's disc stands proud of the
+        // sleeve, and hard against the glass it reads as clipped.
+        inset={landscape ? 12 : 0}
         // Room above the record for the lyrics' arc, when they are on.
         roomAbove={lyricsAround ? 28 : 0}
       >
@@ -190,19 +222,28 @@ export default function NowPlaying() {
             off, the record on the deck is still the OLD one — see below. */}
         <Deck
           album={onTheDeck}
-          size={clampDeck()}
+          size={clampDeck(landscape, room)}
           ceremonial
           // The words around the record (Settings › Lyrics), drawn under its tonearm.
-          underArm={lyricsAround ? <LyricsAround size={clampDeck()} /> : undefined}
+          underArm={lyricsAround ? <LyricsAround size={clampDeck(landscape, room)} /> : undefined}
         />
       </DeckSwiper>
 
-      <div className="relative min-w-0 flex-1 text-center lg:text-left">
-        <div className="hidden lg:block">{heading}</div>
+      <div
+        className={`relative min-w-0 flex-1 ${
+          // ⚠️ `order-first`, not `flex-row-reverse` on the row: the deck's
+          // neighbours peek in from both sides (`DeckSwiper`), and reversing
+          // the row reverses those too — the record that is coming next would
+          // arrive from the left.
+          landscape ? 'order-first text-left' : 'text-center lg:text-left'
+        }`}
+      >
+        <div className={landscape ? 'block' : 'hidden lg:block'}>{heading}</div>
 
         {/* Spec chips — the honest technical facts about the file that is
-            playing. Hidden below 980px (T3). */}
-        <div className="mt-5 hidden flex-wrap justify-center gap-2 md:flex lg:justify-start">
+            playing. Hidden below 980px (T3), and lying down, where the column
+            is as tall as the record beside it is allowed to be. */}
+        <div className={`mt-5 flex-wrap justify-center gap-2 lg:justify-start ${landscape ? 'hidden' : 'hidden md:flex'}`}>
           <Chip>{track.ext.toUpperCase()}</Chip>
           <Chip>{(track.size / 1024 / 1024).toFixed(1)} MB</Chip>
           {track.trackNo && <Chip>Track {track.trackNo}</Chip>}
@@ -216,19 +257,25 @@ export default function NowPlaying() {
           ))}
         </div>
 
-        <p className="mt-4 text-[12px] text-slate-400 dark:text-slate-500">
-          {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
-        </p>
+        {!landscape && (
+          <p className="mt-4 text-[12px] text-slate-400 dark:text-slate-500">
+            {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
+          </p>
+        )}
 
-        <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
+        <div className={`flex flex-wrap justify-center gap-2 lg:justify-start ${landscape ? 'mt-3' : 'mt-4'}`}>
           <LyricsToggle />
         </div>
 
         {/* Hidden below 560px (T5) — the first thing to go from the words
-            column, because it is the only part of it that is decoration. */}
-        <div className="mt-5 hidden sm:block">
-          <Visualiser />
-        </div>
+            column, because it is the only part of it that is decoration. Gone
+            lying down for the same reason: every row here is height the record
+            beside it could have had. */}
+        {!landscape && (
+          <div className="mt-5 hidden sm:block">
+            <Visualiser />
+          </div>
+        )}
       </div>
     </div>
     {/* The words, directly under the deck and above everything about what
@@ -413,11 +460,79 @@ function BackToLibrary() {
  * limiting dimension is the height, not the width, and a deck sized only by
  * width scrolls the transport off the bottom.
  */
-function clampDeck(): number {
+function clampDeck(landscape = false, room: number | null = null): number {
   if (typeof window === 'undefined') return 320
-  const byWidth = window.innerWidth * 0.62
-  const byHeight = window.innerHeight * 0.46
-  return Math.round(Math.max(180, Math.min(420, byWidth, byHeight)))
+  // ⚠️ LYING DOWN, THE HEIGHT IS ALL THERE IS, AND MOST OF IT IS ALREADY SPOKEN
+  // FOR. A 390px-tall screen carries the navbar, the way back, the player bar
+  // and the progress line before the stage gets a pixel — about 175 of them —
+  // and the record is drawn a little larger than the size given here (the disc
+  // stands proud of the sleeve). 0.38 of the height is what is genuinely left;
+  // measured at 844×390, a fifth of the screen was the deck and the words were
+  // squeezed to three wrapped lines beside it before this came down.
+  //
+  // ⚠️ And the FLOOR goes with it. 180 is right when the record is the whole
+  // screen; lying down it is taller than the room there is, and a floor that
+  // cannot be met is how the record ended up under the player bar.
+  const byWidth = window.innerWidth * (landscape ? 0.34 : 0.62)
+  // ⚠️ MEASURED, not a share of the screen, whenever the stage can measure
+  // itself. Lying down, what is left for the record is whatever the navbar,
+  // the way back, any banner and the player bar have not already taken, and
+  // that is not a fixed fraction of anything — the example library's notice
+  // alone is 70px of it. Guessed at 0.38 of the screen, the record sat under
+  // the player bar on a 390px-tall phone.
+  const byHeight = landscape ? (room ?? window.innerHeight * 0.38) : window.innerHeight * 0.46
+  const floor = landscape ? 110 : 180
+  return Math.round(Math.max(floor, Math.min(420, byWidth, byHeight)))
+}
+
+/**
+ * How tall the record may be while the stage is lying down.
+ *
+ * The space between the top of the stage row and the top of the player bar,
+ * less what the record's own disc stands proud of its sleeve by (`OVERHANG`).
+ * Everything above the row — the navbar, "Back to your library", the example
+ * library's notice, a scan banner — has already taken its height by the time
+ * this runs, so the answer is what is genuinely left rather than a guess.
+ *
+ * ⚠️ No feedback loop: the row's top is set by what is ABOVE it and the player
+ * bar is fixed to the bottom, so neither moves when the deck's size changes.
+ * Measuring the row's own height instead would oscillate.
+ */
+const OVERHANG = 1.3
+
+function useDeckRoom(stage: RefObject<HTMLDivElement | null>, landscape: boolean): number | null {
+  const [room, setRoom] = useState<number | null>(null)
+  // ⚠️ AFTER EVERY RENDER, deliberately, and not on a dependency list. What
+  // sits above the stage comes and goes on its own schedule — the example
+  // library's notice, a scan banner, the update notice, a song with a longer
+  // title wrapping to two lines — and each of them moves the row's top without
+  // changing anything this component could list. Measured once on mount, the
+  // record was sized for a page that no longer existed and ended up under the
+  // player bar.
+  //
+  // ⚠️ It cannot loop: the row's top is set by what is ABOVE it, and the deck's
+  // size only changes the row's own height. The 2px threshold stops a
+  // sub-pixel measurement ping-ponging anyway — which is exactly what the rule
+  // below is warning about, and why it is answered rather than obeyed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (!landscape) {
+      if (room !== null) setRoom(null)
+      return
+    }
+    const measure = () => {
+      const el = stage.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top
+      const bar = document.querySelector('[data-jb-playerbar]')?.getBoundingClientRect().top ?? window.innerHeight
+      const next = Math.round(Math.max(110, (bar - top - 8) / OVERHANG))
+      setRoom((current) => (current === null || Math.abs(current - next) > 2 ? next : current))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  })
+  return room
 }
 
 /**
