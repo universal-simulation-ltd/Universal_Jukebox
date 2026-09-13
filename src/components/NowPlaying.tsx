@@ -100,7 +100,7 @@ export default function NowPlaying() {
         {/* ⚠️ The numerals REPLACE the title for two seconds; they do not sit on
             top of anything. This is the corrected design — see Deck.tsx. */}
         {ceremony ? (
-          <div className="min-h-[8rem]">
+          <div className="min-h-[9rem]">
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Cueing up…</p>
             {/* ⚠️ The way out, offered AT THE MOMENT the thing happens.
@@ -126,12 +126,12 @@ export default function NowPlaying() {
           // A record crossfade's silent 3, 2, 1 (James, 2026-09-11), in the
           // start's place — without its "don't show this again", which belongs
           // to the start. Crossfading has its own switch in Settings.
-          <div className="min-h-[8rem]">
+          <div className="min-h-[9rem]">
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Changing records…</p>
           </div>
         ) : (
-          <div className="min-h-[8rem]">
+          <div className="min-h-[9rem]">
             <h1 className="text-2xl font-semibold text-balance text-slate-900 sm:text-3xl dark:text-slate-100">
               {track.title}
             </h1>
@@ -148,16 +148,18 @@ export default function NowPlaying() {
                 {track.year ? ` · ${track.year}` : ''}
               </button>
             )}
+            {/* About this track, as just an "i", directly under the song's
+                details (James, 2026-09-13) — see `AboutToggle`. */}
+            <div className="mt-2 flex justify-center lg:justify-start">
+              <AboutToggle />
+            </div>
           </div>
         )}
-        {/* About this track, at the top under the song (James, 2026-09-13:
-            "show about this track at the top under the track details"), and
-            it opens right here. OUTSIDE the countdown's branch, so the button
-            is there during the 2, 1 as well — otherwise everything below it
-            would jump when the count gave way to the title. */}
-        <div className="mt-3 flex justify-center lg:justify-start">
-          <AboutToggle />
-        </div>
+        {/* What the "i" opens, under the song (James, 2026-09-13: "show
+            about this track at the top under the track details").
+            ⚠️ Every branch above reserves 9rem (it was 8) so the title, with
+            the "i" under it, is no taller than the countdown in its place —
+            nothing below jumps when one gives way to the other. */}
         <AboutTrack />
     </>
   )

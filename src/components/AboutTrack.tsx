@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../lib/route'
+import { scrollBelowBar } from '../lib/scrollBelowBar'
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { WikiPage } from '../lib/aboutTrack'
 import { useAboutStore } from '../stores/aboutStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -37,37 +39,67 @@ export default function AboutTrack() {
 }
 
 /**
- * The way in: under the song's title, artist and album, at the top of Now
- * Playing — the panel opens right under it.
+ * The way in: just an "i", directly under the song's title, artist and album
+ * (James, 2026-09-13: "Have just the 'i' symbol and put it directly below the
+ * track details"). Its name is said to a screen reader and on hover.
+ *
+ * Opening it scrolls the page so the "i" sits at the top of the screen, under
+ * the navbar, with the panel filling what is below ("When clicked scroll down
+ * so that the 'i' is at the top of the screen (below navbar)") — and once more
+ * when the answer lands, because until then the page may be too short to
+ * scroll that far. The lyrics' "Show lyrics" does the same (`scrollBelowBar`).
  *
  * ⚠️ `NowPlaying` draws the song's details twice (above the deck on a phone,
  * beside it from `lg`), one hidden by CSS, so this and the panel are mounted
- * twice. Harmless — they share one store, and `load` asks once per track —
- * but it is why nothing here carries an `id`.
+ * twice. They share one store, and `load` asks once per track. That is why the
+ * scroll goes to THIS button's ref — the one tapped, the one on screen — and
+ * never to an `id`, which would find whichever copy came first.
  */
 export function AboutToggle() {
   const open = useAboutStore((s) => s.open)
   const setOpen = useAboutStore((s) => s.setOpen)
+  const status = useAboutStore((s) => s.status)
+  const reduced = usePrefersReducedMotion()
+  const button = useRef<HTMLButtonElement>(null)
+  /** Set by a tap on THIS copy; cleared once the answer has landed. */
+  const revealing = useRef(false)
+
+  useEffect(() => {
+    if (!open || !revealing.current) return
+    scrollBelowBar(button.current, reduced)
+    if (status !== 'idle' && status !== 'loading') {
+      revealing.current = false
+      const again = window.setTimeout(() => scrollBelowBar(button.current, reduced), 350)
+      return () => window.clearTimeout(again)
+    }
+  }, [open, status, reduced])
+
+  const label = open ? 'Hide track info' : 'About this track'
   return (
     <button
+      ref={button}
       type="button"
       aria-pressed={open}
+      aria-label={label}
+      title={label}
       onClick={(e) => {
         // The ceremony is skipped by any click on the page (App.tsx); a button
         // on the deck's screen is not that click.
         e.stopPropagation()
+        if (!open) revealing.current = true
         setOpen(!open)
       }}
-      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+        open
+          ? 'border-orange-400 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-400'
+          : 'border-slate-300 text-slate-500 hover:border-orange-300 hover:text-orange-700 dark:border-slate-600 dark:text-slate-400 dark:hover:border-orange-700 dark:hover:text-orange-400'
+      }`}
     >
-      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
-        <path
-          fillRule="evenodd"
-          d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"
-          clipRule="evenodd"
-        />
+      {/* A plain "i" — the circle is the button's own border. */}
+      <svg viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor" aria-hidden>
+        <circle cx="10" cy="5.25" r="1.5" />
+        <path d="M8 8.25h3.25v6.5H12.5v1.75h-4.75v-1.75H9V10H8V8.25Z" />
       </svg>
-      {open ? 'Hide track info' : 'About this track'}
     </button>
   )
 }

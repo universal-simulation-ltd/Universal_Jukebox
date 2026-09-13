@@ -9,6 +9,7 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { navigate } from '../lib/route'
+import { scrollBelowBar } from '../lib/scrollBelowBar'
 
 // The words, under the deck.
 //
@@ -449,10 +450,5 @@ function Note({ children }: { children: React.ReactNode }) {
  * have arrived.
  */
 function scrollToggleToTop(reduced: boolean): void {
-  const button = document.getElementById('jb-lyrics-toggle')
-  if (!button) return
-  const bar = document.querySelector('header')?.closest('[style*="sticky"]') ?? document.querySelector('header')
-  const pinned = bar ? bar.getBoundingClientRect().bottom : 0
-  const top = button.getBoundingClientRect().top + window.scrollY - pinned - 12
-  window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' })
+  scrollBelowBar(document.getElementById('jb-lyrics-toggle'), reduced)
 }
