@@ -19,6 +19,7 @@ import Queue from './Queue'
 import ResumeCard from './ResumeCard'
 import UpNextReel from './UpNextReel'
 import PlayModes from './PlayModes'
+import FoldUp from './FoldUp'
 import LyricsAround from './LyricsAround'
 import Visualiser from './Visualiser'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -59,6 +60,10 @@ export default function NowPlaying() {
   const deckPhase = usePlayerStore((s) => s.deckPhase)
   /** "Up next", opened from the "+N" record — see `Queue`. */
   const [queueOpen, setQueueOpen] = useState(false)
+  /** The row of round buttons, pulled up on a phone — see `FoldUp`. For this visit only. */
+  const [optionsShown, setOptionsShown] = useState(false)
+  // Its "i" is open, so the row it lives in must be showing.
+  const aboutOpen = useAboutStore((s) => s.open)
   const openQueue = () => {
     setQueueOpen(true)
     requestAnimationFrame(() => {
@@ -234,8 +239,12 @@ export default function NowPlaying() {
         order it will go on) and it introduces the queue underneath, which is
         the version with names and a way to remove a row. */}
     <UpNextReel onMore={openQueue} />
-    {/* Shuffle, the repeats, Add to shelf and the "i" — see `PlayModes`. */}
-    <PlayModes />
+    {/* Shuffle, the repeats, Add to shelf and the "i" — see `PlayModes`. On a
+        phone the page stops at the records above, and a further swipe up
+        brings this row into view (James, 2026-09-13) — see `FoldUp`. */}
+    <FoldUp open={optionsShown || aboutOpen} onOpen={() => setOptionsShown(true)}>
+      <PlayModes />
+    </FoldUp>
     {/* What the "i" in that row opens (James, 2026-09-13: "move (i) and (add
         to shelf) to the line of shuffle, repeat etc to make ui cleaner up top"). */}
     <AboutTrack />

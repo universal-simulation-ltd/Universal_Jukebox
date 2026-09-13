@@ -780,7 +780,9 @@ should be. The FLAC and v2.4 fixtures both carry one, next to the real field.
 ## About this track
 
 An **i** (*About*) in the row of round buttons under the records waiting to go
-on, beside shuffle, the repeats and *Add to shelf*. Tapped, it scrolls the page
+on (on a phone that row is folded away: the page stops at the records, and one
+more swipe up pulls it into view — `components/FoldUp.tsx`, the search box's
+pull in reverse), beside shuffle, the repeats and *Add to shelf*. Tapped, it scrolls the page
 so the **i** sits at the top of the screen, under the navbar, with the panel
 below it; closing it scrolls back up to the record. (2026-09-13: it began as a
 labelled button beside **Show lyrics**, then sat under the song's title.) It
