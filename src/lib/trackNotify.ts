@@ -41,12 +41,33 @@ interface NotifyPlugin {
 
 let plugin: NotifyPlugin | null = null
 
+/**
+ * The plugin — behind four plain functions, never the plugin object itself.
+ *
+ * ⚠️ CAPACITOR'S PLUGIN OBJECT IS A "THENABLE", so it must never be the value an
+ * `async` function returns or an `await` sees. It is a Proxy that answers EVERY
+ * property with a method, `then` included, so resolving a promise with it calls
+ * `plugin.then(resolve, reject)` — a native call to a method that does not
+ * exist, which never calls either — and the promise never settles. That is
+ * exactly what the first build did: `return plugin` here, and on the iPhone the
+ * switch could not be turned on, because asking for permission waited forever
+ * (James, 2026-09-13: "I see the setting but can't activate it"). The web and
+ * the tests never noticed; only a native shell has the Proxy.
+ * `nowPlayingNative.ts` escapes it by keeping the plugin in a module variable
+ * and returning nothing; `trackNotify.test.ts` holds this one to it.
+ */
 async function native(): Promise<NotifyPlugin> {
   if (!plugin) {
     const { registerPlugin } = await import('@capacitor/core')
     plugin = registerPlugin<NotifyPlugin>(NATIVE)
   }
-  return plugin
+  const p = plugin
+  return {
+    permission: () => p.permission(),
+    request: () => p.request(),
+    show: (options) => p.show(options),
+    clear: () => p.clear(),
+  }
 }
 
 function inNativeShell(): boolean {
