@@ -76,6 +76,9 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           navigateFallback: `${BASE_PATH}index.html`,
+          // A tap on a song's notification, where only the worker could show
+          // it — `public/notification-click.js`.
+          importScripts: ['notification-click.js'],
         },
         devOptions: { enabled: false },
       })]),

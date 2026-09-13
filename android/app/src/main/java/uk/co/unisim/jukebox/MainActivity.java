@@ -11,6 +11,8 @@ public class MainActivity extends BridgeActivity {
         // registered afterwards does not exist to the web layer. See
         // MusicFolderPlugin for why this is how Android gets its music.
         registerPlugin(MusicFolderPlugin.class);
+        // A notification for each new song — see NotifyPlugin.
+        registerPlugin(NotifyPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

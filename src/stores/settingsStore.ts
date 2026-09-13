@@ -225,6 +225,15 @@ export interface Settings {
    * the lift, the gap and the drop. See `planHandover`.
    */
   recordCrossfade: boolean
+  /**
+   * A notification each time a new song starts, one card replacing the last
+   * (James, 2026-09-13) — `lib/trackNotify.ts`.
+   *
+   * ⚠️ Off by default, and read `=== true`: turning it on is what asks the
+   * system for permission, and nobody should meet that prompt unasked. The
+   * Settings switch only stores `true` once the answer was yes.
+   */
+  trackNotifications: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -250,6 +259,7 @@ export const DEFAULTS: Settings = {
   libraryColumns: { artists: 'jukebox', albums: 'jukebox', tracks: 2 },
   resumeCard: true,
   recordCrossfade: true,
+  trackNotifications: false,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -405,6 +415,7 @@ function readStored(): Settings {
     ),
     resumeCard: stored.resumeCard !== false,
     recordCrossfade: stored.recordCrossfade !== false,
+    trackNotifications: stored.trackNotifications === true,
   }
 }
 
@@ -481,6 +492,7 @@ function persist(state: Settings) {
     libraryColumns: state.libraryColumns,
     resumeCard: state.resumeCard,
     recordCrossfade: state.recordCrossfade,
+    trackNotifications: state.trackNotifications,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

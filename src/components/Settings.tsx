@@ -4,6 +4,7 @@ import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearLyrics, countLyrics } from '../lib/library'
 import { goHome, navigate } from '../lib/route'
+import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { DeckMiniature } from './Deck'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -106,6 +107,7 @@ export default function Settings() {
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
     lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? (s.lyricsAroundStyle === 'lines' ? ', every line on the record' : ', around the record') : ''}`,
+    notifications: s.trackNotifications ? 'One for each new song' : 'Off',
     appearance: labelOf(THEME_OPTIONS, themePref),
   }
 
@@ -129,7 +131,7 @@ export default function Settings() {
         Everything here is kept on this device only, like the rest of the app.
       </p>
 
-      {/* The six folds, as a stack. Adjacent cards with a small gap
+      {/* The seven folds, as a stack. Adjacent cards with a small gap
           rather than the old headings-and-panels run: shut, they read as
           a list of what Settings CONTAINS. */}
       <div className="mt-8 space-y-3">
@@ -336,6 +338,16 @@ export default function Settings() {
           <DownloadedLyrics />
         </Section>
 
+        {/* James, 2026-09-13: "an option for a notification everytime a new
+            song plays, replace each notification and don't stack them". */}
+        <Section
+          title="Notifications"
+          note="What’s playing, as each song starts — and only ever one of them."
+          summary={summaries.notifications}
+        >
+          <NotifyToggle />
+        </Section>
+
         <Section title="Appearance" summary={summaries.appearance}>
           <Choice<ThemePref>
             label="Theme"
@@ -415,6 +427,69 @@ function DownloadedLyrics() {
         Forget them
       </button>
     </div>
+  )
+}
+
+/**
+ * "Notify me of each new song" — the one switch that has to ASK before it can
+ * be on.
+ *
+ * ⚠️ The system prompt comes from the tap that turns it on, and the setting is
+ * stored only once the answer is yes: a switch reading "on" over a refusal is
+ * a notification nobody ever gets. A refusal is then said in words, with where
+ * to undo it, because the app cannot ask twice — after one "no", the browser
+ * and both phones answer every later request themselves without showing it.
+ *
+ * Asked again whenever the page comes back into view, so allowing it in the
+ * phone's Settings and switching back is enough to bring the switch to life.
+ */
+function NotifyToggle() {
+  const on = useSettingsStore((s) => s.trackNotifications)
+  const set = useSettingsStore((s) => s.set)
+  const support = notifySupport()
+  const [blocked, setBlocked] = useState(false)
+
+  useEffect(() => {
+    if (support === 'none') return
+    let live = true
+    const check = () => {
+      if (document.visibilityState !== 'visible') return
+      void notifyPermission().then((p) => {
+        if (live) setBlocked(p === 'denied')
+      })
+    }
+    check()
+    document.addEventListener('visibilitychange', check)
+    return () => {
+      live = false
+      document.removeEventListener('visibilitychange', check)
+    }
+  }, [support])
+
+  return (
+    <Toggle
+      label="Notify me of each new song"
+      hint="The song, the artist and the cover, as each song starts. There’s only ever one: the next song’s takes its place, rather than a pile building up. It makes no sound of its own."
+      checked={on && !blocked}
+      disabled={support === 'none' || blocked}
+      disabledHint={
+        support === 'none'
+          ? 'This browser won’t let a web page show notifications. On an iPhone or iPad, add Jukebox to your Home Screen (Share, then Add to Home Screen) and turn this on from there.'
+          : support === 'native'
+            ? 'Notifications are off for Jukebox. Turn them on in your phone’s Settings, under Notifications, then come back here.'
+            : 'Notifications are blocked for this site. Allow them in your browser’s site settings, then come back here.'
+      }
+      onChange={(v) => {
+        if (!v) {
+          set('trackNotifications', false)
+          return
+        }
+        void askToNotify().then((granted) => {
+          if (granted) set('trackNotifications', true)
+          else setBlocked(true)
+        })
+      }}
+    />
   )
 }
 

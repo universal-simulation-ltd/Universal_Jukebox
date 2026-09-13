@@ -30,6 +30,8 @@ class JukeboxViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(ShortcutsPlugin())
         // How loud a song is, for "Stable volume".
         bridge?.registerPluginInstance(LoudnessPlugin())
+        // A notification for each new song, replacing the last.
+        bridge?.registerPluginInstance(NotifyPlugin())
 
         // ⚠️ THE EDGE SWIPE BACK (James, 2026-09-10: "Mobile should also have
         // the edge of screen side swipe to go back instead of having to use

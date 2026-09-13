@@ -38,4 +38,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- A notification for each new song (NotifyPlugin) — asked for from the
+         Settings switch, never at launch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

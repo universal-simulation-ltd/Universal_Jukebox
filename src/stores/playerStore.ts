@@ -11,6 +11,7 @@ import * as ms from '../lib/mediaSession'
 import { cachedGain, measureGain } from '../lib/loudness'
 import { readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
+import { announceTrack, withdrawTrack } from '../lib/trackNotify'
 import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
 import type { Album, Track } from '../lib/types'
@@ -551,11 +552,14 @@ function publishNowPlaying(track: Track | null): void {
   if (!track) {
     ms.setMetadata(null, null)
     void clearLockScreen()
+    withdrawTrack()
     return
   }
   const album = useLibraryStore.getState().albums.find((a) => a.id === track.albumId)
   const cover = album ? coverUrl(album.id, album.cover) : null
   ms.setMetadata(track, cover)
+  // A notification for the song, in place of the last one — `lib/trackNotify.ts`.
+  if (settings().trackNotifications) announceTrack(track, cover)
   // Then the cover ON the machine playing it (`lib/lockArt.ts`), a frame or
   // two later — and, in the iPhone app on iOS 26, that record turning.
   const { deck, deckEras } = settings()
@@ -1505,6 +1509,20 @@ useSettingsStore.subscribe((next, prev) => {
   if (next.deck === prev.deck && next.deckEras === prev.deckEras) return
   const track = currentTrack(usePlayerStore.getState())
   if (track) publishNowPlaying(track)
+})
+
+// The notification switch, flipped with a song on: on shows that song's card
+// straight away — the proof the switch worked — and off takes it away.
+useSettingsStore.subscribe((next, prev) => {
+  if (next.trackNotifications === prev.trackNotifications) return
+  if (!next.trackNotifications) {
+    withdrawTrack()
+    return
+  }
+  const track = currentTrack(usePlayerStore.getState())
+  if (!track) return
+  const album = useLibraryStore.getState().albums.find((a) => a.id === track.albumId)
+  announceTrack(track, album ? coverUrl(album.id, album.cover) : null)
 })
 
 // On the iPhone app the start-up sounds are clips played through <audio>, which

@@ -782,6 +782,7 @@ nothing here is a form.
 | **Volume boost** | 1–4× on top of the volume slider, for quietly-mastered albums |
 | **Fade in / Fade out** | 0–8s, at the ends of a track. Separate from the crossfade between two tracks of one album — see below |
 | **Theme** | Light · Dark · Match my device |
+| **Notify me of each new song** | Off by default. One notification per song — title, artist, cover — each one replacing the last, never a stack, and silent. Turning it on is what asks for permission. See below |
 
 Two rows **do** something rather than set it: **Tidy up library** (under *Your
 library*) and **Show the tips again** (under *Appearance*, beside the theme).
@@ -798,6 +799,31 @@ hand per section but built from the store with the same labels and formatters
 the controls display, so it cannot say one thing while the slider says another.
 A new setting that matters at a glance belongs in its section's summary too.
 The folds deliberately do **not** remember which were open.
+
+### Notify me of each new song
+
+Off until it is turned on under Settings → *Notifications*. Turning it on is
+what asks the system for permission, and the setting is stored only once the
+answer is yes. Each song that goes on then gets one notification — its title,
+artist and album, and the cover — and the next song's **replaces** it rather
+than joining a stack. None of them makes a sound. Previews don't notify, and
+neither does choosing a different deck mid-song or repeat-one bringing the same
+song round again. The code is `src/lib/trackNotify.ts`.
+
+| Where | Shown by | Replaced by |
+|---|---|---|
+| A browser, the Windows app | `new Notification` (Electron turns it into a Windows toast) | closing the last one, then showing a fresh, `silent` one |
+| Chrome on Android, an iPhone Home Screen web app | the service worker's `showNotification` — these refuse the constructor. A tap brings the player forward (`public/notification-click.js`) | closing every card the worker is showing first |
+| The iPhone app | `ios/App/App/NotifyPlugin.swift` — a banner even while the app is open | one fixed identifier |
+| The Android app | `NotifyPlugin.java`, on its own *Now playing* channel: high importance, no sound, no vibration | one fixed id |
+
+⚠️ **Replacing by `tag` looks like the obvious route on the web, and isn't.** A
+same-tag replacement is silent unless `renotify` is set, so the card changes in
+the notification centre without ever appearing — and `renotify` can't be
+combined with `silent`, so setting it would also ping over the music.
+
+Safari in an iPhone **tab** has no Notification API at all; there the switch is
+disabled, with a line saying to add Jukebox to the Home Screen first.
 
 ### Four decks, and a fifth option that is not a machine
 
