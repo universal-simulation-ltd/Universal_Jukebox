@@ -11,8 +11,12 @@
 
 export function scrollBelowBar(el: Element | null, reduced: boolean): void {
   if (!el) return
-  const bar = document.querySelector('header')?.closest('[style*="sticky"]') ?? document.querySelector('header')
-  const pinned = bar ? bar.getBoundingClientRect().bottom : 0
-  const top = el.getBoundingClientRect().top + window.scrollY - pinned - 12
+  const top = el.getBoundingClientRect().top + window.scrollY - navBarBottom() - 12
   window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' })
+}
+
+/** Where the navbar ends, in the viewport — 0 if there is none. */
+export function navBarBottom(): number {
+  const bar = document.querySelector('header')?.closest('[style*="sticky"]') ?? document.querySelector('header')
+  return bar ? bar.getBoundingClientRect().bottom : 0
 }

@@ -1,7 +1,8 @@
 import { trackGenres } from '../lib/genres'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { revealExpanded } from '@unisim/sdk'
 import { scrollToTop } from '../lib/scrollTop'
+import { navBarBottom } from '../lib/scrollBelowBar'
 import { coverUrl } from '../lib/art'
 import { plural } from '../lib/format'
 import { goHome, navigate } from '../lib/route'
@@ -68,6 +69,10 @@ export default function NowPlaying() {
 
   const album = track ? albums.find((a) => a.id === track.albumId) : undefined
   const onTheDeck = useLeavingAlbum(album, deckPhase === 'leaving')
+  // The phone's song details, midway between the navbar and the record — see
+  // `useMidway`. Keyed on what can move either edge of the gap.
+  const phoneHeading = useRef<HTMLDivElement>(null)
+  const nudge = useMidway(phoneHeading, `${track?.id}|${onTheDeck?.id}|${lyricsAround}|${ceremony}`)
 
   if (!track) {
     return (
@@ -99,7 +104,7 @@ export default function NowPlaying() {
         {/* ⚠️ The numerals REPLACE the title for two seconds; they do not sit on
             top of anything. This is the corrected design — see Deck.tsx. */}
         {ceremony ? (
-          <div className="min-h-[8rem]">
+          <div className="flex min-h-[8rem] flex-col items-center justify-center lg:items-start">
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Cueing up…</p>
             {/* ⚠️ The way out, offered AT THE MOMENT the thing happens.
@@ -125,12 +130,12 @@ export default function NowPlaying() {
           // A record crossfade's silent 3, 2, 1 (James, 2026-09-11), in the
           // start's place — without its "don't show this again", which belongs
           // to the start. Crossfading has its own switch in Settings.
-          <div className="min-h-[8rem]">
+          <div className="flex min-h-[8rem] flex-col items-center justify-center lg:items-start">
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Changing records…</p>
           </div>
         ) : (
-          <div className="min-h-[8rem]">
+          <div className="flex min-h-[8rem] flex-col items-center justify-center lg:items-start">
             <h1 className="text-2xl font-semibold text-balance text-slate-900 sm:text-3xl dark:text-slate-100">
               {track.title}
             </h1>
@@ -161,7 +166,13 @@ export default function NowPlaying() {
           only when there IS a cover. */}
       {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
 
-      <div className="relative w-full text-center lg:hidden">{heading}</div>
+      <div
+        ref={phoneHeading}
+        className="relative w-full text-center lg:hidden"
+        style={nudge ? { transform: `translateY(${nudge}px)` } : undefined}
+      >
+        {heading}
+      </div>
 
       {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
       <DeckSwiper
@@ -276,6 +287,62 @@ function LyricsToggle() {
       {show ? 'Hide lyrics' : 'Show lyrics'}
     </button>
   )
+}
+
+/**
+ * How far to lower the phone's song details so they sit MIDWAY between the
+ * navbar and the record (James, 2026-09-13: "make the track details midway
+ * between the header and the record instead of at the top").
+ *
+ * ⚠️ MEASURED, NOT A FIXED MARGIN. The space under the details is not this
+ * page's to know: it is the stage's gap, the swiper's padding, the room kept
+ * for the lyrics' arc, and whatever the machine on the deck draws above its
+ * record — all of which change with the machine and the settings.
+ *
+ * ⚠️ A TRANSFORM, NOT A MARGIN. A margin would push the record down by exactly
+ * as much, and the gap under the details would never close.
+ *
+ * ⚠️ OFFSETS, NOT RECTS, for the details and the deck: the record arrives on an
+ * animated transform, and a rect read mid-arrival would be wrong until the
+ * next measure. The navbar is read only at the top of the page, where a sticky
+ * bar is where the page begins.
+ */
+function useMidway(box: RefObject<HTMLDivElement | null>, key: string): number {
+  const [nudge, setNudge] = useState(0)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const deck = () => el.parentElement?.querySelector<HTMLElement>('[role="button"]') ?? null
+    const measure = () => {
+      // Hidden (the details beside the record, from `lg`), or scrolled: leave it.
+      const frame = deck()
+      if (el.offsetParent === null || !frame || window.scrollY > 1) return
+      const top = pageTop(el)
+      const above = top - navBarBottom()
+      const below = pageTop(frame) - (top + el.offsetHeight)
+      setNudge(Math.max(0, Math.round((below - above) / 2)))
+    }
+    measure()
+    const watch = new ResizeObserver(measure)
+    watch.observe(el)
+    const frame = deck()
+    if (frame) watch.observe(frame)
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, { passive: true })
+    return () => {
+      watch.disconnect()
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure)
+    }
+  }, [box, key])
+  return nudge
+}
+
+/** An element's distance from the top of the page, transforms ignored. */
+function pageTop(node: HTMLElement): number {
+  let y = 0
+  for (let n: HTMLElement | null = node; n; n = n.offsetParent as HTMLElement | null) y += n.offsetTop
+  return y
 }
 
 /**
