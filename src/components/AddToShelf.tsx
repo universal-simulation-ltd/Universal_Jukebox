@@ -3,6 +3,7 @@ import { plural } from '../lib/format'
 import { NEW_SHELF, shelfName } from '../lib/shelves'
 import { useShelvesStore } from '../stores/shelvesStore'
 import type { Track } from '../lib/types'
+import { ModeButton } from './ModeButton'
 
 // Put songs on a Jukebox shelf from anywhere (James, 2026-09-11: the Jukebox
 // tab's extras — "yes"): a song's row, an album's or artist's page, the song on
@@ -10,14 +11,19 @@ import type { Track } from '../lib/types'
 // — and a new shelf. One song toggles on and off; several (an album) are added,
 // skipping any already there.
 
-export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'pill' | 'icon' }) {
+export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'pill' | 'icon' | 'mode' }) {
   const [open, setOpen] = useState(false)
   if (tracks.length === 0) return null
   const one = tracks.length === 1 ? tracks[0] : null
   const label = one ? `Add “${one.title}” to a shelf` : `Add ${plural(tracks.length, 'song')} to a shelf`
   return (
     <>
-      {variant === 'pill' ? (
+      {variant === 'mode' ? (
+        // In the row of round buttons on Now Playing (`PlayModes`).
+        <ModeButton label="Add to shelf" ariaLabel={label} onClick={() => setOpen(true)}>
+          <ShelfGlyph />
+        </ModeButton>
+      ) : variant === 'pill' ? (
         <button
           type="button"
           onClick={() => setOpen(true)}

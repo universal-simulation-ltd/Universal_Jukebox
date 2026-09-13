@@ -1,20 +1,27 @@
-import type { ReactNode } from 'react'
 import { ShuffleGlyph } from './AlbumView'
-import { usePlayerStore, type Repeat } from '../stores/playerStore'
+import { AboutToggle } from './AboutTrack'
+import AddToShelf from './AddToShelf'
+import { ModeButton } from './ModeButton'
+import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
 
-// Shuffle and the two repeats, centred under the records waiting to go on
-// (James, 2026-09-11: "repeat: add three buttons, centred, under the x more
-// records for repeat and shuffle, have the word under the button because
-// they're similar").
+// The row of round buttons under the records waiting to go on: shuffle and the
+// two repeats (James, 2026-09-11: "repeat: add three buttons, centred, under
+// the x more records for repeat and shuffle"), then this song onto a shelf and
+// About this track (2026-09-13: "move (i) and (add to shelf) to the line of
+// shuffle, repeat etc to make ui cleaner up top").
 //
-// ⚠️ THE WORD GOES UNDER EACH ICON because repeat-all and repeat-one differ by
-// one small "1" — as icons alone they read as the same button twice. Repeat
-// all and repeat one are either/or: tapping the one that is on turns repeat
-// off. (The mini player no longer has a repeat button at all; shuffle is in its
-// queue popup.)
+// ⚠️ TWO GROUPS IN ONE ROW, not one group of five. The first three are the PLAY
+// ORDER, and a screen reader is told so; the other two are about the song on
+// the deck. Five fit across a phone (`ModeButton` narrows there); on anything
+// narrower the second pair wraps as a pair rather than splitting.
+//
+// Repeat all and repeat one are either/or: tapping the one that is on turns
+// repeat off. (The mini player no longer has a repeat button at all; shuffle is
+// in its queue popup.)
 
 export default function PlayModes() {
   const queued = usePlayerStore((s) => s.queue.length)
+  const track = usePlayerStore(currentTrack)
   const shuffle = usePlayerStore((s) => s.shuffle)
   const repeat = usePlayerStore((s) => s.repeat)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
@@ -23,34 +30,25 @@ export default function PlayModes() {
   const pick = (mode: Exclude<Repeat, 'off'>) => setRepeat(repeat === mode ? 'off' : mode)
 
   return (
-    <div role="group" aria-label="Play order" className="mt-5 flex justify-center gap-5">
-      <Mode label="Shuffle" on={shuffle} onClick={toggleShuffle}>
-        <ShuffleGlyph />
-      </Mode>
-      <Mode label="Repeat all" on={repeat === 'all'} onClick={() => pick('all')}>
-        <RepeatGlyph />
-      </Mode>
-      <Mode label="Repeat one" on={repeat === 'one'} onClick={() => pick('one')}>
-        <RepeatOneGlyph />
-      </Mode>
+    <div className="mt-5 flex flex-wrap justify-center gap-x-1 gap-y-3 sm:gap-x-5">
+      <div role="group" aria-label="Play order" className="flex gap-x-1 sm:gap-x-5">
+        <ModeButton label="Shuffle" on={shuffle} onClick={() => toggleShuffle()}>
+          <ShuffleGlyph />
+        </ModeButton>
+        <ModeButton label="Repeat all" on={repeat === 'all'} onClick={() => pick('all')}>
+          <RepeatGlyph />
+        </ModeButton>
+        <ModeButton label="Repeat one" on={repeat === 'one'} onClick={() => pick('one')}>
+          <RepeatOneGlyph />
+        </ModeButton>
+      </div>
+      {track && (
+        <div className="flex gap-x-1 sm:gap-x-5">
+          <AddToShelf tracks={[track]} variant="mode" />
+          <AboutToggle />
+        </div>
+      )}
     </div>
-  )
-}
-
-function Mode({ label, on, onClick, children }: { label: string; on: boolean; onClick(): void; children: ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} aria-pressed={on} className="group flex w-20 flex-col items-center gap-1.5 focus:outline-none">
-      <span
-        className={`flex h-11 w-11 items-center justify-center rounded-full transition group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-[#E05504] ${
-          on
-            ? 'bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm'
-            : 'border border-slate-300 text-slate-600 group-hover:border-orange-500 group-hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:group-hover:text-orange-400'
-        }`}
-      >
-        {children}
-      </span>
-      <span className={`text-[11.5px] font-medium ${on ? 'text-orange-700 dark:text-orange-400' : 'text-slate-500 dark:text-slate-400'}`}>{label}</span>
-    </button>
   )
 }
 

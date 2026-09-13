@@ -12,14 +12,13 @@ import Deck, { CeremonyCount } from './Deck'
 import DeckSwiper from './DeckSwiper'
 import type { Album } from '../lib/types'
 import Lyrics from './Lyrics'
-import AboutTrack, { AboutToggle } from './AboutTrack'
+import AboutTrack from './AboutTrack'
 import { useAboutStore } from '../stores/aboutStore'
 import Queue from './Queue'
 import ResumeCard from './ResumeCard'
 import UpNextReel from './UpNextReel'
 import PlayModes from './PlayModes'
 import LyricsAround from './LyricsAround'
-import AddToShelf from './AddToShelf'
 import Visualiser from './Visualiser'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { requestLyricsReveal } from '../lib/lyricsReveal'
@@ -100,7 +99,7 @@ export default function NowPlaying() {
         {/* ⚠️ The numerals REPLACE the title for two seconds; they do not sit on
             top of anything. This is the corrected design — see Deck.tsx. */}
         {ceremony ? (
-          <div className="min-h-[9rem]">
+          <div className="min-h-[8rem]">
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Cueing up…</p>
             {/* ⚠️ The way out, offered AT THE MOMENT the thing happens.
@@ -126,12 +125,12 @@ export default function NowPlaying() {
           // A record crossfade's silent 3, 2, 1 (James, 2026-09-11), in the
           // start's place — without its "don't show this again", which belongs
           // to the start. Crossfading has its own switch in Settings.
-          <div className="min-h-[9rem]">
+          <div className="min-h-[8rem]">
             <CeremonyCount />
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Changing records…</p>
           </div>
         ) : (
-          <div className="min-h-[9rem]">
+          <div className="min-h-[8rem]">
             <h1 className="text-2xl font-semibold text-balance text-slate-900 sm:text-3xl dark:text-slate-100">
               {track.title}
             </h1>
@@ -148,19 +147,8 @@ export default function NowPlaying() {
                 {track.year ? ` · ${track.year}` : ''}
               </button>
             )}
-            {/* About this track, as just an "i", directly under the song's
-                details (James, 2026-09-13) — see `AboutToggle`. */}
-            <div className="mt-2 flex justify-center lg:justify-start">
-              <AboutToggle />
-            </div>
           </div>
         )}
-        {/* What the "i" opens, under the song (James, 2026-09-13: "show
-            about this track at the top under the track details").
-            ⚠️ Every branch above reserves 9rem (it was 8) so the title, with
-            the "i" under it, is no taller than the countdown in its place —
-            nothing below jumps when one gives way to the other. */}
-        <AboutTrack />
     </>
   )
 
@@ -219,10 +207,6 @@ export default function NowPlaying() {
         <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
           <LyricsToggle />
         </div>
-        {/* This song, onto a Jukebox shelf. */}
-        <div className="mt-3 flex justify-center lg:justify-start">
-          <AddToShelf tracks={[track]} variant="pill" />
-        </div>
 
         {/* Hidden below 560px (T5) — the first thing to go from the words
             column, because it is the only part of it that is decoration. */}
@@ -239,7 +223,11 @@ export default function NowPlaying() {
         order it will go on) and it introduces the queue underneath, which is
         the version with names and a way to remove a row. */}
     <UpNextReel onMore={openQueue} />
+    {/* Shuffle, the repeats, Add to shelf and the "i" — see `PlayModes`. */}
     <PlayModes />
+    {/* What the "i" in that row opens (James, 2026-09-13: "move (i) and (add
+        to shelf) to the line of shuffle, repeat etc to make ui cleaner up top"). */}
+    <AboutTrack />
     {queueOpen && <Queue onHide={() => setQueueOpen(false)} />}
     </>
   )

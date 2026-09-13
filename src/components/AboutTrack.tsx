@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../lib/route'
+import { ModeButton } from './ModeButton'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { scrollToTop } from '../lib/scrollTop'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
@@ -40,9 +41,10 @@ export default function AboutTrack() {
 }
 
 /**
- * The way in: just an "i", directly under the song's title, artist and album
- * (James, 2026-09-13: "Have just the 'i' symbol and put it directly below the
- * track details"). Its name is said to a screen reader and on hover.
+ * The way in: an "i" ("About") in the row of round buttons under the records
+ * waiting to go on, beside shuffle, the repeats and Add to shelf (James,
+ * 2026-09-13: "move (i) and (add to shelf) to the line of shuffle, repeat etc
+ * to make ui cleaner up top"). It sat under the song's title before that.
  *
  * Opening it scrolls the page so the "i" sits at the top of the screen, under
  * the navbar, with the panel filling what is below ("When clicked scroll down
@@ -50,11 +52,9 @@ export default function AboutTrack() {
  * when the answer lands, because until then the page may be too short to
  * scroll that far. The lyrics' "Show lyrics" does the same (`scrollBelowBar`).
  *
- * ⚠️ `NowPlaying` draws the song's details twice (above the deck on a phone,
- * beside it from `lg`), one hidden by CSS, so this and the panel are mounted
- * twice. They share one store, and `load` asks once per track. That is why the
- * scroll goes to THIS button's ref — the one tapped, the one on screen — and
- * never to an `id`, which would find whichever copy came first.
+ * The scroll goes to THIS button's ref, not an `id`: it was once drawn twice
+ * (the song's details are, one copy hidden by CSS), and a ref always finds the
+ * copy that was tapped.
  */
 export function AboutToggle() {
   const open = useAboutStore((s) => s.open)
@@ -75,14 +75,12 @@ export function AboutToggle() {
     }
   }, [open, status, reduced])
 
-  const label = open ? 'Hide track info' : 'About this track'
   return (
-    <button
+    <ModeButton
       ref={button}
-      type="button"
-      aria-pressed={open}
-      aria-label={label}
-      title={label}
+      label="About"
+      on={open}
+      ariaLabel={open ? 'Hide track info' : 'About this track'}
       onClick={(e) => {
         // The ceremony is skipped by any click on the page (App.tsx); a button
         // on the deck's screen is not that click.
@@ -97,18 +95,13 @@ export function AboutToggle() {
         revealing.current = true
         setOpen(true)
       }}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
-        open
-          ? 'border-orange-400 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-400'
-          : 'border-slate-300 text-slate-500 hover:border-orange-300 hover:text-orange-700 dark:border-slate-600 dark:text-slate-400 dark:hover:border-orange-700 dark:hover:text-orange-400'
-      }`}
     >
-      {/* A plain "i" — the circle is the button's own border. */}
-      <svg viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor" aria-hidden>
+      {/* A plain "i" — the circle is the button's own. */}
+      <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden>
         <circle cx="10" cy="5.25" r="1.5" />
         <path d="M8 8.25h3.25v6.5H12.5v1.75h-4.75v-1.75H9V10H8V8.25Z" />
       </svg>
-    </button>
+    </ModeButton>
   )
 }
 
