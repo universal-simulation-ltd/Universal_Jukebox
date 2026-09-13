@@ -6,7 +6,13 @@
 # rejects it as an infinite loop (the asset layer strips `.html` itself, the
 # same trap as the marketing site's /netzero). Unmatched paths fall through to
 # `not_found_handling: single-page-application`, which serves index.html anyway.
+#
+# ⚠️ SO EVERY NEW FILE AT THE ROOT OF public/ NEEDS A LINE HERE. Without one it
+# deploys, answers 200 on workers.dev, and is index.html on the real site —
+# `notification-click.js` shipped that way on 2026-09-13, which handed the
+# service worker's `importScripts` a page of HTML.
 /jukebox/sw.js                /sw.js                200
+/jukebox/notification-click.js /notification-click.js 200
 /jukebox/registerSW.js        /registerSW.js        200
 /jukebox/manifest.webmanifest /manifest.webmanifest 200
 /jukebox/workbox-*            /workbox-:splat       200
