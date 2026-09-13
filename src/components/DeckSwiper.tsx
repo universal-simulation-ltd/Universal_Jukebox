@@ -64,13 +64,26 @@ interface Arriving {
 }
 
 export default function DeckSwiper({
-  size, showing, children, roomAbove = 0,
+  size, showing, children, roomAbove = 0, beside = false, inset = 0,
 }: {
   size: number
   showing?: string
   children: React.ReactNode
   /** Extra room above the record — for the lyrics' arc over it (`LyricsAround`). */
   roomAbove?: number
+  /**
+   * The deck is in a COLUMN beside the words rather than across the page.
+   *
+   * ⚠️ Below `lg` this box is `w-screen`, so the neighbouring records can come
+   * in from the edges of the phone rather than from the page's padding. Lying
+   * down (`lib/stageLayout.ts`) that is exactly wrong: the box took the whole
+   * 844px row, squeezed the words to a column two words wide and put the
+   * record off the bottom of the screen. `lg` has always had to opt out of it;
+   * this is the same opt-out for the other side-by-side layout.
+   */
+  beside?: boolean
+  /** Padding on the outer edge, so the record is not hard against the screen. */
+  inset?: number
 }) {
   const queue = usePlayerStore((s) => s.queue)
   const order = usePlayerStore((s) => s.order)
@@ -373,8 +386,15 @@ export default function DeckSwiper({
     // and there is no screen edge next to it to peek from.
     <div
       ref={box}
-      className="relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible"
-      style={roomAbove ? { paddingTop: 8 + roomAbove } : undefined}
+      className={
+        beside
+          ? 'relative flex justify-center py-2'
+          : 'relative flex w-screen justify-center overflow-hidden py-2 lg:w-auto lg:overflow-visible'
+      }
+      style={{
+        ...(roomAbove ? { paddingTop: 8 + roomAbove } : null),
+        ...(inset ? { paddingRight: inset } : null),
+      }}
     >
       {prevIndex !== null && (
         <Peek
@@ -483,6 +503,7 @@ export default function DeckSwiper({
             jumpTo(target)
             return
           }
+
           // Finish the move, then hold the arrival and change track.
           holding.current = true
           setAnimate(true)
@@ -500,7 +521,12 @@ export default function DeckSwiper({
             flushSync(() => {
               setAnimate(false)
               setArriving({ album, style, track, from: cameFrom })
-              jumpTo(target)
+              // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
+              // it to the middle and is holding a still picture of it there;
+              // without this the player runs its own record change over the
+              // top, and the stand-in cannot be released (and so cannot start
+              // turning) until that finishes 2.1s later. See `playPrepared`.
+              jumpTo(target, { onDeck: true })
             })
             // Then the record beyond comes in from the edge: drawn there first.
             requestAnimationFrame(() =>

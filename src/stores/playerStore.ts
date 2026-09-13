@@ -6,6 +6,7 @@ import { followMusic, playCountTick, playTransportCue, setCueOutput } from '../l
 import { isNativeShell } from '../lib/nativeFile'
 import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
+import type { FadeCurve } from '../lib/fadeCurve'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
 import { cachedGain, measureGain } from '../lib/loudness'
@@ -139,7 +140,7 @@ interface PlayerState {
    * that shows what is coming up walks `order`. Out-of-range indices and the
    * currently-playing one are both no-ops rather than errors.
    */
-  jumpTo(orderIndex: number): void
+  jumpTo(orderIndex: number, options?: { onDeck?: boolean }): void
   seekTo(seconds: number): void
   seekBy(offset: number): void
   setVolume(v: number): void
@@ -252,8 +253,33 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       : Array.from({ length: tracks.length }, (_, i) => i)
     const cursor = shuffle ? 0 : startAt
 
+    /**
+     * ⚠️ THE SONG THAT IS ALREADY PLAYING IS NOT PUT ON AGAIN (James,
+     * 2026-09-13: "the track animates on to the record player, it should
+     * already be there though because it's playing").
+     *
+     * Tapping it — from its album, from a shelf, from anywhere — used to reach
+     * `startCeremonyOrPlay`, which cues the record from the top: the whole
+     * arrival animation over a record that was already turning, and the song
+     * you were in the middle of restarted at 0:00. `jumpTo` has always refused
+     * to re-cue the current track (see above); this is the same rule for the
+     * other way in.
+     *
+     * The QUEUE still changes, because that part of the tap is meaningful —
+     * play an album from the song you are on and the rest of it follows. Only
+     * the needle is left alone.
+     */
+    const wanted = tracks[order[cursor]]
+    const onTheDeck = currentTrack(get())
+    const alreadyOn = !!wanted && !!onTheDeck && wanted.id === onTheDeck.id && get().playing && !get().ceremony
+
     set({ queue: tracks, order, cursor, error: null, missingTrack: null })
-    startCeremonyOrPlay(set, get, tracks[order[cursor]])
+    if (alreadyOn) {
+      publishNowPlaying(wanted)
+      prefetchNext(get)
+      return
+    }
+    startCeremonyOrPlay(set, get, wanted)
   },
 
   toggle() {
@@ -283,7 +309,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     advance(set, get, -1)
   },
 
-  jumpTo(orderIndex) {
+  jumpTo(orderIndex, options) {
     const { order, cursor } = get()
     if (orderIndex < 0 || orderIndex >= order.length) return
     // Tapping the track that is already playing is not a request to restart it —
@@ -291,7 +317,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (orderIndex === cursor) return
     // A jump is a play, and two records at once is not a preview.
     get().stopPreview()
-    playAt(set, get, orderIndex)
+    playAt(set, get, orderIndex, false, options?.onDeck)
   },
 
   seekTo(seconds) {
@@ -716,7 +742,14 @@ function runHandover(
   get: Get,
   plan: Handover,
   land: (fadeInSec: number | undefined) => void,
-  options: { duckFirst: boolean; crossfadeFile?: SourceFile | null; crossfadeSec?: number; holdSec?: number },
+  options: {
+    duckFirst: boolean
+    crossfadeFile?: SourceFile | null
+    crossfadeSec?: number
+    holdSec?: number
+    /** The blend's shape — a skip is not staggered. See `audio.crossfade`. */
+    crossfadeCurve?: FadeCurve
+  },
 ): void {
   clearHandover()
   clearBlend()
@@ -735,7 +768,7 @@ function runHandover(
         if (plan.cue) needleDrop(get().volume)
       }, NEEDLE_RETURN_MS) as unknown as number
     }
-    void audio.crossfade(options.crossfadeFile, seconds, options.holdSec ?? 0)
+    void audio.crossfade(options.crossfadeFile, seconds, options.holdSec ?? 0, options.crossfadeCurve)
     return
   }
 
@@ -1209,7 +1242,7 @@ function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
  * becomes the current one, so the error names the track the user chose rather
  * than leaving them on the previous one with a message about a different song.
  */
-function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
+function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false, onDeck = false) {
   const { order } = get()
   // ⚠️ Read BEFORE the cursor moves. What is leaving the deck is what decides
   // whether this is a blend or a record change, and one line further down it is
@@ -1220,9 +1253,9 @@ function playAt(set: Set, get: Get, nextCursor: number, naturalEnd = false) {
   // A Music-library song not played before is copied first. The cursor has
   // already moved (see above), so the screen names the song that is coming.
   if (track && whenPlayable(set, track, () => {
-    if (get().cursor === nextCursor) playPrepared(set, get, from, track, naturalEnd)
+    if (get().cursor === nextCursor) playPrepared(set, get, from, track, naturalEnd, onDeck)
   })) return
-  playPrepared(set, get, from, track, naturalEnd)
+  playPrepared(set, get, from, track, naturalEnd, onDeck)
 }
 
 /**
@@ -1238,6 +1271,8 @@ function playPrepared(
   from: ReturnType<typeof currentTrack>,
   track: Track | undefined,
   naturalEnd: boolean,
+  /** The new record is ALREADY on the deck — a swipe put it there. */
+  onDeck = false,
 ) {
   const file = track ? useLibraryStore.getState().fileFor(track) : null
   if (!file || !track) {
@@ -1248,7 +1283,23 @@ function playPrepared(
   publishNowPlaying(track)
   prefetchNext(get)
 
-  const plan = handoverFor(from, track)
+  const planned = handoverFor(from, track)
+  /**
+   * ⚠️ A SWIPE HAS ALREADY CHANGED THE RECORD, so this one must not change it
+   * again (James, 2026-09-13: "as soon as the next track is in position it
+   * should start spinning ready for the song").
+   *
+   * `DeckSwiper` carries the record across, holds a still picture of it in the
+   * middle, and only then moves the cursor. With `swap` left on, the player
+   * answered by running the whole record change over the top of that: 1.5s of
+   * `startBlend` sliding a record that was already there, and 620ms of settling
+   * after it — for all of which the deck was covered by the held picture, which
+   * does not turn. Two and a half seconds of a still record for a song the user
+   * had already asked for. `swap: false` leaves the picture alone: the pickup
+   * lifts and returns, the stand-in is released the moment the deck shows the
+   * new record, and it turns from the first frame.
+   */
+  const plan = onDeck ? { ...planned, swap: false } : planned
   // ⚠️ `naturalEnd` means the outgoing track has ALREADY finished, so there is
   // nothing left to fade out — ducking silence would only delay the next one,
   // and there is nothing left to crossfade WITH either. A blend that reaches
@@ -1261,6 +1312,12 @@ function playPrepared(
     duckFirst: !naturalEnd,
     crossfadeFile: file,
     crossfadeSec: plan.swap ? CROSSFADE.RECORD_MANUAL_SEC : CROSSFADE.MANUAL_SEC,
+    // ⚠️ EVERY CHANGE THAT REACHES HERE IS ONE SOMEBODY ASKED FOR — Next, a
+    // swipe, a tap in the queue — so the next song is heard AT ONCE rather
+    // than after the staggered silence the end-of-song blend uses. The natural
+    // crossfade does not come through this function; it runs from
+    // `maybeStartEarlyCrossfade`, which keeps the staggered shape.
+    crossfadeCurve: 'equal-power',
   })
 }
 

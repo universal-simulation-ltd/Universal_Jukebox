@@ -377,7 +377,24 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
  * in so it's less harsh"). Never two linear ramps: those dip in the middle, and
  * that dip is the seam a crossfade exists to hide.
  */
-export async function crossfade(file: SourceFile, seconds: number, holdSec = 0): Promise<void> {
+export async function crossfade(
+  file: SourceFile,
+  seconds: number,
+  holdSec = 0,
+  /**
+   * ⚠️ THE SHAPE IS NOT THE SAME FOR A SKIP AS FOR THE END OF A SONG.
+   *
+   * `staggered` holds the arriving song silent for the first quarter of the
+   * blend (`STAGGER` in `fadeCurve.ts`) — asked for, and right, when a song is
+   * ending on its own: nothing is waiting, and the two songs stop clashing in
+   * the middle. It is exactly wrong for a skip. Somebody who presses Next or
+   * swipes has asked for the next song NOW, and a quarter of a second of
+   * nothing followed by a slow rise reads as the app not having heard them
+   * (James, 2026-09-13: "if I swipe for next track it doesn't start playing for
+   * a while, I think it's linked to the crossfade").
+   */
+  curve: FadeCurve = 'staggered',
+): Promise<void> {
   // ⚠️ A CROSSFADE WITHOUT WORKING GAIN IS NOT A CROSSFADE, IT IS TWO TRACKS AT
   // ONCE. Every ramp below writes to `element.volume`; where that does nothing,
   // the overlap this function creates ON PURPOSE plays both records at full
@@ -439,11 +456,12 @@ export async function crossfade(file: SourceFile, seconds: number, holdSec = 0):
   // the rest of the time as the new one's music arrives.
   const hold = Math.max(0, Math.min(holdSec, seconds - 0.5))
   const blend = seconds - hold
-  // Staggered, not equal power (James, 2026-09-13): the song ending falls away
-  // first and the next rises after it, rather than both being loud together
-  // in the middle — see `fadeCurve.ts`.
-  rampTo(to, 1, blend, 'staggered')
-  rampTo(from, 0, blend, 'staggered', () => finishRetirement(), hold)
+  // Staggered by default (James, 2026-09-13): the song ending falls away first
+  // and the next rises after it, rather than both being loud together in the
+  // middle — see `fadeCurve.ts`. A skip passes `equal-power` instead; see the
+  // note on `curve` above.
+  rampTo(to, 1, blend, curve)
+  rampTo(from, 0, blend, curve, () => finishRetirement(), hold)
 }
 
 /** True while two tracks are genuinely overlapping. */
