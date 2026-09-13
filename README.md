@@ -779,7 +779,9 @@ should be. The FLAC and v2.4 fixtures both carry one, next to the real field.
 
 ## About this track
 
-A button beside **Show lyrics** on Now Playing. It opens what Wikipedia says
+A button at the top of Now Playing, under the song's title, artist and album,
+opening the panel right there (moved from beside **Show lyrics**, 2026-09-13).
+It opens what Wikipedia says
 about the song — who wrote it, whose it was first, how it charted — and about
 the artist, with their picture. The asking is `src/lib/aboutTrack.ts`, when it
 may ask is `stores/aboutStore.ts`, and the panel is `components/AboutTrack.tsx`.

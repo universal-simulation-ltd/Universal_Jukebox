@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { revealExpanded } from '@unisim/sdk'
 import { navigate } from '../lib/route'
 import type { WikiPage } from '../lib/aboutTrack'
 import { useAboutStore } from '../stores/aboutStore'
@@ -25,7 +24,7 @@ export default function AboutTrack() {
 
   if (!open || !track) return null
   return (
-    <section id="jb-about" className="mt-10">
+    <section className="mt-4 text-left">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
           About this track
@@ -37,7 +36,15 @@ export default function AboutTrack() {
   )
 }
 
-/** The way in, beside "Show lyrics" on Now Playing. */
+/**
+ * The way in: under the song's title, artist and album, at the top of Now
+ * Playing — the panel opens right under it.
+ *
+ * ⚠️ `NowPlaying` draws the song's details twice (above the deck on a phone,
+ * beside it from `lg`), one hidden by CSS, so this and the panel are mounted
+ * twice. Harmless — they share one store, and `load` asks once per track —
+ * but it is why nothing here carries an `id`.
+ */
 export function AboutToggle() {
   const open = useAboutStore((s) => s.open)
   const setOpen = useAboutStore((s) => s.setOpen)
@@ -50,12 +57,6 @@ export function AboutToggle() {
         // on the deck's screen is not that click.
         e.stopPropagation()
         setOpen(!open)
-        if (!open) {
-          requestAnimationFrame(() => {
-            const panel = document.getElementById('jb-about')
-            if (panel) revealExpanded(panel, null)
-          })
-        }
       }}
       className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
     >

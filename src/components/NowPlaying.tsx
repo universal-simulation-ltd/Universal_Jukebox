@@ -150,6 +150,15 @@ export default function NowPlaying() {
             )}
           </div>
         )}
+        {/* About this track, at the top under the song (James, 2026-09-13:
+            "show about this track at the top under the track details"), and
+            it opens right here. OUTSIDE the countdown's branch, so the button
+            is there during the 2, 1 as well — otherwise everything below it
+            would jump when the count gave way to the title. */}
+        <div className="mt-3 flex justify-center lg:justify-start">
+          <AboutToggle />
+        </div>
+        <AboutTrack />
     </>
   )
 
@@ -207,7 +216,6 @@ export default function NowPlaying() {
 
         <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
           <LyricsToggle />
-          <AboutToggle />
         </div>
         {/* This song, onto a Jukebox shelf. */}
         <div className="mt-3 flex justify-center lg:justify-start">
@@ -224,8 +232,6 @@ export default function NowPlaying() {
     {/* The words, directly under the deck and above everything about what
         comes NEXT — because they are about the track that is on. */}
     <Lyrics />
-    {/* What Wikipedia says about the song and the artist — `AboutTrack`. */}
-    <AboutTrack />
     {/* The records waiting their turn, as pictures. Between the stage and the
         list on purpose: it belongs to the deck (it is the same medium, in the
         order it will go on) and it introduces the queue underneath, which is
