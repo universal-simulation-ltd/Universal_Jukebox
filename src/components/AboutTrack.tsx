@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../lib/route'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
+import { scrollToTop } from '../lib/scrollTop'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { WikiPage } from '../lib/aboutTrack'
 import { useAboutStore } from '../stores/aboutStore'
@@ -86,8 +87,15 @@ export function AboutToggle() {
         // The ceremony is skipped by any click on the page (App.tsx); a button
         // on the deck's screen is not that click.
         e.stopPropagation()
-        if (!open) revealing.current = true
-        setOpen(!open)
+        if (open) {
+          setOpen(false)
+          // Back up to the record, as "Hide lyrics" does (James, 2026-09-13:
+          // "when closing 'i' scroll back to top").
+          scrollToTop()
+          return
+        }
+        revealing.current = true
+        setOpen(true)
       }}
       className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
         open
