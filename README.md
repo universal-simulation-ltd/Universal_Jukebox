@@ -55,7 +55,8 @@ real standard rather than an excuse, and the feature had to meet it.
 The app menu has one row for all of it, **Your complete library · N songs**
 (James, 2026-09-13), which opens in place to list every folder with its own
 song count and **Remove**, then **Add tracks…**, **Add a folder…**, **Rescan**
-and, on the iPhone, **Refresh my Music library**. Only what each platform can
+and, on the iPhone, **Refresh my phone’s Music Library** (*my iPad’s* on an
+iPad). Only what each platform can
 really do is offered, under a label that says it: in the phone apps "add a
 folder" **replaces** the one folder (`chooseNativeFolder` — one native root),
 so it reads **Use a different folder…** there, and **Add tracks…** appears only

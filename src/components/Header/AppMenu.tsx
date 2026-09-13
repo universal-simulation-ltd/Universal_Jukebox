@@ -184,7 +184,9 @@ export default function AppMenu() {
                   onClick={() => void importMusicLibrary()}
                   title="The songs synced to this iPhone from your computer, as they are in the Music app"
                 >
-                  {hasMusicRoot ? 'Refresh my Music library' : 'Add my Music library…'}
+                  {/* Whose library, said (James, 2026-09-13: "Change it to
+                      'Refresh my phone's Music Library'") — an iPad's on an iPad. */}
+                  {hasMusicRoot ? `Refresh my ${deviceWord()}’s Music Library` : `Add my ${deviceWord()}’s Music Library…`}
                 </Row>
               )}
             </div>
@@ -256,4 +258,16 @@ function Row({
 
 function Divider() {
   return <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+}
+
+/**
+ * "phone", or "iPad" on an iPad — whose Music Library the row is about. Only
+ * ever asked where there is one (`hasMusicLibrary`: the iPhone and iPad apps).
+ * An iPad reports itself as a Mac with a touch screen since iPadOS 13, hence
+ * the second test — the same one `mediaSession.ts` uses.
+ */
+function deviceWord(): 'phone' | 'iPad' {
+  if (typeof navigator === 'undefined') return 'phone'
+  const iPad = /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  return iPad ? 'iPad' : 'phone'
 }
