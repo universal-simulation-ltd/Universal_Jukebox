@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { activeLine } from '../lib/lyrics'
+import { countIn } from '../lib/countIn'
 import { nextSungLine } from '../lib/singing'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -92,6 +93,8 @@ export default function LyricsAround({ size }: { size: number }) {
   const now = lines[active]?.text.trim() ? lines[active].text.trim() : ''
   const nextIndex = nextSungLine(lines, active)
   const next = nextIndex >= 0 ? lines[nextIndex].text.trim() : ''
+  // 3, 2, 1 in front of the waiting line before it goes up top — see `countIn`.
+  const count = countIn(lines, active, nextIndex, currentSec)
   const box = size + 140
   const c = box / 2
   const topR = size / 2 + 12
@@ -127,8 +130,19 @@ export default function LyricsAround({ size }: { size: number }) {
         </text>
       )}
       {next && (
-        <text key={`next-${nextIndex}`} className="fill-slate-500 dark:fill-slate-400" style={{ fontSize: bottomFont, opacity: 0.6, animation: reduced ? undefined : 'jb-lyric-in 450ms ease-out both' }}>
+        <text
+          key={`next-${nextIndex}`}
+          className="fill-slate-500 dark:fill-slate-400"
+          // A little brighter while it counts in: it is about to be the line.
+          style={{ fontSize: bottomFont, opacity: count !== null ? 0.85 : 0.6, animation: reduced ? undefined : 'jb-lyric-in 450ms ease-out both' }}
+        >
           <textPath href="#jb-arc-bottom" startOffset="50%" textAnchor="middle">
+            {count !== null && (
+              <tspan className="fill-orange-600 font-bold dark:fill-orange-400">
+                {count}
+                {' '}
+              </tspan>
+            )}
             {next}
           </textPath>
         </text>

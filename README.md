@@ -52,10 +52,17 @@ Each of these is named on screen with a sentence.
 it, and this section said at length why that was right; the reason it gave was a
 real standard rather than an excuse, and the feature had to meet it.
 
-The app menu lists every folder with its own track count, **Rescan** and
-**Remove**, plus **Add a folder…**. Removing one takes its tracks and leaves the
-others untouched. Rescanning one is a replacement *of that folder*, so an album
-you deleted on disk disappears and a renamed file does not turn up twice.
+The app menu has one row for all of it, **Your complete library · N songs**
+(James, 2026-09-13), which opens in place to list every folder with its own
+song count and **Remove**, then **Add tracks…**, **Add a folder…**, **Rescan**
+and, on the iPhone, **Refresh my Music library**. Only what each platform can
+really do is offered, under a label that says it: in the phone apps "add a
+folder" **replaces** the one folder (`chooseNativeFolder` — one native root),
+so it reads **Use a different folder…** there, and **Add tracks…** appears only
+where picked songs are copied in and kept. Removing a folder takes its tracks
+and leaves the others untouched. Rescanning is a replacement *of each folder*,
+so an album you deleted on disk disappears and a renamed file does not turn up
+twice.
 
 ### ⚠️ The path collision that blocked it for a day
 
@@ -830,8 +837,9 @@ nothing here is a form.
 
 Two rows **do** something rather than set it: **Tidy up library** (under *Your
 library*) and **Show the tips again** (under *Appearance*, beside the theme).
-Both moved out of the Actions menu on 2026-09-11, which now holds only the
-library's folders, Settings and About.
+Both moved out of the Actions menu on 2026-09-11, which now holds only **Your
+complete library** (opening to its folders and what you can do to them),
+Settings and About.
 
 **Adding one** should be a field and a default in `stores/settingsStore.ts` plus
 one `<Choice>` / `<Slider>` / `<Toggle>` in `components/Settings.tsx`. The page
@@ -980,9 +988,15 @@ things follow that are easy to get wrong:
 - **The graph captures BOTH elements in one go.** `createMediaElementSource` is
   once-per-element and permanent, so a graph built over only the active deck
   would silence the app the first time the other one took over.
-- **The two halves of a crossfade are equal-power (√), not linear.** Two linear
-  ramps crossing dip audibly in the middle — which is the seam the crossfade
-  exists to hide.
+- **The two halves of a crossfade are a staggered pair, not linear.** Two
+  linear ramps crossing dip audibly in the middle, which is the seam the
+  crossfade exists to hide. The pair was equal power (sin rising, cos falling)
+  until 2026-09-13, when James found two songs at 71% together harsh: *"first
+  track goes more quiet until the second track kicks in"*. Now the arriving
+  song is silent for the first quarter of the blend, the leaving one is gone by
+  three quarters, and half-way each is at half (`fadeCurve.ts`). A next song
+  with a quiet start is still covered by the intro hold, which keeps the song
+  ending at full until the new one's music begins.
 
 Fade in / fade out are still linear, because a fade to or from silence has
 nothing on the other side of it.

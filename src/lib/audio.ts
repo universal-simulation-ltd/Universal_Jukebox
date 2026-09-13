@@ -370,10 +370,12 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
  * The retiring deck goes on making sound for another `seconds` and is ignored
  * by all of them.
  *
- * ⚠️ Equal-power (√) rather than linear on BOTH sides. Two linear ramps crossing
- * dip audibly in the middle — the sum of two half-volume signals is not a
- * full-volume one — and that dip is exactly the seam a crossfade exists to
- * hide. See `rampTo`, which takes the curve.
+ * ⚠️ The two ramps are a PAIR, shaped in `fadeCurve.ts`: `staggered` since
+ * 2026-09-13, so the song ending falls away first and the next comes up after
+ * it — each at half, half-way — instead of equal power's two songs at 71%
+ * together (James: "first track goes more quiet until the second track kicks
+ * in so it's less harsh"). Never two linear ramps: those dip in the middle, and
+ * that dip is the seam a crossfade exists to hide.
  */
 export async function crossfade(file: SourceFile, seconds: number, holdSec = 0): Promise<void> {
   // ⚠️ A CROSSFADE WITHOUT WORKING GAIN IS NOT A CROSSFADE, IT IS TWO TRACKS AT
@@ -437,8 +439,11 @@ export async function crossfade(file: SourceFile, seconds: number, holdSec = 0):
   // the rest of the time as the new one's music arrives.
   const hold = Math.max(0, Math.min(holdSec, seconds - 0.5))
   const blend = seconds - hold
-  rampTo(to, 1, blend, 'equal-power')
-  rampTo(from, 0, blend, 'equal-power', () => finishRetirement(), hold)
+  // Staggered, not equal power (James, 2026-09-13): the song ending falls away
+  // first and the next rises after it, rather than both being loud together
+  // in the middle — see `fadeCurve.ts`.
+  rampTo(to, 1, blend, 'staggered')
+  rampTo(from, 0, blend, 'staggered', () => finishRetirement(), hold)
 }
 
 /** True while two tracks are genuinely overlapping. */

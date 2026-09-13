@@ -36,3 +36,36 @@ describe('fadeLevel', () => {
     expect(fadeLevel(0, 1, -1, 'equal-power')).toBeCloseTo(0)
   })
 })
+
+// The crossfade's own pair since 2026-09-13 (James: "first track goes more
+// quiet until the second track kicks in so it's less harsh").
+describe('staggered', () => {
+  it('starts and ends where it is told, both ways', () => {
+    expect(fadeLevel(0, 1, 0, 'staggered')).toBeCloseTo(0)
+    expect(fadeLevel(0, 1, 1, 'staggered')).toBeCloseTo(1)
+    expect(fadeLevel(1, 0, 0, 'staggered')).toBeCloseTo(1)
+    expect(fadeLevel(1, 0, 1, 'staggered')).toBeCloseTo(0)
+  })
+
+  it('the next song is not heard until a quarter of the way in', () => {
+    expect(fadeLevel(0, 1, 0.2, 'staggered')).toBe(0)
+    expect(fadeLevel(0, 1, 0.3, 'staggered')).toBeGreaterThan(0)
+  })
+
+  it('the song ending is gone by three quarters of the way', () => {
+    expect(fadeLevel(1, 0, 0.75, 'staggered')).toBeCloseTo(0, 6)
+    expect(fadeLevel(1, 0, 0.9, 'staggered')).toBeCloseTo(0, 6)
+  })
+
+  it('half-way, each is at half — quieter together than equal power’s 71%', () => {
+    expect(fadeLevel(1, 0, 0.5, 'staggered')).toBeCloseTo(0.5, 6)
+    expect(fadeLevel(0, 1, 0.5, 'staggered')).toBeCloseTo(0.5, 6)
+    expect(fadeLevel(1, 0, 0.5, 'staggered')).toBeLessThan(fadeLevel(1, 0, 0.5, 'equal-power'))
+  })
+
+  it('never leaves a hole: one of the two is always well up', () => {
+    for (let t = 0; t <= 1; t += 0.05) {
+      expect(Math.max(fadeLevel(0, 1, t, 'staggered'), fadeLevel(1, 0, t, 'staggered'))).toBeGreaterThanOrEqual(0.5 - 1e-9)
+    }
+  })
+})
