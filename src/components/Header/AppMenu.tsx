@@ -6,7 +6,7 @@ import { navigate } from '../../lib/route'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
 import { hasMusicLibrary } from '../../lib/appleMusic'
 import { hasNativeImporter } from '../../lib/nativeImport'
-import { usePageLockWhileShown } from '../../lib/pageScrollLock'
+import { useWhenPanelHides } from '../../lib/whenPanelHides'
 import { useCloseAppMenu } from '@unisim/sdk'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
@@ -66,12 +66,12 @@ export default function AppMenu() {
   const folderInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
-  // While the menu is showing, a scroll on it never moves the page behind
-  // (James, 2026-09-13) — see `lib/pageScrollLock.ts`. And the library row is
-  // shut again as the menu is put away: the SDK keeps this component mounted
-  // while the menu is closed, so `open` would otherwise outlive it.
+  // The library row is shut again as the menu is put away: the SDK keeps this
+  // component mounted while the menu is closed, so `open` would otherwise
+  // outlive it. (A scroll on the menu no longer moves the page behind — the
+  // SDK's own panel does that since 0.141.4; see `lib/whenPanelHides.ts`.)
   const menu = useRef<HTMLDivElement>(null)
-  usePageLockWhileShown(menu, () => setOpen(false))
+  useWhenPanelHides(menu, () => setOpen(false))
 
   const hasLibrary = status === 'ready'
   // ⚠️ Is the library reading a folder somebody CHOSE (a non-empty
