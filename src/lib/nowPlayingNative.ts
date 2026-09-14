@@ -108,6 +108,8 @@ export async function showOnLockScreen(
     if (mode === 'own') {
       await plugin!.update({ elapsed: latest.elapsed, duration: latest.duration, rate: latest.playing ? 1 : 0 })
     }
+    // …and go on saying it for the rest of the change-over — see `RESTATE_MS`.
+    restateUntil = performance.now() + RESTATE_MS
   } catch (error) {
     report = `failed: ${error instanceof Error ? error.message : String(error)}`
   }
@@ -142,16 +144,46 @@ export async function clearLockScreen(): Promise<void> {
 let sent = { playing: false, at: 0, sec: 0, duration: 0 }
 
 /**
+ * How long after a new entry goes out the state is re-stated on EVERY tick,
+ * whether or not anything about it changed.
+ *
+ * ⚠️ WE ARE NOT THE ONLY WRITER OF THIS ENTRY, AND A TRACK CHANGE IS WHEN THAT
+ * SHOWS. WebKit publishes its own now-playing entry for the page's `<audio>`
+ * into the same `MPNowPlayingInfoCenter` the plugin writes to, and `own` mode
+ * is decided by ONE look at that centre during the first countdown — before
+ * anything has played, so before WebKit has written anything there. From then
+ * on both write to it. Across a change-over WebKit's write is the one that says
+ * PAUSED: the outgoing element is re-sourced, or faded out and stopped, while
+ * the new one starts.
+ *
+ * `followProgress` had nothing left to say by then. It speaks only when
+ * playback CHANGED, and a change-over need not change it at all — the player's
+ * `playing` stays true right through a crossfade, and through a record change
+ * with the screen locked (`audio.ts` carries a hidden page's pause rather than
+ * reporting it). So the last word was WebKit's, and ▶ stood over a playing song
+ * until the next real pause — pressing next on the lock screen changed the
+ * track and left the play button showing (James, 2026-09-14).
+ *
+ * Long enough to outlast the longest change-over: a record crossfade is 1.5s
+ * from the press, and a record change lifts the pickup for 420ms before the
+ * next file is even loaded.
+ */
+const RESTATE_MS = 3000
+let restateUntil = 0
+
+/**
  * Keep an `own` entry's progress honest. iOS runs the clock itself from the
  * last elapsed time and rate, so this only speaks when that clock would be
- * wrong: play or pause, a new duration, or a jump (a seek) of over two seconds.
+ * wrong: play or pause, a new duration, a jump (a seek) of over two seconds —
+ * or a change-over just happened and the entry is being defended (`RESTATE_MS`).
  */
 export function followProgress(playing: boolean, sec: number, duration: number): void {
   if (mode !== 'own' || !plugin) return
   const now = performance.now()
   const expected = sent.playing ? sent.sec + (now - sent.at) / 1000 : sent.sec
   const jumped = Math.abs(sec - expected) > 2
-  if (playing === sent.playing && duration === sent.duration && !jumped) return
+  const restating = now < restateUntil
+  if (!restating && playing === sent.playing && duration === sent.duration && !jumped) return
   sent = { playing, at: now, sec, duration }
   void plugin.update({ elapsed: sec, duration, rate: playing ? 1 : 0 }).catch(() => {})
 }

@@ -39,6 +39,23 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
     private var keeper: Timer?
     private var commandsOn = false
 
+    /// The key whose IDENTITY says whether the entry on screen is still ours.
+    ///
+    /// ⚠️ An OBJECT WE MADE, never a string. WebKit's entry carries the same
+    /// title as ours — the page hands it the same `MediaMetadata` — so a title
+    /// that matches proves nothing about who wrote the dictionary. The artwork
+    /// is ours alone, and a dictionary we did not write holds a different one
+    /// or none at all.
+    private var sentinel: String?
+
+    /// What was last published in `own` mode, and when — so a re-apply after
+    /// something else overwrote the entry can advance the clock rather than
+    /// putting the progress bar back where it was a second ago.
+    private var sentRate: Double = 0
+    private var sentElapsed: Double = 0
+    private var sentDuration: Double = 0
+    private var sentAt = Date()
+
     /// Headphones in or out, and interruptions, for the page's saved log
     /// (James, 2026-09-11: "still random issues with the lockscreen controls -
     /// not sure if it was when i put headphone in"). OBSERVED only: this app
@@ -131,13 +148,20 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             }
 
             self.ours = info
+            // `own` always has artwork of its own; `merge` adds nothing but the
+            // animated artwork, so that is the only thing there is to watch.
+            if self.mode == .own {
+                self.sentinel = MPMediaItemPropertyArtwork
+            } else {
+                self.sentinel = animated ? supported.first : nil
+            }
             self.apply()
             if self.mode == .own {
+                self.remember(elapsed: elapsed, duration: duration, rate: rate)
                 self.enableCommands()
                 if #available(iOS 13.0, *) { center.playbackState = rate > 0 ? .playing : .paused }
-            } else {
-                self.keepMerged()
             }
+            self.keep()
             call.resolve(["animated": animated, "supportedKeys": supported, "mode": self.mode.rawValue])
         }
     }
@@ -151,6 +175,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             self.ours[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
             self.ours[MPNowPlayingInfoPropertyPlaybackRate] = rate
             if duration > 0 { self.ours[MPMediaItemPropertyPlaybackDuration] = duration }
+            self.remember(elapsed: elapsed, duration: duration, rate: rate)
             self.apply()
             if #available(iOS 13.0, *) {
                 MPNowPlayingInfoCenter.default().playbackState = rate > 0 ? .playing : .paused
@@ -170,6 +195,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = info
             }
             self.ours = [:]
+            self.sentinel = nil
             call.resolve()
         }
     }
@@ -182,14 +208,55 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         center.nowPlayingInfo = info
     }
 
-    /// WebKit rewrites its whole dictionary on its own updates, dropping ours.
-    private func keepMerged() {
+    /// What was last sent, for a re-apply that has to guess the clock.
+    private func remember(elapsed: Double, duration: Double, rate: Double) {
+        sentElapsed = elapsed
+        sentRate = rate
+        if duration > 0 { sentDuration = duration }
+        sentAt = Date()
+    }
+
+    /// Where playback would be now, running iOS's own clock forward from the
+    /// last thing the page told us.
+    private func elapsedNow() -> Double {
+        guard sentRate > 0 else { return sentElapsed }
+        let run = sentElapsed + Date().timeIntervalSince(sentAt) * sentRate
+        return sentDuration > 0 ? min(run, sentDuration) : run
+    }
+
+    /// Put our entry back when something else has written over it.
+    ///
+    /// ⚠️ BOTH MODES NEED THIS, and for the same reason — WebKit rewrites its
+    /// whole dictionary on its own updates, dropping ours. `merge` has had a
+    /// keeper since the mode existed; `own` had none, on the assumption that
+    /// WebKit publishes somewhere else. That assumption is only as good as the
+    /// ONE look `show` takes: the first entry goes out during the countdown,
+    /// before a note has played and so before WebKit has published anything at
+    /// all, which is precisely when the centre looks empty and `own` is chosen.
+    /// WebKit then starts writing to the same centre, and its write at a track
+    /// change says paused — so the lock screen kept the play button over a song
+    /// that was playing, and the animated artwork went with the dictionary it
+    /// was dropped from (James, 2026-09-14).
+    ///
+    /// `playbackState` is checked separately: it is a property of the centre
+    /// rather than of the dictionary, so it can be wrong on its own.
+    private func keep() {
         keeper?.invalidate()
-        guard !ours.isEmpty else { return }
+        guard !ours.isEmpty, let key = sentinel else { return }
         keeper = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
-            guard let self = self, let key = self.ours.keys.first else { return }
-            let current = MPNowPlayingInfoCenter.default().nowPlayingInfo?[key] as AnyObject?
-            if current !== (self.ours[key] as AnyObject?) { self.apply() }
+            guard let self = self, !self.ours.isEmpty else { return }
+            let center = MPNowPlayingInfoCenter.default()
+            if (center.nowPlayingInfo?[key] as AnyObject?) !== (self.ours[key] as AnyObject?) {
+                // Not where the page last said it was — where it would have got
+                // to since, or the bar jumps backwards on every rescue.
+                if self.mode == .own { self.ours[MPNowPlayingInfoPropertyElapsedPlaybackTime] = self.elapsedNow() }
+                self.apply()
+            }
+            guard self.mode == .own else { return }
+            if #available(iOS 13.0, *) {
+                let wanted: MPNowPlayingPlaybackState = self.sentRate > 0 ? .playing : .paused
+                if center.playbackState != wanted { center.playbackState = wanted }
+            }
         }
     }
 
