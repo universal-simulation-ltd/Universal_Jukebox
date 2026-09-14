@@ -33,7 +33,7 @@ export default function Landing() {
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
   const loadExample = useLibraryStore((s) => s.loadExample)
   const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
-  const chooseNativeFolder = useLibraryStore((s) => s.chooseNativeFolder)
+  const addNativeFolder = useLibraryStore((s) => s.addNativeFolder)
   const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
   const importProgress = useLibraryStore((s) => s.importProgress)
   const folderInput = useRef<HTMLInputElement>(null)
@@ -100,7 +100,7 @@ export default function Landing() {
       hint: own
         ? 'iCloud Drive, On My iPhone, a connected drive — the app keeps permission to read it, so your library is still here next time.'
         : 'Pick the folder your music is in — usually Music. Sub-folders are fine, and the app keeps permission to read it.',
-      act: () => void chooseNativeFolder(),
+      act: () => void addNativeFolder(),
     })
   } else if (!native) {
     sources.push({

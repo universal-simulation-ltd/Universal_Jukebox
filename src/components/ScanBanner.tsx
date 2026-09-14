@@ -172,11 +172,15 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               // which silently does nothing, on the one screen whose entire job
               // is to get a broken library working again.
               //
-              // The folder itself can never be unreachable here: it is the app's
-              // own Documents directory. Tracks go missing only because the
-              // files were deleted or moved in the Files app, and the honest fix
-              // for that is a rescan, not a permission.
+              // The app's OWN folder (`nativePath === ''`) can never be
+              // unreachable: tracks go missing from it only because the files
+              // were deleted or moved in the Files app, and the honest fix is a
+              // rescan. A CHOSEN phone folder can be — moved, renamed, access
+              // withdrawn — and its Rescan opens the picker if it cannot be
+              // read, so it says so. One row per folder: with several phone
+              // folders, only the one that lapsed is named.
               const isNative = folderAccess(root) === 'rescan'
+              const isChosen = isNative && !!root.nativePath
               // Grouped, the shared half of each sentence is already in the
               // heading, so a row says only what is true of THIS folder.
               const grouped = stranded.length > 1
@@ -184,7 +188,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
                 <li key={root.id} className="flex flex-wrap items-center gap-3">
                   <p className="min-w-0 flex-1">
                     <strong className="font-semibold">{root.label}</strong>
-                    {isNative
+                    {isChosen
+                      ? ' can’t be read right now — it may have been moved or renamed, or access to it withdrawn. Rescanning reads it again, and asks you to choose it if it can’t be found.'
+                      : isNative
                       ? ' lists tracks that aren’t in the music folder any more. Rescanning will bring the library back in line with what’s actually there.'
                       : canReopen
                       ? grouped

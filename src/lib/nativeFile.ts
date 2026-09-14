@@ -249,8 +249,9 @@ export const NATIVE_ROOT_LABEL = 'Music'
  * The music folder's path, relative to the Documents directory it IS.
  *
  * ⚠️ Empty, and that is a value rather than an absence — `Root.nativePath` is
- * what marks the one native root, and it is tested with `!= null` for exactly
- * this reason. Never tighten that to a truthiness check.
+ * what marks a native root (there can be several since 2026-09-14; this one is
+ * the app's OWN folder), and it is tested with `!= null` for exactly this
+ * reason. Never tighten that to a truthiness check.
  */
 export const NATIVE_ROOT_PATH = ''
 
@@ -329,26 +330,37 @@ export const MUSIC_FOLDER_PLUGIN = 'JukeboxMusicFolder'
  * `MusicFolderPlugin.java`; another platform's needs these three and nothing
  * else.
  *
- * - `pick()` opens the system folder picker and KEEPS the grant (Android:
- *   `takePersistableUriPermission`). Resolves `{ uri, name }`, or
- *   `{ cancelled: true }` when backed out of — never a rejection for that.
- *   `uri` is an opaque string the library stores as `Root.nativePath` in
- *   IndexedDB and hands back to `walk` on every launch; this module never
- *   parses it.
+ * - `pick({ startInOwnFolder })` opens the system folder picker and KEEPS the
+ *   grant (Android: `takePersistableUriPermission`; iOS: a security-scoped
+ *   bookmark). Resolves `{ uri, name }`, or `{ cancelled: true }` when backed
+ *   out of — never a rejection for that. `uri` is an opaque string the library
+ *   stores as `Root.nativePath` in IndexedDB and hands back to `walk` on every
+ *   launch; this module never parses it. ⚠️ `uri: ''` means the person picked
+ *   the app's OWN folder (iOS), which needs no grant and is walked by
+ *   `readdir` — the plugin says so rather than handing back a second name for a
+ *   folder the library may already read. `startInOwnFolder` is a hint (iOS
+ *   only) for where the picker opens.
  * - `walk({ uri })` lists every file under it as `NativeEntry`s — `path`
  *   relative to the folder, and an entry `uri` that `Capacitor.convertFileSrc`
  *   can serve with range reads, since scanning and playback both go through the
  *   local server. It REJECTS when the folder can no longer be reached, rather
  *   than resolving `[]`.
  * - `release({ uri })` drops a grant the library no longer uses.
+ *
+ * ⚠️ ONE GRANT PER URI, AND AS MANY URIS AS THERE ARE FOLDERS (2026-09-14). The
+ * library can hold several chosen folders, each its own root; both plugins
+ * already kept their grants keyed by uri, so a second `pick` adds a grant and
+ * never disturbs the first. `release` is called only for a uri no root reads
+ * any more (`unusedGrants` in `lib/roots.ts`).
  */
 interface MusicFolderPlugin {
-  pick(): Promise<{ uri?: string; name?: string; cancelled?: boolean }>
+  pick(options?: { startInOwnFolder?: boolean }): Promise<{ uri?: string; name?: string; cancelled?: boolean }>
   walk(options: { uri: string }): Promise<{ files: NativeEntry[] }>
   release(options: { uri: string }): Promise<void>
 }
 
 let musicFolder: MusicFolderPlugin | null = null
+let musicFolderLoading: Promise<void> | null = null
 
 /**
  * Register the app-local plugin, once.
@@ -359,27 +371,57 @@ let musicFolder: MusicFolderPlugin | null = null
  * a promise WITH it makes the promise machinery call a native method named
  * "then", which never answers. An `async` function that returns the plugin is
  * exactly that.
+ *
+ * ⚠️ The LOAD is shared, not just its result (2026-09-14). Launch walks every
+ * phone folder at once, and each walk used to start its own import and its own
+ * `registerPlugin` — which Capacitor answers with "already registered" for all
+ * but the first.
  */
-async function loadMusicFolder(): Promise<void> {
-  if (musicFolder) return
-  const { registerPlugin } = await import('@capacitor/core')
-  musicFolder = registerPlugin<MusicFolderPlugin>(MUSIC_FOLDER_PLUGIN)
+function loadMusicFolder(): Promise<void> {
+  musicFolderLoading ??= (async () => {
+    const { registerPlugin } = await import('@capacitor/core')
+    musicFolder = registerPlugin<MusicFolderPlugin>(MUSIC_FOLDER_PLUGIN)
+  })().catch((err: unknown) => {
+    // Not remembered: the next call tries again rather than failing forever.
+    musicFolderLoading = null
+    throw err
+  })
+  return musicFolderLoading
 }
 
-/** Ask for the music folder. `null` when the picker was backed out of. */
-export async function pickNativeMusicFolder(): Promise<{ uri: string; name: string } | null> {
+/**
+ * Ask for a music folder. `null` when the picker was backed out of.
+ *
+ * `{ uri: '' }` is the app's own folder, picked through the picker (iOS) — see
+ * `MusicFolderPlugin` above. It is named like the own folder always has been, so
+ * picking it is the same root as scanning it from the landing page.
+ *
+ * `startInOwnFolder`: open the picker IN the app's own folder (iOS). Worth it
+ * only while the library does not read that folder already — once it does,
+ * starting there invites picking one of its own sub-folders, which would file
+ * the same songs a second time.
+ */
+export async function pickNativeMusicFolder(
+  options: { startInOwnFolder?: boolean } = {},
+): Promise<{ uri: string; name: string } | null> {
   await loadMusicFolder()
-  const picked = await musicFolder!.pick()
-  if (picked.cancelled || !picked.uri) return null
+  const picked = await musicFolder!.pick({ startInOwnFolder: options.startInOwnFolder ?? true })
+  if (picked.cancelled || picked.uri == null) return null
+  if (picked.uri === NATIVE_ROOT_PATH) {
+    // Only where there IS an own folder. Anywhere else an empty uri is a plugin
+    // fault, and "nothing chosen" is the honest reading of it.
+    return hasOwnMusicFolder() ? { uri: NATIVE_ROOT_PATH, name: NATIVE_ROOT_LABEL } : null
+  }
   return { uri: picked.uri, name: picked.name || NATIVE_ROOT_LABEL }
 }
 
 /**
  * Give back the grant on a folder the library no longer reads.
  *
- * Android caps how many a single app may hold, so choosing a different folder
- * lets go of the old one rather than collecting them. Never throws: a grant
- * that could not be released is untidy, not broken.
+ * Android caps how many a single app may hold, so removing a folder lets go of
+ * its grant rather than collecting them. Only ever called for a uri no root
+ * uses (`unusedGrants`). Never throws: a grant that could not be released is
+ * untidy, not broken.
  */
 export async function releaseNativeMusicFolder(uri: string): Promise<void> {
   try {

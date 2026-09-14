@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { trackKey } from './keys'
 import {
-  addScan, folderAccess, isFolderNamed, pathUnder, prefixOf, removeRoot, rootOf, rootsNeedingAccess,
-  trackCountFor, uniqueLabel,
+  addScan, folderAccess, isFolderNamed, nativeRoots, pathUnder, planNativePick, prefixOf, removeRoot, rootOf,
+  rootsNeedingAccess, trackCountFor, uniqueLabel, unusedGrants,
 } from './roots'
 import type { Album, Root, Track } from './types'
 
@@ -254,6 +254,92 @@ describe('recognising a folder chosen again', () => {
     expect(isFolderNamed(root('Music'), 'Podcasts')).toBe(false)
     expect(isFolderNamed(root('Music (2)'), 'Mus')).toBe(false)
     expect(isFolderNamed(root('Music (live)'), 'Music')).toBe(false)
+  })
+})
+
+// ── The phone apps' folders — several since 2026-09-14 ───────────────────────
+
+describe('naming a second folder with a name already taken — KEEP BOTH (James)', () => {
+  it('adds a second "Music" as "Music (2)" rather than refreshing the first', () => {
+    // Two folders can share a name without being one folder: the laptop's
+    // Music and the USB stick's. Filing the second under the first's prefix
+    // would silently swap one library for the other.
+    expect(uniqueLabel('Music', ['Music'])).toBe('Music (2)')
+  })
+})
+
+describe('what picking a folder on the phone does', () => {
+  const own = root('Music', { nativePath: '' })
+  const usb = root('Albums', { nativePath: 'content://tree/usb' })
+
+  it('rescans a folder that is already in the library — the same uri is the same folder', () => {
+    const plan = planNativePick([own, usb], { uri: 'content://tree/usb', name: 'Albums' })
+    expect(plan).toEqual({ kind: 'rescan', root: usb })
+  })
+
+  it('knows the app’s own folder when it is picked through the picker', () => {
+    // iOS answers `''` for its own folder, so picking it cannot file the same
+    // songs a second time under "Documents".
+    expect(planNativePick([own], { uri: '', name: 'Music' })).toEqual({ kind: 'rescan', root: own })
+  })
+
+  it('ADDS a different folder — even one with a name already taken', () => {
+    expect(planNativePick([own, usb], { uri: 'content://tree/sd', name: 'Albums' })).toEqual({ kind: 'add' })
+    expect(planNativePick([own], { uri: 'content://tree/other', name: 'Music' })).toEqual({ kind: 'add' })
+  })
+
+  it('re-points a lost folder chosen again under its own name, keeping the root', () => {
+    const plan = planNativePick([own, usb], { uri: 'content://tree/usb-moved', name: 'Albums' }, 'Albums')
+    expect(plan).toEqual({ kind: 'refile', root: usb })
+  })
+
+  it('re-points "Music (2)" when a folder called Music is chosen for it', () => {
+    const second = root('Music (2)', { nativePath: 'content://tree/old' })
+    const plan = planNativePick([own, second], { uri: 'content://tree/new', name: 'Music' }, 'Music (2)')
+    expect(plan).toEqual({ kind: 'refile', root: second })
+  })
+
+  it('adds, rather than re-points, when the folder chosen for a lost one has another name', () => {
+    const plan = planNativePick([own, usb], { uri: 'content://tree/podcasts', name: 'Podcasts' }, 'Albums')
+    expect(plan).toEqual({ kind: 'add' })
+  })
+
+  it('never re-points the app’s own folder, which cannot be lost', () => {
+    const plan = planNativePick([own], { uri: 'content://tree/music', name: 'Music' }, 'Music')
+    expect(plan).toEqual({ kind: 'add' })
+  })
+
+  it('lists only the roots the phone walks', () => {
+    const web = root('Web')
+    const music = root('music-library', { nativePath: null, source: 'music-library' })
+    expect(nativeRoots([web, own, music, usb]).map((r) => r.id)).toEqual(['Music', 'Albums'])
+  })
+})
+
+describe('which folder grants to give back', () => {
+  const a = root('A', { nativePath: 'content://tree/a' })
+  const b = root('B', { nativePath: 'content://tree/b' })
+
+  it('gives back a grant no root reads any more', () => {
+    expect(unusedGrants([a], ['content://tree/b'])).toEqual(['content://tree/b'])
+  })
+
+  // ⚠️ The plugin holds ONE grant per uri, so giving back one another root
+  // still reads would strand that root on the next launch.
+  it('keeps a grant another root still reads', () => {
+    expect(unusedGrants([a, b], ['content://tree/a', 'content://tree/b'])).toEqual([])
+  })
+
+  it('never gives back the app’s own folder, or nothing at all', () => {
+    expect(unusedGrants([], ['', null, undefined])).toEqual([])
+  })
+
+  it('names each grant once', () => {
+    expect(unusedGrants([], ['content://tree/x', 'content://tree/x'])).toEqual(['content://tree/x'])
+  })
+
+  it('is nothing at all on the web, whose roots have no native path', () => {
+    expect(unusedGrants([root('Music'), root('Backup')], [null, undefined])).toEqual([])
   })
 })
 

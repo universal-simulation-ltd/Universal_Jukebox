@@ -32,13 +32,15 @@ import { useCloseAppMenu } from '@unisim/sdk'
 // the library row lists its folders, each with Remove, then the four things you
 // can do to it. It starts shut every time the menu opens.
 //
-// ⚠️ EVERY LABEL SAYS WHAT ITS BUTTON DOES, which is why "add folder" is not
-// always "Add a folder". In a browser a folder is ADDED (`pickFolder`); in the
-// phone apps there is one folder and choosing another REPLACES it
-// (`chooseNativeFolder`), so there it says so. An "add" that quietly meant
-// "replace" would be the worst kind of button. Likewise "Add tracks…" is only
-// offered where the songs are kept: the phone apps copy them into the app's
-// own folder, while a browser keeps picked files only until the page reloads.
+// ⚠️ EVERY LABEL SAYS WHAT ITS BUTTON DOES. "Add a folder…" ADDS, in a browser
+// (`pickFolder`) and — since 2026-09-14 — in the phone apps too
+// (`addNativeFolder`). Until then the phones had one folder, choosing another
+// REPLACED it, and this row honestly read "Use a different folder…". Replacing
+// is now what it is on the web: Remove on the folder's own line, then Add. An
+// "add" that quietly meant "replace" would be the worst kind of button.
+// Likewise "Add tracks…" is only offered where the songs are kept: the iPhone
+// app copies them into its own folder (which then joins the library if it was
+// not in it), while a browser keeps picked files only until the page reloads.
 
 export default function AppMenu() {
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
@@ -49,9 +51,9 @@ export default function AppMenu() {
   const pickFolder = useLibraryStore((s) => s.pickFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
-  const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
+  const rescanNativeFolders = useLibraryStore((s) => s.rescanNativeFolders)
   const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
-  const chooseNativeFolder = useLibraryStore((s) => s.chooseNativeFolder)
+  const addNativeFolder = useLibraryStore((s) => s.addNativeFolder)
   const importMusicLibrary = useLibraryStore((s) => s.importMusicLibrary)
   const pickNativeFiles = useLibraryStore((s) => s.pickNativeFiles)
   const native = isNativeShell()
@@ -74,14 +76,14 @@ export default function AppMenu() {
   useWhenPanelHides(menu, () => setOpen(false))
 
   const hasLibrary = status === 'ready'
-  // ⚠️ Is the library reading a folder somebody CHOSE (a non-empty
-  // `nativePath`) rather than the app's own? Then the importer is wrong here,
-  // on iOS as on Android: it copies into the app's own folder, which the
-  // library is no longer reading, so imported music would never be found.
-  const readingChosen = roots.some((r) => !!r.nativePath)
-  // Where adding tracks means copying them INTO the folder the library reads —
-  // iOS on its own folder, or a shell whose one folder is fixed.
-  const canAddTracks = native && ((own && !readingChosen) || (!own && !chosen))
+  // Where adding tracks means copying them into a folder of the app's own —
+  // iOS, or a shell whose one folder is fixed. ⚠️ On iOS that holds even when
+  // the library reads only CHOSEN folders: it used to be hidden then, because
+  // with one phone folder the copies landed somewhere the library did not
+  // read. With several, the import rescans the app's own folder, adding it as
+  // a folder of the library if it was not one (`scanNativeFolder()`). Never on
+  // Android, whose "Documents" is the phone's shared one and is never read.
+  const canAddTracks = native && (own || !chosen)
   const hasMusicRoot = roots.some((r) => r.source === 'music-library')
   const folders = roots.filter((r) => r.source !== 'music-library')
 
@@ -92,21 +94,22 @@ export default function AppMenu() {
     else fileInput.current?.click()
   }
 
-  // A browser ADDS a folder: the real picker where there is one,
-  // `webkitdirectory` where there isn't. The phone apps REPLACE theirs.
+  // Everywhere, a folder is ADDED: the phone's own picker in the apps, the
+  // real picker in a browser where there is one, `webkitdirectory` where there
+  // isn't.
   const addFolder = () => {
-    if (chosen) void chooseNativeFolder()
+    if (chosen) void addNativeFolder()
     else if (canPersist) void pickFolder()
     else folderInput.current?.click()
   }
   const canAddFolder = !native || chosen
 
-  // Every folder, read again. In the phone apps that is their one folder,
-  // which the Files app can change without telling anybody; in a browser, each
-  // folder in turn. The Music library has its own "Refresh", below.
+  // Every folder, read again, each in turn — the Files app can change a phone
+  // folder without telling anybody. The Music library has its own "Refresh",
+  // below.
   const rescan = async () => {
     if (native) {
-      await scanNativeFolder()
+      await rescanNativeFolders()
       return
     }
     for (const root of folders) await rescanFolder(root.id)
@@ -168,20 +171,13 @@ export default function AppMenu() {
                 </Row>
               )}
               {canAddFolder && (
-                <Row
-                  onClick={addFolder}
-                  title={
-                    chosen
-                      ? 'Reads a different folder instead of the one the library reads now'
-                      : 'Adds a folder to your library — the ones you already have stay'
-                  }
-                >
-                  {chosen ? 'Use a different folder…' : 'Add a folder…'}
+                <Row onClick={addFolder} title="Adds a folder to your library — the ones you already have stay">
+                  Add a folder…
                 </Row>
               )}
               {(native || folders.length > 0) && (
                 <Row onClick={() => void rescan()} title="Picks up anything added or changed since the last scan">
-                  {native || folders.length === 1 ? 'Rescan my music folder' : 'Rescan my folders'}
+                  {folders.length > 1 ? 'Rescan my folders' : 'Rescan my music folder'}
                 </Row>
               )}
               {/* The iPhone's Music library — songs synced from a Mac. A sync

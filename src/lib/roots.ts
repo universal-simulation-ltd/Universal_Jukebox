@@ -58,17 +58,19 @@ export function pathUnder(path: string, prefix: string): boolean {
  * which is the collision this whole file exists to prevent — one level up from
  * where it was. The second becomes "Music (2)".
  *
- * ⚠️ An EXACT match is not disambiguated, and that is deliberate: choosing a
- * folder you already have loaded means "refresh this one", and `addScan` below
- * drops that root's tracks before adding the new ones. The alternative — a
- * second "Music (2)" holding the same music twice — is the worse of the two
- * wrong answers, because nothing on screen would explain where it came from.
+ * ⚠️ A NAME MATCH IS TWO FOLDERS, AND BOTH ARE KEPT (James, 2026-09-13). Two
+ * folders can share a name without being the same folder — a laptop's "Music"
+ * and a USB stick's "Music" — and a name is all the web's pickers give back, so
+ * "same name, so refresh that one" would quietly swap one library for the other.
+ * The second is added as "Music (2)", in the browser and in the phone apps alike.
+ * The one exception is a folder KNOWN to be the same: the phone apps can tell,
+ * because a chosen folder has a stable uri (`planNativePick` below), and the
+ * web's "Choose folder" for a stranded root asks for that root by name
+ * (`isFolderNamed`). Both of those pass the root's id, and so never reach here.
  */
 export function uniqueLabel(name: string, taken: string[]): string {
   const trimmed = name.trim() || 'Folder'
   if (!taken.includes(trimmed)) return trimmed
-  // The exact-match case is handled by the caller replacing that root; this
-  // only runs when the caller has asked for a genuinely new one.
   for (let n = 2; n < 500; n++) {
     const candidate = `${trimmed} (${n})`
     if (!taken.includes(candidate)) return candidate
@@ -220,4 +222,75 @@ export function folderAccess(root: Root): FolderAccess {
 export function trackCountFor(tracks: Track[], root: Root): number {
   const prefix = prefixOf(root)
   return tracks.reduce((n, t) => (pathUnder(t.path, prefix) ? n + 1 : n), 0)
+}
+
+// ── The phone apps' folders ──────────────────────────────────────────────────
+//
+// ⚠️ THERE CAN BE SEVERAL NATIVE ROOTS TOO (2026-09-14). Until then the phone
+// apps had exactly one — `nativePath` marked THE native root, and choosing a
+// second folder replaced the first. Now every native root is its own folder,
+// filed under its own prefix exactly like a browser folder, and `nativePath` is
+// where that one root is walked:
+//
+//   - `''` — the app's OWN folder (iOS's Documents, "Universal Jukebox" in the
+//     Files app). There is at most one root with it: it is one folder.
+//   - anything else — a CHOSEN folder's uri (an iOS security-scoped bookmark's
+//     key, an Android tree uri). The plugin holds ONE GRANT PER URI, so two
+//     roots must never share one: removing either would give back the grant the
+//     other still reads. `planNativePick` is what keeps them unique.
+//
+// ⚠️ NOTHING TO MIGRATE. A library stored by the one-folder build is one root
+// with a prefix and a `nativePath` — exactly the shape a root has now — and the
+// plugins already kept their grants keyed by that uri. It is simply root #1.
+
+/** The roots the phone app walks — its own folder and every chosen one. */
+export function nativeRoots(roots: Root[]): Root[] {
+  return roots.filter((r) => r.nativePath != null)
+}
+
+/**
+ * What picking `picked` in the phone's folder picker should do to the library.
+ *
+ * - `rescan` — that exact folder is already a root (the same uri). Read it
+ *   again; never file it twice. Unlike the web, the phone CAN tell, so here a
+ *   re-pick of the same folder is not a guess.
+ * - `refile` — the folder somebody was asked to choose again (`intoRootId`, a
+ *   chosen folder that can no longer be read), and it carries that root's
+ *   name. It takes over that root — same prefix, so every track id is kept —
+ *   and the old uri's grant can go.
+ * - `add` — anything else, a same-named folder included: a new root, named
+ *   "Music (2)" if "Music" is taken (see `uniqueLabel`). A folder picked in
+ *   answer to "choose Music again" that is NOT called Music is added too, and
+ *   the stranded one stays as it was, which is what the web's `addFiles` does.
+ */
+export type NativePick =
+  | { kind: 'rescan'; root: Root }
+  | { kind: 'refile'; root: Root }
+  | { kind: 'add' }
+
+export function planNativePick(
+  roots: Root[],
+  picked: { uri: string; name: string },
+  intoRootId?: string,
+): NativePick {
+  const same = roots.find((r) => r.nativePath === picked.uri)
+  if (same) return { kind: 'rescan', root: same }
+  const into = intoRootId ? roots.find((r) => r.id === intoRootId) : undefined
+  // Only a CHOSEN folder is ever re-chosen: the app's own ('') cannot be lost.
+  if (into?.nativePath && isFolderNamed(into, picked.name)) return { kind: 'refile', root: into }
+  return { kind: 'add' }
+}
+
+/**
+ * Which of `uris` no root reads any more — the folder grants to give back.
+ *
+ * ⚠️ Asked AFTER the library has changed, of the roots as they now are, rather
+ * than worked out beforehand. That one rule covers every way a grant becomes
+ * unused: a folder removed, a lost folder re-pointed at its new uri, a new
+ * folder that turned out to hold no music, and a scan thrown away by "Delete"
+ * part-way through. `''` is the app's own folder and has no grant.
+ */
+export function unusedGrants(roots: Root[], uris: (string | null | undefined)[]): string[] {
+  const inUse = new Set(roots.map((r) => r.nativePath).filter((p): p is string => !!p))
+  return [...new Set(uris.filter((u): u is string => !!u && !inUse.has(u)))]
 }

@@ -137,6 +137,12 @@ export interface Root {
    * with nothing live behind it, so everything above holds; only the value
    * differs. Read it as "where to walk", never as a filesystem path.
    *
+   * ⚠️ ONE PER ROOT, AND THERE CAN BE SEVERAL (2026-09-14). `''` is the app's
+   * own folder (iOS) and at most one root has it; any other value is a chosen
+   * folder, and no two roots share one — the native side holds one grant per
+   * uri, so a shared one would be given back by removing either root. See
+   * "The phone apps' folders" in `lib/roots.ts`.
+   *
    * `null` on the web, where `handle` is the mechanism.
    */
   nativePath?: string | null

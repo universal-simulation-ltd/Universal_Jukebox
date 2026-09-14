@@ -456,6 +456,29 @@ describe('the iOS music folder — chosen, and its own', () => {
     expect(fs.readdir).not.toHaveBeenCalled()
   })
 
+  it('answers its OWN folder, picked through the picker, as the own folder — not a second one', async () => {
+    // The picker opens right in it, so tapping Open there is easy. The plugin
+    // answers `''`, the key the library already has for it, so a library that
+    // reads it rescans it instead of filing the same songs as "Documents".
+    onPlatform('ios', { musicFolderPlugin: true })
+    musicFolder.pick.mockResolvedValueOnce({ uri: '', name: '' })
+    expect(await pickNativeMusicFolder()).toEqual({ uri: '', name: 'Music' })
+
+    // Android has no own folder: an empty uri there is not an answer.
+    onPlatform('android')
+    musicFolder.pick.mockResolvedValueOnce({ uri: '', name: '' })
+    expect(await pickNativeMusicFolder()).toBeNull()
+  })
+
+  it('tells the picker whether to open in its own folder', async () => {
+    onPlatform('ios', { musicFolderPlugin: true })
+    musicFolder.pick.mockResolvedValue({ cancelled: true })
+    await pickNativeMusicFolder({ startInOwnFolder: false })
+    expect(musicFolder.pick).toHaveBeenLastCalledWith({ startInOwnFolder: false })
+    await pickNativeMusicFolder()
+    expect(musicFolder.pick).toHaveBeenLastCalledWith({ startInOwnFolder: true })
+  })
+
   it('keeps seeding its own folder with the readme when a picker exists', async () => {
     // Without the readme iOS does not list the folder in the Files app at all,
     // so "put your music in the Universal Jukebox folder" would point nowhere.

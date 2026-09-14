@@ -14,7 +14,18 @@ import {
   type MusicLibraryRead,
 } from '../lib/appleMusic'
 import { importWithNativePicker } from '../lib/nativeImport'
-import { addScan, isFolderNamed, pathUnder, prefixOf, removeRoot, rootsNeedingAccess, uniqueLabel } from '../lib/roots'
+import {
+  addScan,
+  isFolderNamed,
+  nativeRoots,
+  pathUnder,
+  planNativePick,
+  prefixOf,
+  removeRoot,
+  rootsNeedingAccess,
+  uniqueLabel,
+  unusedGrants,
+} from '../lib/roots'
 import { hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
 import {
   NATIVE_ROOT_LABEL,
@@ -62,6 +73,14 @@ import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
 // from that, including the path collision which had to be fixed first and the
 // one-off cost of fixing it. Read that file's header before changing anything
 // here: this store is the plumbing, and the arithmetic is all over there.
+//
+// ⚠️ 1c. AND IN THE PHONE APPS TOO (2026-09-14). They had one folder, and
+// choosing another replaced it. Now "Add a folder…" adds there as well: each
+// native root is a folder with its own prefix and its own `nativePath` (the
+// app's own folder is `''`, a chosen one its uri), the native side holds one
+// grant per uri, and a grant is given back only once no root reads it. The
+// rules — same uri is a rescan, same NAME is a second folder — are
+// `planNativePick` and `unusedGrants` in `lib/roots.ts`.
 //
 // ⚠️ 2. THE STORE HOLDS LIVE FILE HANDLES AND MUST NOT BE PERSISTED.
 // `filesByPath` is the live handle to the actual bytes on disk. It is rebuilt on
@@ -127,29 +146,40 @@ interface LibraryState {
   /** Forget the lot. */
   clear(): Promise<void>
   /**
-   * Native only: read the phone's music folder and build the library from it.
+   * Native only: read a phone folder and build the library from it.
    *
-   * The native equivalent of `pickFolder`, minus the picking — there is exactly
-   * one folder and the OS shares it with the Files app. See
-   * `lib/nativeFile.ts`.
+   * With `id`: re-read THAT native root — the permission banner's "Rescan".
+   * If it is a chosen folder that can no longer be opened, the picker opens so
+   * it can be chosen again (`addNativeFolder(id)`): this was a tap on that
+   * folder's own button, and choosing it is the only way back.
    *
-   * ⚠️ Where the folder is CHOSEN instead (`usesChosenFolder` — Android, and iOS once a folder has been picked)
-   * the first "scan" is a choice: with no folder chosen yet, or with access to
-   * the chosen one gone, this hands over to `chooseNativeFolder`.
+   * Without: the app's OWN folder (iOS — the Files app's "Universal Jukebox"),
+   * adding it as a root if the library does not read it yet. That is the
+   * landing page's "Files" answer, and where "Add tracks…" copies to. Android
+   * has no own folder, so there it reads every chosen folder, or — with none
+   * yet — asks for one.
    */
-  scanNativeFolder(): Promise<void>
+  scanNativeFolder(id?: string): Promise<void>
   /**
    * Where `usesChosenFolder()` (Android and iOS; any platform whose shell
    * registers a `JukeboxMusicFolder` plugin): open the system folder picker and
-   * make what is chosen the library's phone folder, replacing the one before if
-   * there was one. A no-op everywhere else.
+   * ADD what is chosen to the library, as the web's "Add a folder" does. A
+   * no-op everywhere else.
    *
-   * ⚠️ REPLACES rather than adds, unlike the web's "Add a folder". There is one
-   * native root and `nativePath` is what marks it (see `scanNativeFolder`
-   * below), so a second chosen folder would need a second native root, and
-   * every native code path assumes one. Worth doing; not done.
+   * ⚠️ It used to REPLACE the one phone folder (there was one native root until
+   * 2026-09-14). Now: the same folder again is a rescan of it; a folder with a
+   * name already taken is kept beside it as "Music (2)" (James); and with
+   * `intoRootId` — a lost folder being chosen again — a folder of that root's
+   * name takes the root over, keeping every track id. See `planNativePick`.
    */
-  chooseNativeFolder(): Promise<void>
+  addNativeFolder(intoRootId?: string): Promise<void>
+  /**
+   * Native only: re-read every phone folder, one after another — the app
+   * menu's "Rescan". Never opens the picker: a lost folder is left for its own
+   * button in the permission banner, rather than a run of pickers nobody asked
+   * for. With no folder at all it is `scanNativeFolder()`.
+   */
+  rescanNativeFolders(): Promise<void>
   /**
    * Native only: copy picked files into the music folder, then re-scan.
    *
@@ -301,7 +331,9 @@ async function hydrateOnce(
       // it, so the landing page's "put your music in the Universal Jukebox
       // folder" refers to a folder that does not exist yet.
       await ensureNativeMusicFolder()
-      if (roots.some((r) => r.nativePath != null)) await reattachNative(set, get)
+      // Every phone folder, however many — a library from the one-folder build
+      // is simply one of them (see "The phone apps' folders" in `lib/roots.ts`).
+      if (nativeRoots(roots).length > 0) await reattachNative(set, get)
     }
   } catch (err) {
     console.error('[jukebox] Could not read the stored library:', err)
@@ -386,8 +418,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     scanAbort?.abort()
     // Replaces everything, so a scan still finishing must not write over it.
     generation++
+    const grants = get().roots.map((r) => r.nativePath)
     await db.clearLibrary()
     set({ status: 'scanning', tracks: [], albums: [], roots: [], error: null, stoppedEarly: null, refusals: [], progress: null })
+    releaseUnused(get, grants)
 
     const { tracks, albums } = await buildExampleLibrary()
     const root: Root = {
@@ -480,6 +514,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       await get().importMusicLibrary()
       return
     }
+    // ⚠️ A phone folder is read again by walking it — no handle, no picker.
+    // Before this, "Scan the rest" on a stopped phone scan fell through to the
+    // browser's "can't reopen a folder on its own" below, which is not true of
+    // any phone folder.
+    if (root.nativePath != null) {
+      await scanNative(set, get, root.nativePath, root.id, root.label)
+      return
+    }
     if (root.handle) {
       await get().regrantFolder(id)
       return
@@ -531,6 +573,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       status: merged.tracks.length > 0 ? 'ready' : 'empty',
       error: null,
     })
+    // A phone folder's grant goes with it — Android caps how many an app may
+    // hold. Nothing at all on the web, where a root has no `nativePath`.
+    releaseUnused(get, [root.nativePath])
   },
 
   /**
@@ -556,6 +601,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     scanAbort?.abort()
     generation++
     releaseAllCovers()
+    const grants = get().roots.map((r) => r.nativePath)
     await db.clearLibrary()
     set({
       status: 'empty', tracks: [], albums: [], roots: [], progress: null,
@@ -563,44 +609,55 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       error: null,
       stoppedEarly: null,
     })
+    releaseUnused(get, grants)
   },
 
-  async scanNativeFolder() {
+  async scanNativeFolder(id) {
     if (!isNativeShell()) return
-    // ⚠️ THE EXISTING ROOT IS FOUND BY `nativePath`, NOT BY ID, and the
-    // difference is a bug that would only show on the second scan. `runScan`
-    // derives a new root's id from its LABEL, so the first native scan creates
-    // a root whose id is "Music" — not `NATIVE_ROOT_ID`. Looking it up by that
-    // constant afterwards finds nothing, `existingId` stays undefined, and
-    // `uniqueLabel` dutifully files the same folder a second time as
-    // "Music (2)": one folder, two roots, every track in the library twice.
-    // There is exactly one native root, and `nativePath` is what marks it.
-    const existing = get().roots.find((r) => r.nativePath != null)
-    const folder = existing?.nativePath ?? NATIVE_ROOT_PATH
-    // Nothing chosen yet AND no folder of the app's own to fall back on
-    // (Android): "scan" can only mean "choose".
-    // ⚠️ Not `usesChosenFolder() && !existing?.nativePath`, which read `''` as
-    // "not chosen": iOS stores its own folder as `''` and can choose one too, so
-    // that test sent every iOS rescan of the app's own folder to the picker.
-    if (usesChosenFolder() && !folder && !hasOwnMusicFolder()) {
-      await get().chooseNativeFolder()
+
+    // ⚠️ ROOTS ARE FOUND BY ID OR BY `nativePath`, NEVER BY A CONSTANT. `runScan`
+    // derives a new root's id from its LABEL, so the first native scan creates a
+    // root whose id is "Music" — look it up by a fixed id afterwards and nothing
+    // is found, and `uniqueLabel` files the same folder a second time as
+    // "Music (2)": one folder, two roots, every track twice.
+    if (id !== undefined) {
+      const root = nativeRoots(get().roots).find((r) => r.id === id)
+      if (!root) return
+      const folder = root.nativePath ?? NATIVE_ROOT_PATH
+      const outcome = await scanNative(set, get, folder, root.id, root.label)
+      // ⚠️ A CHOSEN folder has been lost — moved, renamed, deleted, access
+      // withdrawn, a drive unplugged. Choosing it again is the only way back,
+      // and this was a tap on THIS folder's button, so the picker opens now
+      // rather than an error naming a fix the screen has no button for. Backing
+      // out of it leaves the error showing. The app's own folder (`''`) is never
+      // "lost" in that sense — there is nothing to re-choose — so it gets the
+      // error alone.
+      if (outcome === 'unreadable' && folder && usesChosenFolder()) await get().addNativeFolder(root.id)
       return
     }
-    const outcome = await scanNative(set, get, folder, existing?.id, NATIVE_ROOT_LABEL)
-    // ⚠️ A CHOSEN folder has been lost — moved, renamed, deleted, access
-    // withdrawn, a drive unplugged. Choosing it again is the only way back, and
-    // this was a tap, so the picker opens now rather than an error naming a fix
-    // the screen has no button for. Backing out of it leaves the error showing.
-    // The app's own folder (`''`) is never "lost" in that sense — there is
-    // nothing to re-choose — so it gets the error alone.
-    if (outcome === 'unreadable' && folder && usesChosenFolder()) await get().chooseNativeFolder()
+
+    // No folder of the app's own (Android): "scan my music folder" means the
+    // folders chosen so far, or — with none — choosing one.
+    // ⚠️ Keyed on `hasOwnMusicFolder`, not on `usesChosenFolder`: iOS can choose
+    // folders AND keeps its own, and reading the second as "no own folder" once
+    // sent every iOS scan of its own folder to the picker.
+    if (!hasOwnMusicFolder() && usesChosenFolder()) {
+      if (nativeRoots(get().roots).length === 0) await get().addNativeFolder()
+      else await get().rescanNativeFolders()
+      return
+    }
+    const own = get().roots.find((r) => r.nativePath === NATIVE_ROOT_PATH)
+    await scanNative(set, get, NATIVE_ROOT_PATH, own?.id, NATIVE_ROOT_LABEL)
   },
 
-  async chooseNativeFolder() {
+  async addNativeFolder(intoRootId) {
     if (!usesChosenFolder()) return
     let picked
     try {
-      picked = await pickNativeMusicFolder()
+      picked = await pickNativeMusicFolder({
+        // Open in the app's own folder only while the library does not read it.
+        startInOwnFolder: !get().roots.some((r) => r.nativePath === NATIVE_ROOT_PATH),
+      })
     } catch (err) {
       console.error('[jukebox] The folder picker failed:', err)
       set({ error: 'That folder could not be used — the phone would not let the app keep access to it. Try again, or choose a different folder.' })
@@ -608,14 +665,38 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     }
     if (!picked) return // Backed out of the picker: not an error, nothing to say.
 
-    const existing = get().roots.find((r) => r.nativePath != null)
-    const outcome = await scanNative(set, get, picked.uri, existing?.id, picked.name)
-    // Hold exactly one grant — the folder the library now reads. On success the
-    // old folder's goes; on failure the new one's does, since the library is
-    // still pointed at the old folder.
-    const unused = outcome === 'ok' ? existing?.nativePath : picked.uri
-    const inUse = outcome === 'ok' ? picked.uri : existing?.nativePath
-    if (unused && unused !== inUse) void releaseNativeMusicFolder(unused)
+    const plan = planNativePick(get().roots, picked, intoRootId)
+    if (plan.kind === 'rescan') {
+      // Already in the library: read it again, and keep its one grant.
+      await scanNative(set, get, picked.uri, plan.root.id, plan.root.label)
+      return
+    }
+    const replaced = plan.kind === 'refile' ? plan.root.nativePath : null
+    await scanNative(set, get, picked.uri, plan.kind === 'refile' ? plan.root.id : undefined, picked.name)
+    // Whichever of the two the library does not read now: the new folder's, if
+    // it held no music, could not be opened, or its scan was deleted part-way;
+    // the lost folder's old uri, once the root reads the new one.
+    releaseUnused(get, [picked.uri, replaced])
+  },
+
+  async rescanNativeFolders() {
+    const roots = nativeRoots(get().roots)
+    if (roots.length === 0) {
+      await get().scanNativeFolder()
+      return
+    }
+    // ⚠️ Each scan clears the error slot as it starts, so the first folder
+    // that could not be read would otherwise be forgotten by the next one's
+    // success — and "Rescan" would look as if it had worked.
+    const started = generation
+    let firstError: string | null = null
+    for (const root of roots) {
+      if (generation !== started) return // The library was forgotten meanwhile.
+      if (!get().roots.some((r) => r.id === root.id)) continue // Removed meanwhile.
+      await get().rescanFolder(root.id)
+      firstError ??= get().error
+    }
+    if (firstError && !get().error && generation === started) set({ error: firstError })
   },
 
   async importNativeFiles(files) {
@@ -927,13 +1008,23 @@ let scanAbort: AbortController | null = null
 let generation = 0
 
 /**
+ * Give back every folder grant in `uris` that no root reads any more — see
+ * `unusedGrants`. Asked of the roots as they are NOW, so call it after the
+ * change. Does nothing (and loads no plugin) when nothing is unused, which is
+ * always the case on the web.
+ */
+function releaseUnused(get: () => LibraryState, uris: (string | null | undefined)[]): void {
+  for (const uri of unusedGrants(get().roots, uris)) void releaseNativeMusicFolder(uri)
+}
+
+/**
  * Walk a native music folder and scan what is in it — the part of a native
  * scan that is the same on both platforms.
  *
- * `folder` is `Root.nativePath`: `''` on iOS, where the music folder IS
- * Documents, and the chosen folder's tree URI on Android. Returns how it went,
- * because the callers do different things next — Android re-opens the picker
- * on `'unreadable'`, and `chooseNativeFolder` gives back whichever folder grant
+ * `folder` is `Root.nativePath`: `''` for the app's own folder (iOS's
+ * Documents), a chosen folder's uri otherwise. Returns how it went, because
+ * the callers do different things next — a tap on a lost folder re-opens the
+ * picker on `'unreadable'`, and `addNativeFolder` gives back whichever grant
  * the library is not using.
  */
 async function scanNative(
@@ -952,8 +1043,9 @@ async function scanNative(
     set({
       status: get().tracks.length > 0 ? 'ready' : 'empty',
       progress: null,
+      // Named, because with several folders "that folder" could be any of them.
       error: folder
-        ? 'That folder could not be opened — it may have been moved or renamed, or access to it was withdrawn. Choose it again.'
+        ? `${label} could not be opened — it may have been moved or renamed, or access to it was withdrawn. Choose it again.`
         : 'The music folder could not be read. If the app was just installed, try opening it again.',
     })
     return 'unreadable'
@@ -985,8 +1077,8 @@ async function scanNative(
     label,
     null,
     existingId,
-    // Empty on iOS but NOT null: `nativePath != null` is what marks a root as
-    // the native one, in `scanNativeFolder` and in `hydrate`.
+    // `''` for the app's own folder but NOT null: `nativePath != null` is what
+    // marks a root as a phone folder (`nativeRoots`), in `hydrate` and below.
     folder,
   )
   return 'ok'
@@ -1008,30 +1100,38 @@ async function scanNative(
  * stale tags in the library are what "Rescan" is for, and this app already
  * treats everything in the database as disposable (see `lib/types.ts`).
  *
- * ⚠️ On Android this is a walk of the CHOSEN folder, and it never opens the
+ * ⚠️ A chosen folder is walked through the plugin, and this never opens the
  * picker: it runs at launch, with nobody's tap behind it. If access has gone,
  * the tracks simply stay unplayable and the banner's Rescan — a tap — is what
  * asks for the folder again.
+ *
+ * ⚠️ EVERY phone folder, each on its own (2026-09-14). One that cannot be
+ * walked is logged and left unplayable; the others come back regardless — so
+ * the permission banner names exactly the folder that lapsed (`needAccessFrom`
+ * is per root). Each merges into the map as it lands, reading it afresh, so
+ * two walks finishing together cannot drop each other's files.
  */
 async function reattachNative(
   set: (partial: Partial<LibraryState>) => void,
   get: () => LibraryState,
 ): Promise<void> {
-  const root = get().roots.find((r) => r.nativePath != null)
-  if (!root) return
-  let entries
-  try {
-    entries = await walkNativeLibrary(undefined, root.nativePath ?? NATIVE_ROOT_PATH)
-  } catch (err) {
-    console.error('[jukebox] Could not re-read the music folder on startup:', err)
-    return
-  }
-  const prefix = prefixOf(root)
-  const files = new Map<string, SourceFile>(get().filesByPath)
-  for (const entry of entries) {
-    files.set(prefix ? `${prefix}/${entry.path}` : entry.path, new NativeFile(entry))
-  }
-  set({ filesByPath: files })
+  await Promise.all(
+    nativeRoots(get().roots).map(async (root) => {
+      let entries
+      try {
+        entries = await walkNativeLibrary(undefined, root.nativePath ?? NATIVE_ROOT_PATH)
+      } catch (err) {
+        console.error(`[jukebox] Could not re-read ${root.label} on startup:`, err)
+        return
+      }
+      const prefix = prefixOf(root)
+      const files = new Map<string, SourceFile>(get().filesByPath)
+      for (const entry of entries) {
+        files.set(prefix ? `${prefix}/${entry.path}` : entry.path, new NativeFile(entry))
+      }
+      set({ filesByPath: files })
+    }),
+  )
 }
 
 async function runScan(

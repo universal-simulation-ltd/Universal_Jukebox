@@ -29,6 +29,19 @@ import Capacitor
 /// taken at launch and kept for the life of the app rather than taken around each
 /// walk: a scoped walk would scan fine and then fail every play afterwards.
 ///
+/// ⚠️ ONE BOOKMARK PER FOLDER, AND THERE CAN BE SEVERAL (2026-09-14). The library
+/// holds as many chosen folders as somebody adds, each its own root keyed by its
+/// uri, and every one of them has its bookmark here and its access taken in
+/// `load()`. A new pick ADDS a bookmark; nothing but `release` — which the web
+/// side calls only for a uri no root reads any more — ever removes one. A
+/// library from the one-folder build had exactly one entry in this dictionary,
+/// under the uri its root stored, so it needs no migration: it is folder #1.
+///
+/// ⚠️ THE APP'S OWN FOLDER IS NOT A CHOSEN ONE, even when it is picked here. It
+/// is answered as `uri: ""` — the key the library already uses for Documents —
+/// so that picking it (the picker can open right in it) is recognised as the
+/// folder the library may already read, not filed a second time as "Documents".
+///
 /// ⚠️ READING IS NOT DONE HERE. Only paths and metadata cross the bridge. Moving
 /// bytes through a plugin means base64, which is the out-of-memory crash the
 /// header of `src/lib/scan.ts` forbids.
@@ -64,7 +77,14 @@ public class MusicFolderPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDel
 
     /// Show the system folder picker. Resolves `{ uri, name }`, or
     /// `{ cancelled: true }` when backed out of — never a rejection for that.
+    /// `uri` is `""` when the app's own folder was picked (see the header).
+    ///
+    /// `startInOwnFolder` (default true): open the picker IN the app's own
+    /// folder. The web side turns it off once the library reads that folder —
+    /// starting there then only invites picking one of its sub-folders, which
+    /// would put the same songs in the library twice.
     @objc func pick(_ call: CAPPluginCall) {
+        let startInOwnFolder = call.getBool("startInOwnFolder") ?? true
         DispatchQueue.main.async {
             guard let presenter = self.bridge?.viewController else {
                 call.reject("There is nothing to show the folder picker on.", "NO_VIEW")
@@ -78,11 +98,13 @@ public class MusicFolderPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDel
             let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.folder])
             picker.delegate = self
             picker.allowsMultipleSelection = false
-            // ⚠️ Opens IN the app's own folder, so "use the Universal Jukebox
-            // folder" is one tap — choosing a folder is an extra option, not the
-            // loss of the one the app already had. The person can go anywhere
-            // from here: iCloud Drive, On My iPhone, a connected drive.
-            picker.directoryURL = Self.documentsURL()
+            // ⚠️ Opens IN the app's own folder while the library does not read
+            // it, so "use the Universal Jukebox folder" is one tap. The person
+            // can go anywhere from here: iCloud Drive, On My iPhone, a
+            // connected drive. Otherwise iOS opens wherever it last was.
+            if startInOwnFolder {
+                picker.directoryURL = Self.documentsURL()
+            }
             presenter.present(picker, animated: true)
         }
     }
@@ -97,6 +119,13 @@ public class MusicFolderPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDel
         // Returns false for a folder inside our own container (it needs no
         // scope). That is fine — it is readable either way.
         let started = url.startAccessingSecurityScopedResource()
+        // The app's own folder: no bookmark, no grant — the `""` it has always
+        // been stored as (see the header).
+        if Self.isOwnFolder(url) {
+            if started { url.stopAccessingSecurityScopedResource() }
+            call.resolve(["uri": "", "name": ""])
+            return
+        }
         do {
             let bookmark = try url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
             let uri = url.absoluteString
@@ -230,7 +259,9 @@ public class MusicFolderPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDel
 
     // MARK: - release
 
-    /// Give back a folder the library no longer reads.
+    /// Give back a folder the library no longer reads — one removed from the
+    /// library, or a lost one's old uri once its root reads the new one. Only
+    /// that uri's bookmark goes; every other folder's is untouched.
     @objc func release(_ call: CAPPluginCall) {
         let uri = call.getString("uri") ?? ""
         state.sync {
@@ -268,6 +299,15 @@ public class MusicFolderPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDel
 
     private static func documentsURL() -> URL? {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    }
+
+    /// Is `url` the app's own Documents folder itself (not a folder inside it)?
+    /// Compared as resolved paths: the picker hands back `/private/var/…`
+    /// where `FileManager` says `/var/…`, and one may carry a trailing slash.
+    private static func isOwnFolder(_ url: URL) -> Bool {
+        guard let docs = documentsURL() else { return false }
+        func canonical(_ u: URL) -> String { u.standardizedFileURL.resolvingSymlinksInPath().path }
+        return canonical(url) == canonical(docs)
     }
 
     private static func storedBookmarks() -> [String: Data] {

@@ -36,7 +36,9 @@ export default function FolderAccessButton({ root }: { root: Root }) {
         type="button"
         onClick={
           kind === 'rescan'
-            ? () => void scanNativeFolder()
+            // THIS phone folder — there can be several. A chosen one that can
+            // no longer be opened brings up the picker to choose it again.
+            ? () => void scanNativeFolder(root.id)
             : kind === 'reopen'
               ? () => void regrantFolder(root.id)
               : () => folderInput.current?.click()

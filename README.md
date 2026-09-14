@@ -57,13 +57,41 @@ The app menu has one row for all of it, **Your complete library · N songs**
 song count and **Remove**, then **Add tracks…**, **Add a folder…**, **Rescan**
 and, on the iPhone, **Refresh my phone’s Music Library** (*my iPad’s* on an
 iPad). Only what each platform can
-really do is offered, under a label that says it: in the phone apps "add a
-folder" **replaces** the one folder (`chooseNativeFolder` — one native root),
-so it reads **Use a different folder…** there, and **Add tracks…** appears only
-where picked songs are copied in and kept. Removing a folder takes its tracks
-and leaves the others untouched. Rescanning is a replacement *of each folder*,
-so an album you deleted on disk disappears and a renamed file does not turn up
-twice.
+really do is offered, under a label that says it, and **Add a folder…** adds
+everywhere: in a browser, and — since 2026-09-14 — in the iPhone and Android
+apps too (`addNativeFolder`). Until then the phone apps had one folder, choosing
+another replaced it, and the row honestly read *Use a different folder…*.
+Replacing a folder is now what it is on the web: **Remove** on its line, then
+**Add a folder…**. **Add tracks…** appears only where picked songs are copied in
+and kept (the iPhone app's own folder). Removing a folder takes its tracks and
+leaves the others untouched. Rescanning is a replacement *of each folder*, so an
+album you deleted on disk disappears and a renamed file does not turn up twice.
+
+### Several folders in the phone apps
+
+Each phone folder is its own root, filed under its own prefix exactly like a
+browser folder, and its `Root.nativePath` says where it is walked: `''` is the
+app's own folder (the Files app's *Universal Jukebox*, iOS only), anything else
+a chosen folder's uri. The native plugins hold **one grant per uri** — an iOS
+security-scoped bookmark (`MusicFolderPlugin.swift`, re-taken for every folder
+at launch) or an Android persisted tree-URI grant (`MusicFolderPlugin.java`) —
+so the rules that keep that safe are all in `lib/roots.ts`:
+
+- **The same folder picked again is a rescan**, never a second root: the phone
+  *can* tell (same uri), unlike a browser. The iOS picker answers `''` when you
+  pick the app's own folder, so that one is recognised too.
+- **A different folder with a name already taken is kept beside it as
+  "Music (2)"** (James) — the same rule as the web, below.
+- **A grant is given back only once no root reads it** (`unusedGrants`) — a
+  folder removed, a new one that held no music, a scan deleted part-way, or a
+  lost folder's old uri once it has been chosen again.
+- **A chosen folder that can no longer be read** — moved, renamed, access
+  withdrawn — is named on its own in the permission banner, and its **Rescan**
+  opens the picker. A folder of the same name chosen there takes the root over,
+  keeping every track id; any other folder is added, and the lost one stays.
+- **Nothing to migrate.** The one-folder build stored one root with a prefix and
+  a `nativePath`, and its grant was already kept under that uri — so it simply
+  becomes folder #1. Nobody picks their folder again.
 
 ### ⚠️ The path collision that blocked it for a day
 
@@ -80,8 +108,11 @@ shape `webkitRelativePath` has always had, so the two walkers agree for the firs
 time as well. **`Root.prefix` is the root's identity**: it is what the user sees
 in the folder list AND what every one of its tracks is filed under, which is what
 makes "remove this folder" a filter rather than a bookkeeping exercise. Prefixes
-are therefore kept unique (`Music`, then `Music (2)`), and choosing a folder you
-already have loaded means *rescan that one* rather than *add a second copy*.
+are therefore kept unique: a second folder called `Music` is added as
+`Music (2)` — two folders that share a name are kept, both of them (James,
+2026-09-13). The only re-picks that mean *rescan that one* are the ones known
+to be the same folder: the phone apps' same uri, and a stranded folder chosen
+again by name through its own **Choose folder** button.
 
 ⚠️ **A cost, paid once:** track ids changed shape, so a stored `album` fix from
 the tidy-up — which is keyed by track id — no longer matches its track and is
@@ -89,7 +120,7 @@ dropped. `applyFixes` ignores fixes it cannot place, so nothing breaks; somebody
 who had merged tracks by hand has to do it again. Cover fixes are keyed by album
 id, which comes from the tags and is unaffected.
 
-All of the arithmetic is pure and in `lib/roots.ts`, with 20 tests, because
+All of the arithmetic is pure and in `lib/roots.ts`, with 43 tests, because
 every failure here is **silent**: a collision overwrites rather than throwing,
 and a track count that is added up rather than recomputed is just a wrong number
 on a tile.
@@ -188,8 +219,8 @@ discovering it later.
 |---|---|
 | Chrome / Edge | Pick the folder **once**. The directory handle is stored, so the library is still there next launch behind one permission confirmation — and in **Chrome 122+, installed as an app, not even that**: an installed app keeps its grant. The landing page says so only in Google Chrome 122+ that is not already installed (`lib/persistence.ts`); Edge shares the engine but does not document the policy, so it is not promised there. |
 | Firefox / Safari | Pick the folder **every session**. Neither ships File System Access, and the permission is the thing that cannot be saved — no polyfill can invent it. |
-| iOS app | **No folder is picked at all.** The app has one, and the OS shares it with the Files app. |
-| Android app | Pick the folder **once**, in the system picker. Android keeps the grant, so the library is still there next launch with nothing to confirm. |
+| iOS app | **Its own folder needs no picking** — the OS shares it with the Files app. Other folders (iCloud Drive, a drive, another app's) can be added in the system picker, as many as you like, and each is kept across launches. |
+| Android app | Pick each folder **once**, in the system picker — as many as you like. Android keeps each grant, so the library is still there next launch with nothing to confirm. |
 
 **On all three, the library and the artwork survive**, cached in IndexedDB and
 keyed by path + size + mtime. What a Firefox visitor loses is a click, not their
@@ -259,7 +290,8 @@ So on Android *Choose your music folder* opens the system folder picker
 launch with nothing to confirm, and a cover image beside an album is visible
 too. An app-local plugin (`android/…/MusicFolderPlugin.java`) picks and walks
 the folder; the bytes are still read through Capacitor's local server, never
-through the plugin. There is one phone folder: choosing another replaces it.
+through the plugin. **Add a folder…** adds another, with its own grant — see
+*Several folders in the phone apps* above.
 The in-app importer is hidden on Android, because it would copy into that shared
 Documents folder, which the library does not read.
 
@@ -560,10 +592,10 @@ original asking for itself forever. It rescans into the root only when the
 chosen folder carries that root's name (`isFolderNamed`); anything else is
 added as a new folder.
 
-⚠️ **Still open:** "Add a folder…" from the app menu with a name you already
-have *adds* "Music (2)" even though `uniqueLabel`'s comment says an exact match
-means "rescan that one". Which of those is right for two different folders that
-share a name is a decision, not a bug fix, so it was left alone.
+**Decided (James, 2026-09-13):** "Add a folder…" with a name you already have
+**adds** "Music (2)" — keep both — in the browser and in the phone apps.
+`uniqueLabel`'s comment used to claim an exact match meant "rescan that one";
+it never did, and it now says what the code does and why.
 
 ### The needle, once the music is going
 
