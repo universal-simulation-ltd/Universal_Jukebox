@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ChipToggle } from '@unisim/sdk'
 import Cover from './Cover'
 import { clock } from '../lib/format'
 import { currentRoute, navigate } from '../lib/route'
@@ -282,19 +283,9 @@ function QueuePeek() {
           {/* Shuffle, moved here off the bar — it is about what plays next. */}
           <div className="sticky top-0 z-10 -mx-1.5 -mt-1.5 mb-1 flex items-center justify-between border-b border-slate-100 bg-white px-3 py-1.5 dark:border-slate-800 dark:bg-slate-900">
             <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">Playing next</span>
-            <button
-              type="button"
-              onClick={toggleShuffle}
-              aria-pressed={shuffle}
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
-                shuffle
-                  ? 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400'
-                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-              }`}
-            >
-              <ShuffleGlyph />
+            <ChipToggle selected={shuffle} onClick={toggleShuffle} icon={<ShuffleGlyph />}>
               Shuffle {shuffle ? 'on' : 'off'}
-            </button>
+            </ChipToggle>
           </div>
           {window.map(({ track, orderIndex }) => {
             if (!track) return null

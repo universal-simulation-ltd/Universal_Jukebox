@@ -1,6 +1,6 @@
 import { trackGenres } from '../lib/genres'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { revealExpanded } from '@unisim/sdk'
+import { Chip, revealExpanded } from '@unisim/sdk'
 import { scrollToTop } from '../lib/scrollTop'
 import { useLandscapeStage } from '../lib/stageLayout'
 import { navBarBottom } from '../lib/scrollBelowBar'
@@ -244,16 +244,16 @@ export default function NowPlaying() {
             playing. Hidden below 980px (T3), and lying down, where the column
             is as tall as the record beside it is allowed to be. */}
         <div className={`mt-5 flex-wrap justify-center gap-2 lg:justify-start ${landscape ? 'hidden' : 'hidden md:flex'}`}>
-          <Chip>{track.ext.toUpperCase()}</Chip>
-          <Chip>{(track.size / 1024 / 1024).toFixed(1)} MB</Chip>
-          {track.trackNo && <Chip>Track {track.trackNo}</Chip>}
+          <SpecChip>{track.ext.toUpperCase()}</SpecChip>
+          <SpecChip>{(track.size / 1024 / 1024).toFixed(1)} MB</SpecChip>
+          {track.trackNo && <SpecChip>Track {track.trackNo}</SpecChip>}
           {/* ⚠️ Through `trackGenres`, not raw. A great many MP3s carry the
               genre as ID3v1's NUMBER — `(17)`, or `17` — and iTunes M4As carry
               it in the binary `gnre` atom, which `tags.ts` stores as that same
               number. Printed raw, the chip on those files says "17". One chip
               per genre, for a file tagged with more than one. */}
           {trackGenres(track).map((name) => (
-            <Chip key={name}>{name}</Chip>
+            <SpecChip key={name}>{name}</SpecChip>
           ))}
         </div>
 
@@ -566,10 +566,7 @@ function BlurredGround({ albumId, cover }: { albumId: string; cover: Blob }) {
   )
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300">
-      {children}
-    </span>
-  )
+/** A spec chip: the suite's Orbit chip at the small size. */
+function SpecChip({ children }: { children: React.ReactNode }) {
+  return <Chip size="sm">{children}</Chip>
 }

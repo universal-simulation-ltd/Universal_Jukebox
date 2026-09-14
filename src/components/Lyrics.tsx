@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChipToggle } from '@unisim/sdk'
 import SingingMic from './SingingMic'
 import { activeLine } from '../lib/lyrics'
 import { takeLyricsReveal } from '../lib/lyricsReveal'
@@ -189,20 +190,14 @@ function Synced() {
     <div className="rounded-lg border border-slate-200 bg-white/40 dark:border-slate-800 dark:bg-slate-900/30">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
         <SingingMic phase={phase} reduced={reduced} />
-        <button
-          type="button"
+        <ChipToggle
+          selected={locked}
           onClick={() => setLocked((was) => !was)}
-          aria-pressed={locked}
           title={locked ? 'Following the song — unlock to scroll the lyrics yourself' : 'Scrolling freely — lock to follow the song again'}
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
-            locked
-              ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-              : 'bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-300'
-          }`}
+          icon={<LockGlyph locked={locked} />}
         >
-          <LockGlyph locked={locked} />
           {locked ? 'Following' : 'Free scroll'}
-        </button>
+        </ChipToggle>
       </div>
       <div
         ref={box}
