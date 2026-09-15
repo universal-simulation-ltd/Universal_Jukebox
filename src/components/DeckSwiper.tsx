@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { resolveDeck } from '../lib/decks'
+import { blendSlideMs } from '../lib/transition'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -209,12 +210,17 @@ export default function DeckSwiper({
   useEffect(() => {
     const now = latest.current
     if (!blend || holding.current || now.arriving || now.reduced) return
+    // ⚠️ THIS EFFECT RUNS ON MOUNT, NOT ONLY ON A NEW BLEND, so a blend that is
+    // over — or nearly — must not be re-run over a record already on the deck.
+    // `blendSlideMs` is that rule, and its note says what it looked like.
+    const left = blendSlideMs(blend, Date.now(), SETTLE_MS)
+    if (left === null) return
     const track = now.queue[now.order[now.cursor]]
     const album = track ? now.albums.find((a) => a.id === track.albumId) : undefined
     const style = resolveDeck(now.setting, album ?? track, now.eras)
     const r = measure()
     setReach(r)
-    setMs(blend.ms)
+    setMs(left)
     setIncoming({ album, style, track, run: false })
     const serial = blend.n
     slideFor.current = serial
@@ -235,7 +241,7 @@ export default function DeckSwiper({
       slideFor.current = null
       setIncoming(null)
       setArriving({ album, style, track })
-    }, blend.ms)
+    }, left)
     // `measure` reads refs only; the rest comes through `latest`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blend])

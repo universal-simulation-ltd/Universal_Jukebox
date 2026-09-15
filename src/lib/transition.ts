@@ -158,3 +158,35 @@ function animates(mode: CeremonyMode, change: Change): boolean {
       return false
   }
 }
+
+/**
+ * How long `DeckSwiper` should slide the machines for — or null for "don't".
+ *
+ * ⚠️ THE SLIDE IS AN EVENT, AND IT WAS BEING READ AS A STATE (James,
+ * 2026-09-15: "when choosing a track out of the library it shows the correct
+ * disc with lyrics but then animates the same track coming in from the right").
+ * `DeckSwiper` starts the slide from an effect keyed on the store's `blend`,
+ * and an effect runs on MOUNT as well as on change. `blend` used to be set by
+ * `startBlend` and never unset, so after the first record change of a session
+ * every later mount replayed the slide — against whatever was current by then.
+ * The cursor has long since moved to the arriving track, so what it drew was
+ * the record already on the deck sliding out to the left while an identical one
+ * arrived from the right. Playing from the library is the easiest way to see
+ * it, because that opens Now Playing and so mounts a fresh swiper every time.
+ *
+ * The store now nulls `blend` the moment a blend ends, which is the real fix.
+ * This is the other half, and it earns its place on a swiper that mounts PART
+ * WAY through a genuine blend: slide over what is LEFT of it, not over its
+ * whole length — and not at all when too little is left to read as a movement,
+ * since a record flicking in from the edge is worse than no slide at all.
+ */
+export function blendSlideMs(
+  blend: { ms: number; at: number } | null,
+  now: number,
+  /** The shortest slide worth running — `SETTLE_MS` at the call site. */
+  leastMs: number,
+): number | null {
+  if (!blend) return null
+  const left = blend.ms - (now - blend.at)
+  return left >= leastMs ? Math.min(left, blend.ms) : null
+}

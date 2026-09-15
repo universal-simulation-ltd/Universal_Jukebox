@@ -101,9 +101,26 @@ interface PlayerState {
   ceremonyCount: number | null
   /**
    * A crossfade across a change of RECORD is running (`startBlend`): its length,
-   * and a serial so each one is a new value. `DeckSwiper` slides the machines.
+   * when it started, and a serial so each one is a new value. `DeckSwiper`
+   * slides the machines.
+   *
+   * ⚠️ NULL THE MOMENT IT IS OVER, and that is not tidiness — it is the whole
+   * bug (James, 2026-09-15: "when choosing a track out of the library it shows
+   * the correct disc with lyrics but then animates the same track coming in
+   * from the right"). This used to be set by `startBlend` and never unset, so
+   * after the first record change of a session it stayed truthy for ever.
+   * `DeckSwiper` starts its slide from an effect keyed on this value — which
+   * runs on MOUNT as well as on change — so every later visit to Now Playing
+   * replayed the slide against whatever was current: the record already on the
+   * deck sliding out to the left while an identical one arrived from the right.
+   * Playing from the library is the easiest way to see it, because it opens Now
+   * Playing (`showTheDeck`) and so mounts a fresh swiper every time.
+   *
+   * `at` is the second half of the same guard: a swiper that mounts PART WAY
+   * through a real blend must not start a full-length slide over what is left
+   * of it.
    */
-  blend: { ms: number; n: number } | null
+  blend: { ms: number; n: number; at: number } | null
   /** That crossfade's silent 3, 2, 1 — shown where the start's 2, 1 is. */
   blendCount: number | null
   /** Whether the tonearm is down. True whenever a ceremony is not running. */
@@ -890,6 +907,7 @@ function prefersReducedMotion(): boolean {
 function unreachable(set: Set, track: Track | undefined, message: string): void {
   clearCeremony()
   clearHandover()
+  clearBlend()
   audio.stop()
   publishNowPlaying(null)
   set({
@@ -992,12 +1010,17 @@ function clearBlend(): void {
   // Its last timer is the one that sets the deck back to 'idle' (`settleDeck`).
   if (blendTimers.length > 0) settleDeck()
   blendTimers = []
-  if (usePlayerStore.getState().blendCount !== null) usePlayerStore.setState({ blendCount: null })
+  const store = usePlayerStore.getState()
+  if (store.blendCount !== null) usePlayerStore.setState({ blendCount: null })
+  // ⚠️ `blend` TOO — it is a signal, not a flag. Left standing it makes the
+  // next `DeckSwiper` to mount slide a record in over one that is already
+  // there; see the field's own note.
+  if (store.blend !== null) usePlayerStore.setState({ blend: null })
 }
 
 function startBlend(set: Set, get: Get, plan: Handover, seconds: number): void {
   const ms = Math.round(seconds * 1000)
-  set({ deckPhase: 'leaving', armDown: false, handover: true, blend: { ms, n: ++blendSerial } })
+  set({ deckPhase: 'leaving', armDown: false, handover: true, blend: { ms, n: ++blendSerial, at: Date.now() } })
   if (plan.cue) needleDrop(get().volume)
   // The count only where there is time to read it: the long, end-of-track blend.
   if (seconds >= 3) {
@@ -1008,7 +1031,10 @@ function startBlend(set: Set, get: Get, plan: Handover, seconds: number): void {
   }
   blendTimers.push(
     window.setTimeout(() => {
-      set({ blendCount: null, deckPhase: 'arriving', armDown: true, handover: false })
+      // ⚠️ `blend: null` — the slide is over, so the signal goes with it. See
+      // the field's note: a `blend` left standing replays the slide on the next
+      // `DeckSwiper` to mount, over a record that is already on the deck.
+      set({ blend: null, blendCount: null, deckPhase: 'arriving', armDown: true, handover: false })
       blendTimers.push(window.setTimeout(() => set({ deckPhase: 'idle' }), HANDOVER.SWAP_IN_MS))
     }, ms),
   )
@@ -1148,6 +1174,12 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   prefetchNext(get)
   clearCeremony()
   clearHandover()
+  // ⚠️ AND THE BLEND. An explicit play supersedes a change-over that is still
+  // running, and this path ends with `showTheDeck()` having mounted a fresh
+  // `DeckSwiper` — which would otherwise pick the blend up and slide a record
+  // in over the one the ceremony is putting on. Same reason `runHandover`
+  // clears both together.
+  clearBlend()
   if (get().handover) set({ handover: false })
 
   const { ceremonyDone, lastCeremonyAlbumId, lastCeremonyArtist, lastCeremonyAt } = get()
@@ -1221,6 +1253,7 @@ function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
       // The end of the queue. Stop rather than wrapping silently — and take the
       // needle off, since nothing is going to follow it.
       clearHandover()
+      clearBlend()
       audio.pause('end of queue')
       audio.seek(0)
       set({ playing: false, handover: false })

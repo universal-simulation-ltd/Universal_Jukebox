@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { artistKey, changeBetween, planHandover, type HandoverDecision } from './transition'
+import { artistKey, blendSlideMs, changeBetween, planHandover, type HandoverDecision } from './transition'
 import type { Track } from './types'
 
 // The rule that decides what happens between two tracks.
@@ -180,5 +180,46 @@ describe('an album played end to end', () => {
     )
     expect(swaps.filter(Boolean)).toHaveLength(1)
     expect(swaps[0]).toBe(true)
+  })
+})
+
+// The slide that goes with a record crossfade — and, mostly, when NOT to run it
+// (James, 2026-09-15: "when choosing a track out of the library it shows the
+// correct disc with lyrics but then animates the same track coming in from the
+// right").
+describe('blendSlideMs', () => {
+  const LEAST = 240
+
+  it('a blend that has just started slides for its whole length', () => {
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 1000, LEAST)).toBe(1500)
+  })
+
+  it('no blend, no slide', () => {
+    expect(blendSlideMs(null, 1000, LEAST)).toBeNull()
+  })
+
+  it('⚠️ a blend that is OVER never slides again — the bug itself', () => {
+    // The swiper mounts long after the record change: the store should have
+    // nulled `blend` by now, and if anything ever leaves one standing again,
+    // this is what stops it being replayed over the record already on the deck.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 2500, LEAST)).toBeNull()
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 900_000, LEAST)).toBeNull()
+  })
+
+  it('mounting part way through a real blend slides over what is LEFT of it', () => {
+    // 600ms in, so 900ms to go — not another 1500ms, which would land the
+    // record in the middle long after the music had finished crossing.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 1600, LEAST)).toBe(900)
+  })
+
+  it('too little left is no slide at all — a flick from the edge is worse than none', () => {
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 2400, LEAST)).toBeNull()
+    // Exactly the least is still worth running.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 1000 + 1500 - LEAST, LEAST)).toBe(LEAST)
+  })
+
+  it('never asks for longer than the blend, whatever the clock says', () => {
+    // A clock that went backwards (a device waking, a test) must not stretch it.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 500, LEAST)).toBe(1500)
   })
 })
