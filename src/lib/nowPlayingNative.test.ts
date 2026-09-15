@@ -87,12 +87,62 @@ describe('followProgress', () => {
     expect(mocks.plugin.update).toHaveBeenCalledTimes(2)
     expect(mocks.plugin.update).toHaveBeenLastCalledWith({ elapsed: 10, duration: 200, rate: 1 })
 
-    // Once the change-over is over, an unchanged tick is silence again: iOS
-    // runs the clock itself, and a bridge call four times a second all song
-    // is what the guard is there to prevent.
+    // Once the change-over is over it settles to the heartbeat: the tick that
+    // finds the last word stale speaks…
     mocks.plugin.update.mockClear()
     vi.advanceTimersByTime(3100)
     followProgress(true, 13.1, 200)
+    expect(mocks.plugin.update).toHaveBeenCalledTimes(1)
+
+    // …and the ticks straight after it do not. iOS runs the clock itself, and a
+    // bridge call four times a second all song is what the guard prevents.
+    mocks.plugin.update.mockClear()
+    vi.advanceTimersByTime(250)
+    followProgress(true, 13.35, 200)
+    vi.advanceTimersByTime(250)
+    followProgress(true, 13.6, 200)
+    expect(mocks.plugin.update).not.toHaveBeenCalled()
+  })
+
+  // ⚠️ THE ONE THE THREE-SECOND WINDOW DOES NOT COVER (James, 2026-09-15:
+  // "still an issue where the track is playing but the play button is
+  // incorrectly shown"). A queue's OWN crossfade is `CROSSFADE.SEC` plus the
+  // next song's quiet opening — over ten seconds at the limit — and the moment
+  // that matters is the END of it, where the outgoing deck is paused and
+  // released and WebKit writes PAUSED into the same entry. Nothing about
+  // playback has changed by then, so the change guard is silent, and the window
+  // shut seven seconds earlier: only a heartbeat can answer.
+  it('goes on saying it for as long as the song plays, however long the change-over was', async () => {
+    const { showOnLockScreen, followProgress } = await load()
+    await showOnLockScreen(track, art, () => ({ elapsed: 10, duration: 200, playing: true }))
+    vi.advanceTimersByTime(3100)
+    followProgress(true, 13.1, 200)
+    mocks.plugin.update.mockClear()
+
+    // Seven seconds of ticks where NOTHING changes — the elapsed time keeps
+    // step with the clock, so the jump detector has nothing to say either.
+    for (let ms = 250; ms <= 7000; ms += 250) {
+      vi.advanceTimersByTime(250)
+      followProgress(true, 13.1 + ms / 1000, 200)
+    }
+    expect(mocks.plugin.update.mock.calls.length).toBeGreaterThanOrEqual(3)
+    expect(mocks.plugin.update).toHaveBeenLastCalledWith(expect.objectContaining({ rate: 1 }))
+  })
+
+  it('but says nothing at all while the music is paused', async () => {
+    // A wrong ▶ over a playing song is the bug; the other way round cannot
+    // happen from here, and a heartbeat over a paused song would be the app
+    // talking to the lock screen for ever about music nobody is listening to.
+    const { showOnLockScreen, followProgress } = await load()
+    await showOnLockScreen(track, art, () => ({ elapsed: 10, duration: 200, playing: true }))
+    vi.advanceTimersByTime(3100)
+    followProgress(false, 13.1, 200)
+    mocks.plugin.update.mockClear()
+
+    for (let ms = 250; ms <= 10_000; ms += 250) {
+      vi.advanceTimersByTime(250)
+      followProgress(false, 13.1, 200)
+    }
     expect(mocks.plugin.update).not.toHaveBeenCalled()
   })
 

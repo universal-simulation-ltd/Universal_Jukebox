@@ -205,10 +205,44 @@ const RESTATE_MS = 3000
 let restateUntil = 0
 
 /**
+ * …and then SAY IT AGAIN, at least this often, for as long as the music plays.
+ *
+ * ⚠️ `RESTATE_MS` ABOVE WAS SIZED AGAINST THE WRONG CHANGE-OVERS, and the sum
+ * in its own note says so: 1.5s for a record crossfade, 420ms for a lift. Those
+ * are the ones somebody ASKS for. The change-over a queue makes on its own is
+ * far longer — `CROSSFADE.SEC` plus the next song's quiet opening, up to
+ * `INTRO_HOLD_MAX`, and `CROSSFADE.RECORD_SEC` plus the same again for a change
+ * of record: over ten seconds at the limit. And the moment that matters is the
+ * END of it, when the outgoing deck is paused and released (`finishRetirement`
+ * in `lib/audio.ts`) and WebKit writes PAUSED into the same centre — seven
+ * seconds after a three-second window shut. Nothing of ours answered, because
+ * nothing about playback had changed: a crossfade never stops (James,
+ * 2026-09-15: "still an issue where the track is playing but the play button is
+ * incorrectly shown").
+ *
+ * ⚠️ AND THE ANSWER IS DELIBERATELY NOT A BIGGER NUMBER UP THERE. A window long
+ * enough for the longest blend would have to be derived by hand from three
+ * constants in two other files, which is how the first one came to be wrong; it
+ * would go stale the next time any of them moved, and silently. A heartbeat
+ * needs to know none of them. Whatever writes over the entry, and whenever, the
+ * button is right again within this — at the cost of one bridge call every two
+ * seconds while a song plays, which is less than the plugin's own keeper does.
+ */
+const RESTATE_EVERY_MS = 2000
+
+/**
  * Keep an `own` entry's progress honest. iOS runs the clock itself from the
  * last elapsed time and rate, so this only speaks when that clock would be
  * wrong: play or pause, a new duration, a jump (a seek) of over two seconds —
- * or a change-over just happened and the entry is being defended (`RESTATE_MS`).
+ * or a change-over just happened and the entry is being defended (`RESTATE_MS`)
+ * — or it has simply been a while and something may have written over us since
+ * (`RESTATE_EVERY_MS`).
+ *
+ * ⚠️ WHILE PAUSED IT STAYS QUIET, and that is the point of hanging the heartbeat
+ * on `playing`. A wrong ▶ over a playing song is the bug; a wrong ⏸ over a
+ * paused one cannot happen from this direction, and a heartbeat that ran while
+ * paused would be the app talking to the lock screen for ever about a song
+ * nobody is listening to.
  */
 export function followProgress(playing: boolean, sec: number, duration: number): void {
   if (mode !== 'own' || !plugin) return
@@ -216,7 +250,8 @@ export function followProgress(playing: boolean, sec: number, duration: number):
   const expected = sent.playing ? sent.sec + (now - sent.at) / 1000 : sent.sec
   const jumped = Math.abs(sec - expected) > 2
   const restating = now < restateUntil
-  if (!restating && playing === sent.playing && duration === sent.duration && !jumped) return
+  const stale = playing && now - sent.at >= RESTATE_EVERY_MS
+  if (!restating && !stale && playing === sent.playing && duration === sent.duration && !jumped) return
   sent = { playing, at: now, sec, duration }
   void plugin.update({ elapsed: sec, duration, rate: playing ? 1 : 0 }).catch(() => {})
 }
