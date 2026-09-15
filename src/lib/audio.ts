@@ -374,8 +374,9 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
  * 2026-09-13, so the song ending falls away first and the next comes up after
  * it — each at half, half-way — instead of equal power's two songs at 71%
  * together (James: "first track goes more quiet until the second track kicks
- * in so it's less harsh"). Never two linear ramps: those dip in the middle, and
- * that dip is the seam a crossfade exists to hide.
+ * in so it's less harsh"). A SKIP gets the same idea without the wait, as
+ * `lead-out`. Never two linear ramps: those dip in the middle, and that dip is
+ * the seam a crossfade exists to hide.
  */
 export async function crossfade(
   file: SourceFile,
@@ -392,6 +393,15 @@ export async function crossfade(
    * nothing followed by a slow rise reads as the app not having heard them
    * (James, 2026-09-13: "if I swipe for next track it doesn't start playing for
    * a while, I think it's linked to the crossfade").
+   *
+   * `lead-out` is the skip's own shape since 2026-09-15 ("if I have a queue and
+   * then skip to the next track it's choppy"). It keeps the instant start —
+   * the arriving song rises from the first tick — and gives the song leaving a
+   * head start DOWNWARDS instead, so the two cross about a third of the way in
+   * with the old one already well below the new one. Before it, a skip used
+   * `equal-power`, which starts at once but leaves both songs at 71% together
+   * in the middle: bearable at the end of a song, which is quiet anyway, and
+   * the choppiness itself on a song skipped mid-verse at full level.
    */
   curve: FadeCurve = 'staggered',
 ): Promise<void> {
@@ -458,7 +468,7 @@ export async function crossfade(
   const blend = seconds - hold
   // Staggered by default (James, 2026-09-13): the song ending falls away first
   // and the next rises after it, rather than both being loud together in the
-  // middle — see `fadeCurve.ts`. A skip passes `equal-power` instead; see the
+  // middle — see `fadeCurve.ts`. A skip passes `lead-out` instead; see the
   // note on `curve` above.
   rampTo(to, 1, blend, curve)
   rampTo(from, 0, blend, curve, () => finishRetirement(), hold)

@@ -670,7 +670,14 @@ const BEATS = { one: 780, land: 1050, start: 1560 }
  */
 const CROSSFADE = {
   SEC: 1.8,
-  MANUAL_SEC: 0.9,
+  // ⚠️ 0.9 UNTIL 2026-09-15, and too short to be a blend at all once the shape
+  // was right. A skipped song is at full level — nothing about it is fading —
+  // so 0.9s had to take a whole song from full to nothing, which is a cut with
+  // a ramp on it however the ramp is drawn. `lead-out` has the outgoing song
+  // finished 30% before the end of the blend (`LEAD_OUT`), so at 1.2s it is
+  // gone in 0.84s — no longer hanging about than the old 0.9s did — while the
+  // song arriving gets the full 1.2s to come up.
+  MANUAL_SEC: 1.2,
   // A change of RECORD crossfades longer — long enough to watch one machine
   // slide out and the next slide in, counting 3, 2, 1 — and a skip, quicker.
   RECORD_SEC: 4.5,
@@ -747,7 +754,7 @@ function runHandover(
     crossfadeFile?: SourceFile | null
     crossfadeSec?: number
     holdSec?: number
-    /** The blend's shape — a skip is not staggered. See `audio.crossfade`. */
+    /** The blend's shape — a skip leads out instead. See `audio.crossfade`. */
     crossfadeCurve?: FadeCurve
   },
 ): void {
@@ -1317,7 +1324,16 @@ function playPrepared(
     // than after the staggered silence the end-of-song blend uses. The natural
     // crossfade does not come through this function; it runs from
     // `maybeStartEarlyCrossfade`, which keeps the staggered shape.
-    crossfadeCurve: 'equal-power',
+    //
+    // ⚠️ AND `equal-power` WAS THE WRONG WAY TO GET THAT (James, 2026-09-15:
+    // "if I have a queue and then skip to the next track it's choppy"). It
+    // starts the next song at once, which was the point, but it also holds
+    // BOTH at 71% through the middle — and a skipped song is at full mid-verse
+    // level, not fading out like one that reached its own end, so the middle
+    // of the blend was two records at once. `lead-out` keeps the instant
+    // start and takes the outgoing song down FIRST, so it is already quiet by
+    // the time the new one is loud — see `lib/fadeCurve.ts`.
+    crossfadeCurve: 'lead-out',
   })
 }
 
