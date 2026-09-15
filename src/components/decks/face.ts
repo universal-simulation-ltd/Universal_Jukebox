@@ -91,6 +91,12 @@ export interface DeckFrame {
  * ⚠️ Keyed by `DeckStyle`, so adding a medium to that union fails to compile
  * until it has a shape here AND a face in `Deck.tsx`'s table. A stored setting
  * that renders nothing looks exactly like a broken player.
+ *
+ * ⚠️ `radius` IS READ AS WELL AS PAINTED (2026-09-15): the lyrics round the
+ * machine follow the outline it describes (`lib/outline.ts`, handed down by
+ * `Deck` in `DeckOutlineContext`). Keep it the machine's real outline, and keep
+ * to the part of the `border-radius` syntax `cornerRadii` reads — px or %, one
+ * to four values, one optional `/`.
  */
 export const SHAPES: Record<DeckStyle, { frame: DeckFrame; notes: NotesAnchor }> = {
   // A record fills its square, and it is round. The notes drift off the
