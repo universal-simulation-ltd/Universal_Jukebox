@@ -202,14 +202,68 @@ export function blendSlideMs(
  * long swipe that charged full price per record would need three screen widths
  * of finger to reach five, and nobody has that much phone.
  *
- * ⚠️ The RECORDS still move exactly one place however far the finger goes.
- * Past a single travel the deck's record is already where the peek was and
- * there is nowhere further for it to travel; what a longer drag changes is
- * WHICH record is coming in, so the peek shows the one it would land on and
- * the stack is riffled rather than stepped through.
+ * This is the LANDING: `swipeReach` rounded to the nearest record, and never
+ * less than one. A swipe lands on the record nearest the middle as the finger
+ * lifts, which is the record the row is showing there.
  */
 export function swipeSteps(pixels: number, travelPx: number, room: number, extra: number): number {
   if (room <= 0 || travelPx <= 0) return 0
   if (pixels <= travelPx || extra <= 0) return Math.min(1, room)
   return Math.max(1, Math.min(room, 1 + Math.round((pixels - travelPx) / (travelPx * extra))))
+}
+
+/**
+ * How far along the row a drag has carried the records, in records — the
+ * continuous half of `swipeSteps`, for drawing the drag rather than landing it.
+ *
+ * ⚠️ THE ROW MOVES, NOT JUST THE PEEK (James, 2026-09-15: "Could you queue up
+ * another 1 or 2 records for the swipe to advance, so the user could do a
+ * continuous swipe and go 2 records later"). Until then a long swipe moved the
+ * records one place and changed the ART in the peek as the finger went on. Now
+ * the records queued beyond each peek come in behind it, and the whole row is
+ * this many places along. The prices are `swipeSteps`' — a whole travel for
+ * the first record, `extra` of one for each after — so past the first record
+ * the row runs ahead of the finger, which is what fits five on a phone.
+ */
+export function swipeReach(pixels: number, travelPx: number, room: number, extra: number): number {
+  if (room <= 0 || travelPx <= 0 || pixels <= 0) return 0
+  if (pixels <= travelPx || extra <= 0) return Math.min(1, pixels / travelPx)
+  return Math.min(room, 1 + (pixels - travelPx) / (travelPx * extra))
+}
+
+/** How one record in the row around the deck is drawn — see `rowPose`. */
+export interface RowPose {
+  /** Pixels below the deck's level. */
+  y: number
+  /** Against the deck's own size. */
+  scale: number
+  opacity: number
+}
+
+/**
+ * How a record in the row is drawn, by its place in it: `slot` 0 is the deck,
+ * ±1 the peeks either side, ±2 the record queued beyond a peek, and anything
+ * in between is part way through a move.
+ *
+ * ⚠️ ONE CURVE FOR EVERY RECORD. The deck's record leaving and the peek
+ * arriving used to have a formula each — sinking on `progress²`, rising on
+ * `1 − (1 − progress)²` — and those are one parabola seen from its two ends.
+ * Written once, by place rather than by role, a record queued two places back
+ * can come all the way on to the deck and out the other side on the same arc
+ * the neighbours always used.
+ *
+ *   - `y`: the wheel's sag, all of it by a peek's place.
+ *   - `scale`: the deck's size at 0, a peek's by ±1, and no smaller beyond.
+ *   - `opacity`: 1 on the deck, a peek's 0.6 at ±1, and gone by ±2 — so a
+ *     queued record fades in from the edge as it comes up to a peek's place,
+ *     and never shows at rest, even where the screen has room beyond a peek.
+ */
+export function rowPose(slot: number, sag: number, peekScale: number): RowPose {
+  const far = Math.abs(slot)
+  const near = Math.min(1, far)
+  return {
+    y: sag * near * near,
+    scale: 1 - (1 - peekScale) * near,
+    opacity: far <= 1 ? 1 - 0.4 * far : Math.max(0, 0.6 * (2 - far)),
+  }
 }

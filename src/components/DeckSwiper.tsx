@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { resolveDeck } from '../lib/decks'
-import { blendSlideMs, swipeSteps } from '../lib/transition'
+import { blendSlideMs, rowPose, swipeReach, swipeSteps } from '../lib/transition'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -39,6 +39,16 @@ import { grooveRings } from '../lib/grooves'
 // ⚠️ `touch-action: pan-y` hands vertical drags to the page, so scrolling Now
 // Playing with a thumb on the record still scrolls. The phone's back gesture
 // lives at the very edge of the screen, outside where a swipe here starts.
+//
+// ⚠️ MORE RECORDS WAIT IN LINE BEYOND THE PEEKS (James, 2026-09-15: "Could you
+// queue up another 1 or 2 records for the swipe to advance, so the user could
+// do a continuous swipe and go 2 records later"). While a finger is on the
+// deck, the records after the next one (or before the previous one) are queued
+// beyond the peek, out of sight, and the whole row moves with the drag: the
+// peek comes on to the deck, the record behind it fades in at the peek's
+// place, and further still, that one comes on in turn. Letting go lands on the
+// record nearest the middle. `rowPose` in `lib/transition.ts` draws each place
+// in the row; `swipeReach` is how far along the row a drag has got.
 
 const SWIPE_PX = 56
 /** The most records one long swipe can cross in a single motion. */
@@ -62,10 +72,6 @@ interface Arriving {
   style: DeckStyle
   /** Its song — for the grooves, which say how long it is. */
   track?: Track
-  /** A swipe's arrival: the side the new record came in from. */
-  from?: 'left' | 'right'
-  /** The record beyond it has started coming in from that edge. */
-  entered?: boolean
 }
 
 export default function DeckSwiper({
@@ -109,6 +115,8 @@ export default function DeckSwiper({
   const start = useRef<{ x: number; y: number; toLeft: number; toRight: number } | null>(null)
   const swiped = useRef(false)
   const settle = useRef<number | null>(null)
+  /** Putting the queued records away once a swipe that went nowhere has sprung back. */
+  const unqueue = useRef<number | null>(null)
   /**
    * A swipe has been let go and is being finished and held. Set AT the release,
    * synchronously — a swipe onto another record starts a record crossfade, and
@@ -119,8 +127,12 @@ export default function DeckSwiper({
   /** The record leaving, being turned upright (Web Animations, over the spin). */
   const upright = useRef<Animation | null>(null)
 
-  /** The records' offset: the finger's travel, then the end of the swipe. */
-  const [x, setX] = useState(0)
+  /**
+   * Where the row of records is, in records: how far the finger has carried
+   * it, then where the swipe ends. Negative towards the NEXT record, when the
+   * records move left — the sign a finger's pixels have.
+   */
+  const [drag, setDrag] = useState(0)
   const [animate, setAnimate] = useState(false)
   /** How far a full swipe travels, each way — measured at the touch. */
   const [reach, setReach] = useState({ toLeft: size, toRight: size })
@@ -130,8 +142,12 @@ export default function DeckSwiper({
   const [incoming, setIncoming] = useState<(Arriving & { run: boolean }) | null>(null)
   /** How long the records take to move: a swipe's settle, or a whole crossfade. */
   const [ms, setMs] = useState(SETTLE_MS)
-  /** How many records the swipe in progress would cross. 1 unless it is a long one. */
-  const [steps, setSteps] = useState(1)
+  /**
+   * The side whose queued records are out — the side a drag is bringing
+   * records in from — or null. Kept through a spring back, so they ride back
+   * out with the rest instead of vanishing as it starts.
+   */
+  const [queued, setQueued] = useState<'left' | 'right' | null>(null)
 
   /** The order index `delta` away, honouring repeat-all at either end. */
   const indexAt = (delta: number): number | null => {
@@ -147,12 +163,14 @@ export default function DeckSwiper({
     if (repeat === 'all' && order.length > 1) return Math.min(MAX_SWIPE_STEPS, order.length - 1)
     return Math.min(MAX_SWIPE_STEPS, delta > 0 ? order.length - 1 - cursor : cursor)
   }
-  // ⚠️ THE PEEK SHOWS WHERE THE SWIPE WOULD LAND, not simply the neighbour. On
-  // a long swipe (`swipeSteps`) that is several records away, and it updates as
-  // the finger goes — riffling the stack. `steps` is 1 at rest, so outside a
-  // long drag these are the plain neighbours they have always been.
-  const prevIndex = indexAt(x > 0 ? -steps : -1)
-  const nextIndex = indexAt(x < 0 ? steps : 1)
+  // The plain neighbours, always. Until the row (see the note at the top), a
+  // long swipe changed the ART in the peek as the finger went on, to show which
+  // record it would land on — and on letting go the left peek swapped its
+  // picture where it stood, since the record before the one landed on had never
+  // been on screen. The records queued behind the peek now come in themselves,
+  // so each peek keeps its record and there is nothing to swap.
+  const prevIndex = indexAt(-1)
+  const nextIndex = indexAt(1)
   const trackAt = (index: number | null): Track | undefined => (index === null ? undefined : queue[order[index]])
   const albumAt = (index: number | null): Album | undefined => {
     const track = trackAt(index)
@@ -255,7 +273,7 @@ export default function DeckSwiper({
         slideFor.current = null
         setIncoming((current) => (current ? { ...current, run: true } : current))
         setAnimate(true)
-        setX(-r.toRight)
+        setDrag(-1)
       }),
     )
     if (blendTimer.current !== null) window.clearTimeout(blendTimer.current)
@@ -295,7 +313,7 @@ export default function DeckSwiper({
           if (a instanceof CSSAnimation) a.currentTime = 0
         })
       setAnimate(false)
-      setX(0)
+      setDrag(0)
       setArriving(null)
       setMs(SETTLE_MS)
     }
@@ -309,6 +327,7 @@ export default function DeckSwiper({
 
   useEffect(() => () => {
     if (settle.current !== null) window.clearTimeout(settle.current)
+    if (unqueue.current !== null) window.clearTimeout(unqueue.current)
   }, [])
 
   /** From the centre of the deck to the centre of each peek. */
@@ -326,20 +345,24 @@ export default function DeckSwiper({
     }
   }
 
-  // How far through a swipe the records are, 0 → 1, towards whichever side.
-  const travel = x < 0 ? reach.toRight : reach.toLeft
-  const progress = travel > 0 ? Math.min(1, Math.abs(x) / travel) : 0
-  const grow = size / peek
+  /** Pixels per place along the row — the travel on the side records are coming from. */
+  const unit = drag < 0 ? reach.toRight : reach.toLeft
+  /** How far across the row has moved. Every record in it moves by this much. */
+  const x = drag * unit
 
   // The record leaving sinks and shrinks towards a peek's place — on a curve,
-  // level at first (`ARC_SINK`); during a drag, the same curve from `progress`.
-  // ⚠️ It fades to a peek's OWN 0.6 on a swipe: it becomes that peek, and the
-  // two are swapped where they meet (`arriving.from`), so any difference is a jump.
+  // level at first (`ARC_SINK`); during a drag, the same curve from its place
+  // in the row (`rowPose`). On a swipe of several records it goes on past the
+  // peek's place and out of sight, the way a queued record comes in.
+  // ⚠️ It fades to a peek's OWN 0.6 at the peek's place: on a one-record swipe
+  // it becomes that peek, and the two are swapped where they meet, so any
+  // difference is a jump.
+  const deckPose = rowPose(drag, sag, peekScale)
   const slide: DeckSlide = {
     x,
-    y: sag * progress * progress,
-    scale: 1 - (1 - peekScale) * progress,
-    opacity: arriving ? 0 : 1 - (incoming ? 0.85 : 0.4) * progress,
+    y: deckPose.y,
+    scale: deckPose.scale,
+    opacity: arriving ? 0 : incoming ? 1 - 0.85 * Math.min(1, Math.abs(drag)) : deckPose.opacity,
     animate,
     ms,
     // Past the point where letting go would change track — not for a nudge
@@ -354,16 +377,37 @@ export default function DeckSwiper({
   /** How far a peek moves to be out of sight — most of one is already off. */
   const offEdge = Math.round(peek * 0.5)
 
-  // ⚠️ THE THREE RECORDS MOVE AS ONE (James, 2026-09-11: "the next record needs
-  // to come into position at the same time and the previous record move out of
+  /**
+   * The record `slot` places from the deck at rest, where the row has taken it
+   * — as a move from the place of the peek on its side, which is where the
+   * peeks and the records queued beyond them are all drawn.
+   */
+  const rowMotion = (slot: number): PeekMotion => {
+    const peekSlot = slot > 0 ? 1 : -1
+    const pose = rowPose(slot + drag, sag, peekScale)
+    return {
+      // A queued record waits a whole travel further out than the peek.
+      shift: (slot - peekSlot) * (slot > 0 ? reach.toRight : reach.toLeft) + x,
+      lift: pose.y - sag,
+      scale: pose.scale / peekScale,
+      opacity: pose.opacity,
+      transition: animate ? 'move' : 'fade',
+    }
+  }
+
+  // ⚠️ THE RECORDS MOVE AS ONE (James, 2026-09-11: "the next record needs to
+  // come into position at the same time and the previous record move out of
   // view, then when the current becomes previous ... an animation to rotate it
   // into the starting position"). Swiping to the next record:
-  //   - the next one comes in and grows to the deck (`towards`);
-  //   - the previous one goes on, off the edge (`away`);
-  //   - the one playing takes the previous one's place, turning upright.
-  // Where they stop, the peeks take over — the side the playing record went to
-  // shows it AT ONCE (the same picture, in the same place: nothing moves), and
-  // the record beyond the new one comes in from the far edge.
+  //   - the next one comes in and grows to the deck;
+  //   - the previous one goes on, off the edge;
+  //   - the one playing takes the previous one's place, turning upright;
+  //   - and the one queued behind the next comes up to where the next was.
+  // Since 2026-09-15 that is one rule rather than four — every record is drawn
+  // by its place in the row (`rowMotion`) — which is what lets a long swipe
+  // carry the records queued further back all the way through. Where they
+  // stop, the peeks take over: each shows AT ONCE the record the row left at
+  // its place (the same picture, in the same place: nothing moves).
   const peekMotion = (side: 'left' | 'right'): PeekMotion => {
     // ⚠️ A CROSSFADE'S SLIDE MOVES THE PEEKS TOO (James, 2026-09-15: "when
     // loading the next track the track after that should come into peeking at
@@ -395,30 +439,31 @@ export default function DeckSwiper({
         ease: ARC_ACROSS,
       }
     }
-    // The blend is over and its record is held at the centre. The peeks stay
-    // exactly where the slide left them — hiding them here, and fading them
-    // back when the hold was released, was the other half of the jump.
-    if (arriving && !arriving.from) return { shift: 0, lift: 0, scale: 1, opacity: 0.6, transition: 'none' }
-    if (arriving?.from) {
-      if (side !== arriving.from) return { shift: 0, lift: 0, scale: 1, opacity: 0.6, transition: 'none' }
-      return {
-        shift: arriving.entered ? 0 : side === 'right' ? offEdge : -offEdge,
-        lift: 0,
-        scale: 1,
-        opacity: 0.6,
-        transition: arriving.entered ? 'move' : 'none',
-      }
-    }
-    const towards = (side === 'right' && x < 0) || (side === 'left' && x > 0)
-    const away = (side === 'left' && x < 0) || (side === 'right' && x > 0)
-    return {
-      shift: towards || away ? x : 0,
-      // Rising out of the sag at once, then level — the arriving half of the arc.
-      lift: towards ? -sag * (1 - (1 - progress) * (1 - progress)) : 0,
-      scale: towards ? 1 + (grow - 1) * progress : 1,
-      opacity: towards ? 0.6 + 0.4 * progress : away ? 0.6 * (1 - progress) : 0.6,
-      transition: animate ? 'move' : 'fade',
-    }
+    // A record held at the centre, after a blend or a swipe. The peeks stay
+    // exactly where the move left them — hiding them here, and fading them
+    // back when the hold was released, was the other half of the jump. After a
+    // swipe they are already the new neighbours: the row brought them there.
+    if (arriving) return { shift: 0, lift: 0, scale: 1, opacity: 0.6, transition: 'none' }
+    return rowMotion(side === 'right' ? 1 : -1)
+  }
+
+  /** The places beyond the peek on one side: as many as a swipe could cross, and the one it would leave at the peek. */
+  const queuedSlots = (side: 'left' | 'right'): number[] => {
+    const way = side === 'right' ? 1 : -1
+    const slots: number[] = []
+    for (let k = 2; k <= roomFor(way) + 1; k++) slots.push(way * k)
+    return slots
+  }
+
+  /** A swipe that went nowhere: everything back to its place, and the queue put away once it is. */
+  const springBack = () => {
+    setAnimate(true)
+    setDrag(0)
+    if (unqueue.current !== null) window.clearTimeout(unqueue.current)
+    unqueue.current = window.setTimeout(() => {
+      unqueue.current = null
+      setQueued(null)
+    }, SETTLE_MS)
   }
 
   /**
@@ -458,6 +503,26 @@ export default function DeckSwiper({
         ...(inset ? { paddingRight: inset } : null),
       }}
     >
+      {/* The records queued beyond a peek — out of sight at rest, and only
+          here while a drag is bringing them in. See the note at the top. */}
+      {queued && !arriving && !incoming &&
+        queuedSlots(queued).map((slot) => {
+          const index = indexAt(slot)
+          if (index === null) return null
+          return (
+            <Queued
+              key={slot}
+              album={albumAt(index)}
+              grooves={grooveRings(trackAt(index)?.durationSec)}
+              style={styleAt(index)}
+              side={slot > 0 ? 'right' : 'left'}
+              size={peek}
+              deck={size}
+              top={centreY + sag}
+              motion={rowMotion(slot)}
+            />
+          )
+        })}
       {prevIndex !== null && (
         <Peek
           ref={leftPeek}
@@ -532,7 +597,10 @@ export default function DeckSwiper({
         onPointerDown={(e) => {
           if (e.pointerType !== 'touch' || arriving || incoming || holding.current) return
           setMs(SETTLE_MS)
-          setSteps(1)
+          if (unqueue.current !== null) {
+            window.clearTimeout(unqueue.current)
+            unqueue.current = null
+          }
           const r = measure()
           setReach(r)
           start.current = { x: e.clientX, y: e.clientY, ...r }
@@ -545,23 +613,19 @@ export default function DeckSwiper({
           const dx = e.clientX - from.x
           const dy = e.clientY - from.y
           if (Math.abs(dx) <= 8 || Math.abs(dx) <= Math.abs(dy)) return
+          const travelPx = dx < 0 ? from.toRight : from.toLeft
           // Towards a side with no record, the deck only gives a little.
           const room = roomFor(dx < 0 ? 1 : -1)
           if (room === 0) {
-            setSteps(1)
-            setX(Math.max(-40, Math.min(40, dx * 0.25)))
+            setDrag(Math.max(-40, Math.min(40, dx * 0.25)) / travelPx)
             return
           }
-          // ⚠️ THE FINGER MAY GO FURTHER THAN ONE RECORD, AND THE RECORDS STILL
-          // MOVE ONE PLACE. Past a single travel the deck's record is already
-          // where the peek was and has nowhere further to go; what the rest of
-          // the drag changes is WHICH record is arriving — `swipeSteps` — so
-          // the peek shows the one it would land on. See that function's note.
-          const travelPx = dx < 0 ? from.toRight : from.toLeft
-          const furthest = travelPx * (1 + (room - 1) * EXTRA_STEP)
-          const raw = Math.min(Math.abs(dx), furthest)
-          setSteps(swipeSteps(raw, travelPx, room, EXTRA_STEP))
-          setX((dx < 0 ? -1 : 1) * Math.min(raw, travelPx))
+          // ⚠️ THE FINGER MAY GO FURTHER THAN ONE RECORD, AND THE ROW GOES WITH
+          // IT. Past a single travel the peek's record is on the deck and the one
+          // queued behind it is where the peek was; further still, that one
+          // comes on in turn. `swipeReach` has the prices.
+          setQueued(dx < 0 ? 'right' : 'left')
+          setDrag((dx < 0 ? -1 : 1) * swipeReach(Math.abs(dx), travelPx, room, EXTRA_STEP))
         }}
         onPointerUp={(e) => {
           const from = start.current
@@ -569,11 +633,13 @@ export default function DeckSwiper({
           if (!from) return
           const dx = e.clientX - from.x
           const dy = e.clientY - from.y
-          const target = dx < 0 ? nextIndex : prevIndex
+          const way = dx < 0 ? 1 : -1
+          // The record nearest the middle as the finger lifts — the one the row
+          // is showing there (`swipeSteps` is `swipeReach`, rounded).
+          const crossed = swipeSteps(Math.abs(dx), way > 0 ? from.toRight : from.toLeft, roomFor(way), EXTRA_STEP)
+          const target = crossed > 0 ? indexAt(way * crossed) : null
           if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * 1.3 || target === null) {
-            setAnimate(true)
-            setX(0)
-            setSteps(1)
+            springBack()
             return
           }
           swiped.current = true
@@ -581,22 +647,19 @@ export default function DeckSwiper({
             // Nothing moved under the finger, so the distance is read here
             // instead — a long swipe still crosses several records, it just
             // never showed which ones on the way.
-            const delta = dx < 0 ? 1 : -1
-            const room = roomFor(delta)
-            const crossed = swipeSteps(Math.abs(dx), dx < 0 ? from.toRight : from.toLeft, room, EXTRA_STEP)
-            jumpTo((crossed > 0 ? indexAt(delta * crossed) : null) ?? target)
+            jumpTo(target)
             return
           }
 
-          // Finish the move, then hold the arrival and change track.
+          // Finish the move — the row on to the record it lands on — then hold
+          // the arrival and change track.
           holding.current = true
           setAnimate(true)
-          setX(dx < 0 ? -from.toRight : from.toLeft)
+          setDrag(-way * crossed)
           turnUpright()
           const album = albumAt(target)
           const track = trackAt(target)
           const style = styleAt(target)
-          const cameFrom = dx < 0 ? 'right' : 'left'
           settle.current = window.setTimeout(() => {
             settle.current = null
             // ⚠️ ONE COMMIT for the hold and the change of track. The peeks
@@ -604,12 +667,12 @@ export default function DeckSwiper({
             // flash up in the middle, or the old neighbour back at the side.
             flushSync(() => {
               setAnimate(false)
-              // ⚠️ IN THE SAME COMMIT, for the reason above: the peeks read
-              // `steps` as well as the cursor, and put back a render early they
-              // would show the neighbour of the record being left rather than
-              // of the one arriving.
-              setSteps(1)
-              setArriving({ album, style, track, from: cameFrom })
+              // ⚠️ IN THE SAME COMMIT, for the reason above: the queued records
+              // go as the peeks take over from them. Each peek's new record is
+              // the one the row left at its place, so the hand-over cannot be
+              // seen — but only if both happen in one frame.
+              setQueued(null)
+              setArriving({ album, style, track })
               // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
               // it to the middle and is holding a still picture of it there;
               // without this the player runs its own record change over the
@@ -617,17 +680,11 @@ export default function DeckSwiper({
               // turning) until that finishes 2.1s later. See `playPrepared`.
               jumpTo(target, { onDeck: true })
             })
-            // Then the record beyond comes in from the edge: drawn there first.
-            requestAnimationFrame(() =>
-              requestAnimationFrame(() => setArriving((a) => (a?.from ? { ...a, entered: true } : a))),
-            )
           }, Math.max(SETTLE_MS, UPRIGHT_MS))
         }}
         onPointerCancel={() => {
           start.current = null
-          setAnimate(true)
-          setX(0)
-          setSteps(1)
+          springBack()
         }}
         onClickCapture={(e) => {
           if (!swiped.current) return
@@ -691,27 +748,55 @@ const Peek = forwardRef<
       }}
       aria-label={`${side === 'left' ? 'Previous' : 'Next'}${album ? `: ${album.title}` : ''}`}
       className="absolute hover:opacity-90 focus-visible:opacity-100 lg:hidden"
-      style={{
-        top,
-        width: size,
-        height: size,
-        transform: `translateY(-50%) translateX(${motion.shift}px) translateY(${motion.lift}px) scale(${motion.scale})`,
-        opacity: motion.opacity,
-        transition:
-          motion.transition === 'move'
-            ? `transform ${motion.ms ?? 240}ms ${motion.ease ?? 'cubic-bezier(.2,.8,.2,1)'}, opacity ${motion.ms ?? 240}ms ease-out`
-            : motion.transition === 'fade'
-              ? 'opacity 200ms ease-out'
-              : 'none',
-        // Just under half of it on screen: enough to see WHICH record, and on
-        // what, not enough to compete with the one that is playing.
-        [side]: -Math.round(size * 0.58),
-      }}
+      style={rowStyle(side, size, top, motion)}
     >
       <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} />
     </button>
   )
 })
+
+/**
+ * A record queued beyond a peek (see the note at the top of the file): drawn
+ * at that peek's place and moved from there exactly as the peek is, but only a
+ * picture — it is out of sight unless a finger is bringing it in, so there is
+ * never anything to tap.
+ */
+function Queued({ album, style, side, size, deck, grooves, top, motion }: {
+  album: Album | undefined
+  style: DeckStyle
+  side: 'left' | 'right'
+  size: number
+  deck: number
+  grooves?: number
+  top: number
+  motion: PeekMotion
+}) {
+  return (
+    <div className="pointer-events-none absolute lg:hidden" style={rowStyle(side, size, top, motion)} aria-hidden>
+      <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} />
+    </div>
+  )
+}
+
+/** Where a peek, or a record queued beyond one, is drawn — and how it gets there. */
+function rowStyle(side: 'left' | 'right', size: number, top: number, motion: PeekMotion): React.CSSProperties {
+  return {
+    top,
+    width: size,
+    height: size,
+    transform: `translateY(-50%) translateX(${motion.shift}px) translateY(${motion.lift}px) scale(${motion.scale})`,
+    opacity: motion.opacity,
+    transition:
+      motion.transition === 'move'
+        ? `transform ${motion.ms ?? 240}ms ${motion.ease ?? 'cubic-bezier(.2,.8,.2,1)'}, opacity ${motion.ms ?? 240}ms ease-out`
+        : motion.transition === 'fade'
+          ? 'opacity 200ms ease-out'
+          : 'none',
+    // Just under half of it on screen: enough to see WHICH record, and on
+    // what, not enough to compete with the one that is playing.
+    [side]: -Math.round(size * 0.58),
+  }
+}
 
 /**
  * A record as it is drawn beside the deck, `shown` pixels across.

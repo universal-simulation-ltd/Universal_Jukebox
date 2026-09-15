@@ -300,6 +300,13 @@ body {
   to   { opacity: 1; }
 }
 
+/* ...and the words of a record on its way off the deck, frozen and fading
+   over the time it takes to go (LyricsAround, lib/leavingWords.ts). */
+@keyframes jb-lyric-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 /* A word on the turning ribbon of lyrics (LyricsAround, the `orbit` style).
    ⚠️ The halo is here rather than in the component because it has to answer to
    the theme, and the colour it fights is the PAGE behind the record — light

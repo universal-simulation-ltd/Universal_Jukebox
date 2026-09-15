@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { artistKey, blendSlideMs, changeBetween, planHandover, swipeSteps, type HandoverDecision } from './transition'
+import { artistKey, blendSlideMs, changeBetween, planHandover, rowPose, swipeReach, swipeSteps, type HandoverDecision } from './transition'
 import type { Track } from './types'
 
 // The rule that decides what happens between two tracks.
@@ -221,6 +221,80 @@ describe('blendSlideMs', () => {
   it('never asks for longer than the blend, whatever the clock says', () => {
     // A clock that went backwards (a device waking, a test) must not stretch it.
     expect(blendSlideMs({ ms: 1500, at: 1000 }, 500, LEAST)).toBe(1500)
+  })
+})
+
+// The row of records moving with a drag (James, 2026-09-15: "Could you queue
+// up another 1 or 2 records for the swipe to advance, so the user could do a
+// continuous swipe and go 2 records later").
+describe('swipeReach', () => {
+  const TRAVEL = 200
+  const EXTRA = 0.5
+  const reach = (px: number, room = 5) => swipeReach(px, TRAVEL, room, EXTRA)
+
+  it('follows the finger exactly across the first record', () => {
+    expect(reach(0)).toBe(0)
+    expect(reach(TRAVEL / 2)).toBe(0.5)
+    expect(reach(TRAVEL)).toBe(1)
+  })
+
+  it('runs a record for every half travel after that', () => {
+    expect(reach(TRAVEL * 1.5)).toBe(2)
+    expect(reach(TRAVEL * 2)).toBe(3)
+  })
+
+  it('stops at the last record there is', () => {
+    expect(reach(TRAVEL * 10, 2)).toBe(2)
+    expect(reach(TRAVEL * 10, 0)).toBe(0)
+  })
+
+  it('lands where it is showing — the record nearest the middle', () => {
+    // `swipeSteps` is the landing and this is the drawing. If they disagreed,
+    // you would let go on one record and arrive at another.
+    for (let px = TRAVEL; px < TRAVEL * 4; px += 7) {
+      expect(swipeSteps(px, TRAVEL, 5, EXTRA)).toBe(Math.max(1, Math.round(reach(px))))
+    }
+  })
+})
+
+describe('rowPose', () => {
+  const SAG = 40
+  const PEEK = 0.62
+  const pose = (slot: number) => rowPose(slot, SAG, PEEK)
+  const close = (slot: number, want: { y: number; scale: number; opacity: number }) => {
+    const got = pose(slot)
+    expect(got.y).toBeCloseTo(want.y)
+    expect(got.scale).toBeCloseTo(want.scale)
+    expect(got.opacity).toBeCloseTo(want.opacity)
+  }
+
+  it('is the deck at 0 and a peek either side', () => {
+    close(0, { y: 0, scale: 1, opacity: 1 })
+    close(1, { y: SAG, scale: PEEK, opacity: 0.6 })
+    close(-1, { y: SAG, scale: PEEK, opacity: 0.6 })
+  })
+
+  it('keeps a queued record out of sight until it comes up to a peek', () => {
+    expect(pose(2).opacity).toBe(0)
+    expect(pose(-3).opacity).toBe(0)
+    close(1.5, { y: SAG, scale: PEEK, opacity: 0.3 })
+  })
+
+  it('never jumps passing through a peek', () => {
+    const before = pose(1 - 1e-6)
+    const after = pose(1 + 1e-6)
+    expect(after.y).toBeCloseTo(before.y)
+    expect(after.scale).toBeCloseTo(before.scale)
+    expect(after.opacity).toBeCloseTo(before.opacity)
+  })
+
+  it('is the arc the neighbours always moved on, leaving and arriving', () => {
+    for (let p = 0; p <= 1; p += 0.125) {
+      // The deck's record leaving: sinking on progress².
+      close(-p, { y: SAG * p * p, scale: 1 - (1 - PEEK) * p, opacity: 1 - 0.4 * p })
+      // The peek arriving: rising out of the sag on 1 − (1 − progress)².
+      expect(pose(1 - p).y - SAG).toBeCloseTo(-SAG * (1 - (1 - p) ** 2))
+    }
   })
 })
 

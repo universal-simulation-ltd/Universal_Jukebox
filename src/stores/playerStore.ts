@@ -701,7 +701,7 @@ const CROSSFADE = {
   RECORD_SEC: 4.5,
   RECORD_MANUAL_SEC: 1.5,
 }
-const HANDOVER = { LIFT_MS: 420, SWAP_IN_MS: 620, FADE_OUT_SEC: 0.32, FADE_IN_SEC: 0.55 }
+export const HANDOVER = { LIFT_MS: 420, SWAP_IN_MS: 620, FADE_OUT_SEC: 0.32, FADE_IN_SEC: 0.55 }
 /**
  * How long the pickup takes to get back to the start during a crossfade.
  *

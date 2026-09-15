@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { ERA_ORDER, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
@@ -15,6 +15,7 @@ import PocketDeck from './decks/PocketDeck'
 import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
 import { DeckSlideContext, slideInner, slideOuter } from './decks/slide'
+import { DeckOutlineContext } from './decks/outline'
 import { grooveRings } from '../lib/grooves'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
@@ -118,6 +119,11 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
   // has never heard of. Falling back to the record beats rendering nothing.
   const Face = FACES[style] ?? FACES.vinyl
   const { frame, notes } = SHAPES[style] ?? SHAPES.vinyl
+  // For what is drawn round the machine — the lyrics follow its outline.
+  const outline = useMemo(
+    () => ({ width: size, height: Math.round(size * frame.ratio), radius: frame.radius }),
+    [size, frame.ratio, frame.radius],
+  )
 
   const active = ceremonial && ceremony
   // ⚠️ An arrival already under way when this deck appeared is not played
@@ -213,6 +219,7 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
         }}
       >
         <div className="absolute inset-0" style={slide && style !== 'vinyl' ? slideInner(slide) : undefined}>
+        <DeckOutlineContext.Provider value={outline}>
         <Face
           progress={progress}
           engaged={engaged}
@@ -227,6 +234,7 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
         />
         {/* Other machines move whole under a swipe; the lyrics go with them. */}
         {style !== 'vinyl' && underArm}
+        </DeckOutlineContext.Provider>
         </div>
 
         {/* Drifting notes — pure decoration, and only while something is
