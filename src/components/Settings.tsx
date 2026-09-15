@@ -107,7 +107,7 @@ export default function Settings() {
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
-    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? (s.lyricsAroundStyle === 'lines' ? ', every line on the record' : ', around the record') : ''}`,
+    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: s.trackNotifications ? 'One for each new song' : 'Off',
     appearance: labelOf(THEME_OPTIONS, themePref),
@@ -325,7 +325,7 @@ export default function Settings() {
           />
           <Toggle
             label="Lyrics around the record"
-            hint="On Now Playing, each song opens with its first line across the record, a word at a time; then the line being sung curves over the top of the record and the next waits faintly beneath. Needs lyrics with timings."
+            hint="On Now Playing, the words appear around the spinning record as they are sung — in one of three styles, chosen below. Needs lyrics with timings."
             checked={s.lyricsAround}
             onChange={(v) => s.set('lyricsAround', v)}
           />
@@ -560,7 +560,19 @@ const HOME_OPTIONS: Option<HomeTab>[] = [
 const LYRICS_STYLE_OPTIONS: Option<LyricsAroundStyle>[] = [
   { value: 'arc', label: 'First line, then around the record' },
   { value: 'lines', label: 'Every line, word by word' },
+  {
+    value: 'orbit',
+    label: 'Turning around the record',
+    hint: 'The whole song written once around the record, turning anti-clockwise so the word being sung is at the top. Lines rise from the bottom, cross the top and go back down the other side, blurring away as they leave. Holds still and shows the arc instead if your device asks for less motion.',
+  },
 ]
+
+/** How each style reads in the Lyrics fold's one-line summary. */
+const LYRICS_STYLE_SUMMARY: Record<LyricsAroundStyle, string> = {
+  arc: ', around the record',
+  lines: ', every line on the record',
+  orbit: ', turning around the record',
+}
 
 const THEME_OPTIONS: Option<ThemePref>[] = [
   { value: 'light', label: 'Light' },

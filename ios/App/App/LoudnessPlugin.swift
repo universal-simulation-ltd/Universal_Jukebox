@@ -21,7 +21,8 @@ public class LoudnessPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "JukeboxLoudness"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "measure", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "intro", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "intro", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "outro", returnType: CAPPluginReturnPromise)
     ]
 
     private let queue = DispatchQueue(label: "uk.co.unisim.jukebox.loudness", qos: .utility)
@@ -62,11 +63,41 @@ extension LoudnessPlugin {
             call.resolve(["blocksDb": levels])
         }
     }
+
+    /// ...and of a song's ENDING, for the crossfade OUT of it —
+    /// `src/lib/outro.ts` decides from these how many seconds of dead air are
+    /// on the end, so the blend can start before them rather than through them.
+    ///
+    /// ⚠️ Native for a second reason on top of the ones above: the page can
+    /// only decode a raw fragment off the back of a file whose frames carry
+    /// their own headers, so an M4A or a FLAC gets no answer there at all.
+    /// `AVAssetReader` seeks to a time, so the phone measures every format.
+    @objc func outro(_ call: CAPPluginCall) {
+        guard let raw = call.getString("uri"), let url = URL(string: raw), url.isFileURL else {
+            call.reject("No file was named.", "NO_FILE")
+            return
+        }
+        let seconds = call.getDouble("seconds") ?? 20
+        let block = call.getDouble("block") ?? 0.2
+        DispatchQueue.global(qos: .utility).async {
+            guard let levels = Loudness.closing(url, seconds: seconds, block: block) else {
+                call.reject("That file could not be read.", "UNREADABLE")
+                return
+            }
+            call.resolve(["blocksDb": levels])
+        }
+    }
 }
 
 enum Loudness {
     /// Mean-square level (dBFS, mono) of each `block` seconds of the first `seconds`.
     static func opening(_ url: URL, seconds: Double, block: Double) -> [Double]? {
+        return blocks(url, from: 0, seconds: seconds, block: block)
+    }
+
+    /// Mean-square level (dBFS, mono) of each `block` seconds of the stretch
+    /// starting at `from` — what both `opening` and `closing` are made of.
+    static func blocks(_ url: URL, from: Double, seconds: Double, block: Double) -> [Double]? {
         let asset = AVURLAsset(url: url)
         guard let track = asset.tracks(withMediaType: .audio).first,
               let reader = try? AVAssetReader(asset: asset) else { return nil }
@@ -80,7 +111,8 @@ enum Loudness {
             AVNumberOfChannelsKey: 1,
             AVSampleRateKey: rate
         ])
-        reader.timeRange = CMTimeRange(start: .zero, duration: CMTime(seconds: seconds, preferredTimescale: 600))
+        reader.timeRange = CMTimeRange(start: CMTime(seconds: from, preferredTimescale: 600),
+                                       duration: CMTime(seconds: seconds, preferredTimescale: 600))
         guard reader.canAdd(output) else { return nil }
         reader.add(output)
         guard reader.startReading() else { return nil }
@@ -105,6 +137,19 @@ enum Loudness {
             }
         }
         return levels.isEmpty ? nil : levels
+    }
+
+    /// The same, for the LAST `seconds` of the file — see `outro` above.
+    ///
+    /// ⚠️ A file shorter than the window is measured whole rather than skipped.
+    /// The alternative answers "unreadable" for every short track, and
+    /// `outroFromBlocks` already copes with a window that is all there is.
+    static func closing(_ url: URL, seconds: Double, block: Double) -> [Double]? {
+        let asset = AVURLAsset(url: url)
+        let duration = CMTimeGetSeconds(asset.duration)
+        guard duration.isFinite, duration > 0 else { return nil }
+        let from = max(0, duration - seconds)
+        return blocks(url, from: from, seconds: min(seconds, duration), block: block)
     }
 
     static func measure(_ url: URL) -> (rms: Double, peak: Double, seconds: Double)? {

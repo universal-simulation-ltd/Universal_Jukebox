@@ -62,9 +62,12 @@ export type HomeTab = 'albums' | 'artists' | 'tracks' | 'jukebox'
  * The lyrics around the record: `arc` opens on the first line big, word by
  * word, then puts the rest on an arc; `lines` keeps every line like that first
  * one (James, 2026-09-11: "an option in settings to have the lyrics always like
- * the first line lyrics").
+ * the first line lyrics"); `orbit` writes the whole song round a ring that
+ * turns anti-clockwise under the top of the record (James, 2026-09-15).
  */
-export type LyricsAroundStyle = 'arc' | 'lines'
+export type LyricsAroundStyle = 'arc' | 'lines' | 'orbit'
+
+const LYRICS_AROUND_STYLES: LyricsAroundStyle[] = ['arc', 'lines', 'orbit']
 
 /** The three lists, each with its own order and layout (`perTab`). */
 export type ListTab = Exclude<HomeTab, 'jukebox'>
@@ -193,7 +196,7 @@ export interface Settings {
   lyricsOnline: boolean
   /** The words around the spinning record on Now Playing (`LyricsAround`). */
   lyricsAround: boolean
-  /** How: the first line big then the rest on an arc, or every line big, word by word. */
+  /** How: an arc, every line big word by word, or the whole song turning around the record. */
   lyricsAroundStyle: LyricsAroundStyle
   /** "Full albums only" on the Albums tab — see `isFullAlbum` in `lib/libraryView.ts`. */
   fullAlbumsOnly: boolean
@@ -403,7 +406,12 @@ function readStored(): Settings {
     // is the entire guarantee this setting makes.
     lyricsOnline: stored.lyricsOnline === true,
     lyricsAround: stored.lyricsAround === true,
-    lyricsAroundStyle: stored.lyricsAroundStyle === 'lines' ? 'lines' : 'arc',
+    // ⚠️ A named list, not a cast. Anything else stored — a value from a
+    // version that had a style this one does not — falls back to `arc` rather
+    // than reaching `LyricsAround` as a style nothing there can draw.
+    lyricsAroundStyle: LYRICS_AROUND_STYLES.includes(stored.lyricsAroundStyle as LyricsAroundStyle)
+      ? (stored.lyricsAroundStyle as LyricsAroundStyle)
+      : 'arc',
     fullAlbumsOnly: stored.fullAlbumsOnly === true,
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))

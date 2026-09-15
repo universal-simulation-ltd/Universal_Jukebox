@@ -23,6 +23,7 @@ import { shouldRunCeremony } from '../lib/ceremony'
 import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
 import { INTRO_HOLD_MAX, cachedIntro, introHold, measureIntro } from '../lib/intro'
+import { OUTRO_LEAD_MAX, cachedOutro, measureOutro, outroLead } from '../lib/outro'
 import { noteEvent } from '../lib/bgLog'
 
 // Playback: the queue, what is on, and the transport.
@@ -1134,6 +1135,16 @@ function whenPlayable(set: Set, track: Track, resume: () => void): boolean {
  */
 function prefetchNext(get: Get): void {
   const { queue, order, cursor, repeat } = get()
+  // ⚠️ The song PLAYING has its ending measured here too, not only the one
+  // coming. Everything else is measured a song ahead, which leaves exactly one
+  // song out: the first of a queue is nobody's "next", so without this the
+  // crossfade out of the song you actually pressed play on would be the one
+  // that never skipped its dead air. Its file is already open — it is playing.
+  const playing = currentTrack(get())
+  if (playing && cachedOutro(playing.id) === null) {
+    const file = useLibraryStore.getState().fileFor(playing)
+    if (file) void measureOutro(playing.id, file)
+  }
   if (order.length < 2) return
   let next = cursor + 1
   if (next >= order.length) {
@@ -1148,6 +1159,11 @@ function prefetchNext(get: Get): void {
     if (file && settings().stableVolume && cachedGain(track.id) === null) void measureGain(track.id, file)
     // How quiet its opening is, for the crossfade into it (`lib/intro.ts`).
     if (file && cachedIntro(track.id) === null) void measureIntro(track.id, file)
+    // ...and how much dead air is on its END, for the crossfade OUT of it a
+    // song later (`lib/outro.ts`). Measured HERE, a whole song early, rather
+    // than when it starts: the answer is wanted a couple of seconds before this
+    // song ends, and a measurement begun then would not be back in time.
+    if (file && cachedOutro(track.id) === null) void measureOutro(track.id, file)
   }
   if (library.needsPreparing(track)) void library.prepare(track).then(measure)
   else measure(library.fileFor(track))
@@ -1398,7 +1414,7 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   // else — a flag cleared on load — misses the case where the crossfade is
   // superseded by the user pressing next inside the lead. The longest lead is
   // a record change's, so that is the distance that rearms.
-  if (remainingSec > CROSSFADE.RECORD_SEC + INTRO_HOLD_MAX + 1) {
+  if (remainingSec > CROSSFADE.RECORD_SEC + INTRO_HOLD_MAX + OUTRO_LEAD_MAX + 1) {
     crossfadeArmed = false
     return
   }
@@ -1425,7 +1441,20 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   // …and a next song that starts QUIETLY comes in that much earlier, the song
   // ending holding at full through its quiet opening (`lib/intro.ts`).
   const hold = introHold(to.id)
-  const lead = (plan.swap ? CROSSFADE.RECORD_SEC : CROSSFADE.SEC) + hold
+  const blendLead = (plan.swap ? CROSSFADE.RECORD_SEC : CROSSFADE.SEC) + hold
+  // …and a song ending on DEAD AIR hands over that much earlier again (James,
+  // 2026-09-15: "If there's a few blank seconds at the end of the track start
+  // the crossfade earlier" — `lib/outro.ts`).
+  //
+  // ⚠️ IT MOVES THE START, NOT THE LENGTH, and the two are different things.
+  // `hold` lengthens the blend because a quiet opening is still music and the
+  // song ending waits through it. Trailing silence is not music: the blend
+  // keeps its usual shape and simply happens sooner, so the next song is at
+  // full by the time the dead air would have begun and the dead air is never
+  // heard. Lengthening the blend instead would fade a song out across seconds
+  // of nothing, which sounds like the app losing its place.
+  const trail = outroLead(from.id)
+  const lead = blendLead + trail
   if (remainingSec > lead) return
 
   const library = useLibraryStore.getState()
@@ -1451,9 +1480,9 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   }
   crossfadeArmed = true
   // Late (the song has only just become ready): cross over the time that is left.
-  const blendSec = Math.max(0.6, Math.min(lead, remainingSec))
+  const blendSec = Math.max(0.6, Math.min(blendLead, remainingSec))
   const holdSec = Math.max(0, Math.min(hold, blendSec - (plan.swap ? CROSSFADE.RECORD_MANUAL_SEC : CROSSFADE.MANUAL_SEC)))
-  noteEvent('handover', { kind: 'crossfade', seconds: +blendSec.toFixed(1), hold: +holdSec.toFixed(1), late: blendSec < lead })
+  noteEvent('handover', { kind: 'crossfade', seconds: +blendSec.toFixed(1), hold: +holdSec.toFixed(1), trail: +trail.toFixed(1), late: blendSec < blendLead })
 
   set({ cursor: target })
   publishNowPlaying(to)

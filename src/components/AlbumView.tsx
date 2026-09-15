@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Cover from './Cover'
+import FindWithin, { type FindWithinHandle } from './FindWithin'
 import PreviewButton from './PreviewButton'
 import AddToQueue from './AddToQueue'
 import AddToShelf from './AddToShelf'
@@ -7,11 +8,19 @@ import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
 import { clock, plural, totalTime } from '../lib/format'
 import { navigate } from '../lib/route'
+import { matchTracks } from '../lib/search'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
 
 // One album: the cover big, the tracks in running order, and the two buttons
 // that matter.
+//
+// ⚠️ AND A SEARCH WITHIN IT (James, 2026-09-15: "Album scroll down for search
+// within"). Folded away above the track list and pulled down from the top of
+// the page, the way the library's own search box works — see `FindWithin`. A
+// box-set with four discs and sixty tracks on one page is where this earns its
+// place; the Find button beside Play is the same thing for anyone without a
+// finger to pull with.
 
 export default function AlbumView({ albumId }: { albumId: string }) {
   const albums = useLibraryStore((s) => s.albums)
@@ -27,6 +36,28 @@ export default function AlbumView({ albumId }: { albumId: string }) {
     () => sortAlbumTracks(allTracks.filter((t) => t.albumId === albumId)),
     [allTracks, albumId],
   )
+
+  const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const search = useRef<FindWithinHandle>(null)
+  // A different record is a different search. Without this, walking from one
+  // album to the next carries a query that matched the last one's tracks into
+  // a page it hides half of.
+  useEffect(() => {
+    setQuery('')
+    setSearchOpen(false)
+  }, [albumId])
+  /**
+   * The rows on screen.
+   *
+   * ⚠️ `shown` is what is LISTED; `tracks` is still what is PLAYED. Pressing a
+   * row that a search found puts the whole record on from there — a search is a
+   * way to find track nine, not a way to make the album nine tracks long. The
+   * two Play buttons at the top ignore the search for the same reason.
+   */
+  const found = useMemo(() => matchTracks(tracks, query), [tracks, query])
+  const searching = query.trim() !== ''
+  const shown = searching ? found : tracks
 
   if (!album) {
     return (
@@ -46,8 +77,10 @@ export default function AlbumView({ albumId }: { albumId: string }) {
   const total = totalTime(tracks)
   // Multi-disc albums show their disc headings; single-disc ones must not, or
   // every ordinary album grows a spurious "Disc 1" row.
+  // ⚠️ ...and never while searching. "Disc 2" over a list of whatever matched is
+  // a heading for a disc that is not there.
   const discs = new Set(tracks.map((t) => t.discNo ?? 1))
-  const showDiscs = discs.size > 1
+  const showDiscs = discs.size > 1 && !searching
   // How many records this artist has here — "All N albums by …" appears only
   // when there is more than this one.
   const artistAlbumCount = albums.filter((a) => a.artist === album.artist).length
@@ -90,6 +123,16 @@ export default function AlbumView({ albumId }: { albumId: string }) {
 
   return (
     <div>
+      {/* At the very top of the page, because that is where the pull starts. */}
+      <FindWithin
+        handle={search}
+        query={query}
+        setQuery={setQuery}
+        open={searchOpen}
+        setOpen={setSearchOpen}
+        label={`Search ${album.title}`}
+        placeholder={`Search ${album.title}`}
+      />
       <button
         type="button"
         onClick={() => navigate({ view: 'albums' })}
@@ -157,7 +200,9 @@ export default function AlbumView({ albumId }: { albumId: string }) {
             </button>
           )}
           <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
-            {[album.year, plural(tracks.length, 'track'), total].filter(Boolean).join(' · ')}
+            {searching
+              ? `${found.length} of ${plural(tracks.length, 'track')} matching “${query.trim()}”`
+              : [album.year, plural(tracks.length, 'track'), total].filter(Boolean).join(' · ')}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2.5">
@@ -181,14 +226,33 @@ export default function AlbumView({ albumId }: { albumId: string }) {
             </button>
             <AddToQueue tracks={tracks} />
             <AddToShelf tracks={tracks} variant="pill" />
+            {/* ⚠️ Only worth a button on a record long enough to lose a track
+                in. Under `FIND_FROM` tracks the whole list is on the screen
+                already and a Find button is a control that finds what you are
+                looking at. The pull still works at any length. */}
+            {tracks.length >= FIND_FROM && (
+              <button
+                type="button"
+                onClick={() => search.current?.open()}
+                aria-label={`Search ${album.title}`}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+              >
+                <FindGlyph />
+                Find
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       <ol className="mt-8 divide-y divide-slate-200 dark:divide-slate-800">
-        {tracks.map((track, index) => {
+        {shown.map((track, index) => {
           const isCurrent = nowPlaying?.id === track.id
-          const first = showDiscs && (index === 0 || (tracks[index - 1].discNo ?? 1) !== (track.discNo ?? 1))
+          const first = showDiscs && (index === 0 || (shown[index - 1].discNo ?? 1) !== (track.discNo ?? 1))
+          // ⚠️ WHERE THE TRACK SITS ON THE RECORD, not where it sits in the
+          // list. Under a search those differ, and both the row's number and
+          // the point the record starts from are about the record.
+          const at = searching ? tracks.indexOf(track) : index
           return (
             <li key={track.id}>
               {first && (
@@ -199,7 +263,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => playTracks(tracks, index)}
+                onClick={() => playTracks(tracks, at)}
                 className="group flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left focus:outline-none focus-visible:bg-orange-50 dark:focus-visible:bg-orange-950/30"
               >
                 <span
@@ -209,7 +273,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
                 >
                   {/* The bars replace the number for the track that is on, so
                       the row that is playing is findable without reading it. */}
-                  {isCurrent && playing ? <Bars /> : (track.trackNo ?? index + 1)}
+                  {isCurrent && playing ? <Bars /> : (track.trackNo ?? at + 1)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span
@@ -241,7 +305,29 @@ export default function AlbumView({ albumId }: { albumId: string }) {
           )
         })}
       </ol>
+
+      {searching && found.length === 0 && (
+        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          Nothing on this record matching “{query.trim()}”.
+        </p>
+      )}
     </div>
+  )
+}
+
+/**
+ * The shortest record that gets a Find button.
+ *
+ * Twelve is about where a track list stops fitting on a laptop screen, and the
+ * button is only there for the tracks you would have to scroll to.
+ */
+const FIND_FROM = 12
+
+function FindGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
+      <path d="M9 3.5a5.5 5.5 0 1 0 3.38 9.84l3.14 3.14a1 1 0 0 0 1.42-1.42l-3.14-3.14A5.5 5.5 0 0 0 9 3.5Zm-3.5 5.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z" />
+    </svg>
   )
 }
 

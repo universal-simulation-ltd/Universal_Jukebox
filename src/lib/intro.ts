@@ -48,18 +48,26 @@ export function introFromBlocks(blocksDb: readonly number[], blockSec: number): 
   return Math.round(Math.max(0, first) * blockSec * 10) / 10
 }
 
-/** The level of each block of a decoded opening (mono), as dBFS. */
+/**
+ * The level of each block of a decoded stretch (mono), as dBFS.
+ *
+ * `fromSec` is where that stretch starts — 0 for an opening, and `lib/outro.ts`
+ * passes the far end of the buffer for a song's CLOSE. The two measures share
+ * this so a quiet ending and a quiet opening are judged by the same arithmetic.
+ */
 export function blocksFromBuffer(
   buffer: { sampleRate: number; numberOfChannels: number; length: number; getChannelData(channel: number): Float32Array },
   seconds = OPENING_SEC,
   blockSec = BLOCK_SEC,
+  fromSec = 0,
 ): number[] {
   const rate = buffer.sampleRate
-  const end = Math.min(buffer.length, Math.floor(rate * seconds))
+  const from = Math.max(0, Math.min(buffer.length, Math.floor(rate * fromSec)))
+  const end = Math.min(buffer.length, from + Math.floor(rate * seconds))
   const block = Math.max(1, Math.floor(rate * blockSec))
   const channels = Array.from({ length: buffer.numberOfChannels }, (_, c) => buffer.getChannelData(c))
   const out: number[] = []
-  for (let start = 0; start + block <= end; start += block) {
+  for (let start = from; start + block <= end; start += block) {
     let sum = 0
     for (let i = start; i < start + block; i++) {
       let v = 0
