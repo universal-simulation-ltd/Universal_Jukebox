@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { artistKey, changeBetween, planHandover, type HandoverDecision } from './transition'
+import { artistKey, blendSlideMs, changeBetween, planHandover, swipeSteps, type HandoverDecision } from './transition'
 import type { Track } from './types'
 
 // The rule that decides what happens between two tracks.
@@ -180,5 +180,103 @@ describe('an album played end to end', () => {
     )
     expect(swaps.filter(Boolean)).toHaveLength(1)
     expect(swaps[0]).toBe(true)
+  })
+})
+
+// The slide that goes with a record crossfade — and, mostly, when NOT to run it
+// (James, 2026-09-15: "when choosing a track out of the library it shows the
+// correct disc with lyrics but then animates the same track coming in from the
+// right").
+describe('blendSlideMs', () => {
+  const LEAST = 240
+
+  it('a blend that has just started slides for its whole length', () => {
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 1000, LEAST)).toBe(1500)
+  })
+
+  it('no blend, no slide', () => {
+    expect(blendSlideMs(null, 1000, LEAST)).toBeNull()
+  })
+
+  it('⚠️ a blend that is OVER never slides again — the bug itself', () => {
+    // The swiper mounts long after the record change: the store should have
+    // nulled `blend` by now, and if anything ever leaves one standing again,
+    // this is what stops it being replayed over the record already on the deck.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 2500, LEAST)).toBeNull()
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 900_000, LEAST)).toBeNull()
+  })
+
+  it('mounting part way through a real blend slides over what is LEFT of it', () => {
+    // 600ms in, so 900ms to go — not another 1500ms, which would land the
+    // record in the middle long after the music had finished crossing.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 1600, LEAST)).toBe(900)
+  })
+
+  it('too little left is no slide at all — a flick from the edge is worse than none', () => {
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 2400, LEAST)).toBeNull()
+    // Exactly the least is still worth running.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 1000 + 1500 - LEAST, LEAST)).toBe(LEAST)
+  })
+
+  it('never asks for longer than the blend, whatever the clock says', () => {
+    // A clock that went backwards (a device waking, a test) must not stretch it.
+    expect(blendSlideMs({ ms: 1500, at: 1000 }, 500, LEAST)).toBe(1500)
+  })
+})
+
+// The long swipe (James, 2026-09-15: "it would be good if the user could do a
+// long swipe to move a few records ahead in one motion").
+describe('swipeSteps', () => {
+  const TRAVEL = 200
+  const EXTRA = 0.5
+  const steps = (px: number, room = 5) => swipeSteps(px, TRAVEL, room, EXTRA)
+
+  it('anything short of one travel is the swipe it has always been — one record', () => {
+    expect(steps(20)).toBe(1)
+    expect(steps(TRAVEL - 1)).toBe(1)
+    expect(steps(TRAVEL)).toBe(1)
+  })
+
+  it('each record past the first costs half a travel', () => {
+    expect(steps(TRAVEL * 1.25)).toBe(2)
+    expect(steps(TRAVEL * 1.75)).toBe(3)
+    expect(steps(TRAVEL * 2.25)).toBe(4)
+    expect(steps(TRAVEL * 2.75)).toBe(5)
+  })
+
+  it('a drag just past one travel has not committed to two yet', () => {
+    // Otherwise the record you land on flips the instant you overshoot.
+    expect(steps(TRAVEL * 1.1)).toBe(1)
+  })
+
+  it('never goes further than there are records', () => {
+    expect(steps(TRAVEL * 10, 2)).toBe(2)
+    expect(steps(TRAVEL * 10, 5)).toBe(5)
+    // The end of the queue, with nothing to move to.
+    expect(steps(TRAVEL * 10, 0)).toBe(0)
+    expect(steps(20, 0)).toBe(0)
+  })
+
+  it('never goes backwards or to nothing on a real swipe', () => {
+    for (let px = 1; px < TRAVEL * 4; px += 7) {
+      const n = steps(px)
+      expect(n).toBeGreaterThanOrEqual(1)
+      expect(n).toBeLessThanOrEqual(5)
+    }
+  })
+
+  it('only ever grows as the finger goes further', () => {
+    let last = 0
+    for (let px = 0; px < TRAVEL * 4; px += 5) {
+      const n = steps(px)
+      expect(n).toBeGreaterThanOrEqual(last)
+      last = n
+    }
+  })
+
+  it('a travel of nothing is not a divide by zero', () => {
+    expect(swipeSteps(100, 0, 5, EXTRA)).toBe(0)
+    // No extra cost configured: a long drag is still one record, never NaN.
+    expect(swipeSteps(TRAVEL * 3, TRAVEL, 5, 0)).toBe(1)
   })
 })

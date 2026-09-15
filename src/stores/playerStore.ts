@@ -13,7 +13,7 @@ import { cachedGain, measureGain } from '../lib/loudness'
 import { readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
 import { announceTrack, withdrawTrack } from '../lib/trackNotify'
-import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
+import { clearLockScreen, followProgress, setInterruptionHandler, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
 import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from './libraryStore'
@@ -101,9 +101,26 @@ interface PlayerState {
   ceremonyCount: number | null
   /**
    * A crossfade across a change of RECORD is running (`startBlend`): its length,
-   * and a serial so each one is a new value. `DeckSwiper` slides the machines.
+   * when it started, and a serial so each one is a new value. `DeckSwiper`
+   * slides the machines.
+   *
+   * ⚠️ NULL THE MOMENT IT IS OVER, and that is not tidiness — it is the whole
+   * bug (James, 2026-09-15: "when choosing a track out of the library it shows
+   * the correct disc with lyrics but then animates the same track coming in
+   * from the right"). This used to be set by `startBlend` and never unset, so
+   * after the first record change of a session it stayed truthy for ever.
+   * `DeckSwiper` starts its slide from an effect keyed on this value — which
+   * runs on MOUNT as well as on change — so every later visit to Now Playing
+   * replayed the slide against whatever was current: the record already on the
+   * deck sliding out to the left while an identical one arrived from the right.
+   * Playing from the library is the easiest way to see it, because it opens Now
+   * Playing (`showTheDeck`) and so mounts a fresh swiper every time.
+   *
+   * `at` is the second half of the same guard: a swiper that mounts PART WAY
+   * through a real blend must not start a full-length slide over what is left
+   * of it.
    */
-  blend: { ms: number; n: number } | null
+  blend: { ms: number; n: number; at: number } | null
   /** That crossfade's silent 3, 2, 1 — shown where the start's 2, 1 is. */
   blendCount: number | null
   /** Whether the tonearm is down. True whenever a ceremony is not running. */
@@ -670,7 +687,14 @@ const BEATS = { one: 780, land: 1050, start: 1560 }
  */
 const CROSSFADE = {
   SEC: 1.8,
-  MANUAL_SEC: 0.9,
+  // ⚠️ 0.9 UNTIL 2026-09-15, and too short to be a blend at all once the shape
+  // was right. A skipped song is at full level — nothing about it is fading —
+  // so 0.9s had to take a whole song from full to nothing, which is a cut with
+  // a ramp on it however the ramp is drawn. `lead-out` has the outgoing song
+  // finished 30% before the end of the blend (`LEAD_OUT`), so at 1.2s it is
+  // gone in 0.84s — no longer hanging about than the old 0.9s did — while the
+  // song arriving gets the full 1.2s to come up.
+  MANUAL_SEC: 1.2,
   // A change of RECORD crossfades longer — long enough to watch one machine
   // slide out and the next slide in, counting 3, 2, 1 — and a skip, quicker.
   RECORD_SEC: 4.5,
@@ -747,7 +771,7 @@ function runHandover(
     crossfadeFile?: SourceFile | null
     crossfadeSec?: number
     holdSec?: number
-    /** The blend's shape — a skip is not staggered. See `audio.crossfade`. */
+    /** The blend's shape — a skip leads out instead. See `audio.crossfade`. */
     crossfadeCurve?: FadeCurve
   },
 ): void {
@@ -883,6 +907,7 @@ function prefersReducedMotion(): boolean {
 function unreachable(set: Set, track: Track | undefined, message: string): void {
   clearCeremony()
   clearHandover()
+  clearBlend()
   audio.stop()
   publishNowPlaying(null)
   set({
@@ -985,12 +1010,17 @@ function clearBlend(): void {
   // Its last timer is the one that sets the deck back to 'idle' (`settleDeck`).
   if (blendTimers.length > 0) settleDeck()
   blendTimers = []
-  if (usePlayerStore.getState().blendCount !== null) usePlayerStore.setState({ blendCount: null })
+  const store = usePlayerStore.getState()
+  if (store.blendCount !== null) usePlayerStore.setState({ blendCount: null })
+  // ⚠️ `blend` TOO — it is a signal, not a flag. Left standing it makes the
+  // next `DeckSwiper` to mount slide a record in over one that is already
+  // there; see the field's own note.
+  if (store.blend !== null) usePlayerStore.setState({ blend: null })
 }
 
 function startBlend(set: Set, get: Get, plan: Handover, seconds: number): void {
   const ms = Math.round(seconds * 1000)
-  set({ deckPhase: 'leaving', armDown: false, handover: true, blend: { ms, n: ++blendSerial } })
+  set({ deckPhase: 'leaving', armDown: false, handover: true, blend: { ms, n: ++blendSerial, at: Date.now() } })
   if (plan.cue) needleDrop(get().volume)
   // The count only where there is time to read it: the long, end-of-track blend.
   if (seconds >= 3) {
@@ -1001,7 +1031,10 @@ function startBlend(set: Set, get: Get, plan: Handover, seconds: number): void {
   }
   blendTimers.push(
     window.setTimeout(() => {
-      set({ blendCount: null, deckPhase: 'arriving', armDown: true, handover: false })
+      // ⚠️ `blend: null` — the slide is over, so the signal goes with it. See
+      // the field's note: a `blend` left standing replays the slide on the next
+      // `DeckSwiper` to mount, over a record that is already on the deck.
+      set({ blend: null, blendCount: null, deckPhase: 'arriving', armDown: true, handover: false })
       blendTimers.push(window.setTimeout(() => set({ deckPhase: 'idle' }), HANDOVER.SWAP_IN_MS))
     }, ms),
   )
@@ -1141,6 +1174,12 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   prefetchNext(get)
   clearCeremony()
   clearHandover()
+  // ⚠️ AND THE BLEND. An explicit play supersedes a change-over that is still
+  // running, and this path ends with `showTheDeck()` having mounted a fresh
+  // `DeckSwiper` — which would otherwise pick the blend up and slide a record
+  // in over the one the ceremony is putting on. Same reason `runHandover`
+  // clears both together.
+  clearBlend()
   if (get().handover) set({ handover: false })
 
   const { ceremonyDone, lastCeremonyAlbumId, lastCeremonyArtist, lastCeremonyAt } = get()
@@ -1214,6 +1253,7 @@ function advance(set: Set, get: Get, delta: number, naturalEnd = false) {
       // The end of the queue. Stop rather than wrapping silently — and take the
       // needle off, since nothing is going to follow it.
       clearHandover()
+      clearBlend()
       audio.pause('end of queue')
       audio.seek(0)
       set({ playing: false, handover: false })
@@ -1317,7 +1357,16 @@ function playPrepared(
     // than after the staggered silence the end-of-song blend uses. The natural
     // crossfade does not come through this function; it runs from
     // `maybeStartEarlyCrossfade`, which keeps the staggered shape.
-    crossfadeCurve: 'equal-power',
+    //
+    // ⚠️ AND `equal-power` WAS THE WRONG WAY TO GET THAT (James, 2026-09-15:
+    // "if I have a queue and then skip to the next track it's choppy"). It
+    // starts the next song at once, which was the point, but it also holds
+    // BOTH at 71% through the middle — and a skipped song is at full mid-verse
+    // level, not fading out like one that reached its own end, so the middle
+    // of the blend was two records at once. `lead-out` keeps the instant
+    // start and takes the outgoing song down FIRST, so it is already quiet by
+    // the time the new one is loud — see `lib/fadeCurve.ts`.
+    crossfadeCurve: 'lead-out',
   })
 }
 
@@ -1481,6 +1530,31 @@ audio.subscribe((state) => {
   followProgress(state.playing, state.currentSec, state.durationSec)
   rememberWhereWeAre(state.currentSec)
   ms.setPosition(state.currentSec, state.durationSec)
+})
+
+/**
+ * Siri, a call, a timer — something took the audio, and the music has to come
+ * back afterwards (James, 2026-09-15: "when doing hey siri the track stops, and
+ * doesn't come back").
+ *
+ * ⚠️ NOTHING HERE TOUCHES AN AUDIO SESSION, and it must stay that way — the
+ * notice is observed by `NowPlayingPlugin.swift` and acted on entirely in the
+ * page. `lib/audio.ts` holds what "acted on" means: faint while it lasts where
+ * that is possible at all, and a rise from silence when it is over.
+ *
+ * ⚠️ `shouldResume === false` is iOS saying the audio belongs to something else
+ * now — asking Siri to play a podcast ends our music on purpose, and starting
+ * it again would be two things playing at once. A MISSING option (null) is not
+ * that: it is iOS saying nothing, and "either way come back on later" is the
+ * answer to nothing.
+ */
+setInterruptionHandler(({ type, shouldResume }) => {
+  if (type === 'began') {
+    audio.interruptionBegan()
+    return
+  }
+  if (type !== 'ended') return
+  void audio.interruptionEnded(shouldResume)
 })
 
 audio.setCallbacks({

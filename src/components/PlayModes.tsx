@@ -2,6 +2,7 @@ import { ShuffleGlyph } from './AlbumView'
 import { AboutToggle } from './AboutTrack'
 import AddToShelf from './AddToShelf'
 import { ModeButton } from './ModeButton'
+import OutputButton from './OutputButton'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
 
 // The row of round buttons under the records waiting to go on: shuffle and the
@@ -48,6 +49,15 @@ export default function PlayModes() {
           <AboutToggle />
         </div>
       )}
+      {/* ⚠️ A THIRD GROUP, and so a second line on a phone — deliberately. The
+          note at the top says five fit across a 390px screen, and this is a
+          sixth; squeezing it in would take every button in the row below the
+          size a thumb can aim at. Its own group because it is neither the play
+          ORDER nor about the SONG — it is about the room you are in. Absent
+          entirely where the engine has no picker to show (`OutputButton`). */}
+      <div role="group" aria-label="Sound" className="flex gap-x-1 sm:gap-x-5">
+        <OutputButton />
+      </div>
     </div>
   )
 }

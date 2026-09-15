@@ -286,10 +286,19 @@ export default function NowPlaying() {
         order it will go on) and it introduces the queue underneath, which is
         the version with names and a way to remove a row. */}
     <UpNextReel onMore={openQueue} />
-    {/* Shuffle, the repeats, Add to shelf and the "i" — see `PlayModes`. On a
-        phone the page stops at the records above, and a further swipe up
-        brings this row into view (James, 2026-09-13) — see `FoldUp`. */}
-    <FoldUp open={optionsShown || aboutOpen} onOpen={() => setOptionsShown(true)}>
+    {/* Shuffle, the repeats, where the sound comes out, Add to shelf and the
+        "i" — see `PlayModes`. On a phone the page stops at the records above,
+        and a further swipe up brings this row into view (James, 2026-09-13),
+        and scrolling back up folds it away again (2026-09-15) — see `FoldUp`. */}
+    <FoldUp
+      open={optionsShown || aboutOpen}
+      onOpen={() => setOptionsShown(true)}
+      // ⚠️ Not while the "i" is open. `open` already survives it (it is an OR),
+      // so without this the fold would simply be DEFERRED — scroll through
+      // About, close it, and the row underneath would vanish at the same
+      // moment for no reason the person could connect to anything.
+      onClose={() => { if (!aboutOpen) setOptionsShown(false) }}
+    >
       <PlayModes />
     </FoldUp>
     {/* What the "i" in that row opens (James, 2026-09-13: "move (i) and (add
