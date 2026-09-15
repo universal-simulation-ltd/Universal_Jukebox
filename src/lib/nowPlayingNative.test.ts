@@ -129,6 +129,25 @@ describe('followProgress', () => {
     expect(mocks.plugin.update).toHaveBeenLastCalledWith(expect.objectContaining({ rate: 1 }))
   })
 
+  // ⚠️ THE MODE THAT HAD NO WRITER AT ALL. In `merge` the dictionary is
+  // WebKit's, so this used to return early and leave WebKit's PAUSED across a
+  // change-over unopposed — the likeliest reason the ▶ outlived the fix meant
+  // to end it (James, 2026-09-15, on the first build carrying it). The plugin
+  // takes only the play/pause state from a merge-mode update; what matters
+  // here is that one arrives at all.
+  it('speaks in merge mode too, where WebKit owns the entry', async () => {
+    mocks.plugin.show.mockResolvedValueOnce({ animated: false, supportedKeys: [], mode: 'merge' })
+    const { showOnLockScreen, followProgress } = await load()
+    await showOnLockScreen(track, art, () => ({ elapsed: 10, duration: 200, playing: true }))
+    // A track change is the moment the button goes wrong, so it is stated at once.
+    expect(mocks.plugin.update).toHaveBeenCalledWith({ elapsed: 10, duration: 200, rate: 1 })
+
+    mocks.plugin.update.mockClear()
+    vi.advanceTimersByTime(3100)
+    followProgress(true, 13.1, 200)
+    expect(mocks.plugin.update).toHaveBeenCalledWith({ elapsed: 13.1, duration: 200, rate: 1 })
+  })
+
   it('but says nothing at all while the music is paused', async () => {
     // A wrong ▶ over a playing song is the bug; the other way round cannot
     // happen from here, and a heartbeat over a paused song would be the app

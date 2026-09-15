@@ -207,15 +207,32 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         let duration = call.getDouble("duration") ?? 0
         let rate = call.getDouble("rate") ?? 0
         DispatchQueue.main.async {
+            // ⚠️ IN `merge` MODE THIS SETS THE PLAY/PAUSE STATE AND NOTHING ELSE,
+            // which is why it is above the guard rather than below it.
+            //
+            // The dictionary is WebKit's in that mode and ours is only laid over
+            // it, so writing an elapsed time of our own would make two writers of
+            // one scrub bar and a bar that jitters between them. `playbackState`
+            // is a property of the CENTRE rather than of the dictionary, it is
+            // exactly the button that keeps being wrong, and asserting it can
+            // only ever say the true thing — that the music is playing.
+            //
+            // Before this, merge mode had no writer at all: the page returned
+            // early (`followProgress`) and `keep()` skips `playbackState` for
+            // anything but `own`. WebKit's PAUSED across a change-over stood
+            // unopposed, which is the likeliest reason the ▶ outlived the fix
+            // meant to end it (James, 2026-09-15, on the first build to carry
+            // any of it: "lock screen still has the play button issue after a
+            // track change").
+            if #available(iOS 13.0, *) {
+                MPNowPlayingInfoCenter.default().playbackState = rate > 0 ? .playing : .paused
+            }
             guard self.mode == .own, !self.ours.isEmpty else { call.resolve(); return }
             self.ours[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
             self.ours[MPNowPlayingInfoPropertyPlaybackRate] = rate
             if duration > 0 { self.ours[MPMediaItemPropertyPlaybackDuration] = duration }
             self.remember(elapsed: elapsed, duration: duration, rate: rate)
             self.apply()
-            if #available(iOS 13.0, *) {
-                MPNowPlayingInfoCenter.default().playbackState = rate > 0 ? .playing : .paused
-            }
             call.resolve()
         }
     }
