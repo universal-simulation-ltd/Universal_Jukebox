@@ -837,9 +837,21 @@ const INTERRUPT_DUCK_SEC = 0.2
  * ⚠️ A DUCK MUST NOT BE ABLE TO OUTLIVE ITS INTERRUPTION. If the `ended` notice
  * never comes — the app was killed and restored, iOS simply did not send one —
  * an envelope left at `INTERRUPT_LEVEL` is a player that is quiet for ever with
- * a volume slider saying otherwise, and nothing anywhere to explain it. By this
- * point the element is paused in every case that matters, so putting the
- * envelope back is inaudible; only leaving it down can be heard.
+ * a volume slider saying otherwise, and nothing anywhere to explain it.
+ *
+ * ⚠️ BUT IT ONLY LETS GO WHILE THE ELEMENT IS PAUSED, and that qualifier is the
+ * whole of it. This note used to say the element is paused by now "in every
+ * case that matters, so putting the envelope back is inaudible" — and that was
+ * a guess, made when nobody had heard one. It is WRONG: James, 2026-09-15,
+ * on the phone — "yes on siri, hear faded sound good". The music really does
+ * carry on under Siri, which is the ideal half of what he asked for and also
+ * the thing that makes a blind restore audible: a Siri turn longer than this
+ * (a timer being set, a message read back, any dictation) would snap the music
+ * to full volume with Siri still talking over it.
+ *
+ * So while it is still sounding the duck stays and this simply looks again.
+ * Nothing is stranded by that: `ended` clears it, and so does play, pause and
+ * a new track — every way out of an interruption there is.
  */
 const INTERRUPT_DUCK_MAX_MS = 8000
 
@@ -863,8 +875,24 @@ export function interruptionBegan(): void {
   noteEvent('interruption', { half: 'began', ours: interruptedPlaying, sec: state.currentSec })
   if (!interruptedPlaying) return
   rampTo(active, INTERRUPT_LEVEL, INTERRUPT_DUCK_SEC)
+  armDuckRelease()
+}
+
+/**
+ * Let a duck go once doing so cannot be heard — and look again until it can.
+ *
+ * Silent while the music is still sounding: putting the envelope back then is
+ * exactly the snap-to-full-volume-under-Siri this guards against. See the note
+ * on `INTERRUPT_DUCK_MAX_MS`.
+ */
+function armDuckRelease(): void {
   duckTimer = setTimeout(() => {
     duckTimer = null
+    if (!el().paused) {
+      // Still audible, so the interruption is still running: leave it down.
+      armDuckRelease()
+      return
+    }
     endFade(active, 1)
   }, INTERRUPT_DUCK_MAX_MS) as unknown as number
 }

@@ -105,9 +105,10 @@ export async function showOnLockScreen(
     // Where playback is NOW, not when `show` set off.
     const latest = now()
     sent = { playing: latest.playing, at: performance.now(), sec: latest.elapsed, duration: latest.duration }
-    if (mode === 'own') {
-      await plugin!.update({ elapsed: latest.elapsed, duration: latest.duration, rate: latest.playing ? 1 : 0 })
-    }
+    // ⚠️ In BOTH modes since 2026-09-15. A track change is the moment the
+    // button goes wrong, so it is the moment worth being sure about, and in
+    // `merge` mode the plugin takes nothing from this but the play/pause state.
+    await plugin!.update({ elapsed: latest.elapsed, duration: latest.duration, rate: latest.playing ? 1 : 0 })
     // …and go on saying it for the rest of the change-over — see `RESTATE_MS`.
     restateUntil = performance.now() + RESTATE_MS
   } catch (error) {
@@ -245,7 +246,16 @@ const RESTATE_EVERY_MS = 2000
  * nobody is listening to.
  */
 export function followProgress(playing: boolean, sec: number, duration: number): void {
-  if (mode !== 'own' || !plugin) return
+  // ⚠️ `merge` GETS THIS TOO, since 2026-09-15, and it is the likeliest reason
+  // the ▶ survived the fix before it (James, after the first build that had
+  // any of this on it: "lock screen still has the play button issue after a
+  // track change"). In `merge` mode WebKit's entry IS the app's entry, so
+  // nothing of ours was ever sent — this returned here, and the plugin's
+  // keeper skips `playbackState` for anything but `own`. WebKit writes PAUSED
+  // across a change-over and there was no second writer anywhere to disagree.
+  // The plugin decides what a merge-mode update may touch: the play/pause
+  // state and nothing else, so the scrub bar stays WebKit's alone.
+  if (mode === 'unknown' || !plugin) return
   const now = performance.now()
   const expected = sent.playing ? sent.sec + (now - sent.at) / 1000 : sent.sec
   const jumped = Math.abs(sec - expected) > 2
