@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { resolveDeck } from '../lib/decks'
-import { blendSlideMs } from '../lib/transition'
+import { blendSlideMs, swipeSteps } from '../lib/transition'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -41,6 +41,10 @@ import { grooveRings } from '../lib/grooves'
 // lives at the very edge of the screen, outside where a swipe here starts.
 
 const SWIPE_PX = 56
+/** The most records one long swipe can cross in a single motion. */
+const MAX_SWIPE_STEPS = 5
+/** What each record past the first costs, as a share of the first one's travel. */
+const EXTRA_STEP = 0.5
 const PEEK = 0.62
 /** How long the records take to finish a swipe once the finger lets go. */
 const SETTLE_MS = 240
@@ -126,6 +130,8 @@ export default function DeckSwiper({
   const [incoming, setIncoming] = useState<(Arriving & { run: boolean }) | null>(null)
   /** How long the records take to move: a swipe's settle, or a whole crossfade. */
   const [ms, setMs] = useState(SETTLE_MS)
+  /** How many records the swipe in progress would cross. 1 unless it is a long one. */
+  const [steps, setSteps] = useState(1)
 
   /** The order index `delta` away, honouring repeat-all at either end. */
   const indexAt = (delta: number): number | null => {
@@ -135,8 +141,18 @@ export default function DeckSwiper({
     if (repeat === 'all' && order.length > 1) return (i + order.length) % order.length
     return null
   }
-  const prevIndex = indexAt(-1)
-  const nextIndex = indexAt(1)
+  /** How many records there are to cross that way — `delta` is +1 on, −1 back. */
+  const roomFor = (delta: number): number => {
+    if (order.length === 0 || cursor < 0) return 0
+    if (repeat === 'all' && order.length > 1) return Math.min(MAX_SWIPE_STEPS, order.length - 1)
+    return Math.min(MAX_SWIPE_STEPS, delta > 0 ? order.length - 1 - cursor : cursor)
+  }
+  // ⚠️ THE PEEK SHOWS WHERE THE SWIPE WOULD LAND, not simply the neighbour. On
+  // a long swipe (`swipeSteps`) that is several records away, and it updates as
+  // the finger goes — riffling the stack. `steps` is 1 at rest, so outside a
+  // long drag these are the plain neighbours they have always been.
+  const prevIndex = indexAt(x > 0 ? -steps : -1)
+  const nextIndex = indexAt(x < 0 ? steps : 1)
   const trackAt = (index: number | null): Track | undefined => (index === null ? undefined : queue[order[index]])
   const albumAt = (index: number | null): Album | undefined => {
     const track = trackAt(index)
@@ -207,7 +223,15 @@ export default function DeckSwiper({
    * now check they are still wanted.
    */
   const slideFor = useRef<number | null>(null)
-  useEffect(() => {
+  // ⚠️ A LAYOUT EFFECT, SO THE SET-UP IS NEVER PAINTED HALF DONE. The player
+  // moves the cursor as the blend starts, so the render that first sees `blend`
+  // already has the NEW neighbours in it — and with an ordinary effect the
+  // browser could paint that render before this ran: the record after the one
+  // arriving would appear in the peek at rest, in the place the arriving record
+  // has not left yet, and only then start sliding. That flash is half of what
+  // reads as the jump. Running before paint means the first frame anybody sees
+  // is the one where everything is at its starting place.
+  useLayoutEffect(() => {
     const now = latest.current
     if (!blend || holding.current || now.arriving || now.reduced) return
     // ⚠️ THIS EFFECT RUNS ON MOUNT, NOT ONLY ON A NEW BLEND, so a blend that is
@@ -341,8 +365,40 @@ export default function DeckSwiper({
   // shows it AT ONCE (the same picture, in the same place: nothing moves), and
   // the record beyond the new one comes in from the far edge.
   const peekMotion = (side: 'left' | 'right'): PeekMotion => {
-    // A crossfade's slide, or its arrival: the peeks are a track stale.
-    if (swapping || (arriving && !arriving.from)) return { shift: 0, lift: 0, scale: 1, opacity: 0, transition: 'fade' }
+    // ⚠️ A CROSSFADE'S SLIDE MOVES THE PEEKS TOO (James, 2026-09-15: "when
+    // loading the next track the track after that should come into peeking at
+    // the same time so it doesn't jump unnaturally when the next track is
+    // loading"). Both peeks used to be hidden for the whole blend and then
+    // faded back in once it was over — so the record beyond the one arriving
+    // appeared out of nothing at the side, a beat after everything else had
+    // stopped. That appearing IS the jump.
+    //
+    // They can travel with it because the player moves the cursor as the blend
+    // STARTS, so `nextIndex` is already the record after the one arriving and
+    // `prevIndex` the one leaving: both are already the right records for where
+    // the slide ends, and only have to be put where it began.
+    //   - right: off its edge, then in over the same milliseconds as the record
+    //     arriving. Nothing is handed over here — the record that WAS this peek
+    //     is the one arriving, drawn by `incoming` at this exact place and size.
+    //   - left: the record leaving is being carried to this spot by the deck's
+    //     own slide, so this copy fades up underneath it. They are the same
+    //     record in the same place, which is why the swap cannot be seen.
+    if (swapping) {
+      const run = incoming?.run === true
+      return {
+        shift: side === 'right' && !run ? offEdge : 0,
+        lift: 0,
+        scale: 1,
+        opacity: side === 'right' ? 0.6 : run ? 0.6 : 0,
+        transition: run ? 'move' : 'none',
+        ms,
+        ease: ARC_ACROSS,
+      }
+    }
+    // The blend is over and its record is held at the centre. The peeks stay
+    // exactly where the slide left them — hiding them here, and fading them
+    // back when the hold was released, was the other half of the jump.
+    if (arriving && !arriving.from) return { shift: 0, lift: 0, scale: 1, opacity: 0.6, transition: 'none' }
     if (arriving?.from) {
       if (side !== arriving.from) return { shift: 0, lift: 0, scale: 1, opacity: 0.6, transition: 'none' }
       return {
@@ -476,6 +532,7 @@ export default function DeckSwiper({
         onPointerDown={(e) => {
           if (e.pointerType !== 'touch' || arriving || incoming || holding.current) return
           setMs(SETTLE_MS)
+          setSteps(1)
           const r = measure()
           setReach(r)
           start.current = { x: e.clientX, y: e.clientY, ...r }
@@ -489,8 +546,22 @@ export default function DeckSwiper({
           const dy = e.clientY - from.y
           if (Math.abs(dx) <= 8 || Math.abs(dx) <= Math.abs(dy)) return
           // Towards a side with no record, the deck only gives a little.
-          const open = dx < 0 ? nextIndex !== null : prevIndex !== null
-          setX(open ? Math.max(-from.toRight, Math.min(from.toLeft, dx)) : Math.max(-40, Math.min(40, dx * 0.25)))
+          const room = roomFor(dx < 0 ? 1 : -1)
+          if (room === 0) {
+            setSteps(1)
+            setX(Math.max(-40, Math.min(40, dx * 0.25)))
+            return
+          }
+          // ⚠️ THE FINGER MAY GO FURTHER THAN ONE RECORD, AND THE RECORDS STILL
+          // MOVE ONE PLACE. Past a single travel the deck's record is already
+          // where the peek was and has nowhere further to go; what the rest of
+          // the drag changes is WHICH record is arriving — `swipeSteps` — so
+          // the peek shows the one it would land on. See that function's note.
+          const travelPx = dx < 0 ? from.toRight : from.toLeft
+          const furthest = travelPx * (1 + (room - 1) * EXTRA_STEP)
+          const raw = Math.min(Math.abs(dx), furthest)
+          setSteps(swipeSteps(raw, travelPx, room, EXTRA_STEP))
+          setX((dx < 0 ? -1 : 1) * Math.min(raw, travelPx))
         }}
         onPointerUp={(e) => {
           const from = start.current
@@ -502,11 +573,18 @@ export default function DeckSwiper({
           if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * 1.3 || target === null) {
             setAnimate(true)
             setX(0)
+            setSteps(1)
             return
           }
           swiped.current = true
           if (reduced) {
-            jumpTo(target)
+            // Nothing moved under the finger, so the distance is read here
+            // instead — a long swipe still crosses several records, it just
+            // never showed which ones on the way.
+            const delta = dx < 0 ? 1 : -1
+            const room = roomFor(delta)
+            const crossed = swipeSteps(Math.abs(dx), dx < 0 ? from.toRight : from.toLeft, room, EXTRA_STEP)
+            jumpTo((crossed > 0 ? indexAt(delta * crossed) : null) ?? target)
             return
           }
 
@@ -526,6 +604,11 @@ export default function DeckSwiper({
             // flash up in the middle, or the old neighbour back at the side.
             flushSync(() => {
               setAnimate(false)
+              // ⚠️ IN THE SAME COMMIT, for the reason above: the peeks read
+              // `steps` as well as the cursor, and put back a render early they
+              // would show the neighbour of the record being left rather than
+              // of the one arriving.
+              setSteps(1)
               setArriving({ album, style, track, from: cameFrom })
               // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
               // it to the middle and is holding a still picture of it there;
@@ -544,6 +627,7 @@ export default function DeckSwiper({
           start.current = null
           setAnimate(true)
           setX(0)
+          setSteps(1)
         }}
         onClickCapture={(e) => {
           if (!swiped.current) return
@@ -566,6 +650,10 @@ interface PeekMotion {
   opacity: number
   /** Glide there (a release), fade only (a drag follows the finger), or be there. */
   transition: 'move' | 'fade' | 'none'
+  /** How long a `move` takes. A swipe's settle unless a whole blend says otherwise. */
+  ms?: number
+  /** Its easing — the records' shared arc, where it is travelling with them. */
+  ease?: string
 }
 
 /**
@@ -611,7 +699,7 @@ const Peek = forwardRef<
         opacity: motion.opacity,
         transition:
           motion.transition === 'move'
-            ? 'transform 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out'
+            ? `transform ${motion.ms ?? 240}ms ${motion.ease ?? 'cubic-bezier(.2,.8,.2,1)'}, opacity ${motion.ms ?? 240}ms ease-out`
             : motion.transition === 'fade'
               ? 'opacity 200ms ease-out'
               : 'none',

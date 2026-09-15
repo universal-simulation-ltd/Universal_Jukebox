@@ -190,3 +190,26 @@ export function blendSlideMs(
   const left = blend.ms - (now - blend.at)
   return left >= leastMs ? Math.min(left, blend.ms) : null
 }
+
+/**
+ * How many records one swipe crosses — the long-swipe rule (James, 2026-09-15:
+ * "it would be good if the user could do a long swipe to move a few records
+ * ahead in one motion").
+ *
+ * The FIRST record costs a whole travel — the distance from the deck's record
+ * to the peek beside it, which is what a swipe has always cost and what the
+ * hand already knows. Every record after that costs `extra` of one, because a
+ * long swipe that charged full price per record would need three screen widths
+ * of finger to reach five, and nobody has that much phone.
+ *
+ * ⚠️ The RECORDS still move exactly one place however far the finger goes.
+ * Past a single travel the deck's record is already where the peek was and
+ * there is nowhere further for it to travel; what a longer drag changes is
+ * WHICH record is coming in, so the peek shows the one it would land on and
+ * the stack is riffled rather than stepped through.
+ */
+export function swipeSteps(pixels: number, travelPx: number, room: number, extra: number): number {
+  if (room <= 0 || travelPx <= 0) return 0
+  if (pixels <= travelPx || extra <= 0) return Math.min(1, room)
+  return Math.max(1, Math.min(room, 1 + Math.round((pixels - travelPx) / (travelPx * extra))))
+}
