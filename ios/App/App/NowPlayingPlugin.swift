@@ -88,12 +88,48 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    /// ⚠️ THE PAGE ACTS ON THIS ONE, and it is the only `audio` event that is
+    /// more than a log line (James, 2026-09-15: "when doing hey siri the track
+    /// stops, and doesn't come back"). Siri interrupts WebKit's playback, the
+    /// `<audio>` is found paused, and nothing had ever started it again.
+    ///
+    /// Still OBSERVED only: nothing here touches the audio session, activates
+    /// it or resumes anything. All it does is report what iOS said, and the
+    /// page decides — see `interruptionEnded` in `lib/audio.ts`. The rule in
+    /// `AppDelegate` stands; the last time this app so much as activated its
+    /// own session it cost background playback entirely.
+    ///
+    /// `shouldResume` is iOS's own answer to "is this yours to take back": it
+    /// is absent when something else has claimed the audio (ask Siri to play a
+    /// podcast and it is the podcast's now, not ours).
+    ///
+    /// ⚠️ THE KEY IS LEFT OUT ALTOGETHER when iOS sent no options, rather than
+    /// sent as false. They are different answers and the page acts on the
+    /// difference: false is iOS saying no, missing is iOS saying nothing, and
+    /// "either way come back on later" is the answer to nothing. See
+    /// `shouldComeBack` in `lib/interruption.ts`.
     @objc private func interrupted(_ note: Notification) {
         let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt ?? 99
         let type = raw == AVAudioSession.InterruptionType.began.rawValue ? "began"
             : raw == AVAudioSession.InterruptionType.ended.rawValue ? "ended" : "other \(raw)"
+        // ⚠️ `otherAudio` is for the LOG only, never as a test of whose audio it
+        // is: WebKit plays our music in its own process, so our own song reads
+        // as "other audio playing" — the trap recorded in `AppDelegate`.
+        var data: JSObject = [
+            "kind": "interruption",
+            "type": type,
+            "otherAudio": AVAudioSession.sharedInstance().isOtherAudioPlaying,
+        ]
+        if let options = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt {
+            data["shouldResume"] = AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume)
+        }
+        // ⚠️ The REASON key only exists from iOS 14.5, and this app supports
+        // 14.0 — reading it unguarded fails the build, not the run.
+        if #available(iOS 14.5, *) {
+            data["reason"] = Int(note.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt ?? 99)
+        }
         DispatchQueue.main.async {
-            self.notifyListeners("audio", data: ["kind": "interruption", "type": type])
+            self.notifyListeners("audio", data: data)
         }
     }
 

@@ -116,6 +116,34 @@ export async function showOnLockScreen(
   noteEvent('lock-art', { report })
 }
 
+/** An interruption of the audio — Siri, a call, a timer — as iOS described it. */
+export interface AudioInterruption {
+  /** 'began' or 'ended'. Anything else is a version of iOS we do not know. */
+  type: string
+  /**
+   * iOS's own `shouldResume`: whether the audio is ours to take back.
+   *
+   * ⚠️ ABSENT is not the same as false, and the difference is acted on. The
+   * plugin leaves the key out when iOS sent no options at all — false is iOS
+   * saying no, missing is iOS saying nothing. See `shouldComeBack`.
+   */
+  shouldResume?: boolean | null
+}
+
+/**
+ * Told when something takes the audio away and when it gives it back.
+ *
+ * ⚠️ The ONLY `audio` event anything acts on; the rest are log lines. Set by
+ * `playerStore`, which owns what to do about it — the plugin observes and
+ * reports, and this app never touches its own audio session (see
+ * `AppDelegate.swift`).
+ */
+let onInterruption: ((event: AudioInterruption) => void) | null = null
+
+export function setInterruptionHandler(fn: ((event: AudioInterruption) => void) | null): void {
+  onInterruption = fn
+}
+
 /**
  * Headphones in and out, and interruptions, into the saved log (`bgLog`) — so a
  * report like "not sure if it was when I put headphones in" can be checked
@@ -126,7 +154,12 @@ export async function watchAudioRoute(): Promise<void> {
   if (!nativeNowPlayingAvailable()) return
   try {
     await load()
-    await plugin!.addListener('audio', ({ kind, ...detail }) => noteEvent(kind, detail))
+    await plugin!.addListener('audio', ({ kind, ...detail }) => {
+      noteEvent(kind, detail)
+      // ⚠️ Logged FIRST, and acted on after: a handler that throws must not be
+      // able to cost the log the one line that says what iOS did.
+      if (kind === 'interruption') onInterruption?.(detail as unknown as AudioInterruption)
+    })
   } catch {
     /* the log is a nicety */
   }

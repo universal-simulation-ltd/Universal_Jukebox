@@ -13,7 +13,7 @@ import { cachedGain, measureGain } from '../lib/loudness'
 import { readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
 import { announceTrack, withdrawTrack } from '../lib/trackNotify'
-import { clearLockScreen, followProgress, showOnLockScreen } from '../lib/nowPlayingNative'
+import { clearLockScreen, followProgress, setInterruptionHandler, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
 import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from './libraryStore'
@@ -1530,6 +1530,31 @@ audio.subscribe((state) => {
   followProgress(state.playing, state.currentSec, state.durationSec)
   rememberWhereWeAre(state.currentSec)
   ms.setPosition(state.currentSec, state.durationSec)
+})
+
+/**
+ * Siri, a call, a timer — something took the audio, and the music has to come
+ * back afterwards (James, 2026-09-15: "when doing hey siri the track stops, and
+ * doesn't come back").
+ *
+ * ⚠️ NOTHING HERE TOUCHES AN AUDIO SESSION, and it must stay that way — the
+ * notice is observed by `NowPlayingPlugin.swift` and acted on entirely in the
+ * page. `lib/audio.ts` holds what "acted on" means: faint while it lasts where
+ * that is possible at all, and a rise from silence when it is over.
+ *
+ * ⚠️ `shouldResume === false` is iOS saying the audio belongs to something else
+ * now — asking Siri to play a podcast ends our music on purpose, and starting
+ * it again would be two things playing at once. A MISSING option (null) is not
+ * that: it is iOS saying nothing, and "either way come back on later" is the
+ * answer to nothing.
+ */
+setInterruptionHandler(({ type, shouldResume }) => {
+  if (type === 'began') {
+    audio.interruptionBegan()
+    return
+  }
+  if (type !== 'ended') return
+  void audio.interruptionEnded(shouldResume)
 })
 
 audio.setCallbacks({

@@ -54,12 +54,18 @@ let ownPauseAt = 0
  * listener (which waits for `document.hidden`) never ran.
  */
 let lastOutsidePause: { at: number; index: 0 | 1 } | null = null
+/**
+ * When something outside last paused the active deck, hidden page or not — the
+ * half of `lastOutsidePause` an interruption needs. See the `pause` listener.
+ */
+let lastExternalPauseAt = 0
 function markOwnPause(): void {
   ownPauseAt = Date.now()
 }
 import { canSetElementVolume } from './volumeSupport'
 import type { SourceFile } from './types'
 import { fadeLevel, type FadeCurve } from './fadeCurve'
+import { shouldComeBack, wasOurs } from './interruption'
 
 /** Where playback is, as far as anything outside this file is concerned. */
 export interface AudioState {
@@ -189,6 +195,12 @@ function element(index: 0 | 1): HTMLAudioElement {
     // one loaded (the phone's saved log, 2026-09-11).
     const external = Date.now() - ownPauseAt > 400 && !audio.ended
     noteEvent('pause', { deck: audio.dataset.jukeboxAudio, external, ended: audio.ended, sec: audio.currentTime })
+    // ⚠️ RECORDED WHETHER OR NOT THE PAGE IS HIDDEN, unlike `lastOutsidePause`
+    // below — an interruption has to be able to tell that the music WAS ours a
+    // moment ago, and Siri can come up over a visible page or a locked screen.
+    // The interruption notice and WebKit's own pause arrive in either order, so
+    // neither one alone can answer "was it playing".
+    if (external && mine()) lastExternalPauseAt = Date.now()
     if (external && !document.hidden && mine()) lastOutsidePause = { at: Date.now(), index }
     if (external && document.hidden && mine()) {
       audio
@@ -309,8 +321,11 @@ export function setCallbacks(callbacks: {
  */
 export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSec?: number): Promise<void> {
   // A load is a decision to play THIS, now. Anything still fading out under it
-  // is from a change-over the user has just overtaken.
+  // is from a change-over the user has just overtaken — and any interruption
+  // waiting to put the PREVIOUS track back has been overtaken too.
   finishRetirement()
+  clearInterruptionDuck()
+  interruptedPlaying = false
 
   const index = active
   const deck = decks[index]
@@ -510,6 +525,14 @@ function finishRetirement(): void {
 }
 
 export async function play(): Promise<void> {
+  // ⚠️ A person pressing play during an interruption must not get a faint
+  // track. The duck belongs to the interruption; asking for the music back by
+  // hand ends it, and the envelope goes with it. See the interruption section.
+  if (duckTimer !== null) {
+    clearInterruptionDuck()
+    interruptedPlaying = false
+    endFade(active, 1)
+  }
   // ⚠️ Before every play, not once at startup. While a graph exists, a
   // suspended context means the element makes no sound at all — see
   // `audioGraph.ts`. Cheap and a no-op when there is no graph.
@@ -522,6 +545,11 @@ export async function play(): Promise<void> {
 }
 
 export function pause(reason = 'app'): void {
+  // ⚠️ A pause DURING an interruption is a decision, and it outranks the
+  // interruption's promise to put the music back: somebody who paused while
+  // Siri was talking does not want it starting again when Siri stops.
+  clearInterruptionDuck()
+  interruptedPlaying = false
   // A pause during a crossfade has to stop BOTH, or the outgoing track carries
   // on playing under a paused player — the one bug a second element makes
   // possible that a single element could not.
@@ -767,6 +795,121 @@ function beginTrack(index: 0 | 1, overrideSec?: number): void {
     rampTo(index, 1, seconds)
   } else {
     endFade(index, 1)
+  }
+}
+
+// ── Interruptions ────────────────────────────────────────────────────────────
+//
+// Siri, a phone call, a timer going off. James, 2026-09-15: "when doing hey
+// siri the track stops, and doesn't come back, ideally it would go quieter to a
+// faint sound whilst doing Siri but either way come back on later."
+//
+// ⚠️ WHAT THE APP CAN AND CANNOT DO HERE, because the difference is the whole
+// design. It CANNOT ask iOS to duck instead of interrupt: the music is an
+// `<audio>` element played from WebKit's own process and its own audio session,
+// and this app is forbidden from touching a session at all — the one time it
+// did, background playback stopped working entirely (see `AppDelegate.swift`).
+// When Siri takes the audio, WebKit pauses the element and nothing we do will
+// keep it sounding.
+//
+// So both halves of the request are answered, in the order they can be:
+//   - the duck is ATTEMPTED — the envelope goes faint the moment the notice
+//     arrives, so if the sound is still going (the notice can beat WebKit's
+//     pause, and not every interruption stops playback) it goes quiet rather
+//     than staying at full under Siri;
+//   - coming back is GUARANTEED, which is the part that was actually broken.
+//     The element keeps its position through an interruption, so the way back
+//     is a `play()` and a rise from silence rather than a snap at full volume.
+//
+// The notice comes from `NowPlayingPlugin.swift`, which observes and reports
+// and changes nothing. This file makes every decision.
+
+/** How faint the music goes while something else has the audio. */
+const INTERRUPT_LEVEL = 0.12
+/** Down to that. Short — Siri is already talking. */
+const INTERRUPT_DUCK_SEC = 0.2
+/**
+ * ⚠️ A DUCK MUST NOT BE ABLE TO OUTLIVE ITS INTERRUPTION. If the `ended` notice
+ * never comes — the app was killed and restored, iOS simply did not send one —
+ * an envelope left at `INTERRUPT_LEVEL` is a player that is quiet for ever with
+ * a volume slider saying otherwise, and nothing anywhere to explain it. By this
+ * point the element is paused in every case that matters, so putting the
+ * envelope back is inaudible; only leaving it down can be heard.
+ */
+const INTERRUPT_DUCK_MAX_MS = 8000
+
+/** Was the music ours when the interruption began, or had it already stopped? */
+let interruptedPlaying = false
+let duckTimer: number | null = null
+
+function clearInterruptionDuck(): void {
+  if (duckTimer !== null) {
+    clearTimeout(duckTimer)
+    duckTimer = null
+  }
+}
+
+/** Something else has the audio. Go faint if we can, and remember it was ours. */
+export function interruptionBegan(): void {
+  clearInterruptionDuck()
+  // Playing right now, OR paused by something outside a moment ago: WebKit's
+  // pause and this notice race, and whichever lands first this has to be true.
+  interruptedPlaying = wasOurs(state.playing, Date.now() - lastExternalPauseAt)
+  noteEvent('interruption', { half: 'began', ours: interruptedPlaying, sec: state.currentSec })
+  if (!interruptedPlaying) return
+  rampTo(active, INTERRUPT_LEVEL, INTERRUPT_DUCK_SEC)
+  duckTimer = setTimeout(() => {
+    duckTimer = null
+    endFade(active, 1)
+  }, INTERRUPT_DUCK_MAX_MS) as unknown as number
+}
+
+/**
+ * The interruption is over. Bring the music back, if it was ours to bring back.
+ *
+ * `resume` is iOS's own `shouldResume`, passed through UNCOLLAPSED — false and
+ * missing are different answers, and `shouldComeBack` is the one place that
+ * knows the difference. Resolves to whether anything was actually restarted.
+ *
+ * ⚠️ THE ENVELOPE IS PUT BACK ON EVERY PATH, including every way of deciding
+ * not to play. A `return` that leaves it at `INTERRUPT_LEVEL` is a player that
+ * comes back quiet later, for a reason nobody could ever find.
+ */
+export async function interruptionEnded(resume: boolean | null | undefined, fadeSec = 0.6): Promise<boolean> {
+  // ⚠️ Only put back an envelope this file took down. A blanket `endFade` here
+  // would stamp on a fade-in that had nothing to do with the interruption.
+  const ducked = duckTimer !== null
+  clearInterruptionDuck()
+  const ours = interruptedPlaying
+  interruptedPlaying = false
+  const audio = el()
+  const playable = shouldComeBack({
+    ours,
+    shouldResume: resume,
+    paused: audio.paused,
+    loaded: !!audio.getAttribute('src'),
+  })
+  noteEvent('interruption', { half: 'ended', ours, resume, playing: !audio.paused, willPlay: playable })
+  if (!playable) {
+    if (ducked) endFade(active, 1)
+    return false
+  }
+  // A change-over the interruption outlived is finished off rather than picked
+  // up mid-blend: its ramps ran on wall-clock timers all the way through.
+  finishRetirement()
+  // Up from silence, not straight back in at full — the music returning is an
+  // arrival, and it is the one bit of the ideal shape that is ours to give.
+  setFade(active, 0)
+  rampTo(active, 1, fadeSec)
+  ensureRunning()
+  try {
+    await audio.play()
+    return true
+  } catch (error) {
+    noteEvent('interruption', { half: 'ended', resumed: false, why: error instanceof Error ? error.name : String(error) })
+    endFade(active, 1)
+    set({ playing: false })
+    return false
   }
 }
 
