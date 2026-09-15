@@ -81,6 +81,22 @@ export interface DeckFrame {
 }
 
 /**
+ * The well the disc sits in, in the CD player's body: its sides as a share of
+ * the body's WIDTH in from each edge, its top as a share of the HEIGHT down.
+ * `CdDeck` draws it from these, and `seat` below says where that puts the disc,
+ * for a change of disc that leaves the player where it is.
+ */
+export const CD_WELL = { side: 0.075, top: 0.045 }
+
+const CD_RATIO = 1.1
+
+/** Where the CD sits in a player `ratio` times as tall as it is wide — see `Seat`. */
+function wellSeat(ratio: number) {
+  const across = 1 - 2 * CD_WELL.side
+  return { y: CD_WELL.top * ratio + across / 2 - ratio / 2, scale: across }
+}
+
+/**
  * Each deck's frame, and where its pickup is.
  *
  * ⚠️ Here rather than beside each face because a module that exports a
@@ -98,7 +114,20 @@ export interface DeckFrame {
  * to the part of the `border-radius` syntax `cornerRadii` reads — px or %, one
  * to four values, one optional `/`.
  */
-export const SHAPES: Record<DeckStyle, { frame: DeckFrame; notes: NotesAnchor }> = {
+export const SHAPES: Record<
+  DeckStyle,
+  {
+    frame: DeckFrame
+    notes: NotesAnchor
+    /**
+     * Where the medium sits when only it changes and the machine stays —
+     * its centre's drop below the frame's middle and its size, both as a share
+     * of the frame's WIDTH (`Seat` in `lib/transition.ts`). Only a machine you
+     * take the medium out of has one; the record IS its deck.
+     */
+    seat?: { y: number; scale: number }
+  }
+> = {
   // A record fills its square, and it is round. The notes drift off the
   // headshell, which sits low and right.
   vinyl: { frame: { ratio: 1, radius: '50%' }, notes: { right: '4%', top: '58%' } },
@@ -108,7 +137,8 @@ export const SHAPES: Record<DeckStyle, { frame: DeckFrame; notes: NotesAnchor }>
   // focus ring and the hover target take their shape from, so a circle around a
   // square body would put the ring nowhere near the object being aimed at. Its
   // notes leave the lid, upper right.
-  cd: { frame: { ratio: 1.1, radius: '16%' }, notes: { right: '10%', top: '58%' } },
+  // The disc sits in its well (`CD_WELL`), above the middle of the body.
+  cd: { frame: { ratio: CD_RATIO, radius: '16%' }, notes: { right: '10%', top: '58%' }, seat: wellSeat(CD_RATIO) },
   // ⚠️ A shell is LANDSCAPE, so this frame is shorter than the size it is given
   // — the ratio is the frame's, not a margin inside a square one. A square
   // frame with a cassette floating in the middle puts the focus ring and the

@@ -44,6 +44,20 @@ export interface DeckSlide {
    * stand-in goes the two are at the same angle — the new record starts upright.
    */
   holding?: boolean
+  /**
+   * How far the deck's own record has gone from the deck, 0 → 1 (a peek's
+   * place, or further) — for what is drawn round it to fade as it goes
+   * (`LyricsAround`).
+   */
+  away?: number
+  /**
+   * The machine stays and only its medium moves: a change between two records
+   * on one CD player (James, 2026-09-15: "on a track change from cd player to
+   * cd player, the player should stay where it is whilst the cd moves out and
+   * in"). The vinyl deck always works this way. Off, every other machine moves
+   * whole, which is right when the machine itself is changing.
+   */
+  discOnly?: boolean
 }
 
 export const DeckSlideContext = createContext<DeckSlide | null>(null)

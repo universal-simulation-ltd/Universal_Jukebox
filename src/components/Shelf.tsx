@@ -334,11 +334,22 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
   const text = current === undefined ? null : caption(current)
 
   return (
-    <section aria-label={label} className="-mx-4 sm:-mx-6 lg:-mx-8">
+    // ⚠️ FULL-BLEED AT EVERY WIDTH (James, 2026-09-15: "once it gets to this
+    // size don't increase the record sizes but still extend the record shelf to
+    // the edge of the screen so it doesn't abruptly end"). Up to `xl` the page
+    // column IS the window, so cancelling its padding reaches the edges. Past
+    // it the column stops at 80rem, and the shelf used to stop with it — the
+    // records sliced off mid-sleeve and the rail ending in mid-air a long way
+    // short of the window. `calc(50% - 50vw)` takes it out to the window from
+    // the column's middle. The records stay at their 300px (the row's padding,
+    // below) — a wider window shows more of the shelf, not bigger records.
+    // `html { overflow-x: clip }` in `index.css` keeps 100vw from scrolling the
+    // page sideways where a scrollbar takes room.
+    <section aria-label={label} className="-mx-4 sm:-mx-6 lg:-mx-8 xl:mx-[calc(50%_-_50vw)]">
       {/* The genre, where there is one. Full-bleed section, so the page's own
           side padding has to be put back on just this line. */}
       {heading && (
-        <h3 className="mb-1 flex items-baseline gap-2 px-4 text-[13px] font-semibold text-slate-900 sm:px-6 lg:px-8 dark:text-slate-100">
+        <h3 className="mb-1 flex items-baseline gap-2 px-4 text-[13px] font-semibold text-slate-900 sm:px-6 lg:px-8 xl:px-[calc((100vw_-_80rem)/2_+_2rem)] dark:text-slate-100">
           {heading}
           <span className="text-[12px] font-normal text-slate-500 tabular-nums dark:text-slate-400">{items.length}</span>
         </h3>
@@ -410,8 +421,11 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
           how far along the shelf you are (James, 2026-09-11: "a subtle
           indication of the progression on the shelf e.g. a yellow ticker that
           moves from left to right on the shelf as it progressing by swiping"). */}
+      {/* Edge to edge from `sm` up, under a row that is: a rail stopping short
+          of records that carry on to the window's edge reads as a shelf that
+          has run out. A phone keeps its small margins. */}
       <div
-        className="relative mx-4 h-3 rounded-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-[0_10px_18px_-8px_rgba(0,0,0,0.5)] sm:mx-6 lg:mx-8 dark:from-amber-800 dark:to-amber-950"
+        className="relative mx-4 h-3 rounded-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-[0_10px_18px_-8px_rgba(0,0,0,0.5)] sm:mx-0 sm:rounded-none dark:from-amber-800 dark:to-amber-950"
         aria-hidden
       >
         {items.length > 1 && (

@@ -77,14 +77,21 @@ export async function makeCoverBlob(picture: Picture): Promise<Blob | null> {
 // whole artwork cache back into the tab — the exact thing rule 2 above was
 // avoiding, arrived at from the other direction.
 //
-// So URLs are minted ONCE per album and cached here, keyed by album id. The
-// cache is bounded: past `MAX_LIVE_URLS` the least recently used are revoked.
-// A revoked album that scrolls back into view simply mints a new URL from the
-// blob still in IndexedDB.
+// So URLs are minted ONCE per album and cached here, keyed by album id, until
+// `releaseCover` / `releaseAllCovers` say the cover or the library has changed.
+//
+// ⚠️ NOT CAPPED BY A COUNT (2026-09-15). Past 300 albums the least recently
+// used URLs used to be revoked — and the album shelves draw a `Cover` for every
+// album in the library at once, so on a big library (James's Apple Music, on
+// the Mac) the later covers revoked the URLs the earlier ones had only just been
+// given. `Cover` keeps the URL it was handed and its images load lazily, so by
+// the time one scrolled into view its URL was dead: a broken-image icon on the
+// shelf, while the same album's own page, asking afresh, was fine. The cap
+// saved nothing either: every `Album` in the library store holds its cover
+// Blob, so a revoked URL freed no memory the store was not still holding. One
+// URL per album is bounded by the library — the same bound the blobs have.
 
-const MAX_LIVE_URLS = 300
-
-/** albumId → object URL, in least-recently-used-first order (Map preserves insertion). */
+/** albumId → object URL. */
 const urls = new Map<string, string>()
 
 /**
@@ -96,26 +103,11 @@ const urls = new Map<string, string>()
  */
 export function coverUrl(albumId: string, blob: Blob | null | undefined): string | null {
   const existing = urls.get(albumId)
-  if (existing) {
-    // Re-insert to mark it recently used.
-    urls.delete(albumId)
-    urls.set(albumId, existing)
-    return existing
-  }
+  if (existing) return existing
   if (!blob) return null
 
   const url = URL.createObjectURL(blob)
   urls.set(albumId, url)
-
-  // Evict from the front — the Map's iteration order is insertion order, and
-  // every hit above re-inserts, so the front is genuinely the least recent.
-  while (urls.size > MAX_LIVE_URLS) {
-    const oldest = urls.keys().next()
-    if (oldest.done) break
-    const dead = urls.get(oldest.value)
-    if (dead) URL.revokeObjectURL(dead)
-    urls.delete(oldest.value)
-  }
   return url
 }
 

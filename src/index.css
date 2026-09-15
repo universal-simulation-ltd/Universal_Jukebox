@@ -307,6 +307,14 @@ body {
   to   { opacity: 0; }
 }
 
+/* ⚠️ The page never scrolls sideways. On a wide window the album shelves run
+   out to its edges (`ShelfRow`, `calc(50% - 50vw)`), and where a scrollbar
+   takes up room — Windows — 100vw is wider than the page by that much. On the
+   root, `clip` becomes the viewport's `hidden`; nothing sticky stops sticking. */
+html {
+  overflow-x: clip;
+}
+
 /* A word on the turning ribbon of lyrics (LyricsAround, the `orbit` style).
    ⚠️ The halo is here rather than in the component because it has to answer to
    the theme, and the colour it fights is the PAGE behind the record — light

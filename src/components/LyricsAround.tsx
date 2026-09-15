@@ -11,6 +11,7 @@ import { useLyricsStore } from '../stores/lyricsStore'
 import { HANDOVER, currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type LyricsAroundStyle } from '../stores/settingsStore'
 import { DeckOutlineContext } from './decks/outline'
+import { DeckSlideContext } from './decks/slide'
 
 // The words around the spinning record (James, 2026-09-11: "could we have a
 // lyrics visualiser option? So you see the record spinning and the words fading
@@ -87,6 +88,7 @@ export default function LyricsAround({ size }: { size: number }) {
   // follow an appropiate path"). `Deck` says which frame it drew; with nothing
   // to say, the words go round a record as they always did.
   const frame = useContext(DeckOutlineContext)
+  const slide = useContext(DeckSlideContext)
   const shape = useMemo<Shape>(() => {
     const width = frame?.width ?? size
     const height = frame?.height ?? size
@@ -113,15 +115,26 @@ export default function LyricsAround({ size }: { size: number }) {
   })
 
   if (!words) return null
+  // Two ways out, one for each way a record leaves:
+  //   - a record change the player makes (`going`): frozen, and faded over as
+  //     long as the old record takes to go — the whole blend, or the lift;
+  //   - ⚠️ A SWIPE (James, 2026-09-15: the lyrics "didn't fade when track leaves
+  //     to left"). A swipe changes track only once the record is at the side,
+  //     and in that same commit a stand-in covers the deck — so the words rode
+  //     off at full strength and were gone in one frame. Faded by how far the
+  //     record has gone (`DeckSlide.away`), following the finger, they are gone
+  //     by the time it is a peek, and come back if the swipe springs back.
+  // During a blend both apply, and the animation wins — CSS animations outrank
+  // an inline value.
+  const leave: React.CSSProperties | undefined = going
+    ? { animation: `jb-lyric-out ${blendMs ?? HANDOVER.LIFT_MS}ms ease-in forwards` }
+    : slide
+      ? { opacity: 1 - (slide.away ?? 0), transition: slide.animate ? `opacity ${slide.ms ?? 240}ms ease-out` : undefined }
+      : undefined
   return (
     // Keyed on the song, so the next song's words start clean rather than
     // inheriting the fade.
-    <div
-      key={words.trackId}
-      className="pointer-events-none absolute inset-0"
-      // Over as long as the old record takes to go: the whole blend, or the lift.
-      style={going ? { animation: `jb-lyric-out ${blendMs ?? HANDOVER.LIFT_MS}ms ease-in forwards` } : undefined}
-    >
+    <div key={words.trackId} className="pointer-events-none absolute inset-0" style={leave}>
       <Words size={size} shape={shape} lines={words.lines} currentSec={words.sec} style={style} reduced={reduced} />
     </div>
   )

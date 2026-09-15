@@ -231,6 +231,25 @@ export function swipeReach(pixels: number, travelPx: number, room: number, extra
   return Math.min(room, 1 + (pixels - travelPx) / (travelPx * extra))
 }
 
+/**
+ * Where the medium sits on the deck: its centre's drop below the deck's middle
+ * (pixels, or a share of the deck's width in `SHAPES`), and its size against
+ * the deck's.
+ *
+ * ⚠️ THE RECORD IS THE DECK (`ON_THE_DECK`): it fills the frame, so slot 0 is
+ * the middle at full size. A CD is not — it sits in a well in the upper part of
+ * the player, smaller than the player — and when the player stays put while its
+ * disc changes (James, 2026-09-15: "on a track change from cd player to cd
+ * player, the player should stay where it is whilst the cd moves out and in"),
+ * slot 0 is that well. `SHAPES[style].seat` says where it is.
+ */
+export interface Seat {
+  y: number
+  scale: number
+}
+
+export const ON_THE_DECK: Seat = { y: 0, scale: 1 }
+
 /** How one record in the row around the deck is drawn — see `rowPose`. */
 export interface RowPose {
   /** Pixels below the deck's level. */
@@ -252,18 +271,19 @@ export interface RowPose {
  * can come all the way on to the deck and out the other side on the same arc
  * the neighbours always used.
  *
- *   - `y`: the wheel's sag, all of it by a peek's place.
- *   - `scale`: the deck's size at 0, a peek's by ±1, and no smaller beyond.
+ *   - `y`: from the medium's own `seat` at 0 to the wheel's sag, all of it by
+ *     a peek's place.
+ *   - `scale`: the seat's size at 0, a peek's by ±1, and no smaller beyond.
  *   - `opacity`: 1 on the deck, a peek's 0.6 at ±1, and gone by ±2 — so a
  *     queued record fades in from the edge as it comes up to a peek's place,
  *     and never shows at rest, even where the screen has room beyond a peek.
  */
-export function rowPose(slot: number, sag: number, peekScale: number): RowPose {
+export function rowPose(slot: number, sag: number, peekScale: number, seat: Seat = ON_THE_DECK): RowPose {
   const far = Math.abs(slot)
   const near = Math.min(1, far)
   return {
-    y: sag * near * near,
-    scale: 1 - (1 - peekScale) * near,
+    y: seat.y + (sag - seat.y) * near * near,
+    scale: seat.scale + (peekScale - seat.scale) * near,
     opacity: far <= 1 ? 1 - 0.4 * far : Math.max(0, 0.6 * (2 - far)),
   }
 }

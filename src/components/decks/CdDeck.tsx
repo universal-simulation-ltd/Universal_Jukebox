@@ -1,4 +1,5 @@
-import type { DeckFaceProps } from './face'
+import { CD_WELL, type DeckFaceProps } from './face'
+import { slideInner, slideOuter } from './slide'
 
 // A portable CD player — the disc, the laser, and the machine around them.
 //
@@ -59,9 +60,12 @@ const point = (r: number) => ({ x: 50 + r * Math.cos(RAD), y: 50 + r * Math.sin(
  * that makes a whole drawing look wrong without anybody being able to say why.
  * Setting left and right fixes the width; the aspect ratio takes the height.
  */
-const WELL = { left: '7.5%', right: '7.5%', top: '4.5%' }
+const percent = (share: number) => `${Math.round(share * 1000) / 10}%`
+// ⚠️ From `CD_WELL` in `face.ts`, which `SHAPES.cd.seat` is worked out from
+// too: that is where a disc swiped or crossfaded on to this player lands.
+const WELL = { left: percent(CD_WELL.side), right: percent(CD_WELL.side), top: percent(CD_WELL.top) }
 
-export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, labelFade }: DeckFaceProps) {
+export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide }: DeckFaceProps) {
   // Parked at the start until the laser is on: a disc that has not been read
   // yet has its sled at the hub, and the seek back out is what the handover
   // between tracks looks like on this deck.
@@ -145,8 +149,12 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
         />
 
         {/* The disc, inside its own wrapper — it is the part that goes in
-            and comes out; the body, the sled and the rail are the machine. */}
-        <div className="absolute inset-0">
+            and comes out; the body, the sled and the rail are the machine.
+            On a change between two discs on this player it ALONE follows the
+            swipe or the crossfade (`slide`, `DeckSlide.discOnly`), as the
+            record does on the vinyl deck. */}
+        <div className="absolute inset-0" style={slide ? slideOuter(slide) : undefined}>
+        <div className="absolute inset-0" style={slide ? slideInner(slide) : undefined}>
           {/* The disc. Silver in both themes, because a CD is silver in both. */}
           {/* The disc's shadow, on a disc that does not turn — see VinylDeck. */}
           <div className="absolute inset-0 rounded-full shadow-lg" aria-hidden />
@@ -230,6 +238,7 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
               style={{ inset: '47%' }}
             />
           </div>
+        </div>
         </div>
 
         {/* The spindle clamp: the machine's, not the disc's, so it does NOT

@@ -1,7 +1,8 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { resolveDeck } from '../lib/decks'
-import { blendSlideMs, rowPose, swipeReach, swipeSteps } from '../lib/transition'
+import { ON_THE_DECK, blendSlideMs, rowPose, swipeReach, swipeSteps, type Seat } from '../lib/transition'
+import { SHAPES } from './decks/face'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -72,6 +73,8 @@ interface Arriving {
   style: DeckStyle
   /** Its song — for the grooves, which say how long it is. */
   track?: Track
+  /** Where it lands, when the machine stays and only the medium changes — `seatOf`. */
+  seat?: Seat
 }
 
 export default function DeckSwiper({
@@ -181,6 +184,8 @@ export default function DeckSwiper({
   // before and the record after can be a cassette and a pocket player; the
   // peek shows what a swipe will actually put on.
   const styleAt = (index: number | null): DeckStyle => resolveDeck(setting, albumAt(index) ?? trackAt(index), eras)
+  /** The machine on the deck now — the record playing, or the one still leaving. */
+  const deckStyle = resolveDeck(setting, albums.find((a) => a.id === showing), eras)
 
   /**
    * A stand-in's grooves: the song it stands in for is the one now CURRENT, so
@@ -224,8 +229,8 @@ export default function DeckSwiper({
   // already moved the cursor, so the arrival is the CURRENT track, and the
   // peeks (now a track further on) hide until it lands. Read from a ref so the
   // effect runs once per blend and not on every render.
-  const latest = useRef({ queue, order, cursor, albums, setting, eras, arriving, reduced })
-  latest.current = { queue, order, cursor, albums, setting, eras, arriving, reduced }
+  const latest = useRef({ queue, order, cursor, albums, setting, eras, arriving, reduced, deckStyle })
+  latest.current = { queue, order, cursor, albums, setting, eras, arriving, reduced, deckStyle }
   const blendTimer = useRef<number | null>(null)
   /**
    * The blend whose slide is still to START, or null.
@@ -260,10 +265,12 @@ export default function DeckSwiper({
     const track = now.queue[now.order[now.cursor]]
     const album = track ? now.albums.find((a) => a.id === track.albumId) : undefined
     const style = resolveDeck(now.setting, album ?? track, now.eras)
+    // On to the same CD player, only the disc changes.
+    const seat = seatOf(style, now.deckStyle)
     const r = measure()
     setReach(r)
     setMs(left)
-    setIncoming({ album, style, track, run: false })
+    setIncoming({ album, style, track, run: false, seat })
     const serial = blend.n
     slideFor.current = serial
     // Two frames: drawn at the edge first, THEN told to move, or it would jump.
@@ -282,7 +289,7 @@ export default function DeckSwiper({
       // Over — a slide that never got its frames must not start now.
       slideFor.current = null
       setIncoming(null)
-      setArriving({ album, style, track })
+      setArriving({ album, style, track, seat })
     }, left)
     // `measure` reads refs only; the rest comes through `latest`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -345,6 +352,17 @@ export default function DeckSwiper({
     }
   }
 
+  // ⚠️ ON TO THE SAME CD PLAYER, THE PLAYER STAYS (James, 2026-09-15: "on a
+  // track change from cd player to cd player, the player should stay where it
+  // is whilst the cd moves out and in"). Then only the disc is in the row: it
+  // leaves from the player's well rather than from the middle of the deck, and
+  // the one arriving lands in that well at the disc's size (`Seat`). Decided
+  // by the record on the side the drag is going; by the record arriving,
+  // during a crossfade or a hold.
+  const dragSeat = drag === 0 ? undefined : seatOf(styleAt(drag < 0 ? nextIndex : prevIndex), deckStyle)
+  const seat = incoming ? incoming.seat : arriving ? arriving.seat : dragSeat
+  const seatPx: Seat = seat ? { y: seat.y * size, scale: seat.scale } : ON_THE_DECK
+
   /** Pixels per place along the row — the travel on the side records are coming from. */
   const unit = drag < 0 ? reach.toRight : reach.toLeft
   /** How far across the row has moved. Every record in it moves by this much. */
@@ -357,12 +375,15 @@ export default function DeckSwiper({
   // ⚠️ It fades to a peek's OWN 0.6 at the peek's place: on a one-record swipe
   // it becomes that peek, and the two are swapped where they meet, so any
   // difference is a jump.
-  const deckPose = rowPose(drag, sag, peekScale)
+  const deckPose = rowPose(drag, sag, peekScale, seatPx)
   const slide: DeckSlide = {
     x,
-    y: deckPose.y,
-    scale: deckPose.scale,
+    // Against the medium's own seat: the whole deck for a record, the well for a disc.
+    y: deckPose.y - seatPx.y,
+    scale: deckPose.scale / seatPx.scale,
     opacity: arriving ? 0 : incoming ? 1 - 0.85 * Math.min(1, Math.abs(drag)) : deckPose.opacity,
+    away: Math.min(1, Math.abs(drag)),
+    discOnly: seat !== undefined,
     animate,
     ms,
     // Past the point where letting go would change track — not for a nudge
@@ -384,7 +405,7 @@ export default function DeckSwiper({
    */
   const rowMotion = (slot: number): PeekMotion => {
     const peekSlot = slot > 0 ? 1 : -1
-    const pose = rowPose(slot + drag, sag, peekScale)
+    const pose = rowPose(slot + drag, sag, peekScale, seatPx)
     return {
       // A queued record waits a whole travel further out than the peek.
       shift: (slot - peekSlot) * (slot > 0 ? reach.toRight : reach.toLeft) + x,
@@ -392,6 +413,10 @@ export default function DeckSwiper({
       scale: pose.scale / peekScale,
       opacity: pose.opacity,
       transition: animate ? 'move' : 'fade',
+      // ⚠️ A disc coming on to a player that is staying has to pass OVER the
+      // player to reach its well. Only while it is coming on: at rest a peek
+      // sits under the player's edge, as it always has.
+      raised: seat !== undefined && Math.abs(slot + drag) < 1,
     }
   }
 
@@ -570,7 +595,10 @@ export default function DeckSwiper({
             <div
               className="relative h-full w-full"
               style={{
-                transform: incoming.run ? 'translateY(0) scale(1)' : `translateY(${sag}px) scale(${peekScale})`,
+                // To the medium's seat: the middle for a record, the well for a disc.
+                transform: incoming.run
+                  ? `translateY(${seatPx.y}px) scale(${seatPx.scale})`
+                  : `translateY(${sag}px) scale(${peekScale})`,
                 transition: incoming.run ? `transform ${ms}ms ${ARC_RISE}` : 'none',
               }}
             >
@@ -587,7 +615,10 @@ export default function DeckSwiper({
           style={{ top: centreY, width: size, height: size, transform: 'translate(-50%, -50%)' }}
           aria-hidden
         >
-          <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} grooves={standInGrooves(arriving.track)} />
+          {/* At the medium's seat — see `incoming` above. */}
+          <div className="relative h-full w-full" style={{ transform: `translateY(${seatPx.y}px) scale(${seatPx.scale})` }}>
+            <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} grooves={standInGrooves(arriving.track)} />
+          </div>
         </div>
       )}
       <div
@@ -672,7 +703,8 @@ export default function DeckSwiper({
               // the one the row left at its place, so the hand-over cannot be
               // seen — but only if both happen in one frame.
               setQueued(null)
-              setArriving({ album, style, track })
+              // Landing where the row was taking it: the well, if the player stayed.
+              setArriving({ album, style, track, seat })
               // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
               // it to the middle and is holding a still picture of it there;
               // without this the player runs its own record change over the
@@ -711,6 +743,18 @@ interface PeekMotion {
   ms?: number
   /** Its easing — the records' shared arc, where it is travelling with them. */
   ease?: string
+  /** Drawn over the deck — a disc on its way into a player that is staying. */
+  raised?: boolean
+}
+
+/**
+ * Where the record arriving sits, when the machine on the deck stays put for it
+ * — only when it goes on the SAME machine, and only a machine it can be taken
+ * out of (`SHAPES[style].seat`: the CD player's disc). Undefined when the record
+ * is the deck (vinyl already moves just its record) or the machine is changing.
+ */
+function seatOf(arriving: DeckStyle, onDeck: DeckStyle): Seat | undefined {
+  return arriving === onDeck ? SHAPES[arriving]?.seat : undefined
 }
 
 /**
@@ -786,6 +830,7 @@ function rowStyle(side: 'left' | 'right', size: number, top: number, motion: Pee
     height: size,
     transform: `translateY(-50%) translateX(${motion.shift}px) translateY(${motion.lift}px) scale(${motion.scale})`,
     opacity: motion.opacity,
+    zIndex: motion.raised ? 10 : undefined,
     transition:
       motion.transition === 'move'
         ? `transform ${motion.ms ?? 240}ms ${motion.ease ?? 'cubic-bezier(.2,.8,.2,1)'}, opacity ${motion.ms ?? 240}ms ease-out`

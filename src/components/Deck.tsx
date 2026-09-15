@@ -110,9 +110,11 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
   const style = resolveDeck(setting, album, eras)
   const reduced = usePrefersReducedMotion()
   // A swipe in progress on Now Playing (`DeckSwiper`). The vinyl face moves
-  // only its record; every other face is moved whole, below.
+  // only its record, and so does the CD player when the record coming is going
+  // on the same player (`discOnly`); every other face is moved whole, below.
   const swipe = useContext(DeckSlideContext)
   const slide = ceremonial ? swipe : null
+  const mediumOnly = style === 'vinyl' || (style === 'cd' && !!slide?.discOnly)
 
   // The `??`s are not dead code: a settings blob edited by hand, or written by
   // a future version and then opened in this one, can carry a style this build
@@ -215,10 +217,10 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
           width: size,
           height: Math.round(size * frame.ratio),
           borderRadius: frame.radius,
-          ...(slide && style !== 'vinyl' ? slideOuter(slide) : null),
+          ...(slide && !mediumOnly ? slideOuter(slide) : null),
         }}
       >
-        <div className="absolute inset-0" style={slide && style !== 'vinyl' ? slideInner(slide) : undefined}>
+        <div className="absolute inset-0" style={slide && !mediumOnly ? slideInner(slide) : undefined}>
         <DeckOutlineContext.Provider value={outline}>
         <Face
           progress={progress}
@@ -228,7 +230,7 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
           url={url}
           hue={hue}
           labelFade={labelFade}
-          slide={slide && style === 'vinyl' ? slide : undefined}
+          slide={slide && mediumOnly ? slide : undefined}
           grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
           underArm={style === 'vinyl' ? underArm : undefined}
         />

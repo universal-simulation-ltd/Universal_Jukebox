@@ -274,6 +274,18 @@ describe('rowPose', () => {
     close(-1, { y: SAG, scale: PEEK, opacity: 0.6 })
   })
 
+  it('starts from the medium’s own seat when the machine stays — a CD in its well', () => {
+    const seat = { y: -20, scale: 0.85 }
+    const at = (slot: number) => rowPose(slot, SAG, PEEK, seat)
+    expect(at(0).y).toBeCloseTo(-20)
+    expect(at(0).scale).toBeCloseTo(0.85)
+    expect(at(1).y).toBeCloseTo(SAG)
+    expect(at(-1).scale).toBeCloseTo(PEEK)
+    // The same parabola, from the well rather than from the middle.
+    expect(at(0.5).y).toBeCloseTo(-20 + (SAG + 20) * 0.25)
+    expect(at(0.5).scale).toBeCloseTo(0.85 + (PEEK - 0.85) * 0.5)
+  })
+
   it('keeps a queued record out of sight until it comes up to a peek', () => {
     expect(pose(2).opacity).toBe(0)
     expect(pose(-3).opacity).toBe(0)
