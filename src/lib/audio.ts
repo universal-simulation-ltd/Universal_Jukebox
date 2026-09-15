@@ -254,6 +254,11 @@ function element(index: 0 | 1): HTMLAudioElement {
   // the same slider the fade is meant to leave alone proves nothing.
   audio.hidden = true
   audio.setAttribute('data-jukebox-audio', String(index))
+  // ⚠️ What lets "Output" offer anything at all (`lib/outputPicker.ts`). WebKit
+  // will not show a route sheet for an element that has not said its sound may
+  // leave the device, and the default for AUDIO elements is not the same as for
+  // video — so it is said here, on both decks, rather than assumed.
+  audio.setAttribute('x-webkit-airplay', 'allow')
   try {
     document.body.appendChild(audio)
   } catch {

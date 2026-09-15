@@ -24,8 +24,16 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 //     and once it has started it will not let a later `preventDefault` stop it
 //     — the bounce and the pull would fight for the whole gesture.
 //
-// Once open it stays open for this visit to Now Playing. Wider than a phone it
-// is not folded at all.
+// ⚠️ IT FOLDS BACK WHEN YOU LEAVE THE END OF THE PAGE (James, 2026-09-15: "when
+// scrolling back up when additional buttons revealed (shuffle etc) then re-hide
+// the box so they need to swipe down to bottom then down again to reveal"). It
+// used to stay open for the rest of the visit, which sounds harmless and is
+// not: this row is the whole reason the page has an end worth pulling from, so
+// leaving it open leaves the pull with nothing to do — scroll back down and the
+// row is simply there, and the gesture that put it there never happens again.
+// Folding it back makes the pull the way in every time.
+//
+// Wider than a phone it is not folded at all.
 //
 // ⚠️ NOT HIDDEN FROM A SCREEN READER, unlike the search box. These are the play
 // controls, not a shortcut to something reachable elsewhere, and a pull is a
@@ -38,14 +46,28 @@ const PULL_TO_OPEN = 64
 const RESIST = 0.6
 /** How long the opening takes — and so how long the page is kept at its end. */
 const OPEN_MS = 240
+/**
+ * How far from the end of the page counts as having scrolled back up.
+ *
+ * ⚠️ Shorter than the row is tall, on purpose: it folds while it is still
+ * partly on screen, so what you see is the box closing rather than the page
+ * quietly rearranging itself somewhere below. And comfortably more than a
+ * thumb's jitter or iOS's rubber band at the bottom, which goes the other way
+ * and reads as a NEGATIVE gap here.
+ */
+const CLOSE_GAP = 96
 
-export default function FoldUp({ open, onOpen, children }: { open: boolean; onOpen(): void; children: ReactNode }) {
+export default function FoldUp({
+  open, onOpen, onClose, children,
+}: { open: boolean; onOpen(): void; onClose(): void; children: ReactNode }) {
   const phone = usePhone()
   const box = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   const opener = useRef(onOpen)
+  const closer = useRef(onClose)
   useEffect(() => {
     opener.current = onOpen
+    closer.current = onClose
   })
 
   const full = () => inner.current?.offsetHeight ?? 80
@@ -85,6 +107,36 @@ export default function FoldUp({ open, onOpen, children }: { open: boolean; onOp
     }, OPEN_MS + 20)
     return () => window.clearTimeout(loosen)
   }, [phone, open, settle])
+
+  // Scrolled back up: fold it away, so the pull is the way in next time too.
+  //
+  // ⚠️ Hung on the page's SCROLL rather than on the pull's own `touchend`,
+  // because the row can be left behind by a scroll that never touched it — a
+  // flick that carries on under its own momentum, the keyboard, a link that
+  // jumps. Cheap: one `requestAnimationFrame` per scroll burst, and only while
+  // it is open at all.
+  useEffect(() => {
+    if (!phone || !open) return
+    let waiting = false
+    const look = () => {
+      waiting = false
+      const el = box.current
+      if (!el) return
+      // ⚠️ Never out from under a cursor or VoiceOver. Focus inside is the
+      // other way this opens (see the note above), and folding it then would
+      // take the focused control off the page mid-read.
+      if (el.contains(document.activeElement)) return
+      const gap = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight)
+      if (gap > CLOSE_GAP) closer.current()
+    }
+    const scrolled = () => {
+      if (waiting) return
+      waiting = true
+      requestAnimationFrame(look)
+    }
+    window.addEventListener('scroll', scrolled, { passive: true })
+    return () => window.removeEventListener('scroll', scrolled)
+  }, [phone, open])
 
   // The pull. Only from the very end of the page, one finger, on a phone.
   useEffect(() => {
