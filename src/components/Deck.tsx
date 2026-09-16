@@ -91,6 +91,9 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
   const ceremony = usePlayerStore((s) => s.ceremony)
   const armDownState = usePlayerStore((s) => s.armDown)
   const phase = usePlayerStore((s) => s.deckPhase)
+  const toggle = usePlayerStore((s) => s.toggle)
+  const next = usePlayerStore((s) => s.next)
+  const previous = usePlayerStore((s) => s.previous)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const durationSec = usePlayerStore((s) => s.durationSec)
   // The length of the song whose record is ON the deck — kept while one is on
@@ -233,6 +236,7 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
           slide={slide && mediumOnly ? slide : undefined}
           grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
           underArm={style === 'vinyl' ? underArm : undefined}
+          controls={ceremonial ? { playing, toggle, next, previous } : undefined}
         />
         {/* Other machines move whole under a swipe; the lyrics go with them. */}
         {style !== 'vinyl' && underArm}

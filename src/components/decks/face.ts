@@ -60,6 +60,20 @@ export interface DeckFaceProps {
    * (James, 2026-09-11: "show them behind the record hand not in front").
    */
   underArm?: import('react').ReactNode
+  /**
+   * The transport, for a face whose drawing HAS buttons — the pocket player's
+   * click wheel (James, 2026-09-16: "allow the user to tap on the controls to
+   * pause, forward back a track"). Only the Now Playing deck passes it; the
+   * mini player's deck is a picture.
+   */
+  controls?: DeckControls
+}
+
+export interface DeckControls {
+  playing: boolean
+  toggle(): void
+  next(): void
+  previous(): void
 }
 
 /** Where the drifting notes leave from, per deck: roughly, the pickup. */

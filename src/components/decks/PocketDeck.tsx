@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import type { DeckFaceProps } from './face'
 
 // The pocket player (James, 2026-09-10: "a 'modern' device option, maybe an
@@ -14,8 +14,15 @@ import type { DeckFaceProps } from './face'
 // travelling round the wheel, the way a thumb would, and the ♪ on the screen —
 // both paused, never removed, when the music stops, for the reason the vinyl
 // face gives (a removed animation snaps back to its start).
+//
+// ⚠️ ON NOW PLAYING THE WHEEL WORKS (James, 2026-09-16: "allow the user to tap
+// on the controls to pause, forward back a track"): ⏮ and ⏭ change track, ⏯
+// and the centre button play and pause. They are HTML buttons laid over the
+// drawing, not SVG shapes, so they can be focused and announced — the SVG is
+// `aria-hidden`. MENU and the rest of the body still open the album, which is
+// what tapping every other machine does.
 
-export default function PocketDeck({ progress, engaged, spinning, reduced, url, hue, labelFade }: DeckFaceProps) {
+export default function PocketDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, controls }: DeckFaceProps) {
   const uid = useId().replace(/:/g, '')
   const screenClip = `jb-pocket-screen-${uid}`
   const body = `jb-pocket-body-${uid}`
@@ -100,6 +107,54 @@ export default function PocketDeck({ progress, engaged, spinning, reduced, url, 
         {/* The centre button. */}
         <circle cx="50" cy="106" r="9.5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.8" />
       </svg>
+
+      {controls && (
+        <>
+          {/* Positions are the drawing's own, as shares of its 100 × 140. */}
+          <WheelButton label="Previous track" box={[23, 94, 17, 24]} onPress={controls.previous} />
+          <WheelButton label="Next track" box={[60, 94, 17, 24]} onPress={controls.next} />
+          <WheelButton label={controls.playing ? 'Pause' : 'Play'} box={[38, 117, 24, 15]} onPress={controls.toggle} />
+          <WheelButton label={controls.playing ? 'Pause' : 'Play'} box={[40, 96, 20, 20]} onPress={controls.toggle} round />
+        </>
+      )}
     </div>
+  )
+}
+
+/**
+ * One part of the wheel, as a button over the drawing.
+ *
+ * ⚠️ STOPS THE CLICK, and the key. The whole deck is a button that opens the
+ * album (`Deck.tsx`), so a press that got through would change track AND leave
+ * the page. A swipe that ends on a button is still not a press: `DeckSwiper`
+ * swallows that click in the capture phase, before it gets here.
+ */
+function WheelButton({
+  label,
+  box: [x, y, w, h],
+  onPress,
+  round = false,
+}: {
+  label: string
+  /** x, y, width, height in the SVG's units. */
+  box: [number, number, number, number]
+  onPress(): void
+  round?: boolean
+}): ReactNode {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e: MouseEvent) => {
+        e.stopPropagation()
+        onPress()
+      }}
+      onKeyDown={(e: KeyboardEvent) => e.stopPropagation()}
+      className={`absolute cursor-pointer transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] active:bg-slate-900/15 ${
+        round ? 'rounded-full' : 'rounded-[40%]'
+      }`}
+      style={{ left: `${x}%`, top: `${(y / 140) * 100}%`, width: `${w}%`, height: `${(h / 140) * 100}%` }}
+    />
   )
 }
