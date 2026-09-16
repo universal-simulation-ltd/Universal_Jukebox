@@ -1,5 +1,5 @@
 import { trackGenres } from '../lib/genres'
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Chip, revealExpanded } from '@unisim/sdk'
 import { scrollToTop } from '../lib/scrollTop'
 import { useLandscapeStage } from '../lib/stageLayout'
@@ -23,6 +23,7 @@ import PlayModes from './PlayModes'
 import FoldUp from './FoldUp'
 import LyricsAround from './LyricsAround'
 import Visualiser from './Visualiser'
+import DeckPicker from './DeckPicker'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { requestLyricsReveal } from '../lib/lyricsReveal'
 import { useKeepAwake } from '../lib/keepAwake'
@@ -75,6 +76,9 @@ export default function NowPlaying() {
   const cursor = usePlayerStore((s) => s.cursor)
   const albums = useLibraryStore((s) => s.albums)
   const deckPhase = usePlayerStore((s) => s.deckPhase)
+  /** The machine picker, from a long press on the deck — see `DeckPicker`. */
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const closePicker = useCallback(() => setPickerOpen(false), [])
   /** "Up next", opened from the "+N" record — see `Queue`. */
   const [queueOpen, setQueueOpen] = useState(false)
   /** The row of round buttons, pulled up on a phone — see `FoldUp`. For this visit only. */
@@ -228,6 +232,7 @@ export default function NowPlaying() {
           album={onTheDeck}
           size={clampDeck(landscape, room)}
           ceremonial
+          onLongPress={() => setPickerOpen(true)}
           // The words around the record (Settings › Lyrics), drawn under its tonearm.
           underArm={lyricsAround ? <LyricsAround size={clampDeck(landscape, room)} /> : undefined}
         />
@@ -309,6 +314,7 @@ export default function NowPlaying() {
         to shelf) to the line of shuffle, repeat etc to make ui cleaner up top"). */}
     <AboutTrack />
     {queueOpen && <Queue onHide={() => setQueueOpen(false)} />}
+    {pickerOpen && <DeckPicker onClose={closePicker} />}
     </>
   )
 }

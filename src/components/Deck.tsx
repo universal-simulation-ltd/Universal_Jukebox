@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { ERA_ORDER, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
@@ -84,9 +84,20 @@ interface DeckProps {
    * record player draws it beneath its tonearm; the other machines, on top.
    */
   underArm?: ReactNode
+  /**
+   * A long press (or a right-click) on the machine — Now Playing opens the
+   * machine picker with it (`DeckPicker`). The tap that follows is swallowed,
+   * so it does not also open the album.
+   */
+  onLongPress?: () => void
 }
 
-export default function Deck({ album, size, ceremonial = false, underArm }: DeckProps) {
+/** How long a press is held before it is a long press. */
+const LONG_PRESS_MS = 500
+/** How far the finger may wander and still be holding — a swipe starts at 8px. */
+const LONG_PRESS_SLOP = 8
+
+export default function Deck({ album, size, ceremonial = false, underArm, onLongPress }: DeckProps) {
   const playing = usePlayerStore((s) => s.playing)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const armDownState = usePlayerStore((s) => s.armDown)
@@ -192,7 +203,53 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
         ? `jb-label-in ${active ? 1000 : 450}ms ease-out both`
         : 'jb-label-out 420ms ease-in both'
 
+  // The long press: a timer from the press, cancelled by lifting or by moving
+  // far enough to be a swipe (`DeckSwiper`), and a flag that eats the click.
+  const press = useRef<{ x: number; y: number; timer: number } | null>(null)
+  const longPressed = useRef(false)
+  const cancelPress = () => {
+    if (press.current) window.clearTimeout(press.current.timer)
+    press.current = null
+  }
+  useEffect(() => () => {
+    if (press.current) window.clearTimeout(press.current.timer)
+  }, [])
+  const pressHandlers = onLongPress
+    ? {
+        onPointerDown: (e: ReactPointerEvent) => {
+          if (e.button !== 0) return
+          cancelPress()
+          longPressed.current = false
+          const timer = window.setTimeout(() => {
+            press.current = null
+            longPressed.current = true
+            navigator.vibrate?.(10)
+            onLongPress()
+          }, LONG_PRESS_MS)
+          press.current = { x: e.clientX, y: e.clientY, timer }
+        },
+        onPointerMove: (e: ReactPointerEvent) => {
+          const at = press.current
+          if (at && Math.hypot(e.clientX - at.x, e.clientY - at.y) > LONG_PRESS_SLOP) cancelPress()
+        },
+        onPointerUp: cancelPress,
+        onPointerCancel: cancelPress,
+        onPointerLeave: cancelPress,
+        // A right-click, and Android's own long-press menu, open it too.
+        onContextMenu: (e: ReactMouseEvent) => {
+          e.preventDefault()
+          cancelPress()
+          longPressed.current = true
+          onLongPress()
+        },
+      }
+    : {}
+
   const openAlbum = () => {
+    if (longPressed.current) {
+      longPressed.current = false
+      return
+    }
     if (ceremonial) markTipSeen('record')
     if (album) navigate({ view: 'album', albumId: album.id })
   }
@@ -204,6 +261,7 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
         tabIndex={0}
         aria-label={album ? `Open ${album.title}` : 'Open album'}
         onClick={openAlbum}
+        {...pressHandlers}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
@@ -220,6 +278,8 @@ export default function Deck({ album, size, ceremonial = false, underArm }: Deck
           width: size,
           height: Math.round(size * frame.ratio),
           borderRadius: frame.radius,
+          // No iOS "save image" callout or text selection under a held finger.
+          ...(onLongPress ? { WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' } : null),
           ...(slide && !mediumOnly ? slideOuter(slide) : null),
         }}
       >
