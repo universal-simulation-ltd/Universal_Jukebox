@@ -206,7 +206,12 @@ export interface Settings {
    * menu empties this.
    */
   tipsSeen: TipId[]
-  /** "Stable volume": loud songs turned down to meet the rest — `lib/loudness.ts`. */
+  /**
+   * "Stable volume": loud songs turned down to meet the rest — `lib/loudness.ts`.
+   * ON by default since 2026-09-16 (James: "Let's have stable sound by default"),
+   * shown in Settings as "Original sound levels" unticked; existing devices are
+   * moved to it once, `adoptStableVolume`.
+   */
   stableVolume: boolean
   /**
    * A–Z, Random or Genre, per list — the one pill in the list options.
@@ -285,7 +290,7 @@ export const DEFAULTS: Settings = {
   lyricsAroundStyle: 'arc',
   fullAlbumsOnly: false,
   tipsSeen: [],
-  stableVolume: false,
+  stableVolume: true,
   libraryOrder: { artists: 'az', albums: 'az', tracks: 'az' },
   // The shelf is the standard (James, 2026-09-11: "put jukebox shelf as
   // standard") — and everyone who had the old default is moved to it once,
@@ -354,6 +359,8 @@ export function levelToStep(level: number): number {
 const KEY = 'unisim-jukebox-settings'
 /** Set once the shelf has been made the standard on this device — see `adoptShelf`. */
 const SHELF_STANDARD_KEY = 'jukebox:shelf-standard'
+/** Set once Stable volume has been made the standard on this device — the same move. */
+const STABLE_STANDARD_KEY = 'jukebox:stable-volume-standard'
 /** The single-purpose key `playerStore` used before this store existed. */
 const LEGACY_CRACKLE_KEY = 'unisim-jukebox-crackle'
 
@@ -377,6 +384,13 @@ function read(): Settings {
     settings.libraryColumns = { ...settings.libraryColumns, artists: 'jukebox', albums: 'jukebox' }
     persist(settings)
   }
+  // ⚠️ The same trap as the shelf: `stableVolume: false` is in every blob ever
+  // written, chosen or not, so only a one-off move gets the new default to
+  // anyone who has used the app. Unticked afterwards, it stays off.
+  if (adoptOnce(STABLE_STANDARD_KEY)) {
+    settings.stableVolume = true
+    persist(settings)
+  }
   return settings
 }
 
@@ -389,9 +403,14 @@ function read(): Settings {
  * the button there to cycle away again; the marker means a later choice sticks.
  */
 function adoptShelf(): boolean {
+  return adoptOnce(SHELF_STANDARD_KEY)
+}
+
+/** True the first time `key` is asked about on this device — see `adoptShelf`. */
+function adoptOnce(key: string): boolean {
   try {
-    if (localStorage.getItem(SHELF_STANDARD_KEY) !== null) return false
-    localStorage.setItem(SHELF_STANDARD_KEY, '1')
+    if (localStorage.getItem(key) !== null) return false
+    localStorage.setItem(key, '1')
     return true
   } catch {
     return false
@@ -441,7 +460,7 @@ function readStored(): Settings {
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
       : [],
-    stableVolume: stored.stableVolume === true,
+    stableVolume: stored.stableVolume !== false,
     // Per list since 2026-09-11; a value from before, when the lists shared
     // one, is where each of them starts (`perTab`). `libraryRandom`, the
     // boolean this replaced, is honoured where no `libraryOrder` was ever

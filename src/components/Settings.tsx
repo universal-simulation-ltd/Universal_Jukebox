@@ -103,7 +103,7 @@ export default function Settings() {
       !s.needleDrop ? 'off' : levelToStep(s.needleDropLevel) === 0 ? 'on' : `at ${formatStep(levelToStep(s.needleDropLevel))}`
     }`,
     sound: sentence([
-      ...(s.stableVolume ? ['stable volume'] : []),
+      s.stableVolume ? 'stable volume' : 'original sound levels',
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
@@ -268,10 +268,10 @@ export default function Settings() {
               at in a sensible min / max range so a track doesn't blast your
               ears off". See `lib/loudness.ts`. */}
           <Toggle
-            label="Stable volume"
-            hint="Loud songs are turned down to meet the rest, so a track doesn’t blast your ears off. Each song is measured once, on this device, the first time it plays; quiet songs are left as they are."
-            checked={s.stableVolume}
-            onChange={(v) => s.set('stableVolume', v)}
+            label="Original sound levels"
+            hint="Tick to play every song exactly as loud as it was made. Unticked, loud songs are turned down to meet the rest, so a track doesn’t blast your ears off — each song is measured once, on this device, the first time it plays, and quiet songs are left as they are."
+            checked={!s.stableVolume}
+            onChange={(v) => s.set('stableVolume', !v)}
           />
           <Slider
             label="Volume boost"
