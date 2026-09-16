@@ -190,14 +190,17 @@ function Synced() {
     <div className="rounded-lg border border-slate-200 bg-white/40 dark:border-slate-800 dark:bg-slate-900/30">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
         <SingingMic phase={phase} reduced={reduced} />
-        <ChipToggle
-          selected={locked}
-          onClick={() => setLocked((was) => !was)}
-          title={locked ? 'Following the song — unlock to scroll the lyrics yourself' : 'Scrolling freely — lock to follow the song again'}
-          icon={<LockGlyph locked={locked} />}
-        >
-          {locked ? 'Following' : 'Free scroll'}
-        </ChipToggle>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <AroundTheRecord />
+          <ChipToggle
+            selected={locked}
+            onClick={() => setLocked((was) => !was)}
+            title={locked ? 'Following the song — unlock to scroll the lyrics yourself' : 'Scrolling freely — lock to follow the song again'}
+            icon={<LockGlyph locked={locked} />}
+          >
+            {locked ? 'Following' : 'Free scroll'}
+          </ChipToggle>
+        </div>
       </div>
       <div
         ref={box}
@@ -425,6 +428,40 @@ function AddLyricsFile({ compact = false }: { compact?: boolean }) {
       {fileInput}
       {problem && <p className="mt-2 text-[12.5px] text-red-700 dark:text-red-300">{problem}</p>}
     </div>
+  )
+}
+
+/**
+ * "Around the record" — Settings › Lyrics › "Lyrics around the record", from
+ * the lyrics themselves (James, 2026-09-16: "add a shortcut for the songs around
+ * the record in the lyrics space somewhere").
+ *
+ * ⚠️ ONLY ON A TIMED SHEET, which is the only kind this toolbar is drawn for:
+ * the words around the record need timings, and a switch that lights up over
+ * a song that can't show them is a switch that looks broken. The style stays
+ * whatever Settings says.
+ */
+function AroundTheRecord() {
+  const on = useSettingsStore((s) => s.lyricsAround)
+  const set = useSettingsStore((s) => s.set)
+  return (
+    <ChipToggle
+      selected={on}
+      onClick={() => set('lyricsAround', !on)}
+      title={on ? 'The words are around the record — tap to take them off' : 'Show the words around the record as they are sung'}
+      icon={<RingGlyph />}
+    >
+      Around the record
+    </ChipToggle>
+  )
+}
+
+function RingGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <circle cx="8" cy="8" r="2" />
+      <path d="M2.6 6.2a5.7 5.7 0 0 1 10.8 0M13.4 9.8a5.7 5.7 0 0 1-10.8 0" strokeLinecap="round" />
+    </svg>
   )
 }
 
