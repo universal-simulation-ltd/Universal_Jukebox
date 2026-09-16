@@ -25,6 +25,7 @@ import LyricsAround from './LyricsAround'
 import Visualiser from './Visualiser'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { requestLyricsReveal } from '../lib/lyricsReveal'
+import { useKeepAwake } from '../lib/keepAwake'
 
 // The one screen in the suite that is genuinely pleasurable to leave open.
 //
@@ -46,6 +47,9 @@ import { requestLyricsReveal } from '../lib/lyricsReveal'
 
 export default function NowPlaying() {
   const lyricsAround = useSettingsStore((s) => s.lyricsAround)
+  // "Keep awake" (in the folded row, `PlayModes`) holds the screen on for as
+  // long as this page is open — and only this page. See `lib/keepAwake.ts`.
+  useKeepAwake(useSettingsStore((s) => s.keepAwake))
   /** Wide and short — the words beside the record rather than above it. */
   const landscape = useLandscapeStage()
   /** The stage row, and how much height is left for it — see `useDeckRoom`. */

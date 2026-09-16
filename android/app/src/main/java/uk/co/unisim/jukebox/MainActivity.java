@@ -13,6 +13,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(MusicFolderPlugin.class);
         // A notification for each new song — see NotifyPlugin.
         registerPlugin(NotifyPlugin.class);
+        // "Keep awake" on Now Playing — see KeepAwakePlugin.
+        registerPlugin(KeepAwakePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

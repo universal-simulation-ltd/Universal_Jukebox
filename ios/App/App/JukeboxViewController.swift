@@ -32,6 +32,8 @@ class JukeboxViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(LoudnessPlugin())
         // A notification for each new song, replacing the last.
         bridge?.registerPluginInstance(NotifyPlugin())
+        // "Keep awake" on Now Playing — the screen left on for the lyrics.
+        bridge?.registerPluginInstance(KeepAwakePlugin())
 
         // ⚠️ THE EDGE SWIPE BACK (James, 2026-09-10: "Mobile should also have
         // the edge of screen side swipe to go back instead of having to use

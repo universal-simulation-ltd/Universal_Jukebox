@@ -246,6 +246,12 @@ export interface Settings {
    * beside a sentence saying what is sent.
    */
   aboutOnline: boolean
+  /**
+   * "Keep awake" on Now Playing: the screen does not dim or lock while that
+   * page is open, so the lyrics stay readable (James, 2026-09-16) —
+   * `lib/keepAwake.ts`. Remembered, but only ever in force on Now Playing.
+   */
+  keepAwake: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -273,6 +279,7 @@ export const DEFAULTS: Settings = {
   recordCrossfade: true,
   trackNotifications: false,
   aboutOnline: false,
+  keepAwake: false,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -434,6 +441,7 @@ function readStored(): Settings {
     resumeCard: stored.resumeCard !== false,
     recordCrossfade: stored.recordCrossfade !== false,
     trackNotifications: stored.trackNotifications === true,
+    keepAwake: stored.keepAwake === true,
     // `=== true`, for the reason `lyricsOnline` gives above.
     aboutOnline: stored.aboutOnline === true,
   }
@@ -514,6 +522,7 @@ function persist(state: Settings) {
     recordCrossfade: state.recordCrossfade,
     trackNotifications: state.trackNotifications,
     aboutOnline: state.aboutOnline,
+    keepAwake: state.keepAwake,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

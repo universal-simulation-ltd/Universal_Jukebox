@@ -3,6 +3,7 @@ import { AboutToggle } from './AboutTrack'
 import AddToShelf from './AddToShelf'
 import { ModeButton } from './ModeButton'
 import OutputButton from './OutputButton'
+import KeepAwakeButton from './KeepAwakeButton'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
 
 // The row of round buttons under the records waiting to go on: shuffle and the
@@ -57,6 +58,12 @@ export default function PlayModes() {
           entirely where the engine has no picker to show (`OutputButton`). */}
       <div role="group" aria-label="Sound" className="flex gap-x-1 sm:gap-x-5">
         <OutputButton />
+      </div>
+      {/* Beside Output on a phone's second line, and for the same reason it is
+          its own group: it is about the SCREEN, so the lyrics can be read along
+          to without the phone locking (James, 2026-09-16). */}
+      <div role="group" aria-label="Screen" className="flex gap-x-1 sm:gap-x-5">
+        <KeepAwakeButton />
       </div>
     </div>
   )
