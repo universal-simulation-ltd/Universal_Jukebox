@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { mediaElement, mediaElements } from '../lib/audio'
+import { expectRouteChange, mediaElement, mediaElements } from '../lib/audio'
 import { noteEvent } from '../lib/bgLog'
 import { canPickOutput, pickOutput, ROUTE_EVENTS, routedAway, type RoutableMedia } from '../lib/outputPicker'
 import { ModeButton } from './ModeButton'
@@ -49,6 +49,8 @@ export default function OutputButton() {
       // WebKit call before it awaits anything, because both APIs want a user
       // gesture and count it spent once a promise has resolved.
       onClick={() => {
+        // Whatever is picked, the music carries on there (`expectRouteChange`).
+        expectRouteChange()
         void pickOutput(mediaElement() as unknown as RoutableMedia).then((result) => noteEvent('output', { result }))
       }}
     >

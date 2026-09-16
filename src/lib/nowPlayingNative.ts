@@ -148,6 +148,13 @@ export function setInterruptionHandler(fn: ((event: AudioInterruption) => void) 
   onInterruption = fn
 }
 
+/** Told when iOS moves the sound — see `routeChanged` in `lib/audio.ts`. */
+let onRoute: ((reason: string) => void) | null = null
+
+export function setRouteHandler(fn: ((reason: string) => void) | null): void {
+  onRoute = fn
+}
+
 /**
  * Headphones in and out, and interruptions, into the saved log (`bgLog`) — so a
  * report like "not sure if it was when I put headphones in" can be checked
@@ -163,6 +170,7 @@ export async function watchAudioRoute(): Promise<void> {
       // ⚠️ Logged FIRST, and acted on after: a handler that throws must not be
       // able to cost the log the one line that says what iOS did.
       if (kind === 'interruption') onInterruption?.(detail as unknown as AudioInterruption)
+      if (kind === 'route') onRoute?.(String(detail.reason ?? ''))
     })
   } catch {
     /* the log is a nicety */

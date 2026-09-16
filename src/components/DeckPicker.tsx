@@ -55,7 +55,12 @@ export default function DeckPicker({ onClose }: { onClose(): void }) {
       role="dialog"
       aria-modal="true"
       aria-label="Play on"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 select-none sm:items-center"
+      // ⚠️ NOTHING HERE CAN BE SELECTED. The finger that opened the sheet is
+      // still held down, and iOS carried that hold on into a text selection of
+      // whatever was drawn under it — "Close", highlighted as if to copy it
+      // (James, 2026-09-16). Nothing on this sheet is text anybody wants.
+      style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
       onClick={(e) => {
         e.stopPropagation()
         onClose()

@@ -13,7 +13,7 @@ import { cachedGain, measureGain } from '../lib/loudness'
 import { readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
 import { announceTrack, withdrawTrack } from '../lib/trackNotify'
-import { clearLockScreen, followProgress, setInterruptionHandler, showOnLockScreen } from '../lib/nowPlayingNative'
+import { clearLockScreen, followProgress, setInterruptionHandler, setRouteHandler, showOnLockScreen } from '../lib/nowPlayingNative'
 import { shuffled } from '../lib/audio'
 import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from './libraryStore'
@@ -1587,6 +1587,9 @@ setInterruptionHandler(({ type, shouldResume }) => {
   if (type !== 'ended') return
   void audio.interruptionEnded(shouldResume)
 })
+
+// The sound moved to another output: keep playing — see `routeChanged`.
+setRouteHandler((reason) => audio.routeChanged(reason))
 
 audio.setCallbacks({
   onEnded() {

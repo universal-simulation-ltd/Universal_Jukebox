@@ -59,6 +59,28 @@ let lastOutsidePause: { at: number; index: 0 | 1 } | null = null
  * half of `lastOutsidePause` an interruption needs. See the `pause` listener.
  */
 let lastExternalPauseAt = 0
+
+/**
+ * Until when a pause nobody here asked for is taken as the SOUND MOVING, and
+ * undone (James, 2026-09-16: "when changing sound output it should continue /
+ * start playing again").
+ *
+ * ⚠️ iOS PAUSES THE MUSIC WHEN THE ROUTE CHANGES — picking AirPlay, a Bluetooth
+ * speaker or the phone's own speaker in the system's sheet — and nothing here
+ * ever started it again. Two ways in:
+ *   - `expectRouteChange`, from the Output button: the person is choosing where
+ *     the sound goes, so for `ROUTE_PICK_MS` a pause is the move, not a wish;
+ *   - `routeChanged`, from iOS's own route notice (`NowPlayingPlugin`), for a
+ *     change made anywhere else — Control Centre, a speaker connecting.
+ *
+ * ⚠️ EXCEPT A DEVICE GOING AWAY. Headphones pulled out pause the music on
+ * purpose, everywhere on the phone, so the sound does not suddenly come out of
+ * the speaker in a quiet room; iOS calls that `device out` and it is left alone.
+ */
+let routeGraceUntil = 0
+const ROUTE_PICK_MS = 30_000
+/** How close a route notice and WebKit's pause must be to be the same event. They arrive in either order. */
+const ROUTE_EVENT_MS = 2000
 function markOwnPause(): void {
   ownPauseAt = Date.now()
 }
@@ -201,6 +223,11 @@ function element(index: 0 | 1): HTMLAudioElement {
     // The interruption notice and WebKit's own pause arrive in either order, so
     // neither one alone can answer "was it playing".
     if (external && mine()) lastExternalPauseAt = Date.now()
+    // The sound moving to another output — see `routeGraceUntil`.
+    if (external && mine() && Date.now() < routeGraceUntil) {
+      resumeAfterRoute(audio, 'pause-in-grace')
+      return
+    }
     if (external && !document.hidden && mine()) lastOutsidePause = { at: Date.now(), index }
     if (external && document.hidden && mine()) {
       audio
@@ -944,6 +971,49 @@ export async function interruptionEnded(resume: boolean | null | undefined, fade
     set({ playing: false })
     return false
   }
+}
+
+/** The Output button was tapped: a pause in the next while is the sound moving. See `routeGraceUntil`. */
+export function expectRouteChange(): void {
+  if (state.playing) routeGraceUntil = Date.now() + ROUTE_PICK_MS
+}
+
+/**
+ * iOS says the route changed, with its reason (`NowPlayingPlugin.routeChanged`).
+ * WebKit's pause may already have landed, or may be about to.
+ */
+export function routeChanged(reason: string): void {
+  if (reason === 'device out') {
+    // Headphones out: the pause is meant. Close any window the button opened too.
+    routeGraceUntil = 0
+    return
+  }
+  const now = Date.now()
+  if (state.playing) {
+    routeGraceUntil = Math.max(routeGraceUntil, now + ROUTE_EVENT_MS)
+    return
+  }
+  const audio = el()
+  if (now - lastExternalPauseAt < ROUTE_EVENT_MS && audio.paused && !audio.ended && audio.getAttribute('src')) {
+    resumeAfterRoute(audio, `route ${reason}`)
+  }
+}
+
+/**
+ * Play again after the route moved. Twice more if refused: straight after the
+ * switch the new output may not be ready to take sound yet.
+ */
+function resumeAfterRoute(audio: HTMLAudioElement, why: string, attempt = 0): void {
+  lastExternalPauseAt = 0
+  ensureRunning()
+  audio
+    .play()
+    .then(() => noteEvent('route-resume', { why, attempt, ok: true }))
+    .catch((error: unknown) => {
+      noteEvent('route-resume', { why, attempt, ok: false, error: error instanceof Error ? error.name : String(error) })
+      if (attempt < 2) setTimeout(() => resumeAfterRoute(audio, why, attempt + 1), attempt === 0 ? 300 : 900)
+      else set({ playing: false })
+    })
 }
 
 /**
