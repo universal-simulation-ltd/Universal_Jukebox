@@ -61,6 +61,25 @@ let lastOutsidePause: { at: number; index: 0 | 1 } | null = null
 let lastExternalPauseAt = 0
 
 /**
+ * Told when the deck that is NOT the app's stops.
+ *
+ * ⚠️ THE LOCK SCREEN'S ▶ OVER A PLAYING SONG (James, again, 2026-09-16). The
+ * phone's saved log showed the button pressed was WEBKIT'S entry
+ * (`lock-command via webkit`), not the app's own — so everything the native
+ * keeper restates goes to an entry the lock screen was not showing. And at
+ * every change of song the log has the same shape: the new deck plays, then a
+ * few seconds later the OLD deck's `pause` (ended inside the blend). WebKit
+ * publishes play/pause from its media elements, and that pause is the last
+ * word it hears. `playerStore` answers it by making WebKit re-read the state
+ * (`restatePlaying` in `lib/mediaSession.ts`).
+ */
+let onOtherDeckStopped: ((why: string) => void) | null = null
+
+export function setOtherDeckStoppedCallback(fn: ((why: string) => void) | null): void {
+  onOtherDeckStopped = fn
+}
+
+/**
  * Until when a pause nobody here asked for is taken as the SOUND MOVING, and
  * undone (James, 2026-09-16: "when changing sound output it should continue /
  * start playing again").
@@ -240,6 +259,9 @@ function element(index: 0 | 1): HTMLAudioElement {
       return
     }
     if (mine()) set({ playing: false })
+    // The OTHER deck stopping — a song that ended inside its crossfade, or a
+    // retired one. See `onOtherDeckStopped`.
+    else onOtherDeckStopped?.(audio.ended ? 'ended' : 'paused')
   })
   audio.addEventListener('play', () => noteEvent('play', { deck: audio.dataset.jukeboxAudio, sec: audio.currentTime }))
   audio.addEventListener('playing', () => { if (mine()) set({ playing: true, loading: false }) })

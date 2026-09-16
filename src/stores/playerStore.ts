@@ -1588,6 +1588,18 @@ setInterruptionHandler(({ type, shouldResume }) => {
   void audio.interruptionEnded(shouldResume)
 })
 
+// The other deck stopped while this one plays on: tell WebKit it is still
+// playing, now and once more a moment later — see `onOtherDeckStopped`.
+audio.setOtherDeckStoppedCallback((why) => {
+  for (const delay of [150, 1200]) {
+    setTimeout(() => {
+      if (!usePlayerStore.getState().playing) return
+      const ok = ms.restatePlaying()
+      noteEvent('webkit-restate', { why, delay, ok })
+    }, delay)
+  }
+})
+
 // The sound moved to another output: keep playing — see `routeChanged`.
 setRouteHandler((reason) => audio.routeChanged(reason))
 

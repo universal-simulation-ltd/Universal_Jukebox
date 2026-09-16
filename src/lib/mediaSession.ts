@@ -134,6 +134,35 @@ export function setArtistLine(track: Track, line: string | null): void {
   }
 }
 
+/**
+ * Make WebKit publish the now-playing entry again, from the state it is in NOW.
+ *
+ * ⚠️ WHY A NEW `MediaMetadata`. Assigning the playback state it already has
+ * changes nothing and so tells WebKit nothing; a fresh metadata object is a
+ * change it always acts on. NOT a paused-then-playing round trip, which could
+ * put the very ▶ this is here to remove on the lock screen for a moment. Same title, artist, album and
+ * artwork URLs, so the lock screen shows nothing new but the button.
+ * See `onOtherDeckStopped` in `lib/audio.ts` for when this is needed.
+ */
+export function restatePlaying(): boolean {
+  if (!supported()) return false
+  const current = navigator.mediaSession.metadata
+  try {
+    if (current) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: current.title,
+        artist: current.artist,
+        album: current.album,
+        artwork: [...current.artwork],
+      })
+    }
+    navigator.mediaSession.playbackState = 'playing'
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function setPlaybackState(playing: boolean): void {
   if (!supported()) return
   try {
