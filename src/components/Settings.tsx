@@ -109,7 +109,10 @@ export default function Settings() {
     ]),
     lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
-    notifications: s.trackNotifications ? 'One for each new song' : 'Off',
+    notifications: sentence([
+      s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
+      s.hideErrors ? 'errors hidden' : 'errors shown',
+    ]),
     appearance: labelOf(THEME_OPTIONS, themePref),
   }
 
@@ -265,10 +268,10 @@ export default function Settings() {
               at in a sensible min / max range so a track doesn't blast your
               ears off". See `lib/loudness.ts`. */}
           <Toggle
-            label="Stable volume"
-            hint="Loud songs are turned down to meet the rest, so a track doesn’t blast your ears off. Each song is measured once, on this device, the first time it plays; quiet songs are left as they are."
-            checked={s.stableVolume}
-            onChange={(v) => s.set('stableVolume', v)}
+            label="Play each song at its own volume"
+            hint="Untick for Stable volume: loud songs are turned down to meet the rest, so a track doesn’t blast your ears off. Each song is measured once, on this device, the first time it plays; quiet songs are left as they are."
+            checked={!s.stableVolume}
+            onChange={(v) => s.set('stableVolume', !v)}
           />
           <Slider
             label="Volume boost"
@@ -318,16 +321,16 @@ export default function Settings() {
           summary={summaries.lyrics}
         >
           <Toggle
-            label="Look up missing lyrics online"
-            hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
-            checked={s.lyricsOnline}
-            onChange={(v) => s.set('lyricsOnline', v)}
+            label="Only use lyrics from your own files"
+            hint="Untick to ask lrclib.net when a track has no lyrics of its own. That sends the track’s artist, title, album and length — nothing else, and nothing at all while this is ticked. Answers are kept on this device so each track is only ever asked about once."
+            checked={!s.lyricsOnline}
+            onChange={(v) => s.set('lyricsOnline', !v)}
           />
           <Toggle
-            label="Lyrics around the record"
-            hint="On Now Playing, the words appear around the spinning record as they are sung — in one of three styles, chosen below. Needs lyrics with timings."
-            checked={s.lyricsAround}
-            onChange={(v) => s.set('lyricsAround', v)}
+            label="Keep the lyrics off the record"
+            hint="Untick to have the words appear around the spinning record on Now Playing as they are sung — in one of three styles, chosen below. Needs lyrics with timings."
+            checked={!s.lyricsAround}
+            onChange={(v) => s.set('lyricsAround', !v)}
           />
           {s.lyricsAround && (
             <Choice<LyricsAroundStyle>
@@ -338,10 +341,10 @@ export default function Settings() {
             />
           )}
           <Toggle
-            label="Lyrics on the lock screen"
-            hint="While a song plays, the line being sung takes the artist’s place on the lock screen and in the phone’s music controls — the artist comes back between lines. Needs lyrics with timings. With this on, each song’s lyrics are found as it starts, even if you never open them."
-            checked={s.lockScreenLyrics}
-            onChange={(v) => s.set('lockScreenLyrics', v)}
+            label="Keep the artist’s name on the lock screen"
+            hint="Untick to show the line being sung in the artist’s place on the lock screen and in the phone’s music controls — the artist comes back between lines. Needs lyrics with timings. While it is unticked, each song’s lyrics are found as it starts, even if you never open them."
+            checked={!s.lockScreenLyrics}
+            onChange={(v) => s.set('lockScreenLyrics', !v)}
           />
           <DownloadedLyrics />
         </Section>
@@ -354,10 +357,10 @@ export default function Settings() {
           summary={summaries.about}
         >
           <Toggle
-            label="Look songs up on Wikipedia"
-            hint="When you open “About this track” on Now Playing, ask Wikipedia about the song and the artist. This sends the song’s title and the artist’s name — nothing else, and nothing at all while this is off. Answers are kept on this device, so each song is only looked up once."
-            checked={s.aboutOnline}
-            onChange={(v) => s.set('aboutOnline', v)}
+            label="Don’t look songs up on Wikipedia"
+            hint="Untick to let “About this track” on Now Playing ask Wikipedia about the song and the artist. That sends the song’s title and the artist’s name — nothing else, and nothing at all while this is ticked. Answers are kept on this device, so each song is only looked up once."
+            checked={!s.aboutOnline}
+            onChange={(v) => s.set('aboutOnline', !v)}
           />
           <SavedAbout />
         </Section>
@@ -365,11 +368,17 @@ export default function Settings() {
         {/* James, 2026-09-13: "an option for a notification everytime a new
             song plays, replace each notification and don't stack them". */}
         <Section
-          title="Notifications"
-          note="What’s playing, as each song starts — and only ever one of them."
+          title="Messages"
+          note="What’s playing as each song starts, and whether to hear about things that went wrong."
           summary={summaries.notifications}
         >
           <NotifyToggle />
+          <Toggle
+            label="Hide error messages"
+            hint="Don’t show banners about songs that couldn’t play, folders that couldn’t be opened or files that were skipped — songs that can’t play are skipped quietly. Turn this off to see what went wrong."
+            checked={s.hideErrors}
+            onChange={(v) => s.set('hideErrors', v)}
+          />
         </Section>
 
         <Section title="Appearance" summary={summaries.appearance}>
@@ -492,10 +501,12 @@ function NotifyToggle() {
 
   return (
     <Toggle
-      label="Notify me of each new song"
-      hint="The song, the artist and the cover, as each song starts — while Jukebox isn’t on screen, since when it is, the song is right in front of you. There’s only ever one: the next song’s takes its place, rather than a pile building up. It makes no sound of its own."
-      checked={on && !blocked}
+      label="No notification for each new song"
+      hint="Untick to get the song, the artist and the cover as each song starts — while Jukebox isn’t on screen, since when it is, the song is right in front of you. There’s only ever one: the next song’s takes its place, rather than a pile building up. It makes no sound of its own."
+      checked={!on || blocked}
       disabled={support === 'none' || blocked}
+      // Can't be turned on here, so it reads as what is true: no notifications.
+      disabledChecked
       disabledHint={
         support === 'none'
           ? 'This browser won’t let a web page show notifications. On an iPhone or iPad, add Jukebox to your Home Screen (Share, then Add to Home Screen) and turn this on from there.'
@@ -503,8 +514,9 @@ function NotifyToggle() {
             ? 'Notifications are off for Jukebox. Turn them on in your phone’s Settings, under Notifications, then come back here.'
             : 'Notifications are blocked for this site. Allow them in your browser’s site settings, then come back here.'
       }
-      onChange={(v) => {
-        if (!v) {
+      // ⚠️ INVERTED, like every switch here: ticked is OFF, so UNticking asks.
+      onChange={(ticked) => {
+        if (ticked) {
           set('trackNotifications', false)
           return
         }
@@ -861,8 +873,18 @@ function Action({
   )
 }
 
+/**
+ * A tick box.
+ *
+ * ⚠️ EVERY TOGGLE ON THIS PAGE IS TICKED BY DEFAULT (James, 2026-09-16: "Make
+ * all options 'On' / ticked by default by changing the question"). A setting
+ * whose default is off gets a question that is true while it is off — "Only
+ * use lyrics from your own files", "Don’t look songs up on Wikipedia" — and is
+ * bound as `checked={!value}` / `set(key, !ticked)`. The STORED settings are
+ * unchanged; only the question turned round. A new switch follows the rule.
+ */
 function Toggle({
-  label, hint, checked, onChange, disabled = false, disabledHint,
+  label, hint, checked, onChange, disabled = false, disabledHint, disabledChecked = false,
 }: {
   label: string
   hint?: string
@@ -870,13 +892,15 @@ function Toggle({
   onChange(value: boolean): void
   disabled?: boolean
   disabledHint?: string
+  /** What a disabled box shows — true for a question that is TRUE while the feature can't be had. */
+  disabledChecked?: boolean
 }) {
   return (
     <Row>
       <label className={`flex items-start gap-3 ${disabled ? 'cursor-default opacity-55' : 'cursor-pointer'}`}>
         <input
           type="checkbox"
-          checked={checked && !disabled}
+          checked={disabled ? disabledChecked : checked}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
           className="mt-1 h-4 w-4 shrink-0 accent-orange-600"

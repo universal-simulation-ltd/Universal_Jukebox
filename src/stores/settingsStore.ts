@@ -257,6 +257,17 @@ export interface Settings {
    * 2026-09-16) — `lib/lockLyrics.ts`. Off by default, at his ask.
    */
   lockScreenLyrics: boolean
+  /**
+   * Hide the error banners — "couldn't play and was skipped", "could not be
+   * opened", "some files were skipped" — and just carry on (James, 2026-09-16:
+   * "Just skip them silently until they deselect the option").
+   *
+   * ⚠️ ON BY DEFAULT, at his ask, and read `!== false`. The errors are still
+   * recorded while hidden; turning this off shows whatever is current.
+   * ⚠️ NOT the folder-permission prompt: that is a button the app cannot work
+   * without, not a report of something that went wrong.
+   */
+  hideErrors: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -286,6 +297,7 @@ export const DEFAULTS: Settings = {
   aboutOnline: false,
   keepAwake: false,
   lockScreenLyrics: false,
+  hideErrors: true,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -449,6 +461,7 @@ function readStored(): Settings {
     trackNotifications: stored.trackNotifications === true,
     keepAwake: stored.keepAwake === true,
     lockScreenLyrics: stored.lockScreenLyrics === true,
+    hideErrors: stored.hideErrors !== false,
     // `=== true`, for the reason `lyricsOnline` gives above.
     aboutOnline: stored.aboutOnline === true,
   }
@@ -531,6 +544,7 @@ function persist(state: Settings) {
     aboutOnline: state.aboutOnline,
     keepAwake: state.keepAwake,
     lockScreenLyrics: state.lockScreenLyrics,
+    hideErrors: state.hideErrors,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

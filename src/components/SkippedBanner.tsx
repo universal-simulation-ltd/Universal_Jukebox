@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { plural } from '../lib/format'
 import { usePlayerStore } from '../stores/playerStore'
+import { useSettingsStore } from '../stores/settingsStore'
 
 // "N tracks couldn't play" — the other half of skipping them (James,
 // 2026-09-11: "The playing stops and breaks the lock play when a track is no
@@ -16,7 +17,11 @@ export default function SkippedBanner() {
   const dismiss = usePlayerStore((s) => s.dismissSkipped)
   const [open, setOpen] = useState(false)
 
-  if (skipped.length === 0) return null
+  // Settings › Messages › "Hide error messages" (on by default): the skipping
+  // still happens, it just is not announced.
+  const hidden = useSettingsStore((s) => s.hideErrors)
+
+  if (skipped.length === 0 || hidden) return null
 
   return (
     <div

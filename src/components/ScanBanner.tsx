@@ -7,6 +7,7 @@ import { goHome } from '../lib/route'
 import { useMissingFile } from '../lib/useMissingFile'
 import { needAccessFrom, refusalLabel, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { useSettingsStore } from '../stores/settingsStore'
 
 // Live scan progress, and the two things a scan has to say afterwards: the
 // formats it had to refuse, and whether the folder needs its permission back.
@@ -77,6 +78,8 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   // there is nothing left to finish.
   const stoppedRoot = stoppedEarly ? roots.find((r) => r.id === stoppedEarly) : undefined
   const clear = useLibraryStore((s) => s.clear)
+  // "Some files were skipped" is a report, and hidden with the other errors.
+  const hideErrors = useSettingsStore((s) => s.hideErrors)
 
   /**
    * The way out of this banner that isn't "find that folder again".
@@ -222,7 +225,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
         </div>
       )}
 
-      {showRefusals && refusals.length > 0 && (
+      {showRefusals && !hideErrors && refusals.length > 0 && (
         <div className="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-[13px] font-medium text-slate-900 dark:text-slate-100">
             Some files were skipped

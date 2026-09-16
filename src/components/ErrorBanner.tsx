@@ -3,6 +3,7 @@ import type { Root } from '../lib/types'
 import { useMissingFile, type MissingFile } from '../lib/useMissingFile'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import FolderAccessButton from './FolderAccessButton'
 
 // The one error slot at the top of every page — and, when a track would not
@@ -29,8 +30,11 @@ export default function ErrorBanner() {
   const dismissLibraryError = useLibraryStore((s) => s.dismissError)
   const missing = useMissingFile()
 
+  // Settings › Messages › "Hide error messages" (on by default).
+  const hidden = useSettingsStore((s) => s.hideErrors)
+
   const error = playerError ?? libraryError
-  if (!error) return null
+  if (!error || hidden) return null
 
   // Only the player's error is about a missing file; a library error that
   // happens to be showing alongside a stale `missingTrack` must not be
