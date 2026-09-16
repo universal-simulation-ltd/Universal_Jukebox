@@ -17,7 +17,7 @@ export default function SkippedBanner() {
   const dismiss = usePlayerStore((s) => s.dismissSkipped)
   const [open, setOpen] = useState(false)
 
-  // Settings › Messages › "Hide error messages" (on by default): the skipping
+  // Settings › Messages › "Show error messages" (unticked by default): the skipping
   // still happens, it just is not announced.
   const hidden = useSettingsStore((s) => s.hideErrors)
 

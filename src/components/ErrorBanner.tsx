@@ -30,7 +30,7 @@ export default function ErrorBanner() {
   const dismissLibraryError = useLibraryStore((s) => s.dismissError)
   const missing = useMissingFile()
 
-  // Settings › Messages › "Hide error messages" (on by default).
+  // Settings › Messages › "Show error messages" (unticked by default).
   const hidden = useSettingsStore((s) => s.hideErrors)
 
   const error = playerError ?? libraryError
