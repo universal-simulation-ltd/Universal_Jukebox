@@ -25,6 +25,7 @@ import { navigate } from '../lib/route'
 import { INTRO_HOLD_MAX, cachedIntro, introHold, measureIntro } from '../lib/intro'
 import { OUTRO_LEAD_MAX, cachedOutro, measureOutro, outroLead } from '../lib/outro'
 import { noteEvent } from '../lib/bgLog'
+import { followLockLyrics } from '../lib/lockLyrics'
 
 // Playback: the queue, what is on, and the transport.
 //
@@ -1557,6 +1558,7 @@ audio.subscribe((state) => {
   followMusic(state.playing)
   ms.setPlaybackState(state.playing)
   followProgress(state.playing, state.currentSec, state.durationSec)
+  followLockLyrics(currentTrack(usePlayerStore.getState()), state.currentSec)
   rememberWhereWeAre(state.currentSec)
   ms.setPosition(state.currentSec, state.durationSec)
 })
@@ -1669,6 +1671,14 @@ useSettingsStore.subscribe((next, prev) => {
   if (next.deck === prev.deck && next.deckEras === prev.deckEras) return
   const track = currentTrack(usePlayerStore.getState())
   if (track) publishNowPlaying(track)
+})
+
+// "Lyrics on the lock screen" switched while paused changes the card now, not
+// at the next tick of a song that is not moving.
+useSettingsStore.subscribe((next, prev) => {
+  if (next.lockScreenLyrics === prev.lockScreenLyrics) return
+  const state = usePlayerStore.getState()
+  followLockLyrics(currentTrack(state), state.currentSec)
 })
 
 // The notification switch turned off takes the card away. Turned ON it shows

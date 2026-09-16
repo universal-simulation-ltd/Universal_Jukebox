@@ -107,7 +107,7 @@ export default function Settings() {
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
-    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}`,
+    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: s.trackNotifications ? 'One for each new song' : 'Off',
     appearance: labelOf(THEME_OPTIONS, themePref),
@@ -337,6 +337,12 @@ export default function Settings() {
               options={LYRICS_STYLE_OPTIONS}
             />
           )}
+          <Toggle
+            label="Lyrics on the lock screen"
+            hint="While a song plays, the line being sung takes the artist’s place on the lock screen and in the phone’s music controls — the artist comes back between lines. Needs lyrics with timings. With this on, each song’s lyrics are found as it starts, even if you never open them."
+            checked={s.lockScreenLyrics}
+            onChange={(v) => s.set('lockScreenLyrics', v)}
+          />
           <DownloadedLyrics />
         </Section>
 

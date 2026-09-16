@@ -28,6 +28,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "update", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "artist", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise)
     ]
 
@@ -232,6 +233,25 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             self.ours[MPNowPlayingInfoPropertyPlaybackRate] = rate
             if duration > 0 { self.ours[MPMediaItemPropertyPlaybackDuration] = duration }
             self.remember(elapsed: elapsed, duration: duration, rate: rate)
+            self.apply()
+            call.resolve()
+        }
+    }
+
+    /// The artist line of the `own` entry — a lyric line while one is being
+    /// sung, when "Lyrics on the lock screen" is on (`src/lib/lockLyrics.ts`).
+    ///
+    /// ⚠️ INTO `ours`, not just the centre: the keeper re-applies `ours` whenever
+    /// WebKit writes over the entry, and would put the artist straight back.
+    /// In `merge` the entry is WebKit's and follows the page's metadata, so
+    /// there is nothing to do here.
+    @objc func artist(_ call: CAPPluginCall) {
+        let artist = call.getString("artist") ?? ""
+        DispatchQueue.main.async {
+            guard self.mode == .own, !self.ours.isEmpty else { call.resolve(); return }
+            self.ours[MPMediaItemPropertyArtist] = artist
+            // Where the clock has got to, or re-applying would jump the bar back.
+            self.ours[MPNowPlayingInfoPropertyElapsedPlaybackTime] = self.elapsedNow()
             self.apply()
             call.resolve()
         }

@@ -112,6 +112,28 @@ export function setMetadata(track: Track | null, coverUrl: string | null, type =
   }
 }
 
+/**
+ * The lyric line in the artist's place, or the artist back — see
+ * `lib/lockLyrics.ts`. Edits the metadata already published rather than making
+ * a new one, so the artwork is not sent again for every line.
+ *
+ * ⚠️ Only when the metadata is still THIS track's: the lock screen art is
+ * published a frame or two after the track changes, and a line from the last
+ * song must never land on the next one's card.
+ */
+export function setArtistLine(track: Track, line: string | null): void {
+  if (!supported()) return
+  const metadata = navigator.mediaSession.metadata
+  if (!metadata || metadata.title !== track.title) return
+  const wanted = line ?? track.artist ?? track.albumArtist ?? 'Unknown artist'
+  if (metadata.artist === wanted) return
+  try {
+    metadata.artist = wanted
+  } catch {
+    /* a platform whose metadata is read-only */
+  }
+}
+
 export function setPlaybackState(playing: boolean): void {
   if (!supported()) return
   try {

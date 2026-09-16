@@ -252,6 +252,11 @@ export interface Settings {
    * `lib/keepAwake.ts`. Remembered, but only ever in force on Now Playing.
    */
   keepAwake: boolean
+  /**
+   * The line being sung in the artist's place on the lock screen (James,
+   * 2026-09-16) — `lib/lockLyrics.ts`. Off by default, at his ask.
+   */
+  lockScreenLyrics: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -280,6 +285,7 @@ export const DEFAULTS: Settings = {
   trackNotifications: false,
   aboutOnline: false,
   keepAwake: false,
+  lockScreenLyrics: false,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -442,6 +448,7 @@ function readStored(): Settings {
     recordCrossfade: stored.recordCrossfade !== false,
     trackNotifications: stored.trackNotifications === true,
     keepAwake: stored.keepAwake === true,
+    lockScreenLyrics: stored.lockScreenLyrics === true,
     // `=== true`, for the reason `lyricsOnline` gives above.
     aboutOnline: stored.aboutOnline === true,
   }
@@ -523,6 +530,7 @@ function persist(state: Settings) {
     trackNotifications: state.trackNotifications,
     aboutOnline: state.aboutOnline,
     keepAwake: state.keepAwake,
+    lockScreenLyrics: state.lockScreenLyrics,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }

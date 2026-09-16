@@ -39,6 +39,7 @@ interface ShowOptions {
 interface NowPlayingPlugin {
   show(options: ShowOptions): Promise<{ animated: boolean; supportedKeys: string[]; mode: string }>
   update(options: { elapsed: number; duration: number; rate: number }): Promise<void>
+  artist(options: { artist: string }): Promise<void>
   clear(): Promise<void>
   addListener(event: 'command', fn: (e: { action: string; position?: number }) => void): Promise<unknown>
   addListener(event: 'audio', fn: (e: { kind: string } & Record<string, unknown>) => void): Promise<unknown>
@@ -96,6 +97,8 @@ export async function showOnLockScreen(
       rate: at.playing ? 1 : 0,
     })
     mode = result.mode
+    // What the entry says now — `setLockArtist` puts a lyric line back over it.
+    artistSent = track.artist ?? track.albumArtist ?? ''
     report = `mode=${result.mode} animated=${result.animated} keys=${result.supportedKeys.join(',') || 'none'}`
     if (mode === 'own' && !listening) {
       listening = true
@@ -164,6 +167,25 @@ export async function watchAudioRoute(): Promise<void> {
   } catch {
     /* the log is a nicety */
   }
+}
+
+/** The artist line the iPhone app's own entry was last given. */
+let artistSent: string | null = null
+
+/**
+ * A lyric line in the artist's place, or the artist back — `lib/lockLyrics.ts`.
+ *
+ * ⚠️ `own` MODE ONLY. There the entry's artist is the plugin's copy, which its
+ * keeper restores whenever WebKit writes over the entry, so the line has to be
+ * in that copy. In `merge` the entry is WebKit's, which takes the artist from
+ * the Media Session's metadata — already changed by `setArtistLine`.
+ */
+export function setLockArtist(track: Track, line: string | null): void {
+  if (mode !== 'own' || !plugin) return
+  const wanted = line ?? track.artist ?? track.albumArtist ?? ''
+  if (wanted === artistSent) return
+  artistSent = wanted
+  void plugin.artist({ artist: wanted }).catch(() => {})
 }
 
 export async function clearLockScreen(): Promise<void> {
