@@ -59,6 +59,8 @@ const EXTRA_STEP = 0.5
 const PEEK = 0.62
 /** How long the records take to finish a swipe once the finger lets go. */
 const SETTLE_MS = 240
+/** Too little of a blend left to slide over: the timer just puts the record in place. */
+const MIN_SLIDE_MS = 120
 /** The longest the arriving record is held, waiting for the deck to show it. */
 const HOLD_MAX_MS = 2500
 /**
@@ -273,11 +275,26 @@ export default function DeckSwiper({
     setIncoming({ album, style, track, run: false, seat })
     const serial = blend.n
     slideFor.current = serial
+    const begun = Date.now()
     // Two frames: drawn at the edge first, THEN told to move, or it would jump.
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         if (slideFor.current !== serial) return
         slideFor.current = null
+        // ⚠️ OVER WHAT IS LEFT, NOT OVER `left`. The timer below ends the slide
+        // `left` ms after THIS EFFECT, but the movement only starts when these
+        // two frames come — and the first change after starting a song is when
+        // they come late: WebKit dropped 366ms of frames there (the new queue's
+        // measurements and first renders), against half that on later changes.
+        // Given the full `left` from a late start, the records were still a
+        // third of the way short when the timer swapped in the held record, and
+        // snapped the rest (James, 2026-09-17: "If I click new song then click
+        // next track the switching animation goes wrong and jumps or glitches,
+        // but any next track animations then work fine"). Now a late start is
+        // a slightly quicker slide that still lands on time.
+        const remaining = left - (Date.now() - begun)
+        if (remaining < MIN_SLIDE_MS) return
+        setMs(remaining)
         setIncoming((current) => (current ? { ...current, run: true } : current))
         setAnimate(true)
         setDrag(-1)
