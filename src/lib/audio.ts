@@ -731,6 +731,8 @@ export function setMuted(muted: boolean): void {
 // actually running.
 
 const FADE_TICK_MS = 50
+/** The most of a fade-out one step may cover — see `rampTo`. */
+const MAX_FALL_STEP = 0.15
 
 let fadeInSec = 0
 let fadeOutSec = 0
@@ -798,14 +800,39 @@ function rampTo(
   const deck = decks[index]
   const from = deck.fade
   const started = Date.now()
+  const falling = target < from
+  // How far through the ramp the last step put it, and what the steps looked like.
+  let last = 0
+  let steps = 0
+  let lastAt = started
+  let widest = 0
   const step = () => {
     // A ramp replaced or stopped since this tick was scheduled does nothing.
     if (deck.step !== step) return
-    const t = Math.min(1, Math.max(0, (Date.now() - started - delaySec * 1000) / (seconds * 1000)))
+    const now = Date.now()
+    const wall = Math.min(1, Math.max(0, (now - started - delaySec * 1000) / (seconds * 1000)))
+    // ⚠️ A FADE-OUT MAY NOT LEAP. With the phone locked the steps come from
+    // `timeupdate` alone (`tickRamps`), and far apart — a skip's 1.2s blend
+    // could take its first step already past the point the song leaving is
+    // silent, so it went from full to nothing in one step: a cut, not a fade
+    // (James, 2026-09-17: "when skipping tracks in the lock screen the track
+    // stops before it's faded out completely"). Capped, the leaving song passes
+    // through at least `1 / MAX_FALL_STEP` levels on its way down, whatever the
+    // gap between steps — the fade takes longer while locked instead of
+    // vanishing. With the screen on, 50ms ticks never reach the cap.
+    const t = falling && wall > 0 ? Math.min(wall, last + MAX_FALL_STEP) : wall
+    last = t
+    if (wall > 0) {
+      steps++
+      widest = Math.max(widest, now - lastAt)
+    }
+    lastAt = now
     // sin rising, cos falling for a crossfade — see `fadeCurve.ts`.
     setFade(index, fadeLevel(from, target, t, curve))
     if (t >= 1) {
       endFade(index, target)
+      // What a locked phone's steps are really like — the gap is the question.
+      if (falling && done) noteEvent('fade-out', { seconds, steps, widestMs: widest, tookMs: now - started })
       done?.()
     }
   }
