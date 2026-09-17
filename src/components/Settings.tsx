@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useGlobalPreferences } from '@unisim/sdk'
 import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
@@ -48,6 +49,10 @@ export default function Settings() {
   const themeOverride = useThemeStore((t) => t.override)
   const themeGlobal = useThemeStore((t) => t.global)
   const setThemeOverride = useThemeStore((t) => t.setOverride)
+  // Until this person uses a second app (or is in an organisation) the menu
+  // has no Global preferences, so there is nothing to "follow": the choice is
+  // plain Light / Dark / System and sets the global value (SDK 0.144.0).
+  const { split: prefsSplit, setColorScheme: setGlobalColorScheme } = useGlobalPreferences()
   const libraryReady = useLibraryStore((l) => l.status === 'ready')
 
   // The boost is the one setting that can be genuinely unavailable: it needs a
@@ -116,9 +121,11 @@ export default function Settings() {
       s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
       s.hideErrors ? 'errors hidden' : 'errors shown',
     ]),
-    appearance: themeOverride
-      ? labelOf(THEME_OPTIONS, themeOverride)
-      : `Following global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
+    appearance: !prefsSplit
+      ? labelOf(THEME_OPTIONS, themeOverride ?? themeGlobal)
+      : themeOverride
+        ? labelOf(THEME_OPTIONS, themeOverride)
+        : `Following global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
   }
 
   return (
@@ -387,19 +394,31 @@ export default function Settings() {
         </Section>
 
         <Section title="Appearance" summary={summaries.appearance}>
-          <Choice<ThemePref | typeof FOLLOW_GLOBAL>
-            label="Colour scheme"
-            value={themeOverride ?? FOLLOW_GLOBAL}
-            onChange={(v) => setThemeOverride(v === FOLLOW_GLOBAL ? null : v)}
-            options={[
-              {
-                value: FOLLOW_GLOBAL,
-                label: `Follow global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
-                hint: 'Set once for every Universal App under Global preferences in the menu.',
-              },
-              ...THEME_OPTIONS,
-            ]}
-          />
+          {!prefsSplit ? (
+            <Choice<ThemePref>
+              label="Colour scheme"
+              value={themeOverride ?? themeGlobal}
+              onChange={(v) => {
+                setGlobalColorScheme(v)
+                if (themeOverride) setThemeOverride(null)
+              }}
+              options={THEME_OPTIONS}
+            />
+          ) : (
+            <Choice<ThemePref | typeof FOLLOW_GLOBAL>
+              label="Colour scheme"
+              value={themeOverride ?? FOLLOW_GLOBAL}
+              onChange={(v) => setThemeOverride(v === FOLLOW_GLOBAL ? null : v)}
+              options={[
+                {
+                  value: FOLLOW_GLOBAL,
+                  label: `Follow global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
+                  hint: 'Set once for every Universal App under Global preferences in the menu.',
+                },
+                ...THEME_OPTIONS,
+              ]}
+            />
+          )}
           {/* The first-run "Tap here" pointers (`components/Tip.tsx`), back. */}
           <Action
             label="Show the tips again"
