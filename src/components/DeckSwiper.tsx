@@ -11,6 +11,8 @@ import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
 import { ARC_ACROSS, ARC_RISE, DeckSlideContext, type DeckSlide } from './decks/slide'
 import { Medium } from './UpNextReel'
 import { VinylRecord } from './decks/VinylRecord'
+import PocketDeck from './decks/PocketDeck'
+import { coverUrl, fallbackHue } from '../lib/art'
 import { grooveRings } from '../lib/grooves'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
@@ -875,10 +877,36 @@ function rowStyle(side: 'left' | 'right', size: number, top: number, motion: Pee
  * scale — every peek drew 38px low, and a grown one landed 61px under the
  * record it replaced (James, 2026-09-11: "Record still doesn't end in right
  * position").
+ *
+ * ⚠️ THE POCKET PLAYER IS THE DECK'S OWN FACE TOO, AT THE DECK'S PROPORTIONS.
+ * Its reel `Medium` is a 50 × 72 player standing in a 76 square — so grown to
+ * the deck's width it arrived two-thirds the size of the real one, which is as
+ * wide as the deck and 1.4 times as tall, and jumped up to it on landing (James,
+ * 2026-09-17: "the ipod when moving into position doesn't have its full size so
+ * it jumps"). A pocket player has no medium to take out of it, so what slides
+ * in IS the player: `PocketDeck`, drawn `shown` wide and `SHAPES.pocket`'s
+ * ratio tall, centred on the square the row places it by — exactly the box the
+ * deck draws it in. The CD player and the jukebox are left on their `Medium`:
+ * what travels there is the disc or the record, going INTO the machine.
  */
 function Drawn({
   album, style, deck, shown, grooves,
 }: { album: Album | undefined; style: DeckStyle; deck: number; shown: number; grooves?: number }) {
+  if (style === 'pocket') {
+    const tall = shown * SHAPES.pocket.frame.ratio
+    return (
+      <span className="absolute left-0 block" style={{ top: (shown - tall) / 2, width: shown, height: tall }}>
+        <PocketDeck
+          progress={0}
+          engaged={false}
+          spinning={false}
+          reduced
+          url={album ? coverUrl(album.id, album.cover) : null}
+          hue={album ? fallbackHue(album.id) : 24}
+        />
+      </span>
+    )
+  }
   const drawn = style === 'vinyl' ? deck : 76
   return (
     <span className="absolute left-0 top-0 block origin-top-left" style={{ width: drawn, height: drawn, transform: `scale(${shown / drawn})` }}>
