@@ -38,7 +38,7 @@
 // crossfade — carry none of the Web Audio risk. Only the boost, which genuinely
 // cannot be done any other way, opts into it.
 
-import { ensureRunning } from './audioGraph'
+import { ensureRunning, graphExists } from './audioGraph'
 import { releaseTrackUrl, trackUrl } from './trackSource'
 import { noteEvent } from './bgLog'
 
@@ -144,11 +144,16 @@ interface Deck {
   timer: number | null
   /** One step of that ramp — run by the interval AND by `timeupdate`, see `tickRamps`. */
   step: (() => void) | null
+  /**
+   * This element was silent when the page went hidden, so WebKit has
+   * INTERRUPTED it — see `renewDeck`, which is the only reader.
+   */
+  slept: boolean
 }
 
 const decks: [Deck, Deck] = [
-  { el: null, url: null, fade: 1, level: 1, timer: null, step: null },
-  { el: null, url: null, fade: 1, level: 1, timer: null, step: null },
+  { el: null, url: null, fade: 1, level: 1, timer: null, step: null, slept: false },
+  { el: null, url: null, fade: 1, level: 1, timer: null, step: null, slept: false },
 ]
 
 /** Which deck the app is about. The other is idle or retiring. */
@@ -196,6 +201,70 @@ function el(): HTMLAudioElement {
   return element(active)
 }
 
+/**
+ * Throw away a deck's element and let the next `element()` build another.
+ *
+ * ⚠️ THE LOCK SCREEN'S ▶ OVER A SONG STARTED WHILE LOCKED, and the end of a
+ * hunt that had already tried four other things (James, 2026-09-17: "hey siri
+ * next track on lock screen produced same error", after the restate at
+ * `9d2451b` reached the log and changed nothing).
+ *
+ * It is not the lock screen that is wrong, it is WebKit's idea of this element.
+ * `MediaElementSession::visibilityChanged` (WebKit, checked against the source)
+ * INTERRUPTS every element that is not making a sound the moment the page goes
+ * hidden — "Suspending silent playback after page visibility: hidden". The idle
+ * deck is always one of them. A `play()` after that starts the sound but leaves
+ * the session Interrupted, because the interruption is only ended by the page
+ * becoming visible again; and the now-playing entry says `isPlaying = state() ==
+ * Playing`. So the song plays and the lock screen says paused, until the app is
+ * opened. It follows that this can only ever be the deck that was silent at
+ * lock — which is exactly the symptom: the song playing when the phone was
+ * locked is right, and the one after it is wrong.
+ *
+ * A new element is never interrupted: `HTMLMediaElement` takes its hidden flag
+ * from the document at construction (`m_elementIsHidden(document.hidden())`)
+ * and only interrupts on a CHANGE. So a deck that slept through the lock is
+ * replaced rather than reused, and the new one plays as a playing element.
+ *
+ * ⚠️ NOT WHERE THE WEB AUDIO GRAPH HAS THE ELEMENTS. `createMediaElementSource`
+ * is once per element and permanent, and an element outside the graph is silent
+ * while the graph is connected (`lib/audioGraph.ts`). The graph is never built
+ * on the iPhone (`graphAllowed`), which is the only place this bug exists.
+ */
+function renewDeck(index: 0 | 1): void {
+  const deck = decks[index]
+  if (!deck.slept || !deck.el || graphExists()) return
+  const old = deck.el
+  deck.el = null
+  deck.slept = false
+  stopRamp(index)
+  try {
+    old.pause()
+    old.removeAttribute('src')
+    old.load()
+    old.remove()
+  } catch {
+    /* already gone */
+  }
+  if (deck.url) {
+    releaseTrackUrl(deck.url)
+    deck.url = null
+  }
+  noteEvent('deck-renewed', { deck: index })
+}
+
+// Every element that is silent as the page hides is interrupted by WebKit —
+// see `renewDeck`. Noted here, acted on the next time the deck is used.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    for (const deck of decks) {
+      // Coming back to the front ends the interruption, so nothing is stale.
+      if (!document.hidden) deck.slept = false
+      else if (deck.el && deck.el.paused) deck.slept = true
+    }
+  })
+}
+
 function element(index: 0 | 1): HTMLAudioElement {
   const deck = decks[index]
   if (deck.el) return deck.el
@@ -209,7 +278,12 @@ function element(index: 0 | 1): HTMLAudioElement {
   // those events describes the track the user has already moved on from. Left
   // ungated, the scrub bar jumps between two tracks during a crossfade and the
   // queue advances twice.
-  const mine = () => active === index
+  //
+  // ⚠️ …AND ON BEING THIS DECK'S ELEMENT AT ALL. `renewDeck` throws an element
+  // away and builds another in its place; the discarded one keeps these
+  // listeners, and its dying events must not be taken for the deck's.
+  const current = () => decks[index].el === audio
+  const mine = () => active === index && current()
 
   audio.addEventListener('play', () => {
     if (!mine()) return
@@ -230,6 +304,8 @@ function element(index: 0 | 1): HTMLAudioElement {
     }
   })
   audio.addEventListener('pause', () => {
+    // An element thrown away by `renewDeck` is nobody's: no rescue, no report.
+    if (!current()) return
     // ⚠️ A PAUSE NOBODY HERE ASKED FOR, WITH THE APP OFF SCREEN, is the
     // background-playback failure (2026-09-10): the music was found already
     // paused at the moment the page went hidden, with no code of ours having
@@ -390,6 +466,8 @@ export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSe
   interruptedPlaying = false
 
   const index = active
+  // A deck that slept through the lock is replaced, not reused — see `renewDeck`.
+  renewDeck(index)
   const deck = decks[index]
   const audio = element(index)
   const previous = deck.url
@@ -504,6 +582,10 @@ export async function crossfade(
 
   const from = active
   const to: 0 | 1 = active === 0 ? 1 : 0
+  // ⚠️ THE DECK A CROSSFADE MOVES TO IS THE ONE THAT WAS SILENT AT LOCK, every
+  // time — so this is the line that takes the ▶ off the lock screen. See
+  // `renewDeck`.
+  renewDeck(to)
   const incoming = decks[to]
   const audio = element(to)
 
