@@ -72,6 +72,10 @@ let lastExternalPauseAt = 0
  * publishes play/pause from its media elements, and that pause is the last
  * word it hears. `playerStore` answers it by making WebKit re-read the state
  * (`restatePlaying` in `lib/mediaSession.ts`).
+ *
+ * Called from the `pause` listener for a deck that stopped by itself, and from
+ * `finishRetirement` for one this file stopped — see the note there on why the
+ * listener never hears about those.
  */
 let onOtherDeckStopped: ((why: string) => void) | null = null
 
@@ -568,6 +572,7 @@ function finishRetirement(): void {
   deck.fade = 1
   const audio = deck.el
   if (audio) {
+    const sounding = !audio.paused && !audio.ended
     markOwnPause()
     audio.pause()
     audio.removeAttribute('src')
@@ -575,6 +580,13 @@ function finishRetirement(): void {
     // fires a spurious `error` for the removed source.
     audio.load()
     audio.volume = Math.max(0, Math.min(1, userVolume))
+    // ⚠️ SAID HERE, NOT LEFT TO THE `pause` LISTENER: `load()` throws away the
+    // `pause` event the line before it queued (measured in WebKit: pause alone
+    // fires one, pause then load fires none). WebKit itself still saw the
+    // element stop, so a skip — lock screen Next, "Hey Siri, next track" — left
+    // its ▶ over the song now playing, and nothing answered it (James,
+    // 2026-09-17). A song that ENDED inside the blend has had its event already.
+    if (sounding) onOtherDeckStopped?.('retired')
   }
   if (deck.url) {
     releaseTrackUrl(deck.url)
