@@ -138,11 +138,13 @@ interface Deck {
   level: number
   /** The interval running this deck's ramp, if any. */
   timer: number | null
+  /** One step of that ramp — run by the interval AND by `timeupdate`, see `tickRamps`. */
+  step: (() => void) | null
 }
 
 const decks: [Deck, Deck] = [
-  { el: null, url: null, fade: 1, level: 1, timer: null },
-  { el: null, url: null, fade: 1, level: 1, timer: null },
+  { el: null, url: null, fade: 1, level: 1, timer: null, step: null },
+  { el: null, url: null, fade: 1, level: 1, timer: null, step: null },
 ]
 
 /** Which deck the app is about. The other is idle or retiring. */
@@ -267,6 +269,8 @@ function element(index: 0 | 1): HTMLAudioElement {
   audio.addEventListener('playing', () => { if (mine()) set({ playing: true, loading: false }) })
   audio.addEventListener('waiting', () => { if (mine()) set({ loading: true }) })
   audio.addEventListener('timeupdate', () => {
+    // ⚠️ BEFORE the gate: either deck's clock moves both decks' ramps on.
+    tickRamps()
     if (!mine()) return
     set({ currentSec: audio.currentTime })
     maybeFadeOut(audio, index)
@@ -741,6 +745,7 @@ export function setFades(inSec: number, outSec: number): void {
 
 function stopRamp(index: 0 | 1): void {
   const deck = decks[index]
+  deck.step = null
   if (deck.timer !== null) {
     clearInterval(deck.timer)
     deck.timer = null
@@ -793,7 +798,9 @@ function rampTo(
   const deck = decks[index]
   const from = deck.fade
   const started = Date.now()
-  deck.timer = setInterval(() => {
+  const step = () => {
+    // A ramp replaced or stopped since this tick was scheduled does nothing.
+    if (deck.step !== step) return
     const t = Math.min(1, Math.max(0, (Date.now() - started - delaySec * 1000) / (seconds * 1000)))
     // sin rising, cos falling for a crossfade — see `fadeCurve.ts`.
     setFade(index, fadeLevel(from, target, t, curve))
@@ -801,7 +808,32 @@ function rampTo(
       endFade(index, target)
       done?.()
     }
-  }, FADE_TICK_MS) as unknown as number
+  }
+  deck.step = step
+  deck.timer = setInterval(step, FADE_TICK_MS) as unknown as number
+}
+
+/**
+ * Move every running ramp on, from a media event rather than a timer.
+ *
+ * ⚠️ TIMERS STOP WHILE THE PHONE IS LOCKED; THE MUSIC'S OWN EVENTS DO NOT. The
+ * ramps ran on `setInterval` alone, and a hidden WKWebView suspends it — so a
+ * crossfade started with the screen locked never finished: the song leaving
+ * was never faded, paused or released (`finishRetirement` is the ramp's
+ * `done`). The phone's saved log (2026-09-17) had no `pause` for any retired
+ * deck while locked, and on unlocking found one still "playing" at 0:00
+ * (`stray-stopped`). Two players left running is what put WebKit's lock-screen
+ * entry on ▶ over a playing song (James: "the play symbol came on for 'lonely
+ * boy' after track change", "after skipping a few tracks forward").
+ *
+ * `timeupdate` keeps firing four times a second while audio plays, locked or
+ * not, so every deck's `timeupdate` steps both decks' ramps. Coarser than the
+ * interval, which still runs whenever timers do; each step reads the clock, so
+ * a late step lands where the ramp should be, not where it was.
+ */
+function tickRamps(): void {
+  decks[0].step?.()
+  decks[1].step?.()
 }
 
 /**
