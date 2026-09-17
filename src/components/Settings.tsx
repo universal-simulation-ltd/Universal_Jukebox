@@ -43,8 +43,11 @@ import { useThemeStore, type ThemePref } from '../stores/themeStore'
 
 export default function Settings() {
   const s = useSettingsStore()
-  const themePref = useThemeStore((t) => t.pref)
-  const setTheme = useThemeStore((t) => t.setPref)
+  // This app's override of the Global preference (null = follow it) — the same
+  // four-way choice, on the same store, as the menu's App preferences.
+  const themeOverride = useThemeStore((t) => t.override)
+  const themeGlobal = useThemeStore((t) => t.global)
+  const setThemeOverride = useThemeStore((t) => t.setOverride)
   const libraryReady = useLibraryStore((l) => l.status === 'ready')
 
   // The boost is the one setting that can be genuinely unavailable: it needs a
@@ -113,7 +116,9 @@ export default function Settings() {
       s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
       s.hideErrors ? 'errors hidden' : 'errors shown',
     ]),
-    appearance: labelOf(THEME_OPTIONS, themePref),
+    appearance: themeOverride
+      ? labelOf(THEME_OPTIONS, themeOverride)
+      : `Following global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
   }
 
   return (
@@ -382,11 +387,18 @@ export default function Settings() {
         </Section>
 
         <Section title="Appearance" summary={summaries.appearance}>
-          <Choice<ThemePref>
-            label="Theme"
-            value={themePref}
-            onChange={setTheme}
-            options={THEME_OPTIONS}
+          <Choice<ThemePref | typeof FOLLOW_GLOBAL>
+            label="Colour scheme"
+            value={themeOverride ?? FOLLOW_GLOBAL}
+            onChange={(v) => setThemeOverride(v === FOLLOW_GLOBAL ? null : v)}
+            options={[
+              {
+                value: FOLLOW_GLOBAL,
+                label: `Follow global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
+                hint: 'Set once for every Universal App under Global preferences in the menu.',
+              },
+              ...THEME_OPTIONS,
+            ]}
           />
           {/* The first-run "Tap here" pointers (`components/Tip.tsx`), back. */}
           <Action
@@ -412,7 +424,7 @@ export default function Settings() {
           Reset these settings
         </button>
         <p className="mt-1.5 text-[12px] text-slate-500 dark:text-slate-400">
-          Puts everything on this page back to its default. Your library and your theme are left alone.
+          Puts everything on this page back to its default. Your library and your colour scheme are left alone.
         </p>
       </div>
     </div>
@@ -589,11 +601,16 @@ const LYRICS_STYLE_SUMMARY: Record<LyricsAroundStyle, string> = {
   orbit: ', turning around the record',
 }
 
+// The labels the SDK's App preferences uses for the same choice, so the two
+// places read alike.
 const THEME_OPTIONS: Option<ThemePref>[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'Match my device' },
+  { value: 'system', label: 'System', hint: 'Matches your device.' },
 ]
+
+/** The Colour scheme choice's "no override" value. Not a stored value: picking it removes the key. */
+const FOLLOW_GLOBAL = 'global'
 
 function labelOf<T extends string>(options: Option<T>[], value: T): string {
   return options.find((o) => o.value === value)?.label ?? String(value)

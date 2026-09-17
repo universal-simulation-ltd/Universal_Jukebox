@@ -409,6 +409,9 @@ export default function App() {
         actions={<AppMenu />}
         actionsLabel="Jukebox"
         theme={theme}
+        // App preferences' Colour scheme row: this app's override of the
+        // Global preference. The same store as Settings ▸ Appearance.
+        themeStore={useThemeStore}
         suiteSwitcherIconSrc={`${import.meta.env.BASE_URL}unisim-icon.png`}
       />
 

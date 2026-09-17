@@ -21,8 +21,14 @@
          before the body exists, so the class is already on `<html>` when the
          first paint happens; the store then reads the same key and agrees.
 
+         Since SDK 0.143.0 that key is this app's OVERRIDE (Settings ▸
+         Appearance, or App preferences in the menu); absent, the page follows
+         Global preferences' `universal:color-scheme`, so that is read too —
+         otherwise somebody whose only choice is the global one gets a light
+         first frame and then a flip.
+
          ⚠️ THE KEY IS DUPLICATED — `src/stores/themeStore.ts` holds the other
-         copy, and renaming one silently resets everybody to light. They are
+         copy, and renaming one silently resets everybody to following global. They are
          held together by `src/lib/theme.test.ts`, which reads this file and
          fails the build if the two ever drift. Do not "tidy" either away.
 
@@ -30,6 +36,7 @@
     <script>
       try {
         var pref = localStorage.getItem('unisim-jukebox-theme')
+          || localStorage.getItem('universal:color-scheme') || 'light'
         if (pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark')
           document.documentElement.style.colorScheme = 'dark'

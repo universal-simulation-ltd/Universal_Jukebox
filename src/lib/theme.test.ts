@@ -12,7 +12,10 @@ import { describe, expect, it } from 'vitest'
 // head parsing — so instead, renaming either without the other fails here.
 //
 // It is not a style rule. The key IS every user's saved choice: change it and
-// everybody who chose dark is silently back on light.
+// everybody who chose dark is silently back on following global.
+//
+// Since SDK 0.143.0 that key is only this app's OVERRIDE; absent, the global
+// `universal:color-scheme` applies, and the first paint has to show it too.
 
 const read = (rel: string) => readFileSync(fileURLToPath(new URL(`../../${rel}`, import.meta.url)), 'utf8')
 
@@ -32,6 +35,10 @@ function headScript(): string {
 describe('the pre-paint theme script', () => {
   it('reads the same localStorage key as the theme store', () => {
     expect(headScript()).toContain(`localStorage.getItem('${storeKey()}')`)
+  })
+
+  it('falls back to the global colour scheme when the app has no override', () => {
+    expect(headScript()).toContain("localStorage.getItem('universal:color-scheme')")
   })
 
   it('puts the dark class on <html> before anything is painted', () => {

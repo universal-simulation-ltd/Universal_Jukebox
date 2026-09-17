@@ -872,11 +872,11 @@ nothing here is a form.
 | **Needle-drop sound** | The thunk and surface noise — on a new record, between tracks, and on a preview. Its level is a **±5** slider, 0 being the level it has always been |
 | **Volume boost** | 1–4× on top of the volume slider, for quietly-mastered albums |
 | **Fade in / Fade out** | 0–8s, at the ends of a track. Separate from the crossfade between two tracks of one album — see below |
-| **Theme** | Light · Dark · Match my device |
+| **Colour scheme** | Follow global (the default: whatever Global preferences says, itself Light until changed) · Light · Dark · System. The same choice as App preferences in the menu |
 | **Notify me of each new song** | Off by default. One notification per song — title, artist, cover — each one replacing the last, never a stack, and silent. Turning it on is what asks for permission. See below |
 
 Two rows **do** something rather than set it: **Tidy up library** (under *Your
-library*) and **Show the tips again** (under *Appearance*, beside the theme).
+library*) and **Show the tips again** (under *Appearance*, beside the colour scheme).
 Both moved out of the Actions menu on 2026-09-11, which now holds only **Your
 complete library** (opening to its folders and what you can do to them),
 Settings and About.
