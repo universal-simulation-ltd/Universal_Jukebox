@@ -81,6 +81,15 @@ export default function FindWithin({
 
   useImperativeHandle(handle, () => ({ open: openNow }), [openNow])
 
+  // The way out. Clearing alone would leave the box open over the track list
+  // with nothing in it, so the X does both: empties the field and folds it
+  // away. Escape is the keyboard's version of the same thing.
+  const clearAndClose = useCallback(() => {
+    setQuery('')
+    setOpen(false)
+    input.current?.blur()
+  }, [setQuery, setOpen])
+
   // The pull. Only from the very top of the page, one finger, on a phone.
   //
   // ⚠️ AND ONLY DOWN, and never off something that swipes sideways
@@ -150,22 +159,47 @@ export default function FindWithin({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               // Escape clears and folds it away — the way out without reaching
-              // for the button that opened it.
-              if (e.key !== 'Escape') return
-              setQuery('')
-              setOpen(false)
-              e.currentTarget.blur()
+              // for the X, or for the button that opened it.
+              if (e.key === 'Escape') clearAndClose()
             }}
             onBlur={() => {
               if (!query.trim()) setOpen(false)
             }}
             placeholder={placeholder}
             aria-label={label}
-            className="w-full rounded-full border border-slate-300 bg-white py-2 pr-4 pl-9 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full rounded-full border border-slate-300 bg-white py-2 pr-11 pl-9 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
+          <ClearButton onClear={clearAndClose} tabIndex={shown ? 0 : -1} />
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * The X inside the box: clears what you typed and folds the box away.
+ *
+ * ⚠️ IT PREVENTS THE DEFAULT ON `mousedown`, and that is load-bearing. The
+ * field loses focus on mousedown, which runs its `onBlur` — and on an empty box
+ * that blur folds the box away, taking this button out from under the finger
+ * before the click ever lands. Keeping focus on the field until our own click
+ * handler runs is what makes the X work on an empty box as well as a full one.
+ */
+function ClearButton({ onClear, tabIndex }: { onClear(): void; tabIndex: number }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClear}
+      tabIndex={tabIndex}
+      aria-label="Clear and close the search box"
+      title="Clear and close"
+      className="absolute top-1/2 right-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-orange-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-orange-400"
+    >
+      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
+        <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+      </svg>
+    </button>
   )
 }
 

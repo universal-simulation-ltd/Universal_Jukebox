@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shelfRows, shelfStarts, shuffleQueue } from './libraryView'
+import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shelfRows, shelfStarts, SHELF_SPREAD, shuffleQueue, TRACK_SHELF_MAX_ROWS } from './libraryView'
 import type { Album, Track } from './types'
 
 const items = Array.from({ length: 50 }, (_, i) => `item-${i}`)
@@ -104,6 +104,77 @@ describe('the shelves', () => {
   })
   it('keeps every album, in order', () => {
     expect(shelfRows(n(123)).flat()).toEqual(n(123))
+  })
+})
+
+// James, 2026-09-18: "on the tracks filter there should be 20 shelves with
+// somewhat even distribution of tracks and random starting point (like the
+// rest) that covers all tracks not just the first x amount with show all".
+describe('the songs get twice the shelves (TRACK_SHELF_MAX_ROWS)', () => {
+  const n = (count: number) => Array.from({ length: count }, (_, i) => i)
+  const shape = (count: number, seed?: number) =>
+    shelfRows(n(count), seed, TRACK_SHELF_MAX_ROWS).map((row) => row.length)
+
+  it('is twenty', () => {
+    expect(TRACK_SHELF_MAX_ROWS).toBe(20)
+  })
+
+  it('stops at twenty shelves, each a twentieth', () => {
+    expect(shape(300)).toEqual(Array(20).fill(15))
+    expect(shape(5000)).toEqual(Array(20).fill(250))
+  })
+
+  it('still leaves a small library on one shelf, and SHELF_MIN still comes first', () => {
+    expect(shape(20)).toEqual([20])
+    // 150 songs is ten shelves of 15, not twenty of 7: no shelf under SHELF_MIN.
+    expect(shape(150)).toHaveLength(10)
+  })
+
+  it('puts EVERY song on a shelf — nothing is left off the end', () => {
+    for (const count of [300, 1234, 5000]) {
+      for (const seed of [undefined, 1, 42, 999999]) {
+        expect(shelfRows(n(count), seed, TRACK_SHELF_MAX_ROWS).flat()).toEqual(n(count))
+      }
+    }
+  })
+
+  /**
+   * ⚠️ THE REGRESSION THIS GUARDS: the band was documented but not enforced.
+   * A shelf's share is its weight over the weights' own MEAN, so a low draw
+   * stretched a 1.5 past its bound — seed 42 over twenty shelves of 5,000 songs
+   * put 405 records on one, against an even share of 250. Every seed the app
+   * might pick has to stay inside the band, not most of them.
+   */
+  it('spreads them somewhat evenly — varied, but no shelf a runt or a monster', () => {
+    const even = 5000 / 20
+    const seeds = Array.from({ length: 300 }, (_, i) => i * 7919 + 1)
+    let differed = 0
+    for (const seed of seeds) {
+      const lengths = shape(5000, seed)
+      expect(lengths).toHaveLength(20)
+      if (new Set(lengths).size > 1) differed++
+      for (const length of lengths) {
+        // ±1 for the rounding that hands out what the floors left over.
+        expect(length).toBeGreaterThanOrEqual(Math.floor(even * (1 - SHELF_SPREAD)) - 1)
+        expect(length).toBeLessThanOrEqual(Math.ceil(even * (1 + SHELF_SPREAD)) + 1)
+      }
+    }
+    // Still varied — squeezing the band must not flatten them all to one length.
+    expect(differed).toBe(seeds.length)
+  })
+
+  it('holds the records\' ten shelves to the same band', () => {
+    const even = 2000 / 10
+    for (const seed of Array.from({ length: 200 }, (_, i) => i * 104729 + 3)) {
+      for (const length of shelfRows(n(2000), seed).map((r) => r.length)) {
+        expect(length).toBeGreaterThanOrEqual(Math.floor(even * (1 - SHELF_SPREAD)) - 1)
+        expect(length).toBeLessThanOrEqual(Math.ceil(even * (1 + SHELF_SPREAD)) + 1)
+      }
+    }
+  })
+
+  it('leaves the records on ten — the ceiling is the songs\' alone', () => {
+    expect(shelfRows(n(5000)).map((r) => r.length)).toEqual(Array(10).fill(500))
   })
 })
 

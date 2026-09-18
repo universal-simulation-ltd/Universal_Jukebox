@@ -25,6 +25,14 @@ import type { Track } from '../lib/types'
 //
 // The search filters the WHOLE library, not the visible page. That is the part
 // that makes the cap acceptable rather than a lie.
+//
+// ⚠️ THE CAP IS THE LIST'S, NOT THE SHELF'S (James, 2026-09-18: "on the
+// tracks filter there should be 20 shelves … that covers all tracks not just
+// the first x amount with show all"). On the jukebox shelf every matched song
+// is on one of `TRACK_SHELF_MAX_ROWS` shelves and there is nothing to press
+// "show all" on — what the cap was buying there is bought instead by building
+// a shelf's records only once that shelf comes near the screen (`LazyShelf`).
+// The plain list has no such seam to build lazily at, so it keeps the cap.
 const CAP = 400
 
 type Row = { heading: string; count: number }
@@ -95,7 +103,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
    * order rather than per genre. `CAP` exists because five thousand rows is a
    * page that janks (see the header); genre mode does not make the DOM cheaper,
    * and a cap of 400 EACH would be ten times the rows on a library with ten
-   * genres.
+   * genres. This is the LIST's grouping — the shelf takes `genre.groups` whole.
    */
   const genreShown = useMemo(() => {
     if (!genre) return null
@@ -110,6 +118,8 @@ export default function TrackList({ query, order }: { query: string; order: Libr
     return out
   }, [genre, showAll])
 
+  /** The jukebox shelf, which is not capped — see the header. */
+  const onShelf = columns === 'jukebox'
   const shown = showAll ? matched : matched.slice(0, CAP)
   const inGenres = genre?.groups.reduce((n, g) => n + g.items.length, 0) ?? 0
   const hidden = genre
@@ -134,13 +144,16 @@ export default function TrackList({ query, order }: { query: string; order: Libr
           2026-09-11: "on tracks show the actual records on the shelf, not the
           album + record"); a tap plays the matched list from there, as a row
           in the list does. */}
-      {columns === 'jukebox' ? (
+      {onShelf ? (
         <TrackShelf
-          tracks={showAll ? listed : listed.slice(0, CAP)}
+          tracks={listed}
           // No lead while grouped: the resume song belongs on its own genre's
           // shelf, not at the front of whichever genre comes first.
           lead={genre ? undefined : resumeTrack}
-          groups={genreShown ?? undefined}
+          // The genres' own shelves, uncut: the cap that trimmed them is the
+          // list's, and a genre shelf missing its last songs would be a shelf
+          // that says it holds a genre and does not.
+          groups={genre?.groups ?? undefined}
           onPlay={(track) => playTracks(listed, listed.indexOf(track))}
         />
       ) : (
@@ -200,7 +213,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
       </ul>
       )}
 
-      {hidden > 0 && (
+      {!onShelf && hidden > 0 && (
         <div className="py-6 text-center">
           <p className="text-[13px] text-slate-500 dark:text-slate-400">
             Showing the first {CAP.toLocaleString()} of {matched.length.toLocaleString()}. Search finds any of them.
