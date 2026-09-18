@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Cover from './Cover'
 import { coverUrl, fallbackHue } from '../lib/art'
 import Record45 from './Record45'
@@ -6,7 +6,7 @@ import { navigate } from '../lib/route'
 import { plural } from '../lib/format'
 import { grooveRings } from '../lib/grooves'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
-import { newSeed, shelfRows, shelfStarts } from '../lib/libraryView'
+import { newSeed, shelfRows, shelfStarts, SHELF_MAX_ROWS, TRACK_SHELF_MAX_ROWS } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import { withResumeRow } from './resumeRow'
 import type { Album, Track } from '../lib/types'
@@ -61,13 +61,15 @@ const LAUNCH_SEED = newSeed()
  * get a shelf at all.
  */
 function Shelves<T>({
-  items, label, row, lead, groups,
+  items, label, row, lead, groups, maxRows = SHELF_MAX_ROWS,
 }: {
   items: T[]
   label: string
   row(items: T[], label: string, start: number, heading?: string): ReactNode
   lead?: T
   groups?: { genre: string; items: T[] }[]
+  /** How many shelves at most — ten for the records, twenty for the songs. */
+  maxRows?: number
 }) {
   // ⚠️ THE RESUME ITEM JOINS THE FIRST SHELF; IT DOES NOT RESHUFFLE THE REST
   // (James, 2026-09-11: "When having the resume listening card show that songs
@@ -75,7 +77,7 @@ function Shelves<T>({
   // the shelf"). The shelves are cut from the list as it would be without it,
   // then `lead` goes to the front of the first one (moved there if that shelf
   // already had it). Leading the whole list instead shifted every shelf by one.
-  const cut = groups ? groups.map((g) => g.items) : shelfRows(items, LAUNCH_SEED)
+  const cut = groups ? groups.map((g) => g.items) : shelfRows(items, LAUNCH_SEED, maxRows)
   const rows =
     groups || lead === undefined || cut.length === 0
       ? cut
@@ -85,6 +87,11 @@ function Shelves<T>({
   const starts = shelfStarts(rows.map((r) => r.length), LAUNCH_SEED, lead !== undefined && !groups && rows.length > 0)
   const box = useRef<HTMLDivElement>(null)
   const [lift, setLift] = useState(0)
+  // How tall one shelf is, once one has been drawn — the height a shelf that
+  // is still waiting stands in for (`LazyShelf`). They are all the same height:
+  // the records are sized off the viewport, not off what is on the shelf.
+  const [shelfHeight, setShelfHeight] = useState(0)
+  const measured = useCallback((h: number) => setShelfHeight((was) => (Math.abs(h - was) > 4 ? h : was)), [])
 
   // ⚠️ THE FIRST SHELF STANDS IN THE MIDDLE OF THE SCREEN (James, 2026-09-11:
   // "centre the first row to the middle height of the screen on library view
@@ -112,22 +119,96 @@ function Shelves<T>({
       {withResumeRow(
         rows.map((r, i) => (
           <Fragment key={i}>
-            {row(
-              r,
-              groups ? `${groups[i].genre} — ${r.length} on the shelf` : rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : label,
-              // ⚠️ EACH SHELF OPENS SOMEWHERE OF ITS OWN — `shelfStarts` holds
-              // the rule and the reasoning. It replaced a 1st/2nd/1st/2nd
-              // brick stagger (James, 2026-09-11), which stopped the records
-              // stacking into a column but was its own pattern down ten
-              // shelves.
-              starts[i] ?? 0,
-              groups?.[i].genre,
-            )}
+            <LazyShelf eager={i < EAGER_SHELVES} height={shelfHeight} onMeasure={measured}>
+              {row(
+                r,
+                groups ? `${groups[i].genre} — ${r.length} on the shelf` : rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : label,
+                // ⚠️ EACH SHELF OPENS SOMEWHERE OF ITS OWN — `shelfStarts`
+                // holds the rule and the reasoning. It replaced a
+                // 1st/2nd/1st/2nd brick stagger (James, 2026-09-11), which
+                // stopped the records stacking into a column but was its own
+                // pattern down ten shelves.
+                starts[i] ?? 0,
+                groups?.[i].genre,
+              )}
+            </LazyShelf>
           </Fragment>
         )),
         1,
         'block',
       )}
+    </div>
+  )
+}
+
+/** Shelves drawn before anyone scrolls: the one in the middle of the screen, and the next. */
+const EAGER_SHELVES = 2
+/**
+ * What a shelf is assumed to be worth in height until one has been measured —
+ * a phone's, which is the smallest and the case that matters. It stands for
+ * one frame: the first shelf drawn reports its real height and every waiting
+ * shelf takes that instead.
+ */
+const SHELF_GUESS_PX = 240
+/**
+ * How far ahead of the screen a shelf is built — one screen, so a shelf is
+ * ready before it is looked at. Further ahead is more of the library in the
+ * DOM for nothing; nearer, and a fast flick can reach a shelf that is still a
+ * gap. The gap is the right HEIGHT either way, so nothing below it jumps.
+ */
+const SHELF_LOOKAHEAD = '100% 0px'
+
+/**
+ * ⚠️ A SHELF'S RECORDS ONLY ENTER THE DOM ONCE THE SHELF COMES NEAR THE
+ * SCREEN, and this is what lets the songs' shelf hold the WHOLE library rather
+ * than a capped first few hundred (`TrackList`, `TRACK_SHELF_MAX_ROWS`).
+ *
+ * A record is about six elements and a cover. Twenty shelves of a
+ * five-thousand-song library is thirty thousand elements laid out before the
+ * first paint — exactly the page `TrackList`'s cap was written to avoid. Only
+ * the shelves you have actually swiped down to are built, so the DOM grows with
+ * how far you have gone rather than with how much music you own.
+ *
+ * ⚠️ A SHELF THAT HAS BEEN SHOWN STAYS SHOWN. Taking it down again would
+ * free the elements, but it would also rebuild the row — and the page's own
+ * scroll would jump as a measured shelf turned back into a guessed one under
+ * it. Growing to what you have seen is the cost that buys a steady page.
+ *
+ * ⚠️ The waiting shelf is a box of the RIGHT HEIGHT, not an empty div. A
+ * zero-height placeholder puts every shelf below it inside the observer's reach
+ * at once, and all twenty build together — the very thing this avoids.
+ */
+function LazyShelf({
+  eager, height, onMeasure, children,
+}: { eager: boolean; height: number; onMeasure(height: number): void; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [shown, setShown] = useState(eager)
+
+  useEffect(() => {
+    const el = box.current
+    if (shown || !el) return
+    // No observer (an old WebView, a test) — draw everything rather than
+    // nothing. A slow page beats a library that is not there.
+    if (typeof IntersectionObserver === 'undefined') {
+      setShown(true)
+      return
+    }
+    const watch = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) setShown(true)
+    }, { rootMargin: SHELF_LOOKAHEAD })
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [shown])
+
+  useEffect(() => {
+    if (!shown) return
+    const h = box.current?.offsetHeight ?? 0
+    if (h > 0) onMeasure(h)
+  }, [shown, onMeasure])
+
+  return (
+    <div ref={box} style={shown ? undefined : { height: height || SHELF_GUESS_PX }}>
+      {shown ? children : null}
     </div>
   )
 }
@@ -206,6 +287,7 @@ export function TrackShelf({
       items={tracks}
       lead={lead}
       groups={groups}
+      maxRows={TRACK_SHELF_MAX_ROWS}
       label="Songs on the shelf"
       row={(row, label, start, heading) => (
         <ShelfRow

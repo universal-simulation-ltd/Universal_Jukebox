@@ -143,9 +143,36 @@ export function columnsLabel(columns: LibraryColumns): string {
  * most `SHELF_MAX_ROWS`, which past 150 albums is a tenth of them on each. The
  * albums are dealt evenly, so the last shelf is never a stub.
  *   20 → 1 shelf · 30 → 2 · 100 → 6 · 150 → 10 of 15 · 2,000 → 10 of 200
+ *
+ * `maxRows` is the ceiling — ten for the records, `TRACK_SHELF_MAX_ROWS` for
+ * the songs. `SHELF_MIN` still comes first, so a small library stays on one
+ * shelf whatever the ceiling is: 20 songs → 1 shelf, 300 → 20 of 15.
  */
 export const SHELF_MIN = 15
 export const SHELF_MAX_ROWS = 10
+
+/**
+ * ⚠️ THE SONGS GET TWICE AS MANY SHELVES AS THE RECORDS DO, AND EVERY SONG
+ * IS ON ONE (James, 2026-09-18: "on the tracks filter there should be 20
+ * shelves with somewhat even distribution of tracks and random starting point
+ * (like the rest) that covers all tracks not just the first x amount with show
+ * all").
+ *
+ * There are far more songs than there are albums or artists — ten shelves of a
+ * five-thousand-song library would be five hundred records on each, a shelf
+ * nobody swipes to the end of. Twenty halves that, and the songs' shelf is the
+ * one view that is no longer capped: `TrackList` hands `TrackShelf` the whole
+ * matched list. What makes that affordable is that a shelf's records only enter
+ * the DOM once the shelf comes near the screen — see `Shelf.tsx`.
+ */
+export const TRACK_SHELF_MAX_ROWS = 20
+
+/**
+ * How far a shelf may be from the even share — half again at most, half at
+ * least. `varied` holds the shelves to it; the band itself is the 2026-09-11
+ * variety rule, written down as a number so it can be enforced and tested.
+ */
+export const SHELF_SPREAD = 0.5
 
 /**
  * ⚠️ WITH A `seed`, THE SHELVES ARE NOT ALL ONE LENGTH (James, 2026-09-11: "to
@@ -157,8 +184,8 @@ export const SHELF_MAX_ROWS = 10
  * the library holds still while you browse (and going back finds it as you
  * left it) and is different the next time the app opens.
  */
-export function shelfRows<T>(items: readonly T[], seed?: number): T[][] {
-  const rows = Math.max(1, Math.min(SHELF_MAX_ROWS, Math.floor(items.length / SHELF_MIN)))
+export function shelfRows<T>(items: readonly T[], seed?: number, maxRows: number = SHELF_MAX_ROWS): T[][] {
+  const rows = Math.max(1, Math.min(maxRows, Math.floor(items.length / SHELF_MIN)))
   if (seed !== undefined && rows > 1) return cut(items, varied(items.length, rows, seed))
   // Dealt evenly: the first `extra` shelves take one more, so none is a stub.
   const base = Math.floor(items.length / rows)
@@ -210,9 +237,30 @@ export function shelfStarts(lengths: readonly number[], seed: number, pinFirst =
   })
 }
 
-/** Each shelf's length: its share of `count`, by weights from 0.5 to 1.5. */
+/**
+ * Each shelf's length: its share of `count`, by weights from 0.5 to 1.5.
+ *
+ * ⚠️ THE WEIGHTS ARE SQUEEZED BACK INSIDE THAT BAND AFTER THE DRAW, and
+ * without that the band above is not true. A shelf's share is its weight
+ * divided by the weights' OWN MEAN, not by 1 — so a draw that happens to come
+ * out low (twenty weights averaging 0.92 is unremarkable) made a 1.5 into a
+ * 1.63, and 5,000 songs over twenty shelves put 405 records on one and 115 on
+ * another. Three and a half times is not "somewhat even distribution" (James,
+ * 2026-09-18), and it was never what this function said it did.
+ *
+ * So each shelf's distance from the even share is compressed by whatever factor
+ * brings the FURTHEST one back to half: the shelves stay different lengths
+ * (2026-09-11, and the point of this function), in the same order, and the
+ * longest is now never more than half again the shortest's double.
+ */
 function varied(count: number, rows: number, seed: number): number[] {
-  const weights = Array.from({ length: rows }, (_, r) => 0.5 + (hash(`${seed}:shelf:${r}:${count}`) % 1001) / 1000)
+  const drawn = Array.from({ length: rows }, (_, r) => 0.5 + (hash(`${seed}:shelf:${r}:${count}`) % 1001) / 1000)
+  const mean = drawn.reduce((a, b) => a + b, 0) / rows
+  const off = drawn.map((w) => w / mean - 1)
+  const worst = Math.max(...off.map(Math.abs))
+  const squeeze = worst > SHELF_SPREAD ? SHELF_SPREAD / worst : 1
+  // Mean 1 by construction, so a weight IS its multiple of the even share.
+  const weights = off.map((d) => 1 + d * squeeze)
   const total = weights.reduce((a, b) => a + b, 0)
   const exact = weights.map((w) => (count * w) / total)
   const sizes = exact.map((x) => Math.max(1, Math.floor(x)))
