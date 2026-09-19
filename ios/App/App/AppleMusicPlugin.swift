@@ -232,6 +232,8 @@ public class AppleMusicPlugin: CAPPlugin, CAPBridgedPlugin {
         session.metadata = asset.metadata
         session.exportAsynchronously {
             guard session.status == .completed else {
+                NSLog("[jukebox:native] export failed key=%@ preset=%@ type=%@ status=%d error=%@",
+                      key, preset, type.rawValue, session.status.rawValue, Self.describe(session.error))
                 try? fm.removeItem(at: partial)
                 done(.failure(session.error ?? Self.failure("That song could not be prepared for playback.")))
                 return
@@ -320,6 +322,18 @@ public class AppleMusicPlugin: CAPPlugin, CAPBridgedPlugin {
             if entry.url == keeping { continue }
             if (try? fm.removeItem(at: entry.url)) != nil { total -= entry.size }
         }
+    }
+
+    /// An error with its whole underlying chain — AVFoundation's own message is
+    /// only ever "The operation could not be completed".
+    private static func describe(_ error: Error?) -> String {
+        var parts: [String] = []
+        var next = error as NSError?
+        while let e = next {
+            parts.append("\(e.domain) \(e.code) \(e.localizedDescription) \(e.localizedFailureReason ?? "")")
+            next = e.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return parts.isEmpty ? "none" : parts.joined(separator: " <- ")
     }
 
     private static func failure(_ message: String) -> NSError {

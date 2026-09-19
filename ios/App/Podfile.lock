@@ -10,7 +10,7 @@ PODS:
   - CapacitorStatusBar (7.0.6):
     - Capacitor
   - IONFilesystemLib (1.1.2)
-  - UnisimSdk (0.151.1):
+  - UnisimSdk (0.152.0):
     - Capacitor
 
 DEPENDENCIES:
@@ -46,7 +46,7 @@ SPEC CHECKSUMS:
   CapacitorFilesystem: c63fc54df41e5a6761785a7f3c49dc696c22e296
   CapacitorStatusBar: 416e9e53fd6397e668d4a181cd2131617d949bd6
   IONFilesystemLib: 21a63377696b2d8fab5632ecfb7d2ac67bddb68a
-  UnisimSdk: 78c08c91acf443019a39fa4a9778b16a01b86b0c
+  UnisimSdk: 7240df88217bf068fb471b690e89313f99889033
 
 PODFILE CHECKSUM: 75ea747ff853bd790f8fcc21a4bd919345177e31
 
