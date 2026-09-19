@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { plural } from '../lib/format'
-import { NEW_SHELF, shelfName } from '../lib/shelves'
+import { NAME_MAX, NEW_SHELF, shelfName } from '../lib/shelves'
 import { useShelvesStore } from '../stores/shelvesStore'
 import type { Track } from '../lib/types'
 import { ModeButton } from './ModeButton'
@@ -10,6 +10,18 @@ import { ModeButton } from './ModeButton'
 // Now Playing. Opens a sheet of your shelves — a tick where the song already is
 // — and a new shelf. One song toggles on and off; several (an album) are added,
 // skipping any already there.
+//
+// ⚠️ A NEW SHELF STARTED HERE ASKS WHAT TO CALL IT (James, 2026-09-19: "when
+// adding a new shelf to the jukebox directly from adding a track ask the user
+// to name that shelf"), and it is the only place that has to. Start a shelf in
+// the Jukebox TAB and it appears in front of you with its name right there to
+// tap; start one from here and the song lands on a shelf you never see, called
+// "Shelf 4" until you go looking for it. The name is asked for at the one
+// moment you know what the shelf is FOR.
+//
+// Asked for, not demanded: leaving it blank makes the shelf anyway, and it
+// keeps the positional "Shelf N" the rest of the app falls back to — the point
+// is to offer the name, not to stand between the song and the shelf.
 
 export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'pill' | 'icon' | 'mode' }) {
   const [open, setOpen] = useState(false)
@@ -52,8 +64,13 @@ function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title: string
   const shelves = useShelvesStore((s) => s.shelves)
   const toggle = useShelvesStore((s) => s.toggle)
   const add = useShelvesStore((s) => s.add)
+  const rename = useShelvesStore((s) => s.rename)
   const ids = tracks.map((t) => t.id)
   const one = ids.length === 1 ? ids[0] : null
+  /** The name being typed for a new shelf — `null` until "New shelf" is tapped. */
+  const [draft, setDraft] = useState<string | null>(null)
+  /** What the shelf would be called if it is left unnamed — the placeholder. */
+  const nextName = `Shelf ${shelves.length + 1}`
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -64,6 +81,14 @@ function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title: string
   }, [onClose])
 
   const put = (shelfId: string) => (one ? toggle(shelfId, one) : add(shelfId, ids))
+
+  // The song goes on first and the name is written on the shelf it made: the
+  // shelf has no id until it has a song, so there is nothing to name before.
+  const start = () => {
+    const shelfId = put(NEW_SHELF)
+    if (draft?.trim()) rename(shelfId, draft)
+    setDraft(null)
+  }
 
   return (
     <div
@@ -114,16 +139,52 @@ function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title: string
             )
           })}
           <li>
-            <button
-              type="button"
-              onClick={() => put(NEW_SHELF)}
-              className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
-            >
-              <span className="min-w-0 flex-1 text-[14px] font-medium">New shelf</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-current text-[15px]" aria-hidden>
-                +
-              </span>
-            </button>
+            {draft === null ? (
+              <button
+                type="button"
+                onClick={() => setDraft('')}
+                className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
+              >
+                <span className="min-w-0 flex-1 text-[14px] font-medium">New shelf…</span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-current text-[15px]" aria-hidden>
+                  +
+                </span>
+              </button>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  start()
+                }}
+                className="flex items-center gap-2 rounded-lg px-2 py-2"
+              >
+                <input
+                  autoFocus
+                  value={draft}
+                  maxLength={NAME_MAX}
+                  onChange={(e) => setDraft(e.target.value)}
+                  // ⚠️ Escape backs out of the NAME, not the sheet. The sheet
+                  // listens for Escape on the document, so without stopping it
+                  // here one press would throw the whole thing away — and the
+                  // song with it.
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      e.stopPropagation()
+                      setDraft(null)
+                    }
+                  }}
+                  placeholder={nextName}
+                  aria-label="Name for the new shelf"
+                  className="min-w-0 flex-1 rounded-lg border border-orange-400 bg-white px-2.5 py-1.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:outline-none dark:bg-slate-900 dark:text-slate-100"
+                />
+                <button
+                  type="submit"
+                  className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm"
+                >
+                  Create
+                </button>
+              </form>
+            )}
           </li>
         </ul>
       </div>
