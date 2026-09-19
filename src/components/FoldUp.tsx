@@ -17,12 +17,35 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 // ⚠️ TWO DIFFERENCES, both because this end of the page is the END.
 //   - A box growing at the top pushes the page down under the finger and is
 //     seen; one growing at the bottom grows below the screen, unseen. So every
-//     step of the pull also scrolls the page to its new end, and so does the
-//     opening.
+//     step of the pull also moves the page down by exactly as much as the box
+//     grew, and so does the opening.
 //   - The pull is decided on the FIRST move, and claimed then (a non-passive
 //     `touchmove`). At the bottom iOS rubber-bands the page on an upward drag,
 //     and once it has started it will not let a later `preventDefault` stop it
 //     — the bounce and the pull would fight for the whole gesture.
+//
+// ⚠️ ONE UPDATE PER PAINTED FRAME, AND THE PAGE MOVES BY A MEASURED DELTA
+// (James, 2026-09-19: "when I scroll down to reveal the shuffle repeat etc bar
+// the screen keeps flashing until it's fully open"). Both halves of that rule
+// were what flashed:
+//   - `touchmove` arrives faster than the screen refreshes — 120Hz on a recent
+//     iPhone, and in coalesced bursts — so writing the height and scrolling the
+//     page straight out of the handler moved the page several times between two
+//     paints, and what landed on the glass was a frame torn between them. The
+//     handler now only records where the finger is; a single `requestAnimation-
+//     Frame` does the drawing, so the page moves once per frame.
+//   - The page used to be kept at its end by slamming it to
+//     `scrollHeight` every frame, during the pull and again for the whole of
+//     the opening. That reads a layout that is still moving and fights both
+//     iOS's rubber band and the momentum left over from the flick, and the two
+//     take turns winning for as long as it lasts — "until it's fully open".
+//     Now the end is anchored ONCE, on the first frame of the pull, and after
+//     that the page is moved by `scrollBy` by the exact number of pixels the
+//     box just grew. The document grew by that much and we were at its end, so
+//     it lands on the new end with nothing to argue with.
+// That is also why the opening is drawn here rather than by a CSS `height`
+// transition: only by setting the height ourselves do we know, each frame, how
+// far to move the page with it.
 //
 // ⚠️ IT FOLDS BACK WHEN YOU LEAVE THE END OF THE PAGE (James, 2026-09-15: "when
 // scrolling back up when additional buttons revealed (shuffle etc) then re-hide
@@ -44,8 +67,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 const PULL_TO_OPEN = 64
 /** The row moves at this share of the finger's travel. */
 const RESIST = 0.6
-/** How long the opening takes — and so how long the page is kept at its end. */
+/** How long the opening takes — and so how long the page is moved along with it. */
 const OPEN_MS = 240
+/** Near enough the end of the page to count as at it: a fractional scroll, a hair of bounce. */
+const AT_END = 2
 /**
  * How far from the end of the page counts as having scrolled back up.
  *
@@ -56,6 +81,13 @@ const OPEN_MS = 240
  * and reads as a NEGATIVE gap here.
  */
 const CLOSE_GAP = 96
+
+/** Fast away, gentle in — the shape the CSS transition used to have. */
+const ease = (t: number) => 1 - (1 - t) ** 3
+
+/** The page is scrolled to its very end. */
+const atEnd = () =>
+  window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - AT_END
 
 export default function FoldUp({
   open, onOpen, onClose, children,
@@ -70,43 +102,82 @@ export default function FoldUp({
     closer.current = onClose
   })
 
-  const full = () => inner.current?.offsetHeight ?? 80
+  /** The frame the opening (or folding) is drawn on, and where it is headed. */
+  const frame = useRef(0)
+  const target = useRef<number | null>(null)
 
-  /** To `to` pixels, animated; `follow` keeps the page at its end as it grows. */
-  const settle = useCallback((to: number, follow = false) => {
+  const full = useCallback(() => Math.max(1, inner.current?.offsetHeight ?? 80), [])
+
+  const stop = useCallback(() => {
+    if (frame.current) cancelAnimationFrame(frame.current)
+    frame.current = 0
+  }, [])
+
+  /**
+   * To `to` pixels over `OPEN_MS`, drawn a frame at a time so the page can be
+   * moved by exactly as much as the box grows — see the note on the delta above.
+   *
+   * ⚠️ Only while it GROWS, and only from the end of the page. Shrinking needs
+   * no help (the browser pulls the scroll in as the document gets shorter, and
+   * a `scrollBy` on top of that would move it twice), and a box opened by focus
+   * from halfway up the page must not drag the page anywhere.
+   */
+  const settle = useCallback((to: number) => {
     const el = box.current
     if (!el) return
+    // Already on its way there — a second call (the pull's, then the effect's)
+    // must not restart it, which would lose the anchor it is scrolling from.
+    if (frame.current && target.current === to) return
+    stop()
+    target.current = to
+    const from = el.offsetHeight
+    const tall = full()
+    const follow = to > from && atEnd()
+    let at = from
+    const draw = (h: number) => {
+      el.style.height = `${h}px`
+      el.style.opacity = String(Math.min(1, h / tall))
+      if (follow && h !== at) window.scrollBy(0, h - at)
+      at = h
+    }
+    // Once open the height is let go, so a row that wraps on a narrow screen is
+    // never clipped.
+    const done = () => {
+      frame.current = 0
+      if (to > 0) el.style.height = 'auto'
+    }
     let reduced = false
     try {
       reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     } catch { /* animate */ }
-    el.style.transition = reduced ? 'none' : `height ${OPEN_MS}ms cubic-bezier(.2,.8,.2,1), opacity ${OPEN_MS}ms ease-out`
-    el.style.height = `${to}px`
-    el.style.opacity = to > 0 ? '1' : '0'
-    if (follow) {
-      const until = performance.now() + OPEN_MS + 40
-      const pin = () => {
-        window.scrollTo(0, document.documentElement.scrollHeight)
-        if (performance.now() < until) requestAnimationFrame(pin)
-      }
-      requestAnimationFrame(pin)
-    }
-  }, [])
-
-  // Folded or open, as `open` says. Once open, the height is let go (`auto`),
-  // so a row that wraps on a narrow screen is never clipped.
-  useLayoutEffect(() => {
-    if (!phone) return
-    if (!open) {
-      settle(0)
+    if (reduced || from === to) {
+      draw(to)
+      done()
       return
     }
-    settle(full())
-    const loosen = window.setTimeout(() => {
-      if (box.current) box.current.style.height = 'auto'
-    }, OPEN_MS + 20)
-    return () => window.clearTimeout(loosen)
-  }, [phone, open, settle])
+    const began = performance.now()
+    const step = (now: number) => {
+      const t = Math.min(1, (now - began) / OPEN_MS)
+      draw(Math.round(from + (to - from) * ease(t)))
+      if (t < 1) frame.current = requestAnimationFrame(step)
+      else done()
+    }
+    frame.current = requestAnimationFrame(step)
+  }, [full, stop])
+
+  // Folded or open, as `open` says.
+  //
+  // ⚠️ NOTHING IS CANCELLED HERE. The pull starts the opening itself, on the
+  // release, and only then tells the parent — so by the time this runs the
+  // animation is already going and `settle` sees its own target and leaves it
+  // alone. Cancelling first would throw away the anchor it is scrolling the
+  // page from. The frame is dropped on unmount instead, just below.
+  useLayoutEffect(() => {
+    if (!phone) return
+    settle(open ? full() : 0)
+  }, [phone, open, settle, full])
+
+  useEffect(() => stop, [stop])
 
   // Scrolled back up: fold it away, so the pull is the way in next time too.
   //
@@ -145,17 +216,56 @@ export default function FoldUp({
     let startX = 0
     let pulled = 0
     let decided = false
-    const atEnd = () => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2
+    /** The row's full height, read once per gesture rather than on every move. */
+    let tall = 1
+    /** The height the box is drawn at, and whether the end has been anchored yet. */
+    let at = 0
+    let anchored = false
+    /** The frame the next draw is waiting on — see the one-per-frame note above. */
+    let painting = 0
+
+    const draw = () => {
+      painting = 0
+      const el = box.current
+      if (!el) return
+      const peek = Math.round(Math.max(0, Math.min(tall, pulled * RESIST)))
+      el.style.height = `${peek}px`
+      el.style.opacity = String(Math.min(1, peek / tall))
+      if (!anchored) {
+        // The one scroll of the gesture that is not a delta: it puts the page
+        // on its true end, bounce and fractions and all, for the rest to
+        // measure from.
+        anchored = true
+        window.scrollTo(0, document.documentElement.scrollHeight)
+      } else if (peek !== at) {
+        window.scrollBy(0, peek - at)
+      }
+      at = peek
+    }
+    const wake = () => {
+      if (!painting) painting = requestAnimationFrame(draw)
+    }
+    const rest = () => {
+      if (painting) cancelAnimationFrame(painting)
+      painting = 0
+    }
+
     const start = (e: TouchEvent) => {
       const onSwiper = e.target instanceof Element && e.target.closest('[data-swipe-x]') !== null
       startY = !onSwiper && e.touches.length === 1 && atEnd() ? e.touches[0].clientY : null
       startX = e.touches[0]?.clientX ?? 0
       pulled = 0
       decided = false
+      if (startY === null) return
+      // A pull that starts while the last one is still folding back takes over
+      // from where it left it.
+      stop()
+      tall = full()
+      at = box.current?.offsetHeight ?? 0
+      anchored = false
     }
     const move = (e: TouchEvent) => {
-      const el = box.current
-      if (startY === null || e.touches.length !== 1 || !el) return
+      if (startY === null || e.touches.length !== 1 || !box.current) return
       // Up is positive: the finger moving towards the top of the screen.
       const dy = startY - e.touches[0].clientY
       const dx = e.touches[0].clientX - startX
@@ -171,17 +281,14 @@ export default function FoldUp({
       // Ours from here — see the note on the rubber band above.
       if (e.cancelable) e.preventDefault()
       pulled = dy
-      const peek = Math.max(0, Math.min(full(), pulled * RESIST))
-      el.style.transition = 'none'
-      el.style.height = `${peek}px`
-      el.style.opacity = String(Math.min(1, peek / full()))
-      window.scrollTo(0, document.documentElement.scrollHeight)
+      wake()
     }
     const end = () => {
       if (startY === null) return
       startY = null
+      rest()
       if (pulled > PULL_TO_OPEN) {
-        settle(full(), true)
+        settle(full())
         opener.current()
       } else {
         settle(0)
@@ -192,12 +299,13 @@ export default function FoldUp({
     window.addEventListener('touchend', end)
     window.addEventListener('touchcancel', end)
     return () => {
+      rest()
       window.removeEventListener('touchstart', start)
       window.removeEventListener('touchmove', move)
       window.removeEventListener('touchend', end)
       window.removeEventListener('touchcancel', end)
     }
-  }, [phone, open, settle])
+  }, [phone, open, settle, full, stop])
 
   if (!phone) return <>{children}</>
   return (
