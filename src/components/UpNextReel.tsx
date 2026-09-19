@@ -463,7 +463,12 @@ export function Medium({ album, style }: { album: Album | undefined; style: Deck
   // hole you can see across a room. It is the only thing distinguishing the two
   // record decks in this row, since neither of their machines is drawn here —
   // get it wrong and switching between vinyl and jukebox appears to do nothing.
-  const single = style === 'jukebox'
+  //
+  // The annotation is the guard: every other style has returned above, so a
+  // new `DeckStyle` reaching this line fails the build instead of quietly
+  // riding round the row as an LP.
+  const record: 'vinyl' | 'jukebox' = style
+  const single = record === 'jukebox'
   return (
     <div className="relative h-[76px] w-[76px] overflow-hidden rounded-full bg-slate-900 shadow-md ring-1 ring-slate-900/10 dark:bg-[#12192b]">
       <div
