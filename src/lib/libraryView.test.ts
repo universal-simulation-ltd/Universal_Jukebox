@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columnsLabel, isFullAlbum, nextColumns, seededOrder, shelfRows, shelfStarts, SHELF_SPREAD, shuffleQueue, TRACK_SHELF_MAX_ROWS } from './libraryView'
+import { albumsOfBigArtists, columnsLabel, isFullAlbum, nextColumns, seededOrder, shelfRows, shelfStarts, SHELF_SPREAD, shuffleQueue, TRACK_SHELF_MAX_ROWS } from './libraryView'
 import type { Album, Track } from './types'
 
 const items = Array.from({ length: 50 }, (_, i) => `item-${i}`)
@@ -60,7 +60,7 @@ describe('shuffleQueue', () => {
       expect(numbers).toEqual([...numbers].sort((x, y) => (x ?? 0) - (y ?? 0)))
     }
   })
-  it('albums: only the albums it is given ("Full albums only")', () => {
+  it('albums: only the albums it is given ("Full albums")', () => {
     const queue = shuffleQueue('albums', tracks, [albums[0], albums[2]], 5, byNumber)
     expect([...new Set(queue.map((t) => t.albumId))].sort()).toEqual(['a1', 'b1'])
     expect(queue).toHaveLength(6)
@@ -81,7 +81,7 @@ describe('the per-row button', () => {
       seen.push(columnsLabel(c))
       c = nextColumns(c)
     }
-    expect(seen).toEqual(['2 per row', '3 per row', '4 per row', 'Jukebox shelf', '1 per row'])
+    expect(seen).toEqual(['2 per row', '3 per row', '4 per row', 'Jukebox', '1 per row'])
     expect(c).toBe(2)
   })
 })
@@ -266,5 +266,13 @@ describe('where each shelf opens (shelfStarts)', () => {
 
   it('opens a one-record shelf on the record it has', () => {
     expect(shelfStarts([1, 1, 1], 7)).toEqual([0, 0, 0])
+  })
+})
+
+describe('"Min. 3" on the Artists tab', () => {
+  const a = (id: string, artist: string, trackCount: number): Album => ({ id, title: id, artist, trackCount, cover: null })
+  it('keeps artists with three songs or more, counted across all their records', () => {
+    const albums = [a('s1', 'Singles', 1), a('s2', 'Singles', 1), a('s3', 'Singles', 1), a('two', 'Duo', 2), a('lp', 'Band', 10)]
+    expect(albumsOfBigArtists(albums).map((x) => x.id)).toEqual(['s1', 's2', 's3', 'lp'])
   })
 })

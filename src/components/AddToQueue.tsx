@@ -10,7 +10,8 @@ import type { Track } from '../lib/types'
 /** How long it says "Added" before it is ready to add again. */
 const ADDED_MS = 2400
 
-export default function AddToQueue({ tracks }: { tracks: Track[] }) {
+/** `compact`: the + alone, a round button (the album page, 2026-09-26). */
+export default function AddToQueue({ tracks, compact = false }: { tracks: Track[]; compact?: boolean }) {
   const enqueue = usePlayerStore((s) => s.enqueue)
   const queued = usePlayerStore((s) => s.queue.length)
   const [added, setAdded] = useState(false)
@@ -40,7 +41,9 @@ export default function AddToQueue({ tracks }: { tracks: Track[] }) {
       type="button"
       onClick={add}
       disabled={tracks.length === 0}
-      className={`inline-flex items-center gap-2 rounded-full border px-5 py-2 text-sm font-medium transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 ${
+      aria-label={compact ? (added ? 'Added to the queue' : 'Add to queue') : undefined}
+      title={compact ? 'Add to queue' : undefined}
+      className={`inline-flex items-center rounded-full border text-sm ${compact ? 'h-[38px] w-[38px] justify-center' : 'gap-2 px-5 py-2'} font-medium transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 ${
         added
           ? 'border-emerald-600 bg-emerald-600 text-white motion-safe:animate-[jb-added-pop_380ms_ease-out]'
           : 'border-slate-300 text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400'
@@ -55,7 +58,7 @@ export default function AddToQueue({ tracks }: { tracks: Track[] }) {
           <path d="M10 4.5v11M4.5 10h11" />
         </svg>
       )}
-      <span aria-live="polite">{added ? 'Added' : 'Add to queue'}</span>
+      <span aria-live="polite" className={compact ? 'sr-only' : undefined}>{added ? 'Added' : 'Add to queue'}</span>
     </button>
   )
 }

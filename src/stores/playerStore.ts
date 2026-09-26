@@ -186,9 +186,10 @@ interface PlayerState {
   resume(): void
   /** The Home Screen shortcuts and the library's shuffle button — see `shuffleQueue`. */
   shuffleSongs(): void
-  /** Only `albums`, when given — "Full albums only" on the Albums tab. */
+  /** Only `albums`, when given — "Full albums" on the Albums tab. */
   shuffleAlbums(albums?: readonly Album[]): void
-  shuffleArtists(): void
+  /** Only the artists of `albums`, when given — "Min. 3" on the Artists tab. */
+  shuffleArtists(albums?: readonly Album[]): void
   /**
    * Try the missing track again, once its folder is back. The one thing the
    * transport cannot do for itself here: `unreachable` stopped and emptied the
@@ -518,8 +519,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   shuffleAlbums(albums) {
     startShuffle(get, 'albums', albums)
   },
-  shuffleArtists() {
-    startShuffle(get, 'artists')
+  shuffleArtists(albums) {
+    startShuffle(get, 'artists', albums)
   },
 
   replayMissing() {

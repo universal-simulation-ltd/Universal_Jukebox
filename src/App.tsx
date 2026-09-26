@@ -30,8 +30,8 @@ import TrackList from './components/TrackList'
 import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
 import { useBooting } from './lib/boot'
 import { MINI_QUERY } from './lib/miniMode'
-import { matchAlbums, tabCounts } from './lib/search'
-import { FULL_ALBUM_MIN, columnsLabel, isFullAlbum, nextColumns, nextOrder, orderFrom, type LibraryOrder } from './lib/libraryView'
+import { matchAlbums, matchArtistNames, tabCounts } from './lib/search'
+import { ARTIST_MIN, FULL_ALBUM_MIN, albumsOfBigArtists, columnsLabel, isFullAlbum, nextColumns, nextOrder, orderFrom, type LibraryOrder } from './lib/libraryView'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
 import { DEFAULTS, useSettingsStore, type HomeTab, type ListTab } from './stores/settingsStore'
@@ -60,7 +60,7 @@ const hashKey = () => location.hash || '#/'
 /** The views the skipped-files report belongs on: the library itself. */
 const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'jukebox', 'album', 'artist'])
 
-/** The library's two switches: A–Z/Random and "Full albums only". */
+/** The library's switches: A–Z/Random, "Full albums" and the artists' "Min. 3". */
 function togglePill(active: boolean): string {
   return `rounded-full border px-3 py-1 text-[12.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
     active
@@ -248,6 +248,7 @@ export default function App() {
   }, [homeFlash])
   const reducedMotion = usePrefersReducedMotion()
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
+  const artistsMin3 = useSettingsStore((s) => s.artistsMin3)
   /** The search box on a phone: folded away until pulled down — `PhoneSearch`. */
   const [searchOpen, setSearchOpen] = useState(false)
   const phoneSearch = useRef<PhoneSearchHandle>(null)
@@ -266,7 +267,7 @@ export default function App() {
   const columns = allColumns[listTab]
   /** Anything in this list's options changed from its usual — the dot on the icon. */
   const optionsActive =
-    order.kind === 'random' || (listTab === 'albums' && fullAlbumsOnly) || columns !== DEFAULTS.libraryColumns[listTab]
+    order.kind === 'random' || (listTab === 'albums' && fullAlbumsOnly) || (listTab === 'artists' && artistsMin3) || columns !== DEFAULTS.libraryColumns[listTab]
 
   useEffect(() => {
     const nav = tabsNav.current
@@ -288,9 +289,13 @@ export default function App() {
   const counts = useMemo(() => {
     if (!query.trim()) return null
     const all = tabCounts(albums, tracks, query)
-    // With "Full albums only" on, the Albums count is of what the grid shows.
-    return fullAlbumsOnly ? { ...all, albums: matchAlbums(albums.filter(isFullAlbum), query).length } : all
-  }, [albums, tracks, query, fullAlbumsOnly])
+    // With "Full albums" or "Min. 3" on, the count is of what the list shows.
+    return {
+      ...all,
+      ...(fullAlbumsOnly ? { albums: matchAlbums(albums.filter(isFullAlbum), query).length } : {}),
+      ...(artistsMin3 ? { artists: matchArtistNames(albumsOfBigArtists(albums), query).length } : {}),
+    }
+  }, [albums, tracks, query, fullAlbumsOnly, artistsMin3])
 
   useEffect(() => {
     void hydrate()
@@ -606,7 +611,18 @@ export default function App() {
                     title={`Only albums with ${FULL_ALBUM_MIN} or more tracks`}
                     className={togglePill(fullAlbumsOnly)}
                   >
-                    Full albums only
+                    Full albums
+                  </button>
+                )}
+                {view === 'artists' && (
+                  <button
+                    type="button"
+                    onClick={() => setSetting('artistsMin3', !artistsMin3)}
+                    aria-pressed={artistsMin3}
+                    title={`Only artists with ${ARTIST_MIN} or more songs`}
+                    className={togglePill(artistsMin3)}
+                  >
+                    Min. {ARTIST_MIN}
                   </button>
                 )}
                 {/* Albums per row: 2, 3, 4, the jukebox shelf, 1 (James,
@@ -618,13 +634,13 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setSetting('libraryColumns', { ...allColumns, tracks: columns === 'jukebox' ? 2 : 'jukebox' })}
-                    aria-label={columns === 'jukebox' ? 'Jukebox shelf. Tap for the list' : 'List. Tap for the jukebox shelf'}
+                    aria-label={columns === 'jukebox' ? 'Jukebox. Tap for the list' : 'List. Tap for the jukebox'}
                     title="The list, or the shelf of records — tap to change"
                     className={togglePill(columns === 'jukebox')}
                   >
                     <span className="inline-flex items-center gap-1">
                       <GridGlyph />
-                      {columns === 'jukebox' ? 'Jukebox shelf' : 'List'}
+                      {columns === 'jukebox' ? 'Jukebox' : 'List'}
                     </span>
                   </button>
                 )}

@@ -1,5 +1,5 @@
 import { ShuffleGlyph } from './AlbumView'
-import { isFullAlbum } from '../lib/libraryView'
+import { albumsOfBigArtists, isFullAlbum } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type ListTab } from '../stores/settingsStore'
@@ -12,7 +12,7 @@ import { useSettingsStore, type ListTab } from '../stores/settingsStore'
 // shuffled; albums in a random order, each whole and in running order; or
 // every song.
 //
-// ⚠️ Albums honours "Full albums only" — it shuffles what the tab lists. The
+// ⚠️ Albums honours "Full albums", and Artists "Min. 3" — it shuffles what the tab lists. The
 // button is not shown during a search (App.tsx): a whole-library shuffle under
 // a list of search results would not be shuffling what is on the screen.
 
@@ -26,6 +26,7 @@ export default function ShuffleLibrary({ view }: { view: ListTab }) {
   const trackCount = useLibraryStore((s) => s.tracks.length)
   const albums = useLibraryStore((s) => s.albums)
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
+  const min3 = useSettingsStore((s) => s.artistsMin3)
 
   const onlyFull = view === 'albums' && fullOnly
   if (trackCount === 0 || (onlyFull && !albums.some(isFullAlbum))) return null
@@ -33,7 +34,7 @@ export default function ShuffleLibrary({ view }: { view: ListTab }) {
 
   const start = () => {
     const player = usePlayerStore.getState()
-    if (view === 'artists') player.shuffleArtists()
+    if (view === 'artists') player.shuffleArtists(min3 ? albumsOfBigArtists(albums) : undefined)
     else if (view === 'albums') player.shuffleAlbums(onlyFull ? albums.filter(isFullAlbum) : undefined)
     else player.shuffleSongs()
   }

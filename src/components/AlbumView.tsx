@@ -215,16 +215,19 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               <PlayGlyph />
               Play
             </button>
+            {/* Just the icons for Shuffle and Add to queue (James, 2026-09-26:
+                "have less words for these shortcuts"). */}
             <button
               type="button"
               onClick={shuffleAlbum}
               disabled={tracks.length === 0}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+              aria-label="Shuffle"
+              title="Shuffle"
+              className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full border border-slate-300 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
             >
               <ShuffleGlyph />
-              Shuffle
             </button>
-            <AddToQueue tracks={tracks} />
+            <AddToQueue tracks={tracks} compact />
             <AddToShelf tracks={tracks} variant="pill" />
             {/* ⚠️ Only worth a button on a record long enough to lose a track
                 in. Under `FIND_FROM` tracks the whole list is on the screen

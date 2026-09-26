@@ -58,11 +58,25 @@ export function newSeed(): number {
   return Math.floor(Math.random() * 0x7fffffff)
 }
 
-/** "Full albums only": three tracks or more — past a single and its B-side. */
+/** "Full albums": three tracks or more — past a single and its B-side. */
 export const FULL_ALBUM_MIN = 3
 
 export function isFullAlbum(album: Album): boolean {
   return album.trackCount >= FULL_ALBUM_MIN
+}
+
+/**
+ * "Min. 3" on the Artists tab (James, 2026-09-26: "an option of 'Min. 3' for
+ * Artist to show only those with min 3 tracks"): an artist's songs are counted
+ * across all their records, so three singles count as much as one album.
+ */
+export const ARTIST_MIN = 3
+
+/** The albums of every artist with `ARTIST_MIN` songs or more, in their order. */
+export function albumsOfBigArtists(albums: readonly Album[]): Album[] {
+  const songs = new Map<string, number>()
+  for (const album of albums) songs.set(album.artist, (songs.get(album.artist) ?? 0) + album.trackCount)
+  return albums.filter((album) => (songs.get(album.artist) ?? 0) >= ARTIST_MIN)
 }
 
 export type ShuffleKind = 'songs' | 'albums' | 'artists'
@@ -131,7 +145,7 @@ export function nextColumns(columns: LibraryColumns): LibraryColumns {
 }
 
 export function columnsLabel(columns: LibraryColumns): string {
-  return columns === 'jukebox' ? 'Jukebox shelf' : `${columns} per row`
+  return columns === 'jukebox' ? 'Jukebox' : `${columns} per row`
 }
 
 /**

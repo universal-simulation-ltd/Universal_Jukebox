@@ -54,8 +54,17 @@ const TURN_MS = 320
 const SNAP_DEG = 50
 /** How far either side of the top a word is perfectly sharp. */
 const SHARP_DEG = 26
-/** ...and how far round it is gone altogether. */
-const VISIBLE_DEG = 150
+/**
+ * ...and how far round it is gone altogether — NOT the same both ways (James,
+ * 2026-09-26: "make them disappear at the 9 o'clock position and new ones
+ * appear around 6 o'clock so you have more time to see the upcoming words").
+ * The ring turns anti-clockwise, so the words to come climb the right from the
+ * bottom (180°, clockwise from the top) and the words sung are gone a quarter
+ * of the way down the left (90°): a shorter blurred tail behind the singing,
+ * a longer, clearer run of what is coming.
+ */
+const COMING_DEG = 180
+const GONE_DEG = 90
 /** The blur on a word at the very edge of that. */
 const MAX_BLUR_PX = 3
 /** How far outside the machine the ribbon runs. */
@@ -539,8 +548,10 @@ function useSnap(lines: LyricLine[], head: number): boolean {
  */
 function wordLook(at: number): { opacity: number; filter: string | undefined } | null {
   const away = Math.abs(at)
-  if (away > VISIBLE_DEG) return null
-  const out = clamp01((away - SHARP_DEG) / (VISIBLE_DEG - SHARP_DEG))
+  // Positive is clockwise from the top: still to come.
+  const visible = at >= 0 ? COMING_DEG : GONE_DEG
+  if (away > visible) return null
+  const out = clamp01((away - SHARP_DEG) / (visible - SHARP_DEG))
   const blur = Math.round(out * MAX_BLUR_PX * 4) / 4
   return { opacity: (1 - out) ** 1.25, filter: blur > 0 ? `blur(${blur}px)` : undefined }
 }

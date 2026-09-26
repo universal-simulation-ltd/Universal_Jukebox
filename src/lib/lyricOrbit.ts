@@ -72,10 +72,15 @@ const MIN_LINE_SEC = 1.2
  * have four words crawl across the top for a minute.
  */
 const LINE_CEILING_SEC = 3.5
-/** Where the first line waits before the song reaches it, and where the last one goes. */
-const ENTRY_DEG = 150
+/**
+ * Where the first line waits before the song reaches it, and where the last one
+ * goes — the edges of what `LyricsAround` draws: words come up from the bottom
+ * (180°) and are gone by nine o'clock (90°), so the song starts and ends with
+ * nothing parked on screen (2026-09-26).
+ */
+const ENTRY_DEG = 180
 const ENTRY_SEC = 4
-const EXIT_DEG = 150
+const EXIT_DEG = 90
 const EXIT_SEC = 6
 
 /** One word, at its fixed place on the ribbon. */

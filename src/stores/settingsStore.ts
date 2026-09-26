@@ -198,8 +198,10 @@ export interface Settings {
   lyricsAround: boolean
   /** How: an arc, every line big word by word, or the whole song turning around the record. */
   lyricsAroundStyle: LyricsAroundStyle
-  /** "Full albums only" on the Albums tab — see `isFullAlbum` in `lib/libraryView.ts`. */
+  /** "Full albums" on the Albums tab — see `isFullAlbum` in `lib/libraryView.ts`. */
   fullAlbumsOnly: boolean
+  /** "Min. 3" on the Artists tab — see `albumsOfBigArtists` in `lib/libraryView.ts`. */
+  artistsMin3: boolean
   /**
    * The first-run tips already tapped (`components/Tip.tsx`). A tip goes for
    * good once its target has been tapped; "Show the tips again" in the Actions
@@ -289,6 +291,7 @@ export const DEFAULTS: Settings = {
   lyricsAround: false,
   lyricsAroundStyle: 'arc',
   fullAlbumsOnly: false,
+  artistsMin3: false,
   tipsSeen: [],
   stableVolume: true,
   libraryOrder: { artists: 'az', albums: 'az', tracks: 'az' },
@@ -457,6 +460,7 @@ function readStored(): Settings {
       ? (stored.lyricsAroundStyle as LyricsAroundStyle)
       : 'arc',
     fullAlbumsOnly: stored.fullAlbumsOnly === true,
+    artistsMin3: stored.artistsMin3 === true,
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
       : [],
@@ -553,6 +557,7 @@ function persist(state: Settings) {
     lyricsAround: state.lyricsAround,
     lyricsAroundStyle: state.lyricsAroundStyle,
     fullAlbumsOnly: state.fullAlbumsOnly,
+    artistsMin3: state.artistsMin3,
     tipsSeen: state.tipsSeen,
     stableVolume: state.stableVolume,
     libraryOrder: state.libraryOrder,

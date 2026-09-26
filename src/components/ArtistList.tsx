@@ -9,7 +9,7 @@ import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
 import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
-import { gridClass, seededOrder, type LibraryOrder } from '../lib/libraryView'
+import { ARTIST_MIN, albumsOfBigArtists, gridClass, seededOrder, type LibraryOrder } from '../lib/libraryView'
 import { GENRE_MIN, albumGenres, groupByGenre, hiddenByGenre, shownGenres, tallyGenres } from '../lib/genres'
 import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -46,7 +46,10 @@ function maybeResumeRow(cells: ReactNode[], at: number | undefined, grouped: boo
 let openArtists: ReadonlySet<string> = new Set()
 
 export default function ArtistList({ query, order }: { query: string; order: LibraryOrder }) {
-  const albums = useLibraryStore((s) => s.albums)
+  const library = useLibraryStore((s) => s.albums)
+  const min3 = useSettingsStore((s) => s.artistsMin3)
+  // "Min. 3": only the artists with three songs or more (James, 2026-09-26).
+  const albums = useMemo(() => (min3 ? albumsOfBigArtists(library) : library), [library, min3])
   const tracks = useLibraryStore((s) => s.tracks)
   /** Artists opened out. Names, because that is what groups them. */
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(openArtists))
@@ -113,7 +116,9 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
       <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
         {query.trim()
           ? `No artist matching “${query}”.`
-          : genre && albums.length > 0
+          : min3 && library.length > 0 && albums.length === 0
+            ? `No artist has ${ARTIST_MIN} songs or more yet. Turn off “Min. ${ARTIST_MIN}” to see them all.`
+            : genre && albums.length > 0
             ? `No genre here has ${GENRE_MIN} songs or more, so there is nothing to file. Switch back to A–Z.`
             : 'No artists yet.'}
       </p>
