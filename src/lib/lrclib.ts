@@ -1,5 +1,6 @@
-// One of the two files in this app that touch the network — `aboutTrack.ts`
-// (Wikipedia, for "About this track") is the other, and keeps these rules too.
+// One of the three files in this app that touch the network — `aboutTrack.ts`
+// (Wikipedia, for "About this track") and `requests.ts` (iTunes, for a
+// request's picture, only on a tap) are the others, and keep these rules too.
 //
 // ⚠️ READ THIS BEFORE CHANGING ANYTHING HERE. The app's first promise is
 // "nothing is uploaded, there is no account", and every other file keeps it

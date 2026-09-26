@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Record45 from './Record45'
+import Requests from './Requests'
 import { ShelfRow } from './Shelf'
 import { ShuffleGlyph } from './AlbumView'
 import { plural } from '../lib/format'
@@ -59,6 +60,8 @@ export default function JukeboxShelves() {
           />
         )
       })}
+      {/* Music to get, ticked off when the library has it (James, 2026-09-26). */}
+      <Requests />
       {picking && <SongPicker shelfId={picking.shelfId} name={picking.name} onClose={() => setPicking(null)} />}
     </div>
   )

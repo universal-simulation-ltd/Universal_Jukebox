@@ -8,13 +8,16 @@ Nothing is uploaded. There is no account. **It is not a streaming service and
 has no catalogue of its own** — it plays files you already have, and it cannot
 reach music that is anywhere else.
 
-> **Two qualifications, both off until you turn them on.** The lyrics lookup
-> asks lrclib.net for the words to a track whose own tags carry none, sending
-> that track's artist, title, album and length. **About this track** asks
-> Wikipedia about the song and the artist, sending the song's title and the
-> artist's name. Nothing else goes with either, no audio ever leaves the device,
-> and they are the only features in the app that open a connection. See
-> [Lyrics](#lyrics) and [About this track](#about-this-track).
+> **Three qualifications, none of which does anything until you ask.** The
+> lyrics lookup asks lrclib.net for the words to a track whose own tags carry
+> none, sending that track's artist, title, album and length. **About this
+> track** asks Wikipedia about the song and the artist, sending the song's title
+> and the artist's name. Both are off until you turn them on. **Find a picture**,
+> on a request, sends the words you typed to Apple's iTunes Search, and only
+> when you tap it. Nothing else goes with any of them, no audio ever leaves the
+> device, and they are the only features in the app that open a connection. See
+> [Lyrics](#lyrics), [About this track](#about-this-track) and
+> [Requests](#requests).
 
 Live at **<https://opensource.unisim.co.uk/jukebox>**.
 
@@ -476,7 +479,8 @@ src/
 │   ├── scan.ts        # the folder walk — header-only reads, streaming results
 │   ├── library.ts     # IndexedDB: tracks / albums / roots / fixes / lyrics
 │   ├── lyrics.ts      # LRC in, timed lines out — + the on-demand read. Pure, tested
-│   ├── lrclib.ts      # ⚠️ ONE OF TWO FILES THAT TOUCH THE NETWORK (the other: aboutTrack.ts). Off by default
+│   ├── lrclib.ts      # ⚠️ ONE OF THREE FILES THAT TOUCH THE NETWORK (aboutTrack.ts, requests.ts). Off by default
+│   ├── requests.ts    # music to get: matching against the library, + the tap-only iTunes picture search
 │   ├── art.ts         # extract → downscale → cache → object URLs (bounded)
 │   ├── audio.ts       # two <audio> decks, the crossfade, a real shuffle, the fades
 │   ├── audioGraph.ts  # the OPTIONAL Web Audio graph — boost + analyser. Read it first
@@ -808,6 +812,27 @@ A fifth lives in `tags.ts`: `LYRICIST` is a person's name, one letter from
 should be. The FLAC and v2.4 fixtures both carry one, next to the real field.
 
 ---
+
+## Requests
+
+The bottom of the **Jukebox** tab is a shelf of **requests**: a reminder of a
+song, an album or an artist you mean to get. Each stands as a record, in a
+picture you can pick for it, and is ticked off when it turns up in your library.
+
+- **Ticked by the library.** Every time the library settles (opened,
+  rescanned, a folder added), each open request is looked for in it. Titles
+  and names are compared folded: case, accents, punctuation, a bracketed tail
+  like "(2019 Mix)", a leading "The" and "&"/"and" don't matter. A song or
+  album with an artist given has to match that artist too. You can tick or
+  untick one by hand. One you untick stays unticked, so a wrong match can't
+  keep ticking itself again.
+- **Find a picture** sends what you typed to `itunes.apple.com/search`, straight
+  from the browser. It needs no key and there is no server of ours in between.
+  The picture you pick is downloaded once, shrunk to 240px and kept with the
+  request, so drawing the shelf never goes online. iTunes has no photos of
+  artists, so an artist request offers their album covers instead.
+- Kept in `localStorage` (`jukebox:requests`), up to 200. When the list is full,
+  the oldest ticked requests go first.
 
 ## About this track
 
