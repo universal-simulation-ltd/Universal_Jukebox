@@ -1,0 +1,47 @@
+{
+  "01-hero": {
+    "headline": ["Your music,", "*on the turntable*"],
+    "sub": {
+      "phone": "Plays the music already on your phone,\nwith the words turning round the record.",
+      "ipad": "Plays the music already on your iPad,\nwith the words turning round the record."
+    }
+  },
+  "02-hero": {
+    "headline": ["Vinyl, tape,", "CD or jukebox"],
+    "badges": ["Your own files", "Timed lyrics", "Album art", "Nothing uploaded"],
+    "sub": "Built by James Markey MBE\nand the UNI·SIM team"
+  },
+  "03-lyrics": {
+    "headline": ["Sing", "along"],
+    "caption": "Timed lyrics follow the song, line by line or round the record",
+    "chips": ["Around the record", "Following along", "Lock screen", "Add your own"]
+  },
+  "04-decks": {
+    "headline": ["Pick your", "machine"],
+    "caption": "The record drops, the tape spools, the needle lands",
+    "chips": ["Vinyl", "CD", "Cassette", "Jukebox", "Pocket player", "By the album's year"]
+  },
+  "05-library": {
+    "headline": ["Your whole", "library"],
+    "caption": "It reads the tags and the album art inside your own files",
+    "chips": ["MP3", "M4A", "FLAC", "WAV", "Albums", "Artists"]
+  },
+  "06-tracks": {
+    "headline": ["Every song", "on a shelf"],
+    "caption": "Swipe through the records and tap one to play it",
+    "chips": ["Shuffle", "Repeat", "Play next", "Queue", "Resume listening"]
+  },
+  "07-shelves": {
+    "headline": ["Shelves for", "every mood"],
+    "caption": "Each shelf plays as a playlist, and Requests lists music to get",
+    "chips": ["Shelves", "Requests", "Sleep timer"]
+  },
+  "08-tune": {
+    "headline": ["Tune it", "your way"],
+    "caption": "Kept on this device, like everything else",
+    "chips": ["Needle drop", "Crossfade", "Stable volume", "Light and dark"]
+  },
+  "feature-graphic": {
+    "tagline": ["Your music, on the turntable.", "Nothing uploaded."]
+  }
+}

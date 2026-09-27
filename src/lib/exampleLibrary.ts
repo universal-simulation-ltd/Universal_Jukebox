@@ -1,4 +1,5 @@
 import { albumKey, trackKey } from './keys'
+import type { LyricSheet } from './lyrics'
 import type { Album, Track } from './types'
 
 // An example library, so somebody with no music to hand can take the app for a
@@ -81,6 +82,13 @@ interface ExampleAlbum {
    * records by the same artist look like cousins. See `drawSleeve`.
    */
   sleeve?: 0 | 1 | 2 | 3
+  /**
+   * Words for some of the songs, by track index — written for these made-up
+   * records, so the lyrics panel and its styles can be shown with nothing
+   * looked up (2026-09-27, for the store screenshots and App Review, who have
+   * no music of their own). Timed evenly across the song by `exampleLyrics`.
+   */
+  lyrics?: Record<number, string[]>
 }
 
 /**
@@ -100,6 +108,18 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Indie',
     recipe: { root: 57, minor: false, bpm: 104, bite: 0.3, density: 0.62, drums: true, pad: 0.5 },
     tracks: ['Lead-in Groove', 'Counterweight', 'Anti-skate', 'The Long Way Round'],
+    lyrics: {
+      3: [
+        'Took the long way round the record',
+        'Past the bridge and the second verse',
+        'Tone arm drifting to the centre',
+        'Nothing better, nothing worse',
+        'Round and round, the long way round',
+        'Every lap a little slower',
+        'Round and round, the long way round',
+        'Till the music plays no more',
+      ],
+    },
   },
   {
     artist: 'The Tone Arms',
@@ -108,6 +128,18 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Indie',
     recipe: { root: 55, minor: true, bpm: 96, bite: 0.36, density: 0.55, drums: true, pad: 0.55 },
     tracks: ['Dust Cover', 'Slipmat', 'Forty-five', 'Static on the Inner Groove'],
+    lyrics: {
+      2: [
+        'Put the needle down where we left it',
+        'Forty-five turns and the room comes back',
+        'Every scratch a night we spent in',
+        'Every crackle an old wisecrack',
+        'Spin it slow, spin it slow',
+        'Hold the sleeve up to the light',
+        'We wore the groove down to the label',
+        'Flip it over, play it all night',
+      ],
+    },
   },
   {
     artist: 'The Tone Arms',
@@ -135,6 +167,18 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Dub',
     recipe: { root: 45, minor: true, bpm: 72, bite: 0.2, density: 0.4, drums: true, pad: 0.7 },
     tracks: ['Acetate', 'Half-speed', 'Bass Trap'],
+    lyrics: {
+      0: [
+        'Cut it once, cut it deep',
+        'Acetate for us to keep',
+        'Low end rolling through the floor',
+        'Play it back, play it once more',
+        'Soft as wax and twice as warm',
+        'Rocking steady through the storm',
+        'Cut it once, cut it deep',
+        'Acetate for us to keep',
+      ],
+    },
   },
   {
     artist: 'Lathe & the Lacquers',
@@ -169,6 +213,18 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Electronic',
     recipe: { root: 52, minor: true, bpm: 124, bite: 0.55, density: 0.8, drums: true, pad: 0.38 },
     tracks: ['Crackle', 'Pop', 'Wow and Flutter'],
+    lyrics: {
+      0: [
+        'Crackle in the speaker, static in my head',
+        'Dancing on the surface of the words we never said',
+        'Lights go low, the bassline hums',
+        'Here it comes, here it comes',
+        'Crackle, crackle, turn it up',
+        'Pour the noise into my cup',
+        'Crackle, crackle, all night long',
+        'Every hiss becomes a song',
+      ],
+    },
   },
 ]
 
@@ -268,6 +324,29 @@ export function renderExampleVoice(path: string, voice: Voice): Float32Array | n
 
 function albumFor(path: string): ExampleAlbum | undefined {
   return ALBUMS.find((a) => path.includes(`/${a.title}/`) && path.includes(`/${a.artist}/`))
+}
+
+/**
+ * The words of an example song, as a timed sheet — or null for the songs that
+ * have none. The lines are spread evenly from a few seconds in to a few before
+ * the end, so every style (the scroll, the orbit, the lock-screen line) has
+ * something to follow however long the seed made the track.
+ */
+export function exampleLyrics(track: Track): LyricSheet | null {
+  if (!isExampleTrack(track)) return null
+  const entry = albumFor(track.path)
+  if (!entry?.lyrics) return null
+  const index = entry.tracks.findIndex((_, i) => trackPath(entry, i) === track.path)
+  const lines = entry.lyrics[index]
+  if (!lines?.length) return null
+  const seconds = trackSeconds(track.path)
+  const start = 3
+  const step = (seconds - start - 4) / lines.length
+  return {
+    synced: true,
+    source: 'file',
+    lines: lines.map((text, i) => ({ timeSec: Math.round((start + i * step) * 100) / 100, text })),
+  }
 }
 
 /** Is this one of ours? Read after a reload, when the store has no idea. */

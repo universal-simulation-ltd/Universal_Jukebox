@@ -83,3 +83,21 @@ describe('the example library', () => {
     }
   })
 })
+
+describe('exampleLyrics', () => {
+  it('gives four songs timed words, in order, starting a few seconds in', async () => {
+    const { exampleLyrics, exampleTrackPaths } = await import('./exampleLibrary')
+    const sheets = exampleTrackPaths()
+      .map(({ path }) => exampleLyrics({ path } as Parameters<typeof exampleLyrics>[0]))
+      .filter((sheet) => sheet !== null)
+    expect(sheets).toHaveLength(4)
+    for (const sheet of sheets) {
+      expect(sheet.synced).toBe(true)
+      const times = sheet.lines.map((l) => l.timeSec ?? -1)
+      expect(times[0]).toBe(3)
+      // Every song is at least 26 seconds, and the last line ends 4 before that.
+      expect(Math.max(...times)).toBeLessThan(42)
+      expect([...times].sort((a, b) => a - b)).toEqual(times)
+    }
+  })
+})

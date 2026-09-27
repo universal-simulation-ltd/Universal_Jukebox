@@ -4,6 +4,7 @@ import { parseLyrics } from '../lib/lyrics'
 import { CACHE_VERSION } from '../lib/lrclib'
 import { lyricsFromFile, type LyricSheet } from '../lib/lyrics'
 import { onlineLyrics } from '../lib/lrclib'
+import { exampleLyrics } from '../lib/exampleLibrary'
 import { useLibraryStore } from './libraryStore'
 import { settings } from './settingsStore'
 import type { Track } from '../lib/types'
@@ -145,6 +146,10 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
     const sheet = parseLyrics(own.raw, 'upload')
     if (sheet) return set({ status: 'ready', sheet, message: null })
   }
+
+  // The example library's songs carry their words in the app, not the file.
+  const example = exampleLyrics(track)
+  if (example) return set({ status: 'ready', sheet: example, message: null })
 
   const file = useLibraryStore.getState().fileFor(track)
   if (file) {

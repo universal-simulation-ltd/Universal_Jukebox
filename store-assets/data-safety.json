@@ -1,0 +1,31 @@
+{
+  "_about": "Play Data safety answers. Build the importable CSV with: node Docs_UNI_SIM/store-kit/data-safety.mjs Universal_Apps/Universal_Jukebox/store-assets/data-safety.json Universal_Apps/Universal_Jukebox/store-assets/out/play/data-safety.csv. Checked against the code 2026-09-27: the music, its tags and art never leave the device; sign-in (@unisim/sdk) is optional \u2014 password, emailed code, or Apple/Google/Microsoft; while signed in, one session.opened usage event per launch. The three lookups (lrclib.net, Wikipedia, iTunes Search) go straight from the phone to those services and are not collected by us. Mirrors ios/App/App/PrivacyInfo.xcprivacy.",
+  "accountCreation": [
+    "PSL_ACM_USER_ID_PASSWORD",
+    "PSL_ACM_USER_ID_OTHER_AUTH",
+    "PSL_ACM_OAUTH"
+  ],
+  "deletionUrl": "https://www.unisim.co.uk/privacy#retention",
+  "types": {
+    "PSL_EMAIL": {
+      "required": false,
+      "purposes": [
+        "PSL_APP_FUNCTIONALITY",
+        "PSL_ACCOUNT_MANAGEMENT"
+      ]
+    },
+    "PSL_USER_ACCOUNT": {
+      "required": false,
+      "purposes": [
+        "PSL_APP_FUNCTIONALITY",
+        "PSL_ACCOUNT_MANAGEMENT"
+      ]
+    },
+    "PSL_USER_INTERACTION": {
+      "required": false,
+      "purposes": [
+        "PSL_ANALYTICS"
+      ]
+    }
+  }
+}

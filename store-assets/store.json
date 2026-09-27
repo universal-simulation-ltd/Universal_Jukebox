@@ -1,0 +1,16 @@
+{
+  "app": "Universal Jukebox",
+  "icon": "../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png",
+  "captures": "draw",
+  "devices": ["iphone", "ipad", "android"],
+  "screens": [
+    { "id": "01-hero", "layout": "hero-open", "raw": ["now-vinyl", "now-cassette"] },
+    { "id": "02-hero", "layout": "hero-close", "raw": "now-cassette" },
+    { "id": "03-lyrics", "layout": "feature", "raw": "lyrics", "hot": 0 },
+    { "id": "04-decks", "layout": "feature", "raw": "now-jukebox", "hot": 3 },
+    { "id": "05-library", "layout": "feature", "raw": "albums", "hot": 0 },
+    { "id": "06-tracks", "layout": "feature", "raw": "tracks", "hot": 0 },
+    { "id": "07-shelves", "layout": "feature", "raw": "shelf", "hot": 0 },
+    { "id": "08-tune", "layout": "feature", "raw": "tune", "hot": 0 }
+  ]
+}

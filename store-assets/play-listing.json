@@ -1,0 +1,63 @@
+{
+  "language": "en-GB",
+  "details": {
+    "defaultLanguage": "en-GB",
+    "contactEmail": "inbox@unisim.co.uk",
+    "contactWebsite": "https://www.unisim.co.uk"
+  },
+  "listing": {
+    "title": "Universal Jukebox",
+    "shortDescription": "Play your own music on a turntable, with the lyrics turning round the record.",
+    "fullDescription": [
+      "Universal Jukebox plays the music you already have. Point it at a folder of MP3, M4A, FLAC or WAV files and it reads the tags, the album art and the lyrics inside them, builds your library and puts each record on the deck. Nothing is uploaded, and no account is needed.",
+      "",
+      "YOUR LIBRARY",
+      "• Albums, artists and every song, with the covers from your own files.",
+      "• Add a folder on your phone, or songs shared to the app.",
+      "• Swipe through shelves of records and tap one to play it.",
+      "• Resume listening where you left off.",
+      "",
+      "PICK YOUR MACHINE",
+      "• A turntable, a portable CD player, a cassette Walkman, a jukebox or a pocket player.",
+      "• Or let each album play on the machine of its year.",
+      "• The needle lands, the tape spools, the record is lifted from the rack.",
+      "",
+      "LYRICS",
+      "• Timed lyrics from your files follow the song, line by line or turning round the record.",
+      "• Add a lyrics file of your own to any song.",
+      "• Optional: look up lyrics online for songs that have none. It is off until you turn it on.",
+      "",
+      "PLAYING",
+      "• Crossfade, fades and Stable volume, which brings a loud song down to meet the rest.",
+      "• Shuffle, repeat, play next and a queue you can see.",
+      "• A sleep timer that fades the music out.",
+      "• Lock-screen controls, and a choice of speaker or headphones.",
+      "",
+      "SHELVES AND REQUESTS",
+      "• Put songs on shelves that play as playlists.",
+      "• Keep a list of music you want to get, ticked off when it reaches your library.",
+      "",
+      "PRIVATE BY DESIGN",
+      "• No ads, no tracking, no third-party analytics.",
+      "• A Universal ID is optional. You can delete the account from inside the app.",
+      "",
+      "Universal Jukebox is free and open source (AGPL-3.0). The code is on GitHub: github.com/universal-simulation-ltd/Universal_Jukebox",
+      "",
+      "Built by James Markey MBE and the UNI·SIM team."
+    ]
+  },
+  "images": {
+    "icon": "out/play/icon-512.png",
+    "featureGraphic": "out/en-GB/play/feature-graphic.png",
+    "phoneScreenshots": [
+      "out/en-GB/android/01-hero.png",
+      "out/en-GB/android/02-hero.png",
+      "out/en-GB/android/03-lyrics.png",
+      "out/en-GB/android/04-decks.png",
+      "out/en-GB/android/05-library.png",
+      "out/en-GB/android/06-tracks.png",
+      "out/en-GB/android/07-shelves.png",
+      "out/en-GB/android/08-tune.png"
+    ]
+  }
+}
