@@ -9,7 +9,7 @@ import tseslint from 'typescript-eslint'
 // React plugins. No type-aware rules — they need a project service and buy
 // little here, and `tsc -b` in `npm run build` is the type gate.
 export default tseslint.config(
-  { ignores: ['dist', 'dev-dist', 'playwright-report', 'test-results'] },
+  { ignores: ['dist', 'dev-dist', 'playwright-report', 'test-results', 'android', 'ios', 'release'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

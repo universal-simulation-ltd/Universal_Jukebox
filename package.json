@@ -1,6 +1,6 @@
 {
   "name": "universal-jukebox",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -22,6 +22,8 @@
     "test:tags": "node scripts/selftest.mjs",
     "deploy": "npm run build && wrangler deploy",
     "cap:sync": "npm run build:desktop && npx cap sync && npm run check:mobile-bundle",
+    "sync:ios-version": "node scripts/sync-ios-version.mjs",
+    "android:release": "bash scripts/android-release.sh",
     "check:mobile-bundle": "node scripts/verify-mobile-bundle.mjs",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
