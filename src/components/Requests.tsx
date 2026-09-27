@@ -46,8 +46,6 @@ export default function Requests() {
   const albums = useLibraryStore((s) => s.albums)
   const playTracks = usePlayerStore((s) => s.playTracks)
   const [adding, setAdding] = useState(false)
-  /** The record tapped, whose buttons show under the shelf. */
-  const [picked, setPicked] = useState<string | null>(null)
 
   const ordered = useMemo(() => requestsInOrder(requests), [requests])
   const index = useMemo(() => indexLibrary(tracks, albums), [tracks, albums])
@@ -63,8 +61,6 @@ export default function Requests() {
   const got = requests.filter((r) => r.gotAt).length
   const toGet = requests.length - got
   const slots: Slot[] = [...ordered, PLUS]
-  const current = picked ? requests.find((r) => r.id === picked) : undefined
-  const found = current ? findInLibrary(current, index) : []
 
   return (
     <section
@@ -85,10 +81,7 @@ export default function Requests() {
           {got > 0 && (
             <button
               type="button"
-              onClick={() => {
-                clearGot()
-                setPicked(null)
-              }}
+              onClick={clearGot}
               className={pill}
             >
               Clear {got} added
@@ -130,9 +123,42 @@ export default function Requests() {
           )
         }
         direct={(s) => isPlus(s)}
+        // A request's buttons follow the one in the middle (`below`), so a tap
+        // on it has nothing left to do (James, 2026-09-27).
         open={(s) => {
           if (isPlus(s)) setAdding(true)
-          else setPicked((p) => (p === s.id ? null : s.id))
+        }}
+        below={(s) => {
+          if (isPlus(s)) return null
+          const found = findInLibrary(s, index)
+          return (
+            <>
+              <button
+                type="button"
+                onClick={() => setGot(s.id, !s.gotAt)}
+                aria-pressed={!!s.gotAt}
+                className={
+                  s.gotAt
+                    ? pill
+                    : 'inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1 text-[12.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700'
+                }
+              >
+                {s.gotAt ? 'Not got yet' : '✓ Got it'}
+              </button>
+              {found.length > 0 && (
+                <button type="button" onClick={() => playTracks(found, 0)} className={pill}>
+                  ▶ Play
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => remove(s.id)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-300 px-3 py-1 text-[12.5px] font-medium text-red-700 transition hover:border-red-500 dark:border-red-800 dark:text-red-400"
+              >
+                Remove
+              </button>
+            </>
+          )
         }}
         caption={(s) =>
           isPlus(s)
@@ -142,41 +168,10 @@ export default function Requests() {
               }
             : {
                 title: s.title,
-                detail: `${describe(s)} — ${s.gotAt ? 'in your library ✓' : picked === s.id ? 'tick it once it’s in your library' : 'still to add — tap to tick it off'}`,
+                detail: `${describe(s)} — ${s.gotAt ? 'in your library ✓' : 'tick it once it’s in your library'}`,
               }
         }
       />
-      {current && (
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 px-4">
-          <button
-            type="button"
-            onClick={() => setGot(current.id, !current.gotAt)}
-            aria-pressed={!!current.gotAt}
-            className={
-              current.gotAt
-                ? pill
-                : 'inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1 text-[12.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700'
-            }
-          >
-            {current.gotAt ? 'Not got yet' : '✓ Got it'}
-          </button>
-          {found.length > 0 && (
-            <button type="button" onClick={() => playTracks(found, 0)} className={pill}>
-              ▶ Play
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              remove(current.id)
-              setPicked(null)
-            }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-red-300 px-3 py-1 text-[12.5px] font-medium text-red-700 transition hover:border-red-500 dark:border-red-800 dark:text-red-400"
-          >
-            Remove
-          </button>
-        </div>
-      )}
       {adding && <RequestDialog onClose={() => setAdding(false)} />}
     </section>
   )
