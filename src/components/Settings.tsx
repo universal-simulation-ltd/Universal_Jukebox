@@ -141,8 +141,9 @@ export default function Settings() {
         Back to your library
       </button>
 
+      {/* The menu row's name — "Tune this app" for both (James, 2026-09-27). */}
       <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-        Settings
+        Tune this app
       </h1>
       <p className="mt-2 text-[14px] text-slate-600 dark:text-slate-300">
         Everything here is kept on this device only, like the rest of the app.

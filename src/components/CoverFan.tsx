@@ -12,8 +12,11 @@ import type { Album } from '../lib/types'
 // rather than a stylistic one. The first version pivoted at the bottom RIGHT,
 // which swings the back covers DOWN and to the left — straight over the album
 // title underneath, which is the one part of the tile that has to stay
-// readable. Rotating about a point ON the bottom edge cannot push any corner
-// below that edge, so the caption is safe by construction at any angle.
+// readable. Rotating about the bottom centre keeps that far smaller, but NOT
+// zero, whatever this said until 2026-09-27: a card tilted by θ lowers one
+// bottom corner by (width / 2) · sin θ — about 7% of the width at 8°. At one
+// artist per row that was 25px over the name. So a caller leaves room under
+// the fan in proportion to its width (`ArtistList`'s `pb-[8%]`).
 //
 // ⚠️ The FRONT cover is the last one drawn, and the array is reversed to get it
 // there. Painting them in natural order puts the newest record at the back

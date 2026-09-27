@@ -1,3 +1,4 @@
+import AddToQueue from './AddToQueue'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Cover from './Cover'
 import { coverUrl, fallbackHue } from '../lib/art'
@@ -302,7 +303,22 @@ export function TrackShelf({
           render={(t) => <Record45 album={albumOf(t)} grooves={grooveRings(t.durationSec)} />}
           artOf={albumOf}
           open={(t) => onPlay(t)}
-          caption={(t) => ({ title: t.title, detail: `${t.artist ?? t.albumArtist ?? 'Unknown artist'} — tap the record to play` })}
+          caption={(t) => ({ title: t.title, detail: t.artist ?? t.albumArtist ?? 'Unknown artist' })}
+          // Play it now, or put it on the end of the queue (James,
+          // 2026-09-27: "we need a way to choose either play now or quickly add
+          // to queue"). The + shows once something is playing.
+          below={(t) => (
+            <>
+              <button
+                type="button"
+                onClick={() => onPlay(t)}
+                className="inline-flex h-[34px] items-center gap-1.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 text-[13px] font-semibold text-white shadow-sm"
+              >
+                ▶ Play now
+              </button>
+              <AddToQueue tracks={[t]} variant="round" />
+            </>
+          )}
         />
       )}
     />
@@ -339,6 +355,8 @@ interface ShelfRowProps<T> {
    * the shelf of jazz under it is not organised at all.
    */
   heading?: string
+  /** Buttons under the caption, for the one in the middle — the songs' Play now / + (2026-09-27). */
+  below?(item: T): ReactNode
   /** The rail's look: wood for a shelf of records, steel for the requests (2026-09-27). */
   rail?: 'wood' | 'steel'
 }
@@ -350,7 +368,7 @@ interface ShelfRowProps<T> {
  */
 const shelfMemory = new Map<string, number>()
 
-export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood' }: ShelfRowProps<T>) {
+export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood', below }: ShelfRowProps<T>) {
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
   const [middle, setMiddle] = useState(0)
@@ -530,6 +548,7 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
           <p className="text-[12.5px] text-slate-500 dark:text-slate-400">{text.detail}</p>
         </div>
       )}
+      {below && current !== undefined && <div className="mt-3 flex items-center justify-center gap-2 px-4">{below(current)}</div>}
     </section>
   )
 }

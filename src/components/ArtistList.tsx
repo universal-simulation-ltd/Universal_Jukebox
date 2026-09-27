@@ -212,8 +212,13 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
                 ) : (
                   // Breathing room inside the tile's own square, so the cards
                   // behind lean into padding rather than into the neighbouring
-                  // tile — and every cell stays the same size.
-                  <div className="aspect-square w-full px-3 pt-3">
+                  // tile — and every cell stays the same size. ⚠️ And UNDER
+                  // them, as a share of the width: a tilted back card dips one
+                  // corner below the fan (see `CoverFan`), by ~7% of its width.
+                  // At one per row that was 25px over the artist's name (James,
+                  // 2026-09-27). A percentage padding is of the width, so it
+                  // grows with the dip.
+                  <div className="aspect-square w-full px-3 pt-3 pb-[8%]">
                     <CoverFan albums={artist.albums} className="h-full w-full transition-transform group-hover:-translate-y-0.5" />
                   </div>
                 )}

@@ -3,6 +3,7 @@ import PreviewButton from './PreviewButton'
 import { withResumeRow } from './resumeRow'
 import { TrackShelf } from './Shelf'
 import AddToShelf from './AddToShelf'
+import AddToQueue from './AddToQueue'
 import { useSettingsStore } from '../stores/settingsStore'
 import { leadWith, useResumable } from '../lib/resume'
 import { clock } from '../lib/format'
@@ -205,6 +206,7 @@ export default function TrackList({ query, order }: { query: string; order: Libr
               {/* ⚠️ OUTSIDE the row button, not inside it: a button cannot be
                   nested in a button, and "hear ten seconds of this" must not
                   also queue the whole list. */}
+              <AddToQueue tracks={[track]} variant="icon" />
               <AddToShelf tracks={[track]} variant="icon" />
               <PreviewButton track={track} />
             </li>

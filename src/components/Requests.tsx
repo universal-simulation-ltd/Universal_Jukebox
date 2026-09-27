@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Cover from './Cover'
+import CoverFan from './CoverFan'
 import Record45 from './Record45'
 import { ShelfRow } from './Shelf'
 import {
@@ -10,7 +12,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useRequestsStore } from '../stores/requestsStore'
 import type { Album } from '../lib/types'
 
-// The Jukebox tab's requests shelf: music to get, standing as records in the
+// The Jukebox tab's requests shelf: music to add to the library, standing as records in the
 // picture you picked, ticked off when the library has it — the rules are
 // `lib/requests.ts` (James, 2026-09-26).
 //
@@ -69,20 +71,17 @@ export default function Requests() {
       aria-label="Your requests"
       className="overflow-hidden rounded-3xl bg-sky-50/80 py-4 ring-1 ring-sky-200/80 dark:bg-sky-950/25 dark:ring-sky-900/60"
     >
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2 px-4">
-        <p className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+      <div className="mb-1 flex items-center justify-between gap-2 px-4">
+        <p className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 text-[14px] font-semibold text-slate-900 dark:text-slate-100">
           <svg viewBox="0 0 20 20" className="h-4 w-4 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M6 3.5h8a1 1 0 0 1 1 1v12l-5-3-5 3v-12a1 1 0 0 1 1-1z" />
           </svg>
           Requests
-          <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">
-            {requests.length === 0 ? 'music to get' : toGet > 0 ? `${toGet} to get` : 'all got'}
+          <span className="font-normal text-slate-500 dark:text-slate-400">
+            {requests.length === 0 || toGet > 0 ? `${toGet > 0 ? `${toGet} ` : ''}to add to library` : 'all added'}
           </span>
         </p>
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={() => setAdding(true)} className={pill}>
-            + Request
-          </button>
+        <div className="flex shrink-0 items-center gap-1.5">
           {got > 0 && (
             <button
               type="button"
@@ -92,7 +91,7 @@ export default function Requests() {
               }}
               className={pill}
             >
-              Clear {got} got
+              Clear {got} added
             </button>
           )}
         </div>
@@ -116,11 +115,11 @@ export default function Requests() {
             </span>
           ) : (
             <span
-              className={`relative block rounded-full ${picked === s.id ? 'ring-4 ring-orange-500 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950' : ''}`}
+              className={`relative block ${s.kind === 'track' ? 'rounded-full' : 'rounded-xl'} ${picked === s.id ? 'ring-4 ring-orange-500 ring-offset-2 ring-offset-sky-50 dark:ring-offset-slate-950' : ''}`}
             >
               {/* Got: shaded out, its job done. */}
               <span className={`block transition duration-300 ${s.gotAt ? 'opacity-40 grayscale' : ''}`}>
-                <Record45 album={sleeves.get(s.id)} />
+                <RequestArt request={s} sleeve={sleeves.get(s.id)} />
               </span>
               {s.gotAt && (
                 <span className="absolute top-[6%] right-[6%] flex h-[22%] w-[22%] items-center justify-center rounded-full bg-emerald-500 text-white shadow-md ring-2 ring-white dark:ring-slate-950" aria-hidden>
@@ -140,12 +139,12 @@ export default function Requests() {
         caption={(s) =>
           isPlus(s)
             ? {
-                title: requests.length > 0 ? 'Request another' : 'Nothing requested',
-                detail: 'Tap + for a song, album or artist to get — it’s ticked off when your library has it',
+                title: requests.length > 0 ? 'Request another' : 'Nothing requested yet',
+                detail: 'Use this area to remind yourself to add items to your library at a later date.',
               }
             : {
                 title: s.title,
-                detail: `${describe(s)} — ${s.gotAt ? 'got it ✓' : picked === s.id ? 'tick it once you have it' : 'still to get — tap to tick it off'}`,
+                detail: `${describe(s)} — ${s.gotAt ? 'in your library ✓' : picked === s.id ? 'tick it once it’s in your library' : 'still to add — tap to tick it off'}`,
               }
         }
       />
@@ -182,6 +181,30 @@ export default function Requests() {
       )}
       {adding && <RequestDialog onClose={() => setAdding(false)} />}
     </section>
+  )
+}
+
+/**
+ * What kind of request it is, at a glance (James, 2026-09-27: "artist show
+ * fanned out albums of that artist (use generic albums behind the artist
+ * image), album show one square of chosen image, track show the vinyl disc
+ * with their chosen image so you can visually see the type of request").
+ */
+function RequestArt({ request, sleeve }: { request: MusicRequest; sleeve: Album | undefined }) {
+  if (request.kind === 'track') return <Record45 album={sleeve} />
+  if (request.kind === 'album') {
+    return (
+      <span className="flex aspect-square w-full items-end justify-center">
+        <Cover album={sleeve} className="aspect-square w-[88%] shadow-lg ring-1 ring-slate-900/10 dark:ring-white/10" />
+      </span>
+    )
+  }
+  // Two plain sleeves behind the picked one: an artist is several records.
+  const generic = (n: number): Album => ({ id: `request-generic:${request.id}:${n}`, title: '', artist: '', trackCount: 0, cover: null })
+  return (
+    <span className="flex aspect-square w-full items-end justify-center">
+      <CoverFan albums={sleeve ? [sleeve, generic(1), generic(2)] : [generic(0), generic(1), generic(2)]} className="aspect-square w-[80%]" />
+    </span>
   )
 }
 

@@ -279,7 +279,11 @@ export interface Settings {
 
 export const DEFAULTS: Settings = {
   ceremonyMode: 'always',
-  homeTab: 'albums',
+  // The library's standard look (James, 2026-09-27: "Default to opening on
+  // tracks / Artist - A-Z, min 3, 3 per row / Albums - A-Z, full albums, 4 per
+  // row / Tracks - A-Z, Jukebox") — adopted once on devices that were already
+  // using the app, `LIBRARY_STANDARD_KEY` below.
+  homeTab: 'tracks',
   deck: 'vinyl',
   deckEras: DEFAULT_ERAS,
   needleDrop: true,
@@ -290,15 +294,15 @@ export const DEFAULTS: Settings = {
   lyricsOnline: false,
   lyricsAround: false,
   lyricsAroundStyle: 'arc',
-  fullAlbumsOnly: false,
-  artistsMin3: false,
+  fullAlbumsOnly: true,
+  artistsMin3: true,
   tipsSeen: [],
   stableVolume: true,
   libraryOrder: { artists: 'az', albums: 'az', tracks: 'az' },
   // The shelf is the standard (James, 2026-09-11: "put jukebox shelf as
   // standard") — and everyone who had the old default is moved to it once,
   // `adoptShelf` below.
-  libraryColumns: { artists: 'jukebox', albums: 'jukebox', tracks: 2 },
+  libraryColumns: { artists: 3, albums: 4, tracks: 'jukebox' },
   resumeCard: true,
   recordCrossfade: true,
   trackNotifications: false,
@@ -364,6 +368,8 @@ const KEY = 'unisim-jukebox-settings'
 const SHELF_STANDARD_KEY = 'jukebox:shelf-standard'
 /** Set once Stable volume has been made the standard on this device — the same move. */
 const STABLE_STANDARD_KEY = 'jukebox:stable-volume-standard'
+/** Set once the 2026-09-27 library defaults have been adopted on this device. */
+const LIBRARY_STANDARD_KEY = 'jukebox:library-standard-2026-09-27'
 /** The single-purpose key `playerStore` used before this store existed. */
 const LEGACY_CRACKLE_KEY = 'unisim-jukebox-crackle'
 
@@ -392,6 +398,16 @@ function read(): Settings {
   // anyone who has used the app. Unticked afterwards, it stays off.
   if (adoptOnce(STABLE_STANDARD_KEY)) {
     settings.stableVolume = true
+    persist(settings)
+  }
+  // The same once-only move for the library's new standard look: every blob
+  // already holds the old defaults, chosen or not. Changed afterwards, it stays.
+  if (adoptOnce(LIBRARY_STANDARD_KEY)) {
+    settings.homeTab = DEFAULTS.homeTab
+    settings.libraryOrder = { ...DEFAULTS.libraryOrder }
+    settings.libraryColumns = { ...DEFAULTS.libraryColumns }
+    settings.fullAlbumsOnly = DEFAULTS.fullAlbumsOnly
+    settings.artistsMin3 = DEFAULTS.artistsMin3
     persist(settings)
   }
   return settings
@@ -459,8 +475,8 @@ function readStored(): Settings {
     lyricsAroundStyle: LYRICS_AROUND_STYLES.includes(stored.lyricsAroundStyle as LyricsAroundStyle)
       ? (stored.lyricsAroundStyle as LyricsAroundStyle)
       : 'arc',
-    fullAlbumsOnly: stored.fullAlbumsOnly === true,
-    artistsMin3: stored.artistsMin3 === true,
+    fullAlbumsOnly: typeof stored.fullAlbumsOnly === 'boolean' ? stored.fullAlbumsOnly : DEFAULTS.fullAlbumsOnly,
+    artistsMin3: typeof stored.artistsMin3 === 'boolean' ? stored.artistsMin3 : DEFAULTS.artistsMin3,
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
       : [],

@@ -7,7 +7,8 @@ import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/na
 import { hasMusicLibrary } from '../../lib/appleMusic'
 import { hasNativeImporter } from '../../lib/nativeImport'
 import { useWhenPanelHides } from '../../lib/whenPanelHides'
-import { useCloseAppMenu } from '@unisim/sdk'
+import { PreferencesDialog, useCloseAppMenu, useUniversal } from '@unisim/sdk'
+import { useThemeStore } from '../../stores/themeStore'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
 //
@@ -68,12 +69,21 @@ export default function AppMenu() {
   const folderInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
+  /** The Advanced row, opened (it shuts with the menu, as the library row does). */
+  const [advanced, setAdvanced] = useState(false)
+  /** The SDK's own preferences dialog, when Advanced opened one. */
+  const [prefs, setPrefs] = useState<'app' | 'global' | null>(null)
+  const theme = useThemeStore((s) => s.effective)
+  const split = useUniversal().splitPreferences
   // The library row is shut again as the menu is put away: the SDK keeps this
   // component mounted while the menu is closed, so `open` would otherwise
   // outlive it. (A scroll on the menu no longer moves the page behind — the
   // SDK's own panel does that since 0.141.4; see `lib/whenPanelHides.ts`.)
   const menu = useRef<HTMLDivElement>(null)
-  useWhenPanelHides(menu, () => setOpen(false))
+  useWhenPanelHides(menu, () => {
+    setOpen(false)
+    setAdvanced(false)
+  })
 
   const hasLibrary = status === 'ready'
   // Where adding tracks means copying them into a folder of the app's own —
@@ -198,8 +208,51 @@ export default function AppMenu() {
         </>
       )}
 
-      <Row onClick={() => navigate({ view: 'settings' })}>Settings…</Row>
-      <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
+      {/* ⚠️ ONE "TUNE THIS APP" (James, 2026-09-27: "Combine settings and
+          tune this app (called tune this app for both), have the sub menu of
+          'Advanced' to house About jukebox, tune this app / global"). It is
+          Jukebox's own Settings page, under the SDK's name for it; the SDK's
+          row is switched off on the navbar (`showAppPreferences={false}`), and
+          its two dialogs — this app's language and colour, and Global Tuning —
+          open from Advanced with About. */}
+      <Row onClick={() => navigate({ view: 'settings' })}>Tune this app…</Row>
+      <button
+        type="button"
+        aria-expanded={advanced}
+        onClick={() => setAdvanced(!advanced)}
+        className="flex w-full items-center gap-3 px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        <span className="flex-1">Advanced</span>
+        <svg
+          viewBox="0 0 20 20"
+          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform dark:text-slate-500 ${advanced ? 'rotate-180' : ''}`}
+          fill="currentColor"
+          aria-hidden
+        >
+          <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.58l3.3-3.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.42Z" />
+        </svg>
+      </button>
+      {advanced && (
+        <div className="mb-1 ml-3 border-l border-slate-200 pl-1 dark:border-slate-700">
+          <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
+          <Row onClick={() => setPrefs('app')} title="This app’s language and colour scheme">
+            Tune this app — language &amp; colour…
+          </Row>
+          <Row onClick={() => setPrefs('global')} title="Language and colour scheme for every UNI·SIM app">
+            Global Tuning…
+          </Row>
+        </div>
+      )}
+      <PreferencesDialog
+        kind="app"
+        open={prefs === 'app'}
+        onClose={() => setPrefs(null)}
+        theme={theme}
+        themeStore={useThemeStore}
+        appName="Universal Jukebox"
+        combined={!split}
+      />
+      <PreferencesDialog kind="global" open={prefs === 'global'} onClose={() => setPrefs(null)} theme={theme} themeStore={useThemeStore} appName="Universal Jukebox" />
 
       {/* ⚠️ Always mounted, even when the picker path is the one in use: this is
           also the fallback if `showDirectoryPicker` throws — an iframe, a

@@ -759,10 +759,26 @@ export function seek(seconds: number): void {
  */
 let userVolume = 1
 
+/**
+ * The sleep timer's share of the volume (`stores/sleepStore`): 1, until its
+ * last minute takes it down to 0. A factor of its own, so the fade never
+ * touches the slider, the fades or a crossfade's envelopes, and ending it
+ * puts everything back exactly as it was.
+ */
+let sleepFactor = 1
+
+export function setSleepGain(gain: number): void {
+  const next = Math.max(0, Math.min(1, gain))
+  if (next === sleepFactor) return
+  sleepFactor = next
+  applyVolume(0)
+  applyVolume(1)
+}
+
 function applyVolume(index: 0 | 1): void {
   const deck = decks[index]
   if (!deck.el) return
-  deck.el.volume = Math.max(0, Math.min(1, userVolume * deck.fade * deck.level))
+  deck.el.volume = Math.max(0, Math.min(1, userVolume * deck.fade * deck.level * sleepFactor))
 }
 
 function setFade(index: 0 | 1, value: number): void {

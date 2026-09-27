@@ -267,7 +267,9 @@ export default function App() {
   const columns = allColumns[listTab]
   /** Anything in this list's options changed from its usual — the dot on the icon. */
   const optionsActive =
-    order.kind === 'random' || (listTab === 'albums' && fullAlbumsOnly) || (listTab === 'artists' && artistsMin3) || columns !== DEFAULTS.libraryColumns[listTab]
+    order.kind !== DEFAULTS.libraryOrder[listTab] ||
+    (listTab === 'albums' && fullAlbumsOnly !== DEFAULTS.fullAlbumsOnly) ||
+    (listTab === 'artists' && artistsMin3 !== DEFAULTS.artistsMin3) || columns !== DEFAULTS.libraryColumns[listTab]
 
   useEffect(() => {
     const nav = tabsNav.current
@@ -417,6 +419,10 @@ export default function App() {
         // App preferences' Colour scheme row: this app's override of the
         // Global preference. The same store as Settings ▸ Appearance.
         themeStore={useThemeStore}
+        // Jukebox's own "Tune this app…" row and its Advanced submenu stand in
+        // for the SDK's (`AppMenu`, 2026-09-27).
+        showAppPreferences={false}
+        showGlobalPreferences={false}
         suiteSwitcherIconSrc={`${import.meta.env.BASE_URL}unisim-icon.png`}
       />
 
@@ -558,12 +564,11 @@ export default function App() {
                   tab, and not during a search, when the list is not the
                   library. */}
               {!query.trim() && view !== 'jukebox' && <ShuffleLibrary view={listTab} />}
+              {/* Said to a screen reader only: the tab's orange pop is the
+                  whole of it on screen (James, 2026-09-27: "remove the
+                  confirmation text 'library opens on'"). */}
               {homeFlash && (
-                <p
-                  key={homeFlash.n}
-                  aria-live="polite"
-                  className="pointer-events-none absolute top-full left-1 mt-0.5 text-[12px] font-medium text-orange-700 dark:text-orange-400"
-                >
+                <p key={homeFlash.n} aria-live="polite" className="sr-only">
                   The library now opens on {TABS.find((t) => t.view === homeFlash.view)?.label}
                 </p>
               )}

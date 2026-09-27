@@ -215,8 +215,8 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               <PlayGlyph />
               Play
             </button>
-            {/* Just the icons for Shuffle and Add to queue (James, 2026-09-26:
-                "have less words for these shortcuts"). */}
+            {/* Just the icons after Play (James, 2026-09-26: "have less words
+                for these shortcuts"). */}
             <button
               type="button"
               onClick={shuffleAlbum}
@@ -227,8 +227,10 @@ export default function AlbumView({ albumId }: { albumId: string }) {
             >
               <ShuffleGlyph />
             </button>
-            <AddToQueue tracks={tracks} compact />
-            <AddToShelf tracks={tracks} variant="pill" />
+            <AddToQueue tracks={tracks} variant="round" />
+            {/* Icons too since 2026-09-27 ("replace the buttons with just the
+                symbols for add to shelf and find"). */}
+            <AddToShelf tracks={tracks} variant="round" />
             {/* ⚠️ Only worth a button on a record long enough to lose a track
                 in. Under `FIND_FROM` tracks the whole list is on the screen
                 already and a Find button is a control that finds what you are
@@ -238,10 +240,10 @@ export default function AlbumView({ albumId }: { albumId: string }) {
                 type="button"
                 onClick={() => search.current?.open()}
                 aria-label={`Search ${album.title}`}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+                title="Find a song on this record"
+                className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full border border-slate-300 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
               >
                 <FindGlyph />
-                Find
               </button>
             )}
           </div>

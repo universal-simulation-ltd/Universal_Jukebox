@@ -4,6 +4,7 @@ import AddToShelf from './AddToShelf'
 import { ModeButton } from './ModeButton'
 import OutputButton from './OutputButton'
 import KeepAwakeButton from './KeepAwakeButton'
+import SleepButton from './SleepButton'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
 
 // The row of round buttons under the records waiting to go on: shuffle and the
@@ -64,6 +65,8 @@ export default function PlayModes() {
           to without the phone locking (James, 2026-09-16). */}
       <div role="group" aria-label="Screen" className="flex gap-x-1 sm:gap-x-5">
         <KeepAwakeButton />
+        {/* The sleep timer (2026-09-27): about the evening, beside the screen. */}
+        <SleepButton />
       </div>
     </div>
   )

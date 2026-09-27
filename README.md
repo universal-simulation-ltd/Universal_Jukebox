@@ -826,6 +826,8 @@ picture you can pick for it, and is ticked off when it turns up in your library.
   album with an artist given has to match that artist too. You can tick or
   untick one by hand. One you untick stays unticked, so a wrong match can't
   keep ticking itself again. A ticked request is shaded out.
+- **Drawn as what it is.** An artist is a fan of sleeves (their picture in
+  front of two plain ones), an album is one square sleeve, a song is a 45.
 - **Song, Album or Artist.** A new request starts on Artist. Double-tap one of
   the three to start there every time, as with the library tabs.
 - **Find a picture** sends what you typed to `itunes.apple.com/search`, straight
@@ -838,6 +840,16 @@ picture you can pick for it, and is ticked off when it turns up in your library.
   artists, so an artist request offers their album covers instead.
 - Kept in `localStorage` (`jukebox:requests`), up to 200. When the list is full,
   the oldest ticked requests go first.
+
+## Sleep timer
+
+**Sleep**, in the row of round buttons on Now Playing: a tap steps 15, 30, 45,
+60 minutes, then off; a hold opens a picker for any time up to 12 hours. The
+music fades over the last minute, then pauses (`lib/sleep.ts`,
+`stores/sleepStore.ts`). The fade is a factor of its own in `lib/audio.ts`, so
+it never touches the volume slider or a crossfade. ⚠️ It checks itself on the
+player's `timeupdate` as well as on a timer, because a locked phone suspends
+the timer and a sleep timer is used with the screen off.
 
 ## About this track
 

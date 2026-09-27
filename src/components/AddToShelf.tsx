@@ -4,6 +4,8 @@ import { NAME_MAX, NEW_SHELF, shelfName } from '../lib/shelves'
 import { useShelvesStore } from '../stores/shelvesStore'
 import type { Track } from '../lib/types'
 import { ModeButton } from './ModeButton'
+import { DoneBubble, TickGlyph } from './DoneBubble'
+import { useDone } from '../lib/useDone'
 
 // Put songs on a Jukebox shelf from anywhere (James, 2026-09-11: the Jukebox
 // tab's extras — "yes"): a song's row, an album's or artist's page, the song on
@@ -23,40 +25,83 @@ import { ModeButton } from './ModeButton'
 // keeps the positional "Shelf N" the rest of the app falls back to — the point
 // is to offer the name, not to stand between the song and the shelf.
 
-export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'pill' | 'icon' | 'mode' }) {
+/** The shelves that hold every one of these songs. */
+function shelvesHolding(ids: readonly string[]): Set<string> {
+  return new Set(
+    useShelvesStore
+      .getState()
+      .shelves.filter((s) => ids.every((id) => s.trackIds.includes(id)))
+      .map((s) => s.id),
+  )
+}
+
+/**
+ * `pill`: an icon and words (the artist page). `round`: the icon alone, the
+ * size of the pills beside it (the album page, 2026-09-27). `icon`: a small one
+ * in a song's row. `mode`: Now Playing's row of round buttons.
+ */
+export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'pill' | 'round' | 'icon' | 'mode' }) {
   const [open, setOpen] = useState(false)
+  // The shelves that already held them when the sheet opened — so closing it
+  // can tell whether it put them somewhere new ("Added to shelf", 2026-09-27).
+  const [before, setBefore] = useState<Set<string>>(new Set())
+  const { said, say } = useDone()
   if (tracks.length === 0) return null
   const one = tracks.length === 1 ? tracks[0] : null
   const label = one ? `Add “${one.title}” to a shelf` : `Add ${plural(tracks.length, 'song')} to a shelf`
+  const done = said !== null
+  const show = () => {
+    setBefore(shelvesHolding(tracks.map((t) => t.id)))
+    setOpen(true)
+  }
+  const close = () => {
+    setOpen(false)
+    const now = shelvesHolding(tracks.map((t) => t.id))
+    if ([...now].some((id) => !before.has(id))) say('Added to shelf')
+  }
+  const glyph = done ? <TickGlyph className="h-4 w-4" /> : <ShelfGlyph />
   return (
-    <>
+    <span className="relative inline-flex shrink-0">
       {variant === 'mode' ? (
         // In the row of round buttons on Now Playing (`PlayModes`).
-        <ModeButton label="Add to shelf" ariaLabel={label} onClick={() => setOpen(true)}>
-          <ShelfGlyph />
+        <ModeButton label={done ? 'Added to shelf' : 'Add to shelf'} ariaLabel={label} onClick={show}>
+          {glyph}
         </ModeButton>
-      ) : variant === 'pill' ? (
+      ) : variant === 'pill' || variant === 'round' ? (
         <button
           type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+          onClick={show}
+          aria-label={variant === 'round' ? label : undefined}
+          title={variant === 'round' ? 'Add to shelf' : undefined}
+          className={`inline-flex items-center rounded-full border text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] ${
+            variant === 'round' ? 'h-[38px] w-[38px] justify-center' : 'gap-2 px-5 py-2'
+          } ${
+            done
+              ? 'border-emerald-600 bg-emerald-600 text-white'
+              : 'border-slate-300 text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400'
+          }`}
         >
-          <ShelfGlyph />
-          Add to shelf
+          {glyph}
+          {variant === 'pill' && <span aria-live="polite">{said ?? 'Add to shelf'}</span>}
         </button>
       ) : (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={show}
           aria-label={label}
           title={label}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-orange-400"
+          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] ${
+            done
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-slate-400 hover:bg-slate-100 hover:text-orange-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-orange-400'
+          }`}
         >
-          <ShelfGlyph />
+          {glyph}
         </button>
       )}
-      {open && <ShelfSheet tracks={tracks} title={one ? one.title : plural(tracks.length, 'song')} onClose={() => setOpen(false)} />}
-    </>
+      {variant !== 'pill' && <DoneBubble text={said} align={variant === 'icon' ? 'end' : 'center'} />}
+      {open && <ShelfSheet tracks={tracks} title={one ? one.title : plural(tracks.length, 'song')} onClose={close} />}
+    </span>
   )
 }
 
