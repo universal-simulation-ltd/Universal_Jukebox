@@ -42,9 +42,12 @@ export default function About() {
           <strong className="font-semibold text-slate-900 dark:text-slate-100">
             Nothing is uploaded.
           </strong>{' '}
-          Not a track, not a cover, not a filename. The reading happens in this tab, on your
-          machine, and the app has no server to send anything to even if it wanted one. That
-          is also why there is no account: there is nothing to have an account for.
+          Not a track, not a cover, not a filename. The reading happens on your own device.
+          Three lookups are the only exceptions, and each waits until you turn it on or tap
+          it: lyrics, About this track and Find a picture send a song’s artist and title,
+          never the music. There is nothing to sign up for. Signing in with a Universal ID is
+          optional: it keeps you signed in across the UNI·SIM apps and tells us the app was
+          opened, and it never sees your music.
         </p>
         <p>
           It is <strong className="font-semibold text-slate-900 dark:text-slate-100">not</strong>{' '}

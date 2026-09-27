@@ -4,20 +4,27 @@
 reads the tags and the embedded album art out of your own files, builds a
 library you can browse, and plays it — with lock-screen and media-key controls.
 
-Nothing is uploaded. There is no account. **It is not a streaming service and
+Nothing is uploaded, and no account is needed. **It is not a streaming service and
 has no catalogue of its own** — it plays files you already have, and it cannot
 reach music that is anywhere else.
 
-> **Three qualifications, none of which does anything until you ask.** The
+> **Three lookups, none of which does anything until you ask.** The
 > lyrics lookup asks lrclib.net for the words to a track whose own tags carry
 > none, sending that track's artist, title, album and length. **About this
 > track** asks Wikipedia about the song and the artist, sending the song's title
 > and the artist's name. Both are off until you turn them on. **Find a picture**,
 > on a request, sends the words you typed to Apple's iTunes Search, and only
 > when you tap it. Nothing else goes with any of them, no audio ever leaves the
-> device, and they are the only features in the app that open a connection. See
-> [Lyrics](#lyrics), [About this track](#about-this-track) and
+> device, and they are the only features that send anything about your music.
+> See [Lyrics](#lyrics), [About this track](#about-this-track) and
 > [Requests](#requests).
+>
+> **Signing in is optional.** The suite's Universal ID sign-in (from
+> `@unisim/sdk`) keeps you signed in across the UNI·SIM apps. While signed in,
+> the app records one "opened" event per launch against the account. Neither
+> knows anything about the music. The iOS privacy manifest
+> (`ios/App/App/PrivacyInfo.xcprivacy`) declares exactly this, and the store
+> privacy answers must match it.
 
 Live at **<https://opensource.unisim.co.uk/jukebox>**.
 

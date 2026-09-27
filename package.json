@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
-  "description": "Universal Jukebox — a player for the music already on your device. Point it at a folder and it reads the tags and the embedded album art out of your own files, builds a library, and plays it. Nothing is uploaded and there is no account.",
+  "description": "Universal Jukebox — a player for the music already on your device. Point it at a folder and it reads the tags and the embedded album art out of your own files, builds a library, and plays it. Nothing is uploaded and no account is needed.",
   "author": {
     "name": "Universal Simulation Ltd",
     "email": "inbox@unisim.co.uk"
