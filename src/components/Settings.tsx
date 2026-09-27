@@ -1,4 +1,3 @@
-import { TRIM_MAX, TRIM_MIN, formatTrim } from '../lib/volumeTrim'
 import { useEffect, useState } from 'react'
 import { useGlobalPreferences } from '@unisim/sdk'
 import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
@@ -287,22 +286,6 @@ export default function Settings() {
             checked={!s.stableVolume}
             onChange={(v) => s.set('stableVolume', !v)}
           />
-          {/* Not in the iPhone app, which can't turn its own audio down —
-              see `VolumeTrim`. */}
-          {!boostBroken && <Slider
-            label="Volume"
-            hint={
-              boostBroken
-                ? 'From −50 to 0, under your device’s own volume — for songs that are loud even on its lowest step. Also on Now Playing, under the records. Every 10 down halves it.'
-                : 'From −50 to +50, like VLC — under your device’s own volume, for songs that are loud even on its lowest step, and up to 150% above it. Also on Now Playing, under the records. Every 10 down halves it.'
-            }
-            value={Math.min(s.volumeTrim, boostBroken ? 0 : TRIM_MAX)}
-            min={TRIM_MIN}
-            max={boostBroken ? 0 : TRIM_MAX}
-            step={1}
-            format={formatTrim}
-            onChange={(v) => s.set('volumeTrim', v)}
-          />}
           <Slider
             label="Volume boost"
             hint="Extra gain on top of the volume slider, for quietly-mastered albums. Above about 2× a loud record will start to distort — that is the recording clipping, not a fault."

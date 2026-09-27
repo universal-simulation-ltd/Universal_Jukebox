@@ -1,4 +1,3 @@
-import { TRIM_MAX, TRIM_MIN } from '../lib/volumeTrim'
 import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
 import { create } from 'zustand'
 import { perTab } from '../lib/perTab'
@@ -179,8 +178,6 @@ export interface Settings {
    * cost (see `lib/audioGraph.ts`), so it happens ONLY when this is above 1.
    */
   volumeBoost: number
-  /** The "−50 to +50" volume — see `lib/volumeTrim.ts`. 0 leaves it alone. */
-  volumeTrim: number
   /** Seconds of fade at the start of a track. 0 = straight in. */
   fadeInSec: number
   /** Seconds of fade before the end of a track. 0 = straight out. */
@@ -292,7 +289,6 @@ export const DEFAULTS: Settings = {
   needleDrop: true,
   needleDropLevel: 1,
   volumeBoost: 1,
-  volumeTrim: 0,
   fadeInSec: 0,
   fadeOutSec: 0,
   lyricsOnline: false,
@@ -465,7 +461,6 @@ function readStored(): Settings {
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
-    volumeTrim: clamp(stored.volumeTrim, TRIM_MIN, TRIM_MAX, DEFAULTS.volumeTrim),
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
     fadeOutSec: clamp(stored.fadeOutSec, 0, MAX_FADE_SEC, DEFAULTS.fadeOutSec),
     // ⚠️ `=== true`, not a truthy read. A stored value of anything other than
@@ -572,7 +567,6 @@ function persist(state: Settings) {
     needleDrop: state.needleDrop,
     needleDropLevel: state.needleDropLevel,
     volumeBoost: state.volumeBoost,
-    volumeTrim: state.volumeTrim,
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
     lyricsOnline: state.lyricsOnline,

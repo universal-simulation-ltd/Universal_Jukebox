@@ -841,19 +841,6 @@ picture you can pick for it, and is ticked off when it turns up in your library.
 - Kept in `localStorage` (`jukebox:requests`), up to 200. When the list is full,
   the oldest ticked requests go first.
 
-## Volume, −50 to +50
-
-Under the round buttons on Now Playing, and in Tune this app, like VLC's. 0 leaves
-it alone. The minus side goes UNDER the device's own volume, in decibels (every
-10 halves it; −50 is −30 dB), for songs that are loud even on a phone's lowest
-step. The plus side is up to 150% through the audio graph (`lib/volumeTrim.ts`).
-
-⚠️ **Not in the iPhone app.** There the page's audio takes a `volume` and plays
-no quieter for it (heard on the phone, 2026-09-27), and the graph would stop
-background play. Setting the PHONE's volume finer than its buttons was tried
-the same day (`MPVolumeView`) and taken out: iOS rounds it to the sixteen
-button steps, so below one notch it simply mutes.
-
 ## Sleep timer
 
 **Sleep**, in the row of round buttons on Now Playing: a tap steps 15, 30, 45,

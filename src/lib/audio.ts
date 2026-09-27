@@ -775,24 +775,10 @@ export function setSleepGain(gain: number): void {
   applyVolume(1)
 }
 
-/**
- * The "−50 to +50" volume's minus side (`lib/volumeTrim.ts`) — a factor of its
- * own for the same reason as `sleepFactor`. Its plus side is the graph's boost.
- */
-let trimFactor = 1
-
-export function setTrimGain(gain: number): void {
-  const next = Math.max(0, Math.min(1, gain))
-  if (next === trimFactor) return
-  trimFactor = next
-  applyVolume(0)
-  applyVolume(1)
-}
-
 function applyVolume(index: 0 | 1): void {
   const deck = decks[index]
   if (!deck.el) return
-  deck.el.volume = Math.max(0, Math.min(1, userVolume * deck.fade * deck.level * sleepFactor * trimFactor))
+  deck.el.volume = Math.max(0, Math.min(1, userVolume * deck.fade * deck.level * sleepFactor))
 }
 
 function setFade(index: 0 | 1, value: number): void {
