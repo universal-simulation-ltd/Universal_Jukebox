@@ -7,7 +7,8 @@ import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/na
 import { hasMusicLibrary } from '../../lib/appleMusic'
 import { hasNativeImporter } from '../../lib/nativeImport'
 import { useWhenPanelHides } from '../../lib/whenPanelHides'
-import { MENU, PreferencesDialog, useCloseAppMenu, useUniversal, type MenuTheme } from '@unisim/sdk'
+import { KnowledgeBaseDialog, MENU, PreferencesDialog, useCloseAppMenu, useUniversal, type MenuTheme } from '@unisim/sdk'
+import { KNOWLEDGE_BASE } from '../../knowledge'
 import { useThemeStore } from '../../stores/themeStore'
 
 // The app's own rows, folded into the navbar's right-hand profile pill.
@@ -73,6 +74,8 @@ export default function AppMenu() {
   const [advanced, setAdvanced] = useState(false)
   /** The SDK's own preferences dialog, when Advanced opened one. */
   const [prefs, setPrefs] = useState<'app' | 'global' | null>(null)
+  /** The knowledge base (SDK 0.163.0), when Advanced opened it. */
+  const [kb, setKb] = useState(false)
   const theme = useThemeStore((s) => s.effective)
   const split = useUniversal().splitPreferences
   // The library row is shut again as the menu is put away: the SDK keeps this
@@ -243,6 +246,14 @@ export default function AppMenu() {
           <Row onClick={() => setPrefs('global')} title="Language and colour scheme for every UNI·SIM app">
             Global Tuning…
           </Row>
+          {/* The suite's knowledge base lives in Advanced (James, 2026-09-27:
+              "more discreet e.g. in advanced in the actions pill"). Jukebox
+              hand-rolls this section, so it mounts the SDK's dialog itself
+              rather than taking the navbar's `knowledgeBase`, which would draw
+              a second Advanced. */}
+          <Row onClick={() => setKb(true)} title="How music files, lyrics and background play work">
+            Knowledge base…
+          </Row>
         </div>
       )}
       <PreferencesDialog
@@ -256,6 +267,7 @@ export default function AppMenu() {
       >
         <AboutRow theme={theme} />
       </PreferencesDialog>
+      <KnowledgeBaseDialog {...KNOWLEDGE_BASE} open={kb} onClose={() => setKb(false)} theme={theme} />
       <PreferencesDialog kind="global" open={prefs === 'global'} onClose={() => setPrefs(null)} theme={theme} themeStore={useThemeStore} appName="Universal Jukebox" />
 
       {/* ⚠️ Always mounted, even when the picker path is the one in use: this is
