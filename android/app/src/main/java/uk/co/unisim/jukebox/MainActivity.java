@@ -15,6 +15,9 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NotifyPlugin.class);
         // "Keep awake" on Now Playing — see KeepAwakePlugin.
         registerPlugin(KeepAwakePlugin.class);
+        // Background play, lock-screen and notification controls, audio
+        // focus — see NowPlayingPlugin and MediaPlaybackService.
+        registerPlugin(NowPlayingPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

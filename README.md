@@ -408,6 +408,33 @@ runs, and the result is a white screen that Xcode reports as BUILD SUCCEEDED.
 `scripts/verify-mobile-bundle.mjs` (which `cap:sync` runs) fails loudly if the
 wrong one was copied. This has shipped for real elsewhere in the suite.
 
+**Store releases** (1.0.0, 2026-09-27): the version lives in `package.json`
+only. `npm run sync:ios-version` stamps it into Xcode (build number
+major×10000 + minor×100 + patch), and Android's `build.gradle` reads it
+itself. `npm run android:release` builds the Play bundle signed with Universal
+PDF's upload key, as every suite app on Play must (see the script's header).
+
+### ⚠️ Android: background play is a foreground service, and it must not take audio focus
+
+Until 2026-09-27 the Android app had no media session and no foreground
+service: no lock-screen or notification controls, no Bluetooth buttons, and
+nothing keeping the process alive once the screen went off.
+`MediaPlaybackService` (driven by `NowPlayingPlugin`, which registers as
+`JukeboxNowPlaying` with the iOS plugin's methods so `lib/nowPlayingNative.ts`
+drives both) fixes that. It plays nothing: the sound is still the page's
+`<audio>`. The service is a `mediaPlayback` foreground service that keeps the
+process alive, plus a MediaSession whose buttons reach the page as `command`s.
+
+- **It never requests audio focus.** The WebView already holds focus for its
+  `<audio>` and pauses on losing it, which covers calls and other music apps.
+  The first build took focus itself, and the WebView paused every song 2 ms
+  after it started.
+- **It is started in the app and stays up** through pauses and track changes,
+  until the queue ends or the app is swiped away. Android 12+ refuses to start
+  a foreground service from the background.
+- **The Play Console needs the `mediaPlayback` foreground-service
+  declaration** (App content) before a release.
+
 ⚠️ **Android needs a JDK Gradle accepts** — Android Studio's bundled JBR 21. A
 system JDK 25 fails the Gradle sync with a bare `Unsupported class file major
 version 69`.

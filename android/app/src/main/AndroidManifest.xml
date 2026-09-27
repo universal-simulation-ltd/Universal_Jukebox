@@ -24,6 +24,14 @@
 
         </activity>
 
+        <!-- Background play and the controls outside the app — see
+             MediaPlaybackService. It plays nothing itself; it keeps the process
+             (and so the WebView's <audio>) alive with the screen off. -->
+        <service
+            android:name=".MediaPlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -41,4 +49,8 @@
     <!-- A notification for each new song (NotifyPlugin) — asked for from the
          Settings switch, never at launch. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- MediaPlaybackService. ⚠️ The Play Console asks for a declaration of the
+         mediaPlayback foreground-service type (App content) before release. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 </manifest>

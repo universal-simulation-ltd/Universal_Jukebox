@@ -164,7 +164,11 @@ export function restatePlaying(): boolean {
 }
 
 export function setPlaybackState(playing: boolean): void {
-  if (!supported()) return
+  if (!supported()) {
+    // `toggle` in `dispatchAction` still needs to know.
+    wasPlaying = playing
+    return
+  }
   try {
     navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'
   } catch {
@@ -269,8 +273,12 @@ export function dispatchAction(action: string, position?: number): void {
  * Returns a teardown that clears them all again.
  */
 export function setHandlers(handlers: MediaSessionHandlers): () => void {
-  if (!supported()) return () => {}
+  // ⚠️ Kept BEFORE the support check. `dispatchAction` — the native plugin's
+  // route — runs these same handlers, and Android's WebView has no
+  // `navigator.mediaSession` at all, so returning first left every lock-screen
+  // and headset button on Android going nowhere (2026-09-27).
   current = handlers
+  if (!supported()) return () => { current = null }
   const registered = register(handlers)
   return () => {
     current = null
