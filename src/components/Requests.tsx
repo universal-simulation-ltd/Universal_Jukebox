@@ -114,9 +114,7 @@ export default function Requests() {
               </svg>
             </span>
           ) : (
-            <span
-              className={`relative block ${s.kind === 'track' ? 'rounded-full' : 'rounded-xl'} ${picked === s.id ? 'ring-4 ring-orange-500 ring-offset-2 ring-offset-sky-50 dark:ring-offset-slate-950' : ''}`}
-            >
+            <span className="relative block">
               {/* Got: shaded out, its job done. */}
               <span className={`block transition duration-300 ${s.gotAt ? 'opacity-40 grayscale' : ''}`}>
                 <RequestArt request={s} sleeve={sleeves.get(s.id)} />
