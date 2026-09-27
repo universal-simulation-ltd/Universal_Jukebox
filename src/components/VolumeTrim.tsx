@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
 import { graphUnavailable } from '../lib/audioGraph'
-import { getDeviceVolume, hasDeviceVolume, onDeviceVolume, setDeviceVolume } from '../lib/deviceVolume'
 import { TRIM_MAX, TRIM_MIN, formatTrim } from '../lib/volumeTrim'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -10,73 +8,15 @@ import { useSettingsStore } from '../stores/settingsStore'
 // offered, and the slider stops at 0.
 
 export default function VolumeTrim() {
-  // ⚠️ The iPhone app plays no quieter for the trim (James, 2026-09-27:
-  // "Turning down not working on iPhone"), so there this is the PHONE's volume,
-  // set finer than its buttons — `lib/deviceVolume.ts`.
-  if (hasDeviceVolume()) return <DeviceVolume />
+  // ⚠️ NOTHING IN THE iPHONE APP (James, 2026-09-27). Its web view takes a
+  // `volume` and plays no quieter ("Turning down not working on iPhone"), and
+  // the phone's own volume, set through MPVolumeView, is rounded by iOS to its
+  // sixteen button steps: finer than a notch, "when fine tune hits 5 it's
+  // muted". A slider that can only mute is worse than none. Turning a song
+  // down below a notch there needs the music played natively — see the
+  // backlog.
+  if (graphUnavailable()) return null
   return <Trim />
-}
-
-/** How often a drag may set the phone's volume — each set is a native round trip. */
-const SET_EVERY_MS = 80
-
-function DeviceVolume() {
-  const [volume, setVolume] = useState<number | null>(null)
-  const pending = useRef<number | null>(null)
-  const timer = useRef<number | null>(null)
-  /** Set by our own drag: the button-follower ignores the echo of it. */
-  const dragging = useRef(false)
-
-  useEffect(() => {
-    void getDeviceVolume().then((v) => { if (v !== null) setVolume(v) })
-    const stop = onDeviceVolume((v) => { if (!dragging.current) setVolume(v) })
-    return () => {
-      stop()
-      if (timer.current !== null) window.clearTimeout(timer.current)
-    }
-  }, [])
-
-  const push = (v: number) => {
-    pending.current = v
-    if (timer.current !== null) return
-    timer.current = window.setTimeout(() => {
-      timer.current = null
-      if (pending.current !== null) void setDeviceVolume(pending.current)
-      pending.current = null
-    }, SET_EVERY_MS)
-  }
-
-  if (volume === null) return null
-  const shown = Math.round(volume * 100)
-  return (
-    <div className="mx-auto mt-2 w-full max-w-sm px-4">
-      <div className="flex items-center gap-3">
-        <span className="text-[11.5px] font-medium text-slate-500 dark:text-slate-400">Volume</span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={1}
-          value={shown}
-          onPointerDown={() => { dragging.current = true }}
-          onPointerUp={() => { dragging.current = false }}
-          onPointerCancel={() => { dragging.current = false }}
-          onChange={(e) => {
-            const v = Number(e.target.value) / 100
-            setVolume(v)
-            push(v)
-          }}
-          aria-label="The phone’s volume"
-          aria-valuetext={`${shown} of 100`}
-          className="jb-scrub h-1 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 dark:bg-slate-700"
-        />
-        <span className="w-8 shrink-0 text-center text-[12.5px] font-semibold tabular-nums text-slate-600 dark:text-slate-300">{shown}</span>
-      </div>
-      <p className="mt-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
-        The phone’s own volume, finer than its buttons — one button step is about 6.
-      </p>
-    </div>
-  )
 }
 
 function Trim() {

@@ -850,10 +850,9 @@ step. The plus side is up to 150% through the audio graph (`lib/volumeTrim.ts`).
 
 ⚠️ **Not in the iPhone app.** There the page's audio takes a `volume` and plays
 no quieter for it (heard on the phone, 2026-09-27), and the graph would stop
-background play. So the iPhone's Volume slider is the PHONE's own volume, 0 to
-100, set finer than its buttons (a button step is about 6) through
-`MPVolumeView`, and it follows the buttons (`ios/App/App/DeviceVolumePlugin.swift`,
-`lib/deviceVolume.ts`).
+background play. Setting the PHONE's volume finer than its buttons was tried
+the same day (`MPVolumeView`) and taken out: iOS rounds it to the sixteen
+button steps, so below one notch it simply mutes.
 
 ## Sleep timer
 

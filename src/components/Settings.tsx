@@ -1,4 +1,3 @@
-import { hasDeviceVolume } from '../lib/deviceVolume'
 import { TRIM_MAX, TRIM_MIN, formatTrim } from '../lib/volumeTrim'
 import { useEffect, useState } from 'react'
 import { useGlobalPreferences } from '@unisim/sdk'
@@ -288,9 +287,9 @@ export default function Settings() {
             checked={!s.stableVolume}
             onChange={(v) => s.set('stableVolume', !v)}
           />
-          {/* The iPhone app can't turn its own audio down (`lib/deviceVolume.ts`);
-              its Volume is the phone's, on Now Playing. */}
-          {!hasDeviceVolume() && <Slider
+          {/* Not in the iPhone app, which can't turn its own audio down —
+              see `VolumeTrim`. */}
+          {!boostBroken && <Slider
             label="Volume"
             hint={
               boostBroken
