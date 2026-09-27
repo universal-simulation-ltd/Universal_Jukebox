@@ -7,8 +7,24 @@
 // A very long queue keeps a window around where you were: localStorage is small,
 // and nobody resumes track 4,000 of a shuffled library from track 12.
 
+// ⚠️ TWO KEYS, and the split is the point (2026-09-27). This used to be one
+// blob — up to 4,000 ids, ~480 KB — rewritten every five seconds of playback,
+// which is ~350 MB an hour through WebKit's localStorage and left a 164 MB
+// write-ahead log on iPhone JPM. The queue only changes when the queue (or a
+// long queue's window) does, so it has a key of its own that is written only
+// then; what changes every five seconds is a few bytes of position.
 const KEY = 'jukebox:session'
+const QUEUE_KEY = 'jukebox:session-queue'
 export const MAX_IDS = 4000
+
+/** The queue last written, so an unchanged one is not written again. */
+let lastQueue: readonly string[] | null = null
+
+function sameIds(a: readonly string[] | null, b: readonly string[]): boolean {
+  if (!a || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+  return true
+}
 
 export interface SavedSession {
   ids: string[]
@@ -31,25 +47,35 @@ export function windowAround(ids: readonly string[], cursor: number, max = MAX_I
 export function saveSession(ids: readonly string[], cursor: number, sec: number): void {
   if (cursor < 0 || cursor >= ids.length) return
   const kept = windowAround(ids, cursor)
-  const saved: SavedSession = {
-    ids: kept.ids,
-    cursor: kept.cursor,
-    trackId: kept.ids[kept.cursor],
-    sec: Math.max(0, Math.floor(sec)),
-    at: Date.now(),
-  }
   try {
-    localStorage.setItem(KEY, JSON.stringify(saved))
+    if (!sameIds(lastQueue, kept.ids)) {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(kept.ids))
+      lastQueue = kept.ids
+    }
+    const position = {
+      cursor: kept.cursor,
+      trackId: kept.ids[kept.cursor],
+      sec: Math.max(0, Math.floor(sec)),
+      at: Date.now(),
+    }
+    localStorage.setItem(KEY, JSON.stringify(position))
   } catch { /* storage full or off — nothing to resume next time */ }
 }
 
 export function readSession(): SavedSession | null {
   try {
-    const parsed = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<SavedSession> | null
-    if (!parsed || !Array.isArray(parsed.ids) || typeof parsed.trackId !== 'string') return null
-    const cursor = typeof parsed.cursor === 'number' ? parsed.cursor : parsed.ids.indexOf(parsed.trackId)
+    const parsed = JSON.parse(localStorage.getItem(KEY) ?? 'null') as (Partial<SavedSession> & { ids?: unknown }) | null
+    if (!parsed || typeof parsed.trackId !== 'string') return null
+    // A session saved before the split carries its ids inline.
+    const raw: unknown = Array.isArray(parsed.ids) ? parsed.ids : JSON.parse(localStorage.getItem(QUEUE_KEY) ?? 'null')
+    if (!Array.isArray(raw)) return null
+    const ids = raw.filter((id): id is string => typeof id === 'string')
+    const cursor = typeof parsed.cursor === 'number' && ids[parsed.cursor] === parsed.trackId
+      ? parsed.cursor
+      : ids.indexOf(parsed.trackId)
+    if (cursor < 0) return null
     return {
-      ids: parsed.ids.filter((id): id is string => typeof id === 'string'),
+      ids,
       cursor,
       trackId: parsed.trackId,
       sec: typeof parsed.sec === 'number' && Number.isFinite(parsed.sec) ? parsed.sec : 0,
