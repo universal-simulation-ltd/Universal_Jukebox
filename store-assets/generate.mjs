@@ -16,7 +16,9 @@
 // device's viewport and pixel ratio, and driven like a person would drive it.
 // Anything that is not the app itself is refused.
 //
-// ⚠️ EVERYTHING ON SCREEN IS THE EXAMPLE LIBRARY. Its four artists, nine
+// ⚠️ EVERYTHING ON SCREEN IS THE EXAMPLE LIBRARY. Its "Example library"
+// banner is hidden in the captures only (James, 2026-09-27), by `hideBanner`
+// below; the app itself always shows it. Its four artists, nine
 // records, sleeves, music and lyrics are all made up and made by the app
 // (`src/lib/exampleLibrary.ts`), so no real artist, cover or lyric appears in a
 // store image — the store-listing rule that every name and face is invented.
@@ -81,6 +83,16 @@ function settings(extra = {}) {
   return { tipsSeen: ['record', 'cover'], lyricsAround: true, lyricsAroundStyle: 'orbit', ...extra }
 }
 
+/** Runs in the page before the app: keeps the example-library banner out of the captures. */
+function hideBanner() {
+  const hide = () => {
+    for (const strong of document.querySelectorAll('p > strong')) {
+      if (strong.textContent === 'Example library') strong.parentElement.style.display = 'none'
+    }
+  }
+  new MutationObserver(hide).observe(document, { childList: true, subtree: true })
+}
+
 const CAPTURES = {
   // Now Playing on the turntable, the words turning round the record.
   'now-vinyl': {
@@ -95,6 +107,14 @@ const CAPTURES = {
     settings: settings({ deck: 'cassette' }),
     async run(page) {
       await play(page, 'Surface Noise', 'Crackle')
+      await page.waitForTimeout(15000)
+      await top(page)
+    },
+  },
+  'now-cd': {
+    settings: settings({ deck: 'cd' }),
+    async run(page) {
+      await play(page, 'Sides A and B', 'The Long Way Round')
       await page.waitForTimeout(15000)
       await top(page)
     },
@@ -198,6 +218,7 @@ for (const dev of devices) {
     await ctx.addInitScript((blob) => {
       localStorage.setItem('unisim-jukebox-settings', JSON.stringify(blob))
     }, capture.settings)
+    await ctx.addInitScript(hideBanner)
     const page = await ctx.newPage()
     const errors = []
     page.on('pageerror', (e) => errors.push(String(e)))

@@ -54,10 +54,10 @@
       "out/en-GB/android/02-hero.png",
       "out/en-GB/android/03-lyrics.png",
       "out/en-GB/android/04-decks.png",
-      "out/en-GB/android/05-library.png",
-      "out/en-GB/android/06-tracks.png",
-      "out/en-GB/android/07-shelves.png",
-      "out/en-GB/android/08-tune.png"
+      "out/en-GB/android/05-cd.png",
+      "out/en-GB/android/06-library.png",
+      "out/en-GB/android/07-tracks.png",
+      "out/en-GB/android/09-tune.png"
     ]
   }
 }
