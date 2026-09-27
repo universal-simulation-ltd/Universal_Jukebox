@@ -815,7 +815,7 @@ should be. The FLAC and v2.4 fixtures both carry one, next to the real field.
 
 ## Requests
 
-The bottom of the **Jukebox** tab is a shelf of **requests**: a reminder of a
+The bottom of the **Jukebox** tab is a tinted panel with a steel rail, a shelf of **requests**: a reminder of a
 song, an album or an artist you mean to get. Each stands as a record, in a
 picture you can pick for it, and is ticked off when it turns up in your library.
 
@@ -825,9 +825,14 @@ picture you can pick for it, and is ticked off when it turns up in your library.
   like "(2019 Mix)", a leading "The" and "&"/"and" don't matter. A song or
   album with an artist given has to match that artist too. You can tick or
   untick one by hand. One you untick stays unticked, so a wrong match can't
-  keep ticking itself again.
+  keep ticking itself again. A ticked request is shaded out.
+- **Song, Album or Artist.** A new request starts on Artist. Double-tap one of
+  the three to start there every time, as with the library tabs.
 - **Find a picture** sends what you typed to `itunes.apple.com/search`, straight
-  from the browser. It needs no key and there is no server of ours in between.
+  from the device. It needs no key and there is no server of ours in between.
+  ⚠️ Apple answers an iPhone's browser with a redirect to `musics://` (the Music
+  app), which no page can follow. So the iOS app asks through Capacitor's
+  native HTTP instead, and Safari on an iPhone says it can't search there.
   The picture you pick is downloaded once, shrunk to 240px and kept with the
   request, so drawing the shelf never goes online. iTunes has no photos of
   artists, so an artist request offers their album covers instead.

@@ -339,6 +339,8 @@ interface ShelfRowProps<T> {
    * the shelf of jazz under it is not organised at all.
    */
   heading?: string
+  /** The rail's look: wood for a shelf of records, steel for the requests (2026-09-27). */
+  rail?: 'wood' | 'steel'
 }
 
 /**
@@ -348,7 +350,7 @@ interface ShelfRowProps<T> {
  */
 const shelfMemory = new Map<string, number>()
 
-export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading }: ShelfRowProps<T>) {
+export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood' }: ShelfRowProps<T>) {
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
   const [middle, setMiddle] = useState(0)
@@ -507,7 +509,11 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
           of records that carry on to the window's edge reads as a shelf that
           has run out. A phone keeps its small margins. */}
       <div
-        className="relative mx-4 h-3 rounded-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-[0_10px_18px_-8px_rgba(0,0,0,0.5)] sm:mx-0 sm:rounded-none dark:from-amber-800 dark:to-amber-950"
+        className={`relative mx-4 h-3 rounded-sm bg-gradient-to-b shadow-[0_10px_18px_-8px_rgba(0,0,0,0.5)] sm:mx-0 sm:rounded-none ${
+          rail === 'steel'
+            ? 'from-slate-300 to-slate-500 dark:from-slate-500 dark:to-slate-700'
+            : 'from-amber-700 to-amber-900 dark:from-amber-800 dark:to-amber-950'
+        }`}
         aria-hidden
       >
         {items.length > 1 && (

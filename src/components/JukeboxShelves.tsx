@@ -44,10 +44,17 @@ export default function JukeboxShelves() {
           Your jukebox. Tap + to put a song on the shelf — each shelf plays as a playlist.
         </p>
       )}
-      {shelvesToShow(shelves).map((shelf, i) => {
-        const name = shelfName(shelf, i)
+      {shelvesToShow(shelves)
         // A song no longer in the library is left off, not shown as a blank.
-        const songs = shelf.trackIds.map((id) => byId.get(id)).filter((t): t is Track => t !== undefined)
+        .map((shelf) => ({ shelf, songs: shelf.trackIds.map((id) => byId.get(id)).filter((t): t is Track => t !== undefined) }))
+        // ⚠️ And a shelf left with NONE of its songs is not drawn, so there is
+        // only ever the one empty shelf at the end (James, 2026-09-27: "If
+        // there's two empty shelves then delete and only show one shelf"). Its
+        // songs went with a library that was cleared or re-imported under new
+        // ids. It stays stored, so it comes back if they do.
+        .filter(({ shelf, songs }) => shelf.id === NEW_SHELF || songs.length > 0)
+        .map(({ shelf, songs }, i) => {
+        const name = shelfName(shelf, i)
         return (
           <JukeboxShelfRow
             key={shelf.id}

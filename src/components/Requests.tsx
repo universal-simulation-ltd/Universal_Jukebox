@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Record45 from './Record45'
 import { ShelfRow } from './Shelf'
 import {
-  KIND_LABEL, TITLE_MAX, artBlob, findInLibrary, indexLibrary, keepArt, requestsInOrder, searchArt,
+  IPhoneBrowserError, KIND_LABEL, TITLE_MAX, artBlob, findInLibrary, indexLibrary, keepArt, requestsInOrder, searchArt,
   type ArtResult, type MusicRequest, type RequestKind,
 } from '../lib/requests'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -13,7 +13,16 @@ import type { Album } from '../lib/types'
 // The Jukebox tab's requests shelf: music to get, standing as records in the
 // picture you picked, ticked off when the library has it — the rules are
 // `lib/requests.ts` (James, 2026-09-26).
+//
+// ⚠️ IT LOOKS LIKE A WANT LIST, NOT A SHELF OF RECORDS (James, 2026-09-27:
+// "Make the request shelf look a bit different visually"): a tinted panel
+// with a steel rail instead of wood. And a request is something you DON'T
+// have, so it is drawn in full colour until it is ticked, and a ticked one is
+// shaded out ("allow them to select it and then tick it and it shades out the
+// item").
 
+/** Two taps on one kind within this long make it the default — the tabs' rule. */
+const DOUBLE_TAP_MS = 350
 const PLUS = { plus: true } as const
 type Slot = MusicRequest | typeof PLUS
 const isPlus = (slot: Slot): slot is typeof PLUS => slot === PLUS
@@ -56,9 +65,15 @@ export default function Requests() {
   const found = current ? findInLibrary(current, index) : []
 
   return (
-    <div>
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+    <section
+      aria-label="Your requests"
+      className="overflow-hidden rounded-3xl bg-sky-50/80 py-4 ring-1 ring-sky-200/80 dark:bg-sky-950/25 dark:ring-sky-900/60"
+    >
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2 px-4">
+        <p className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+          <svg viewBox="0 0 20 20" className="h-4 w-4 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M6 3.5h8a1 1 0 0 1 1 1v12l-5-3-5 3v-12a1 1 0 0 1 1-1z" />
+          </svg>
           Requests
           <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">
             {requests.length === 0 ? 'music to get' : toGet > 0 ? `${toGet} to get` : 'all got'}
@@ -86,6 +101,7 @@ export default function Requests() {
         items={slots}
         label="Requests"
         size="record"
+        rail="steel"
         verb="Choose"
         keyOf={(s) => (isPlus(s) ? 'plus' : s.id)}
         nameOf={(s) => (isPlus(s) ? 'Requests' : s.title)}
@@ -102,8 +118,8 @@ export default function Requests() {
             <span
               className={`relative block rounded-full ${picked === s.id ? 'ring-4 ring-orange-500 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950' : ''}`}
             >
-              {/* Still to get: a record not yet in the box, so a little faded. */}
-              <span className={`block transition ${s.gotAt ? '' : 'opacity-75 saturate-50'}`}>
+              {/* Got: shaded out, its job done. */}
+              <span className={`block transition duration-300 ${s.gotAt ? 'opacity-40 grayscale' : ''}`}>
                 <Record45 album={sleeves.get(s.id)} />
               </span>
               {s.gotAt && (
@@ -129,20 +145,29 @@ export default function Requests() {
               }
             : {
                 title: s.title,
-                detail: `${describe(s)} — ${s.gotAt ? 'in your library ✓' : 'still to get'}`,
+                detail: `${describe(s)} — ${s.gotAt ? 'got it ✓' : picked === s.id ? 'tick it once you have it' : 'still to get — tap to tick it off'}`,
               }
         }
       />
       {current && (
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 px-4">
+          <button
+            type="button"
+            onClick={() => setGot(current.id, !current.gotAt)}
+            aria-pressed={!!current.gotAt}
+            className={
+              current.gotAt
+                ? pill
+                : 'inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1 text-[12.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700'
+            }
+          >
+            {current.gotAt ? 'Not got yet' : '✓ Got it'}
+          </button>
           {found.length > 0 && (
             <button type="button" onClick={() => playTracks(found, 0)} className={pill}>
               ▶ Play
             </button>
           )}
-          <button type="button" onClick={() => setGot(current.id, !current.gotAt)} className={pill} aria-pressed={!!current.gotAt}>
-            {current.gotAt ? 'Not got yet' : '✓ Got it'}
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -156,14 +181,17 @@ export default function Requests() {
         </div>
       )}
       {adding && <RequestDialog onClose={() => setAdding(false)} />}
-    </div>
+    </section>
   )
 }
 
 /** Say what to get, and — if you like — find its picture. */
 function RequestDialog({ onClose }: { onClose(): void }) {
   const add = useRequestsStore((s) => s.add)
-  const [kind, setKind] = useState<RequestKind>('album')
+  const defaultKind = useRequestsStore((s) => s.defaultKind)
+  const setDefaultKind = useRequestsStore((s) => s.setDefaultKind)
+  const [kind, setKind] = useState<RequestKind>(defaultKind)
+  const lastTap = useRef<{ kind: RequestKind; at: number } | null>(null)
   const [title, setTitle] = useState('')
   const [artist, setArtist] = useState('')
   const [results, setResults] = useState<ArtResult[] | null>(null)
@@ -187,8 +215,12 @@ function RequestDialog({ onClose }: { onClose(): void }) {
     setError(null)
     try {
       setResults(await searchArt(kind, words))
-    } catch {
-      setError('The search didn’t get an answer. Check the connection and try again — or add it without a picture.')
+    } catch (e) {
+      setError(
+        e instanceof IPhoneBrowserError
+          ? 'Apple’s search sends iPhone browsers to the Music app instead of answering, so pictures can’t be found here. They can in the Jukebox app, or on an iPad or computer. You can still add it without one.'
+          : 'The search didn’t get an answer. Check the connection and try again — or add it without a picture.',
+      )
     } finally {
       setSearching(false)
     }
@@ -243,18 +275,37 @@ function RequestDialog({ onClose }: { onClose(): void }) {
                 role="radio"
                 aria-checked={kind === k}
                 onClick={() => {
+                  // A double tap makes this what a new request starts as.
+                  const now = performance.now()
+                  const last = lastTap.current
+                  lastTap.current = { kind: k, at: now }
+                  if (last && last.kind === k && now - last.at < DOUBLE_TAP_MS) {
+                    lastTap.current = null
+                    setDefaultKind(k)
+                  }
+                  if (k === kind) return
                   setKind(k)
                   setResults(null)
                   setChosen(null)
                 }}
-                className={`flex-1 rounded-full px-3 py-1 text-[13px] font-medium transition ${
-                  kind === k ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
+                title={defaultKind === k ? `${KIND_LABEL[k]} — new requests start here` : `Double-tap to start new requests on ${KIND_LABEL[k]}`}
+                className={`flex-1 touch-manipulation rounded-full px-3 py-1 text-[13px] font-medium transition ${
+                  kind === k ? 'bg-white shadow-sm dark:bg-slate-950' : ''
+                } ${
+                  defaultKind === k
+                    ? 'text-orange-700 dark:text-orange-400'
+                    : kind === k
+                      ? 'text-slate-900 dark:text-slate-100'
+                      : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
                 {KIND_LABEL[k]}
               </button>
             ))}
           </div>
+          <p className="-mt-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
+            Double-tap one to start there every time — it’s the orange one.
+          </p>
           <form
             className="space-y-2"
             onSubmit={(e) => {

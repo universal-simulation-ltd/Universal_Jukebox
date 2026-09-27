@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useLibraryStore } from './libraryStore'
 import { addToShelf, moveOnShelf, parseShelves, renameShelf, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
 
 // The Jukebox tab's shelves, kept on the device — see `lib/shelves.ts`.
@@ -56,3 +57,19 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
     persist(shelves)
   },
 }))
+
+// A shelf none of whose songs is in the library any more goes (James,
+// 2026-09-27: "If there's two empty shelves then delete and only show one
+// shelf"). Its songs went with a library that was cleared or re-imported under
+// new ids, so it can never fill again. Only once the library is READY and has
+// songs: while it loads, or with nothing in it, every shelf looks like that.
+useLibraryStore.subscribe((now, before) => {
+  if (now.status !== 'ready' || now.tracks.length === 0) return
+  if (before.status === 'ready' && now.tracks === before.tracks) return
+  const have = new Set(now.tracks.map((t) => t.id))
+  const { shelves } = useShelvesStore.getState()
+  const kept = shelves.filter((s) => s.trackIds.some((id) => have.has(id)))
+  if (kept.length === shelves.length) return
+  useShelvesStore.setState({ shelves: kept })
+  persist(kept)
+})

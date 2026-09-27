@@ -18,9 +18,20 @@
 //   1. **Nothing is sent until you tap Search**, beside a sentence saying what
 //      goes. There is no setting because there is nothing automatic: no
 //      request is ever looked up on its own.
-//   2. **Browser straight to itunes.apple.com, never through us.** Apple's
+//   2. **Device straight to itunes.apple.com, never through us.** Apple's
 //      Search API needs no key and answers any origin (CORS `*`, measured
 //      2026-09-26), and so does its artwork CDN.
+//
+//      ⚠️ BUT NOT TO AN iPHONE'S WEB VIEW (James, 2026-09-27, on the phone:
+//      "The search didn't get an answer"). Asked with an iPhone's browser user
+//      agent, itunes.apple.com answers 301 to `musics://…` — "open this in the
+//      Music app" — and `fetch` can't follow that, so every search failed.
+//      The user agent can't be changed from a page. So in the iOS app the
+//      search goes through Capacitor's native HTTP (`CapacitorHttp`, built
+//      into the bridge): URLSession's own user agent gets the JSON. Android's
+//      web view, iPad, desktop and the artwork CDN are all answered normally
+//      (checked with curl, 2026-09-27). Safari on an iPhone has no way round
+//      it, and `searchArt` says so rather than "check the connection".
 //   3. **Only what you typed.** The words in the search box — not the library,
 //      not the other requests, nothing about the device.
 //   4. **The picture is fetched once**, shrunk and kept on the device with the
@@ -252,6 +263,36 @@ export function toArtResult(item: Record<string, unknown>, kind: RequestKind): A
   }
 }
 
+/** An iPhone's web view — which Apple sends to the Music app (rule 2 at the top). */
+function iPhone(): boolean {
+  return typeof navigator !== 'undefined' && /iPhone|iPod/.test(navigator.userAgent)
+}
+
+function nativeIOS(): boolean {
+  const cap = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor
+  return cap?.isNativePlatform?.() === true && cap.getPlatform?.() === 'ios'
+}
+
+/** Safari on an iPhone, where the search can never answer. */
+export class IPhoneBrowserError extends Error {}
+
+async function getJson(url: string): Promise<unknown> {
+  if (nativeIOS()) {
+    const { CapacitorHttp } = await import('@capacitor/core')
+    const res = await CapacitorHttp.get({ url, headers: { Accept: 'application/json' }, connectTimeout: TIMEOUT_MS, readTimeout: TIMEOUT_MS })
+    if (res.status < 200 || res.status >= 300) throw new Error(`iTunes search answered ${res.status}`)
+    // iTunes calls its JSON `text/javascript`, so it may come back unparsed.
+    return typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+  }
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), referrerPolicy: 'no-referrer' })
+    if (!res.ok) throw new Error(`iTunes search answered ${res.status}`)
+    return await res.json()
+  } catch (error) {
+    throw iPhone() ? new IPhoneBrowserError('iTunes sends iPhone browsers to the Music app') : error
+  }
+}
+
 /** The store to search: the one for the device's region, or Apple's default. */
 function country(): string | null {
   try {
@@ -272,9 +313,7 @@ export async function searchArt(kind: RequestKind, words: string): Promise<ArtRe
   if (kind === 'artist') params.set('attribute', 'artistTerm')
   const where = country()
   if (where) params.set('country', where)
-  const res = await fetch(`${SEARCH}?${params}`, { signal: AbortSignal.timeout(TIMEOUT_MS), referrerPolicy: 'no-referrer' })
-  if (!res.ok) throw new Error(`iTunes search answered ${res.status}`)
-  const body = (await res.json()) as { results?: unknown[] }
+  const body = ((await getJson(`${SEARCH}?${params}`)) ?? {}) as { results?: unknown[] }
   const seen = new Set<string>()
   const out: ArtResult[] = []
   for (const item of body.results ?? []) {
