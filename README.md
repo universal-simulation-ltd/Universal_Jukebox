@@ -846,8 +846,14 @@ picture you can pick for it, and is ticked off when it turns up in your library.
 Under the round buttons on Now Playing, and in Tune this app, like VLC's. 0 leaves
 it alone. The minus side goes UNDER the device's own volume, in decibels (every
 10 halves it; −50 is −30 dB), for songs that are loud even on a phone's lowest
-step. The plus side is up to 150% through the audio graph, so it isn't offered
-in the iPhone app, where the graph would stop background play (`lib/volumeTrim.ts`).
+step. The plus side is up to 150% through the audio graph (`lib/volumeTrim.ts`).
+
+⚠️ **Not in the iPhone app.** There the page's audio takes a `volume` and plays
+no quieter for it (heard on the phone, 2026-09-27), and the graph would stop
+background play. So the iPhone's Volume slider is the PHONE's own volume, 0 to
+100, set finer than its buttons (a button step is about 6) through
+`MPVolumeView`, and it follows the buttons (`ios/App/App/DeviceVolumePlugin.swift`,
+`lib/deviceVolume.ts`).
 
 ## Sleep timer
 

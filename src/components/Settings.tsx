@@ -1,3 +1,4 @@
+import { hasDeviceVolume } from '../lib/deviceVolume'
 import { TRIM_MAX, TRIM_MIN, formatTrim } from '../lib/volumeTrim'
 import { useEffect, useState } from 'react'
 import { useGlobalPreferences } from '@unisim/sdk'
@@ -287,7 +288,9 @@ export default function Settings() {
             checked={!s.stableVolume}
             onChange={(v) => s.set('stableVolume', !v)}
           />
-          <Slider
+          {/* The iPhone app can't turn its own audio down (`lib/deviceVolume.ts`);
+              its Volume is the phone's, on Now Playing. */}
+          {!hasDeviceVolume() && <Slider
             label="Volume"
             hint={
               boostBroken
@@ -300,7 +303,7 @@ export default function Settings() {
             step={1}
             format={formatTrim}
             onChange={(v) => s.set('volumeTrim', v)}
-          />
+          />}
           <Slider
             label="Volume boost"
             hint="Extra gain on top of the volume slider, for quietly-mastered albums. Above about 2× a loud record will start to distort — that is the recording clipping, not a fault."

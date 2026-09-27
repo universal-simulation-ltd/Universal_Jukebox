@@ -61,6 +61,10 @@ const hashKey = () => location.hash || '#/'
 const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'jukebox', 'album', 'artist'])
 
 /** The library's switches: A–Z/Random, "Full albums" and the artists' "Min. 3". */
+// ⚠️ LIT ONLY WHEN CHANGED FROM THE APP'S DEFAULT, never for being "on" (James,
+// 2026-09-27: "Where the app default is min 3 on artists it shouldn't show that
+// chip as highlighted on that value (same behaviour as the others)"). Callers
+// compare with `DEFAULTS` — the same test as the dot on the options icon.
 function togglePill(active: boolean): string {
   return `rounded-full border px-3 py-1 text-[12.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
     active
@@ -597,7 +601,7 @@ export default function App() {
                   }}
                   aria-label={`${ORDER_SAID[order.kind].now}. Tap for ${ORDER_SAID[nextOrder(order).kind].next}`}
                   title={`Tap for ${ORDER_SAID[nextOrder(order).kind].next}`}
-                  className={togglePill(order.kind !== 'az')}
+                  className={togglePill(order.kind !== DEFAULTS.libraryOrder[listTab])}
                 >
                   {order.kind === 'az' ? (
                     'A–Z'
@@ -614,7 +618,7 @@ export default function App() {
                     onClick={() => setSetting('fullAlbumsOnly', !fullAlbumsOnly)}
                     aria-pressed={fullAlbumsOnly}
                     title={`Only albums with ${FULL_ALBUM_MIN} or more tracks`}
-                    className={togglePill(fullAlbumsOnly)}
+                    className={togglePill(fullAlbumsOnly !== DEFAULTS.fullAlbumsOnly)}
                   >
                     Full albums
                   </button>
@@ -625,7 +629,7 @@ export default function App() {
                     onClick={() => setSetting('artistsMin3', !artistsMin3)}
                     aria-pressed={artistsMin3}
                     title={`Only artists with ${ARTIST_MIN} or more songs`}
-                    className={togglePill(artistsMin3)}
+                    className={togglePill(artistsMin3 !== DEFAULTS.artistsMin3)}
                   >
                     Min. {ARTIST_MIN}
                   </button>
@@ -641,7 +645,7 @@ export default function App() {
                     onClick={() => setSetting('libraryColumns', { ...allColumns, tracks: columns === 'jukebox' ? 2 : 'jukebox' })}
                     aria-label={columns === 'jukebox' ? 'Jukebox. Tap for the list' : 'List. Tap for the jukebox'}
                     title="The list, or the shelf of records — tap to change"
-                    className={togglePill(columns === 'jukebox')}
+                    className={togglePill(columns !== DEFAULTS.libraryColumns[listTab])}
                   >
                     <span className="inline-flex items-center gap-1">
                       <GridGlyph />

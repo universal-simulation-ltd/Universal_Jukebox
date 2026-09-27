@@ -63,7 +63,13 @@ const SHARP_DEG = 26
  * of the way down the left (90°): a shorter blurred tail behind the singing,
  * a longer, clearer run of what is coming.
  */
-const COMING_DEG = 180
+// ⚠️ And since 2026-09-27 the words to come are only 90° out too (James:
+// "bring the fade in to … 9 o'clock instead of 6"). The words to come are on
+// the RIGHT — the ring turns anti-clockwise, and the machines' outlines run
+// clockwise from the bottom, so the same side — so a fade-in "at 9 o'clock"
+// taken literally would be where the sung words leave. It is the mirror of it:
+// in at 3 o'clock, read at 12, gone at 9.
+const COMING_DEG = 90
 const GONE_DEG = 90
 /** The blur on a word at the very edge of that. */
 const MAX_BLUR_PX = 3

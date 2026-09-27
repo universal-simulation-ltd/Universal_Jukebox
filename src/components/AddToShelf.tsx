@@ -105,7 +105,7 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
   )
 }
 
-function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title: string; onClose(): void }) {
+export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title: string; onClose(): void }) {
   const shelves = useShelvesStore((s) => s.shelves)
   const toggle = useShelvesStore((s) => s.toggle)
   const add = useShelvesStore((s) => s.add)

@@ -1,4 +1,4 @@
-import AddToQueue from './AddToQueue'
+import TrackOptions from './TrackOptions'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Cover from './Cover'
 import { coverUrl, fallbackHue } from '../lib/art'
@@ -283,7 +283,11 @@ export function TrackShelf({
     const byId = new Map(albums.map((a) => [a.id, a]))
     return (t: Track) => byId.get(t.albumId)
   }, [albums])
+  /** The song whose options are open, from a hold. */
+  const [options, setOptions] = useState<Track | null>(null)
   return (
+    <>
+    {options && <TrackOptions track={options} onPlay={() => onPlay(options)} onClose={() => setOptions(null)} />}
     <Shelves
       items={tracks}
       lead={lead}
@@ -303,25 +307,14 @@ export function TrackShelf({
           render={(t) => <Record45 album={albumOf(t)} grooves={grooveRings(t.durationSec)} />}
           artOf={albumOf}
           open={(t) => onPlay(t)}
-          caption={(t) => ({ title: t.title, detail: t.artist ?? t.albumArtist ?? 'Unknown artist' })}
-          // Play it now, or put it on the end of the queue (James,
-          // 2026-09-27: "we need a way to choose either play now or quickly add
-          // to queue"). The + shows once something is playing.
-          below={(t) => (
-            <>
-              <button
-                type="button"
-                onClick={() => onPlay(t)}
-                className="inline-flex h-[34px] items-center gap-1.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 text-[13px] font-semibold text-white shadow-sm"
-              >
-                ▶ Play now
-              </button>
-              <AddToQueue tracks={[t]} variant="round" />
-            </>
-          )}
+          // Play now or queue it from a tap and HOLD, not from buttons under
+          // the record (James, 2026-09-27) — `TrackOptions`.
+          hold={(t) => setOptions(t)}
+          caption={(t) => ({ title: t.title, detail: `${t.artist ?? t.albumArtist ?? 'Unknown artist'} — tap to play, hold for options` })}
         />
       )}
     />
+    </>
   )
 }
 
@@ -355,8 +348,14 @@ interface ShelfRowProps<T> {
    * the shelf of jazz under it is not organised at all.
    */
   heading?: string
-  /** Buttons under the caption, for the one in the middle — the songs' Play now / + (2026-09-27). */
+  /** Buttons under the caption, for the one in the middle. */
   below?(item: T): ReactNode
+  /**
+   * A tap and HOLD on any item — a song's options on the Tracks shelf (James,
+   * 2026-09-27: "remove the play and queue icons instead show options on tap
+   * and hold of the record"). The tap that ends a hold does nothing else.
+   */
+  hold?(item: T): void
   /** The rail's look: wood for a shelf of records, steel for the requests (2026-09-27). */
   rail?: 'wood' | 'steel'
 }
@@ -368,7 +367,12 @@ interface ShelfRowProps<T> {
  */
 const shelfMemory = new Map<string, number>()
 
-export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood', below }: ShelfRowProps<T>) {
+/** A press this long is a hold (`hold`) — under iOS's own long-press. */
+const HOLD_MS = 450
+/** A finger that moves further than this is swiping, not holding. */
+const HOLD_SLOP_PX = 10
+
+export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood', below, hold }: ShelfRowProps<T>) {
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
   const [middle, setMiddle] = useState(0)
@@ -431,6 +435,41 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
     const all = row.current?.querySelectorAll<HTMLElement>('[data-shelf-item]')
     all?.[i]?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', inline: 'center', block: 'nearest' })
   }
+
+  // ⚠️ A hold is a press that stays put: a finger that moves is swiping the
+  // shelf, and must never open anything. The click that ends a hold is eaten.
+  const holdTimer = useRef<number | null>(null)
+  const holdFrom = useRef<{ x: number; y: number } | null>(null)
+  const held = useRef(false)
+  const endHold = () => {
+    if (holdTimer.current !== null) window.clearTimeout(holdTimer.current)
+    holdTimer.current = null
+    holdFrom.current = null
+  }
+  useEffect(() => endHold, [])
+  const holdHandlers = (item: T) =>
+    hold
+      ? {
+          onPointerDown: (e: React.PointerEvent) => {
+            held.current = false
+            endHold()
+            holdFrom.current = { x: e.clientX, y: e.clientY }
+            holdTimer.current = window.setTimeout(() => {
+              held.current = true
+              holdTimer.current = null
+              hold(item)
+            }, HOLD_MS)
+          },
+          onPointerMove: (e: React.PointerEvent) => {
+            const from = holdFrom.current
+            if (from && Math.hypot(e.clientX - from.x, e.clientY - from.y) > HOLD_SLOP_PX) endHold()
+          },
+          onPointerUp: endHold,
+          onPointerCancel: endHold,
+          onPointerLeave: endHold,
+          onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+        }
+      : {}
 
   const current = items[Math.min(middle, items.length - 1)]
   const text = current === undefined ? null : caption(current)
@@ -502,10 +541,18 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
               key={keyOf(item)}
               type="button"
               data-shelf-item
-              onClick={() => (acts ? open(item, i) : bringToMiddle(i))}
+              onClick={() => {
+                if (held.current) {
+                  held.current = false
+                  return
+                }
+                if (acts) open(item, i)
+                else bringToMiddle(i)
+              }}
+              {...holdHandlers(item)}
               aria-label={labelOf?.(item) ?? (acts ? `${verb} ${nameOf(item)}` : `Show ${nameOf(item)}`)}
               aria-current={isMiddle ? 'true' : undefined}
-              className="relative w-full shrink-0 snap-center focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]"
+              className="relative w-full shrink-0 snap-center select-none [-webkit-touch-callout:none] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]"
               style={{
                 transform: `scale(${isMiddle ? 1 : 0.82})`,
                 transformOrigin: 'bottom center',

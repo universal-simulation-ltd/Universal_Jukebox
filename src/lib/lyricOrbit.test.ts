@@ -82,8 +82,9 @@ describe('orbitHead', () => {
     expect(screen(sheet, 17, 0, 0)).toBeLessThan(-70)
   })
 
-  it('parks the opening line off the bottom until the song reaches it', () => {
-    expect(screen(sheet, 0, 0, 0)).toBeGreaterThan(100)
+  it('parks the opening line past where words are drawn until the song reaches it', () => {
+    // 90°, three o'clock: the edge `LyricsAround` draws the words to come from.
+    expect(screen(sheet, 0, 0, 0)).toBeGreaterThanOrEqual(89)
     // ...and leans it in over the seconds before it is sung.
     expect(screen(sheet, 8, 0, 0)).toBeLessThan(screen(sheet, 0, 0, 0))
   })

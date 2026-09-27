@@ -1,6 +1,7 @@
 import { ensureGraph, graphAllowed, graphExists, setBoost } from './audioGraph'
 import { mediaElements, setFades, setTrimGain } from './audio'
 import { trimAttenuation, trimBoost } from './volumeTrim'
+import { hasDeviceVolume } from './deviceVolume'
 import { useSettingsStore } from '../stores/settingsStore'
 
 // The one place settings become audible.
@@ -27,7 +28,9 @@ function apply(): void {
   setFades(fadeInSec, fadeOutSec)
   // The "−50 to +50" volume: its minus side on the element, anywhere; its plus
   // side on top of the boost, only where the graph is allowed (`volumeTrim.ts`).
-  setTrimGain(trimAttenuation(volumeTrim))
+  // Not in the iPhone app, which uses the phone's own volume instead
+  // (`deviceVolume.ts`) — a trim nobody can hear there must not linger.
+  setTrimGain(hasDeviceVolume() ? 1 : trimAttenuation(volumeTrim))
 
   const gain = volumeBoost * (graphAllowed() ? trimBoost(volumeTrim) : 1)
   const wantsBoost = gain > 1.001
