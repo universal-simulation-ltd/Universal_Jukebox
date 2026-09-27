@@ -1,3 +1,4 @@
+import { TRIM_MAX, TRIM_MIN, formatTrim } from '../lib/volumeTrim'
 import { useEffect, useState } from 'react'
 import { useGlobalPreferences } from '@unisim/sdk'
 import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
@@ -285,6 +286,20 @@ export default function Settings() {
             hint="Tick to play every song exactly as loud as it was made. Unticked, loud songs are turned down to meet the rest, so a track doesn’t blast your ears off — each song is measured once, on this device, the first time it plays, and quiet songs are left as they are."
             checked={!s.stableVolume}
             onChange={(v) => s.set('stableVolume', !v)}
+          />
+          <Slider
+            label="Volume"
+            hint={
+              boostBroken
+                ? 'From −50 to 0, under your device’s own volume — for songs that are loud even on its lowest step. Also on Now Playing, under the records. Every 10 down halves it.'
+                : 'From −50 to +50, like VLC — under your device’s own volume, for songs that are loud even on its lowest step, and up to 150% above it. Also on Now Playing, under the records. Every 10 down halves it.'
+            }
+            value={Math.min(s.volumeTrim, boostBroken ? 0 : TRIM_MAX)}
+            min={TRIM_MIN}
+            max={boostBroken ? 0 : TRIM_MAX}
+            step={1}
+            format={formatTrim}
+            onChange={(v) => s.set('volumeTrim', v)}
           />
           <Slider
             label="Volume boost"
