@@ -10,7 +10,7 @@
 // nothing.
 
 const KEY = 'jukebox:bglog'
-const MAX = 60
+const MAX = 120
 let enabled = false
 
 export interface BgEvent {

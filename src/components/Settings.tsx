@@ -298,7 +298,7 @@ export default function Settings() {
             value={-s.quietDb}
             min={0}
             max={-MIN_QUIET_DB}
-            step={3}
+            step={5}
             disabled={quietBroken}
             disabledHint="This browser wouldn’t give the app the audio graph this needs. Everything else still works."
             format={formatQuiet}

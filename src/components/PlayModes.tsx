@@ -3,6 +3,7 @@ import { AboutToggle } from './AboutTrack'
 import AddToShelf from './AddToShelf'
 import { ModeButton } from './ModeButton'
 import OutputButton from './OutputButton'
+import QuietButton from './QuietButton'
 import KeepAwakeButton from './KeepAwakeButton'
 import SleepButton from './SleepButton'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
@@ -59,6 +60,8 @@ export default function PlayModes() {
           entirely where the engine has no picker to show (`OutputButton`). */}
       <div role="group" aria-label="Sound" className="flex gap-x-1 sm:gap-x-5">
         <OutputButton />
+        {/* Extra quiet (2026-09-28) — also about the room: turning it down for bed. */}
+        <QuietButton />
       </div>
       {/* Beside Output on a phone's second line, and for the same reason it is
           its own group: it is about the SCREEN, so the lyrics can be read along

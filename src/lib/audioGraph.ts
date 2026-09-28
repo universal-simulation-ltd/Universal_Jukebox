@@ -158,6 +158,12 @@ export function ensureGraph(
         // What the phone did to the context around locking — the verdict on
         // the experiment, read back from the saved log.
         ctx.addEventListener('statechange', () => noteEvent('ctx-state', { state: ctx.state }))
+        // A heartbeat while hidden (2026-09-28): the lock screen's next/previous
+        // did nothing and the log went quiet ~37 s after locking, so this says
+        // whether the page's code was still running at all.
+        window.setInterval(() => {
+          if (document.hidden) noteEvent('alive', { ctx: ctx.state })
+        }, 15_000)
       }
       void ctx.resume().catch(() => {})
       return { context: ctx, analyser: node }

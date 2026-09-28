@@ -337,6 +337,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
     private func enableCommands() {
         guard !commandsOn else { return }
         commandsOn = true
+        CommandLog.note("commands on (mode=\(mode.rawValue))")
         let center = MPRemoteCommandCenter.shared()
         let forward: [(MPRemoteCommand, String)] = [
             (center.playCommand, "play"),
@@ -348,6 +349,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         for (command, action) in forward {
             command.isEnabled = true
             command.addTarget { [weak self] _ in
+                CommandLog.note("\(action) state=\(UIApplication.shared.applicationState.rawValue)")
                 self?.notifyListeners("command", data: ["action": action])
                 return .success
             }
@@ -501,5 +503,29 @@ final class SpinArt {
         Scanner(string: hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))).scanHexInt64(&value)
         return UIColor(red: CGFloat((value >> 16) & 0xff) / 255, green: CGFloat((value >> 8) & 0xff) / 255,
                        blue: CGFloat(value & 0xff) / 255, alpha: 1).cgColor
+    }
+}
+
+/// Every lock-screen button that reaches the app's OWN command centre, with the
+/// time, in `Library/Caches/commands.log` — read off the phone with `devicectl
+/// device copy from … --domain-type appDataContainer`. Added 2026-09-28 because
+/// with Extra quiet on, next/previous on the lock screen did nothing and the
+/// page's saved log showed no command at all: this says whether iOS delivered
+/// the press to the app, whatever became of it in the page.
+enum CommandLog {
+    // Caches, NOT Documents: Documents is the music folder shown in Files.
+    private static let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("commands.log")
+
+    static func note(_ line: String) {
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        guard let data = "\(stamp) \(line)\n".data(using: .utf8) else { return }
+        if let handle = try? FileHandle(forWritingTo: url) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            try? handle.close()
+        } else {
+            try? data.write(to: url)
+        }
     }
 }

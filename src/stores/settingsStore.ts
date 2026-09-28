@@ -329,6 +329,8 @@ export const MAX_FADE_SEC = 8
 export const MAX_BOOST = 4
 /** The quietest Extra quiet offers: −30 dB is about 3% of the signal. */
 export const MIN_QUIET_DB = -30
+/** What the Quiet button under Now Playing steps through, after Off. */
+export const QUIET_STEPS_DB = [-10, -20, -30] as const
 /**
  * The needle-drop level's range, as a multiplier.
  *
