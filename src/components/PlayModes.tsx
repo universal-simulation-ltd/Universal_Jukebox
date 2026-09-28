@@ -6,6 +6,7 @@ import OutputButton from './OutputButton'
 import LevelButton from './LevelButton'
 import KeepAwakeButton from './KeepAwakeButton'
 import SleepButton from './SleepButton'
+import { BedsideButton } from './Bedside'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
 import { useSettingsStore, type ModeKey } from '../stores/settingsStore'
 import { openSettingsAt } from '../lib/settingsSection'
@@ -88,11 +89,14 @@ export default function PlayModes() {
       {/* Beside Output on a phone's second line, and for the same reason it is
           its own group: it is about the SCREEN, so the lyrics can be read along
           to without the phone locking (James, 2026-09-16). */}
-      {any('keepAwake', 'sleep') && (
+      {any('keepAwake', 'sleep', 'bedside') && (
         <div role="group" aria-label="Screen" className="flex gap-x-1 sm:gap-x-5">
           {shows('keepAwake') && <KeepAwakeButton />}
           {/* The sleep timer (2026-09-27): about the evening, beside the screen. */}
           {shows('sleep') && <SleepButton />}
+          {/* Bedside (2026-09-28): the record, the time and the sleep timer,
+              dimmed, full screen — see `Bedside`. */}
+          {shows('bedside') && <BedsideButton />}
         </div>
       )}
       {/* "Customise" (James, 2026-09-28): shows where the row is set up, then

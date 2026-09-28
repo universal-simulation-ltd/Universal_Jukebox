@@ -35,6 +35,8 @@ interface KeepAwakePlugin {
 }
 
 let plugin: KeepAwakePlugin | null = null
+/** How many screens want the native hold right now — see `useKeepAwake`. */
+let nativeHolders = 0
 
 async function native(): Promise<KeepAwakePlugin> {
   if (!plugin) {
@@ -58,12 +60,18 @@ export function useKeepAwake(active: boolean): void {
   useEffect(() => {
     if (!active) return
 
+    // ⚠️ COUNTED on the phones: the native switch is one on/off for the whole
+    // app, and two things can hold it at once (Keep awake on Now Playing, and
+    // Bedside or Sing along over it). Without the count, closing Bedside
+    // turned the screen lock back on under a Keep awake that was still set.
     if (pluginRegistered(NAME)) {
-      void native()
-        .then((p) => p.set({ on: true }))
-        .catch((error) => noteEvent('keep-awake', { failed: String(error) }))
+      if (nativeHolders++ === 0) {
+        void native()
+          .then((p) => p.set({ on: true }))
+          .catch((error) => noteEvent('keep-awake', { failed: String(error) }))
+      }
       return () => {
-        void native().then((p) => p.set({ on: false })).catch(() => {})
+        if (--nativeHolders === 0) void native().then((p) => p.set({ on: false })).catch(() => {})
       }
     }
 
