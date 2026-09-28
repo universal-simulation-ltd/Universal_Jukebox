@@ -27,6 +27,7 @@ import DeckPicker from './DeckPicker'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { requestLyricsReveal } from '../lib/lyricsReveal'
 import { useKeepAwake } from '../lib/keepAwake'
+import { rgba, useSleeveColour } from '../lib/sleeveColour'
 
 // The one screen in the suite that is genuinely pleasurable to leave open.
 //
@@ -202,6 +203,7 @@ export default function NowPlaying() {
       {/* The cover, stretched across the whole page as the ground (James,
           2026-09-09: "noticeable but not distracting"). Behind everything, and
           only when there IS a cover. */}
+      <SleeveWash album={album} />
       {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
 
       {/* The stacked layout's words, above the record. Lying down they move
@@ -582,6 +584,26 @@ function BlurredGround({ albumId, cover }: { albumId: string; cover: Blob }) {
         style={{ maskImage: fade, WebkitMaskImage: fade }}
       />
     </div>
+  )
+}
+
+/**
+ * The sleeve's own colour, washed over the page behind the record — so every
+ * album turns the room its colour, not only the ones whose cover is bright
+ * enough to show through `BlurredGround` (James, 2026-09-28, from the UX
+ * review: "make it more visual").
+ *
+ * ⚠️ UNDER the blurred cover and strongest where the RECORD is, fading out
+ * towards the words below — the same legibility rule as `BlurredGround`'s
+ * mask. It eases from one album's colour to the next rather than cutting.
+ */
+function SleeveWash({ album }: { album: Album | undefined }) {
+  const colour = useSleeveColour(album)
+  if (!colour) return null
+  const glow = (a: number) =>
+    `radial-gradient(130% 75% at 50% 42%, ${rgba(colour, a)} 0%, ${rgba(colour, a * 0.45)} 45%, transparent 80%)`
+  return (
+    <div className="pointer-events-none fixed inset-0 -z-20" style={{ background: glow(0.4) }} aria-hidden />
   )
 }
 
