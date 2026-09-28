@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useGlobalPreferences } from '@unisim/sdk'
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useGlobalPreferences, useUniversal, type Language } from '@unisim/sdk'
 import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
@@ -471,6 +471,7 @@ export default function Settings() {
         </Section>
 
         <Section title="Appearance" summary={summaries.appearance}>
+          <LanguageRow split={prefsSplit} />
           {!prefsSplit ? (
             <Choice<ThemePref>
               label="Colour scheme"
@@ -490,7 +491,7 @@ export default function Settings() {
                 {
                   value: FOLLOW_GLOBAL,
                   label: `Follow global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
-                  hint: 'Set once for every Universal App under Global preferences in the menu.',
+                  hint: 'Set once for every Universal App under Global Tuning, in the menu when signed in.',
                 },
                 ...THEME_OPTIONS,
               ]}
@@ -864,6 +865,49 @@ interface Option<T> {
  * which for "how often should this animation appear" is precisely the
  * information needed to choose.
  */
+/**
+ * This app's language (James, 2026-09-28: "signed out users should be able to
+ * choose language in tune this app (instead of global)"). Global Tuning is for
+ * signed-in accounts only since SDK 0.165.0, and "Tune this app" in Jukebox is
+ * this page, so the language the SDK's own Tune this app dialog offers has to
+ * be here. The same rules as that dialog: with one app there is nothing to
+ * follow and it sets the global value; with more, it is this app's override.
+ */
+function LanguageRow({ split }: { split: boolean }) {
+  const { globalLanguage, appLanguage, setGlobalLanguage, setAppLanguage } = useUniversal()
+  const follow = `Follow global: ${LANGUAGE_LABELS[globalLanguage] ?? globalLanguage}`
+  return (
+    <Row>
+      <label className="block">
+        <span className="block text-[14px] font-medium text-slate-900 dark:text-slate-100">Language</span>
+        <span className="mt-0.5 block text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+          The menus and dialogs follow it. Jukebox’s own pages are in English for now.
+        </span>
+        <select
+          value={split ? (appLanguage ?? '') : (appLanguage ?? globalLanguage)}
+          onChange={(e) => {
+            const v = e.target.value
+            if (split) {
+              setAppLanguage(v ? (v as Language) : null)
+            } else {
+              if (appLanguage) setAppLanguage(null)
+              setGlobalLanguage(v as Language)
+            }
+          }}
+          className="mt-2.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-900 focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        >
+          {split && <option value="">{follow}</option>}
+          {SUPPORTED_LANGUAGES.map((code) => (
+            <option key={code} value={code}>
+              {LANGUAGE_LABELS[code] ?? code}
+            </option>
+          ))}
+        </select>
+      </label>
+    </Row>
+  )
+}
+
 function Choice<T extends string>({
   label, value, options, onChange,
 }: { label: string; value: T; options: Option<T>[]; onChange(value: T): void }) {
