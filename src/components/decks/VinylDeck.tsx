@@ -56,7 +56,7 @@ const HEAD = { x: 0.52 + 0.45 * 0.62 - PIVOT.x, y: -0.06 + 0.68 * 0.62 - PIVOT.y
 /** The head's direction from the bearing with the arm at 0°, in degrees. */
 const HEAD_BEARING = (Math.atan2(HEAD.y, HEAD.x) * 180) / Math.PI
 
-export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, grooves, underArm, controls }: DeckFaceProps) {
+export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, grooves, underArm, controls, turn = 0 }: DeckFaceProps) {
   // While the arm is in a hand it goes where the hand puts it, not where the
   // music is — see `ArmGrab`.
   const [held, setHeld] = useState<number | null>(null)
@@ -79,6 +79,14 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           here, on a disc that does not turn; outer shadows never paint inside
           their box, so this one shows only round the edge. */}
       <div className="absolute inset-0 rounded-full shadow-xl" aria-hidden />
+      {/* Turned over for side B (`turn`): the whole disc, edge-on and back.
+          Keyed on the count so each turn plays once; the record under it
+          restarts at 0°, as a freshly turned record does. */}
+      <div
+        key={`turn-${turn}`}
+        className="absolute inset-0"
+        style={turn > 0 ? { animation: 'jb-turn-over 900ms ease-in-out both' } : undefined}
+      >
       <div
         // ⚠️ KEYED ON THE RECORD, so a new one goes on at 0°, as the record that
         // flew in was drawn, instead of carrying on from wherever the last had
@@ -105,6 +113,17 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
       >
         <VinylRecordFace url={url} hue={hue} labelFade={labelFade} grooves={grooves} />
       </div>
+      </div>
+      {turn > 0 && (
+        <span
+          key={`side-${turn}`}
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-1/2 rounded-full bg-slate-900/80 px-3 py-1 text-[13px] font-semibold tracking-wide text-white uppercase"
+          style={{ animation: 'jb-side-badge 2200ms ease-in-out both' }}
+        >
+          Side B
+        </span>
+      )}
       {/* Over the record and under the arm, INSIDE the slide layers — so a
           swipe carries the lyrics off with the record (James, 2026-09-11:
           "When swiping left right the lyrics need to go with the record

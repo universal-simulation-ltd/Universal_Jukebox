@@ -67,6 +67,11 @@ export interface DeckFaceProps {
    * mini player's deck is a picture.
    */
   controls?: DeckControls
+  /**
+   * Bumped each time an album played in order crosses into side B
+   * (`lib/sides.ts`) — the record player turns its record over. 0 = never.
+   */
+  turn?: number
 }
 
 export interface DeckControls {

@@ -83,6 +83,19 @@ body {
   to   { opacity: 0; }
 }
 
+/* The record turned over for side B (`lib/sides.ts`): edge-on at the middle,
+   then the other face coming round — not a mirror image, so it swaps at 90°. */
+@keyframes jb-turn-over {
+  0%     { transform: perspective(900px) rotateY(0deg) scale(1); }
+  50%    { transform: perspective(900px) rotateY(90deg) scale(0.9); }
+  50.01% { transform: perspective(900px) rotateY(-90deg) scale(0.9); }
+  100%   { transform: perspective(900px) rotateY(0deg) scale(1); }
+}
+@keyframes jb-side-badge {
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  30%, 75% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
 /* The pocket player's ♪, breathing while the music plays (`PocketDeck.tsx`). */
 @keyframes jb-pocket-note {
   from { opacity: 0.55; }

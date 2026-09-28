@@ -3,7 +3,8 @@ import { coverUrl, fallbackHue } from '../lib/art'
 import { ERA_ORDER, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
-import { usePlayerStore } from '../stores/playerStore'
+import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { turnsOver } from '../lib/sides'
 import { useSettingsStore, type DeckSetting, type DeckStyle } from '../stores/settingsStore'
 import type { Album } from '../lib/types'
 import { SHAPES, type DeckFaceProps, type NotesAnchor } from './decks/face'
@@ -144,6 +145,16 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
   )
 
   const active = ceremonial && ceremony
+  // Side A → side B of the same album, in order: the record is turned over
+  // (`lib/sides.ts`). Counted, so each turn restarts the animation.
+  const track = usePlayerStore(currentTrack)
+  const lastTrack = useRef(track)
+  const [turn, setTurn] = useState(0)
+  useEffect(() => {
+    const was = lastTrack.current
+    lastTrack.current = track
+    if (ceremonial && !reduced && was?.id !== track?.id && turnsOver(was, track, album)) setTurn((n) => n + 1)
+  }, [ceremonial, reduced, track, album])
   // The needle touching the record, felt as well as seen — the ceremony's
   // landing and every change of record after it. Only on the stage deck, and
   // only on the way DOWN: lifting the arm is not an event under the thumb.
@@ -311,6 +322,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
           slide={slide && mediumOnly ? slide : undefined}
           grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
           underArm={style === 'vinyl' ? underArm : undefined}
+          turn={turn}
           controls={ceremonial ? { playing, toggle, next, previous, durationSec: known ? durationSec : 0, seek } : undefined}
         />
         {/* Other machines move whole under a swipe; the lyrics go with them. */}
