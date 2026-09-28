@@ -37,6 +37,7 @@ import { usePlayerStore } from './stores/playerStore'
 import { DEFAULTS, useSettingsStore, type HomeTab, type ListTab } from './stores/settingsStore'
 import { useThemeStore } from './stores/themeStore'
 import { usePrefersReducedMotion } from './lib/usePrefersReducedMotion'
+import { isNativeShell } from './lib/nativeFile'
 
 // The single page container. The navbar (via the SDK's `contentClassName`), the
 // page body and the player bar all share it, so the suite switcher lines up
@@ -717,6 +718,10 @@ export default function App() {
       <PlayerBar onStage={view === 'playing' && !mini} />
       <ScrollTopButton />
 
+      {/* Not in the phone apps (James, 2026-09-28, from the UX review): there
+          it sat directly under the player controls as a strip of website.
+          Its two links are at the foot of About. */}
+      {!isNativeShell() && (
       <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className={`${CONTAINER} flex flex-row items-center gap-3 py-4 text-xs text-slate-500 sm:gap-4 dark:text-slate-400`}>
           <span>
@@ -743,6 +748,7 @@ export default function App() {
           </a>
         </div>
       </footer>
+      )}
     </div>
   )
 }

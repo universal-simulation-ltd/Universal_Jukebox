@@ -139,7 +139,17 @@ export default function About() {
         {/* Repeated at the foot because this is a long page, and somebody who
             has read to the bottom should not have to scroll back up to leave. */}
         <p className="mt-6 text-[13px] text-slate-500 dark:text-slate-400">
-          Free and open source, like every Universal App. Built by UNI·SIM.
+          Free and open source, like every Universal App. Built by{' '}
+          {/* The two links the page footer carries on the web. The phone apps
+              have no footer (`App.tsx`), so this is where they live there. */}
+          <a href="https://www.unisim.co.uk" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
+            UNI·SIM
+          </a>
+          {' · '}
+          <a href="https://github.com/universal-simulation-ltd/Universal_Jukebox" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
+            the source on GitHub
+          </a>
+          .
         </p>
       </div>
     </div>
