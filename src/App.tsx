@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
+import { UniversalAppsNavBar, UpdateNotice, useUniversal } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. No event may carry a
 // filename, an artist, an album, a track count or a byte count: this app reads
@@ -208,6 +208,8 @@ export default function App() {
     }
   }, [])
   const theme = useThemeStore((s) => s.effective)
+  const session = useUniversal().session
+  const signedIn = !!session?.user && (session.user as { is_anonymous?: boolean }).is_anonymous !== true
 
   const status = useLibraryStore((s) => s.status)
   const albums = useLibraryStore((s) => s.albums)
@@ -426,7 +428,10 @@ export default function App() {
         // Jukebox's own "Tune this app…" row and its Advanced submenu stand in
         // for the SDK's (`AppMenu`, 2026-09-27).
         showAppPreferences={false}
-        showGlobalPreferences={false}
+        // Global Tuning only for a signed-in account, where the SDK puts it in
+        // the account panel beside the account's details (James, 2026-09-28:
+        // "global tuning should only show if logged in with account info").
+        showGlobalPreferences={signedIn}
         suiteSwitcherIconSrc={`${import.meta.env.BASE_URL}unisim-icon.png`}
       />
 

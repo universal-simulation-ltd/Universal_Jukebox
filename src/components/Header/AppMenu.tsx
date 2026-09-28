@@ -7,7 +7,7 @@ import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/na
 import { hasMusicLibrary } from '../../lib/appleMusic'
 import { hasNativeImporter } from '../../lib/nativeImport'
 import { useWhenPanelHides } from '../../lib/whenPanelHides'
-import { KnowledgeBaseDialog, MENU, PreferencesDialog, useCloseAppMenu, useUniversal, type MenuTheme } from '@unisim/sdk'
+import { KnowledgeBaseDialog, useCloseAppMenu } from '@unisim/sdk'
 import { KNOWLEDGE_BASE } from '../../knowledge'
 import { useThemeStore } from '../../stores/themeStore'
 
@@ -72,12 +72,9 @@ export default function AppMenu() {
   const [open, setOpen] = useState(false)
   /** The Advanced row, opened (it shuts with the menu, as the library row does). */
   const [advanced, setAdvanced] = useState(false)
-  /** The SDK's own preferences dialog, when Advanced opened one. */
-  const [prefs, setPrefs] = useState<'app' | 'global' | null>(null)
   /** The knowledge base (SDK 0.163.0), when Advanced opened it. */
   const [kb, setKb] = useState(false)
   const theme = useThemeStore((s) => s.effective)
-  const split = useUniversal().splitPreferences
   // The library row is shut again as the menu is put away: the SDK keeps this
   // component mounted while the menu is closed, so `open` would otherwise
   // outlive it. (A scroll on the menu no longer moves the page behind — the
@@ -219,8 +216,13 @@ export default function AppMenu() {
           its two dialogs — this app's language and colour, and Global Tuning —
           open from Advanced. About Universal Jukebox was the first row of
           Advanced until later the same day, when About moved into "Tune this
-          app" suite-wide: it is now the foot of the app PreferencesDialog
-          below (AboutRow). */}
+          app" suite-wide.
+          ⚠️ REVISED 2026-09-28 (James: "Tune this app / Advanced > About this
+          app > Knowledge base"). Advanced holds only About and the knowledge
+          base. The second "Tune this app — language & colour" row went (the
+          colour is Settings ▸ Appearance; the app is English-only until 1.1),
+          and Global Tuning went to the SDK's account panel, for signed-in
+          users only (`showGlobalPreferences` in App.tsx). */}
       <Row onClick={() => navigate({ view: 'settings' })}>Tune this app…</Row>
       <button
         type="button"
@@ -240,12 +242,7 @@ export default function AppMenu() {
       </button>
       {advanced && (
         <div className="mb-1 ml-3 border-l border-slate-200 pl-1 dark:border-slate-700">
-          <Row onClick={() => setPrefs('app')} title="This app’s language and colour scheme">
-            Tune this app — language &amp; colour…
-          </Row>
-          <Row onClick={() => setPrefs('global')} title="Language and colour scheme for every UNI·SIM app">
-            Global Tuning…
-          </Row>
+          <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
           {/* The suite's knowledge base lives in Advanced (James, 2026-09-27:
               "more discreet e.g. in advanced in the actions pill"). Jukebox
               hand-rolls this section, so it mounts the SDK's dialog itself
@@ -256,19 +253,7 @@ export default function AppMenu() {
           </Row>
         </div>
       )}
-      <PreferencesDialog
-        kind="app"
-        open={prefs === 'app'}
-        onClose={() => setPrefs(null)}
-        theme={theme}
-        themeStore={useThemeStore}
-        appName="Universal Jukebox"
-        combined={!split}
-      >
-        <AboutRow theme={theme} />
-      </PreferencesDialog>
       <KnowledgeBaseDialog {...KNOWLEDGE_BASE} open={kb} onClose={() => setKb(false)} theme={theme} />
-      <PreferencesDialog kind="global" open={prefs === 'global'} onClose={() => setPrefs(null)} theme={theme} themeStore={useThemeStore} appName="Universal Jukebox" />
 
       {/* ⚠️ Always mounted, even when the picker path is the one in use: this is
           also the fallback if `showDirectoryPicker` throws — an iframe, a
@@ -324,41 +309,6 @@ function Row({
       className="block w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
     >
       {children}
-    </button>
-  )
-}
-
-/**
- * "About Universal Jukebox" at the foot of Tune this app (James, 2026-09-27:
- * About moved out of the actions menu into Tune this app, suite-wide). Jukebox
- * has its own About PAGE rather than the SDK's About dialog, so this is an app
- * row in the dialog's children, not the navbar's `about` prop — drawn the way
- * the SDK draws its own "ⓘ About this app" row, so it looks like one.
- *
- * `useCloseAppMenu` inside PreferencesDialog's children closes the DIALOG, so
- * the page is not left underneath it.
- */
-function AboutRow({ theme }: { theme: MenuTheme }) {
-  const close = useCloseAppMenu()
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        close()
-        navigate({ view: 'about' })
-      }}
-      style={{
-        padding: 0,
-        border: 0,
-        background: 'transparent',
-        fontFamily: 'inherit',
-        fontSize: 13,
-        color: MENU[theme].body,
-        cursor: 'pointer',
-        textAlign: 'left',
-      }}
-    >
-      {'\u24D8 '}About Universal Jukebox
     </button>
   )
 }
