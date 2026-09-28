@@ -74,6 +74,13 @@ export interface DeckControls {
   toggle(): void
   next(): void
   previous(): void
+  /**
+   * The song's length, and a jump to a share of it — for a face whose pickup
+   * can be picked up and moved (the record player's tonearm). 0 while the
+   * length is not known, and then the pickup stays where it is.
+   */
+  durationSec: number
+  seek(fraction: number): void
 }
 
 /** Where the drifting notes leave from, per deck: roughly, the pickup. */

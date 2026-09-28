@@ -17,6 +17,7 @@ import { markTipSeen } from '../lib/tips'
 import { DeckSlideContext, slideInner, slideOuter } from './decks/slide'
 import { DeckOutlineContext } from './decks/outline'
 import { grooveRings } from '../lib/grooves'
+import { haptic } from '../lib/haptics'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
 // the pickup engaging when you put something on, and the pickup — or the reels
@@ -105,6 +106,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
   const toggle = usePlayerStore((s) => s.toggle)
   const next = usePlayerStore((s) => s.next)
   const previous = usePlayerStore((s) => s.previous)
+  const seekTo = usePlayerStore((s) => s.seekTo)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const durationSec = usePlayerStore((s) => s.durationSec)
   // The length of the song whose record is ON the deck — kept while one is on
@@ -142,6 +144,14 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
   )
 
   const active = ceremonial && ceremony
+  // The needle touching the record, felt as well as seen — the ceremony's
+  // landing and every change of record after it. Only on the stage deck, and
+  // only on the way DOWN: lifting the arm is not an event under the thumb.
+  const wasDown = useRef(armDownState)
+  useEffect(() => {
+    if (ceremonial && armDownState && !wasDown.current && !reduced) haptic('tap')
+    wasDown.current = armDownState
+  }, [ceremonial, armDownState, reduced])
   // ⚠️ An arrival already under way when this deck appeared is not played
   // again. A change-over's is over in 620ms, so one still 'arriving' as Now
   // Playing opens is nearly done — or stranded (`settleDeck` in the store) —
@@ -173,6 +183,11 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
     Number.isFinite(durationSec) && durationSec > 0
       ? Math.max(0, Math.min(1, currentSec / durationSec))
       : 0
+
+  const known = Number.isFinite(durationSec) && durationSec > 0
+  const seek = (fraction: number) => {
+    if (known) seekTo(Math.max(0, Math.min(1, fraction)) * durationSec)
+  }
 
   const url = album ? coverUrl(album.id, album.cover) : null
   const hue = album ? fallbackHue(album.id) : 24
@@ -223,7 +238,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
           const timer = window.setTimeout(() => {
             press.current = null
             longPressed.current = true
-            navigator.vibrate?.(10)
+            haptic('tap')
             onLongPress()
           }, LONG_PRESS_MS)
           press.current = { x: e.clientX, y: e.clientY, timer }
@@ -296,7 +311,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
           slide={slide && mediumOnly ? slide : undefined}
           grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
           underArm={style === 'vinyl' ? underArm : undefined}
-          controls={ceremonial ? { playing, toggle, next, previous } : undefined}
+          controls={ceremonial ? { playing, toggle, next, previous, durationSec: known ? durationSec : 0, seek } : undefined}
         />
         {/* Other machines move whole under a swipe; the lyrics go with them. */}
         {style !== 'vinyl' && underArm}

@@ -14,6 +14,7 @@ import { VinylRecord } from './decks/VinylRecord'
 import PocketDeck from './decks/PocketDeck'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { grooveRings } from '../lib/grooves'
+import { haptic } from '../lib/haptics'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
@@ -122,6 +123,8 @@ export default function DeckSwiper({
   const start = useRef<{ x: number; y: number; toLeft: number; toRight: number } | null>(null)
   const swiped = useRef(false)
   const settle = useRef<number | null>(null)
+  /** The record the finger has the row on, for the haptic detents. */
+  const detent = useRef(0)
   /** Putting the queued records away once a swipe that went nowhere has sprung back. */
   const unqueue = useRef<number | null>(null)
   /**
@@ -655,6 +658,7 @@ export default function DeckSwiper({
           setReach(r)
           start.current = { x: e.clientX, y: e.clientY, ...r }
           swiped.current = false
+          detent.current = 0
           setAnimate(false)
         }}
         onPointerMove={(e) => {
@@ -675,7 +679,15 @@ export default function DeckSwiper({
           // queued behind it is where the peek was; further still, that one
           // comes on in turn. `swipeReach` has the prices.
           setQueued(dx < 0 ? 'right' : 'left')
-          setDrag((dx < 0 ? -1 : 1) * swipeReach(Math.abs(dx), travelPx, room, EXTRA_STEP))
+          const reach = swipeReach(Math.abs(dx), travelPx, room, EXTRA_STEP)
+          // A detent under the thumb each time another record reaches the
+          // middle — how many songs a long swipe has crossed, without looking.
+          const step = Math.round(reach) * (dx < 0 ? 1 : -1)
+          if (step !== detent.current) {
+            if (step !== 0) haptic('tick')
+            detent.current = step
+          }
+          setDrag((dx < 0 ? -1 : 1) * reach)
         }}
         onPointerUp={(e) => {
           const from = start.current

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useLibraryStore } from './libraryStore'
+import { haptic } from '../lib/haptics'
 import { addToShelf, moveOnShelf, parseShelves, renameShelf, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
 
 // The Jukebox tab's shelves, kept on the device — see `lib/shelves.ts`.
@@ -36,12 +37,15 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
   shelves: read(),
   toggle(shelfId, trackId) {
     const result = toggleOnShelf(get().shelves, shelfId, trackId, newId())
+    if (result.shelves.find((s) => s.id === result.shelfId)?.trackIds.includes(trackId)) haptic('thunk')
     set({ shelves: result.shelves })
     persist(result.shelves)
     return result.shelfId
   },
   add(shelfId, trackIds) {
     const result = addToShelf(get().shelves, shelfId, trackIds, newId())
+    // A record set down on a shelf — see `lib/haptics.ts`.
+    if (trackIds.length > 0) haptic('thunk')
     set({ shelves: result.shelves })
     persist(result.shelves)
     return result.shelfId
