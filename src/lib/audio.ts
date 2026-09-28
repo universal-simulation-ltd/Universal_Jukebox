@@ -228,8 +228,10 @@ function el(): HTMLAudioElement {
  *
  * ⚠️ NOT WHERE THE WEB AUDIO GRAPH HAS THE ELEMENTS. `createMediaElementSource`
  * is once per element and permanent, and an element outside the graph is silent
- * while the graph is connected (`lib/audioGraph.ts`). The graph is never built
- * on the iPhone (`graphAllowed`), which is the only place this bug exists.
+ * while the graph is connected (`lib/audioGraph.ts`). The graph is not built
+ * on the iPhone (`graphAllowed`), which is the only place this bug exists —
+ * EXCEPT for the Extra quiet experiment (`quietGraphAllowed`, 2026-09-28), where
+ * renewal is skipped and the lock screen may show paused over the next song.
  */
 function renewDeck(index: 0 | 1): void {
   const deck = decks[index]

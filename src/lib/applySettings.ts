@@ -12,8 +12,8 @@ import { useSettingsStore } from '../stores/settingsStore'
 /**
  * Push the current settings into the audio layer.
  *
- * ⚠️ The boost is the only one that builds a Web Audio graph, and it does so
- * ONLY when actually asked for a boost above unity. That asymmetry is the point:
+ * ⚠️ The boost and Extra quiet are the only ones that build a Web Audio graph,
+ * and they do so ONLY when actually moved off their defaults. That asymmetry is the point:
  * routing the element through an `AudioContext` is a one-way door with silence
  * as its failure mode (see `audioGraph.ts`), so somebody who never touches the
  * boost slider never takes that risk. Once built the graph stays — there is no
@@ -21,13 +21,19 @@ import { useSettingsStore } from '../stores/settingsStore'
  * rather than tearing anything down.
  */
 function apply(): void {
-  const { volumeBoost, fadeInSec, fadeOutSec } = useSettingsStore.getState()
+  const { volumeBoost, quietDb, fadeInSec, fadeOutSec } = useSettingsStore.getState()
 
   setFades(fadeInSec, fadeOutSec)
 
   const wantsBoost = volumeBoost > 1.001
+  const wantsQuiet = quietDb < -0.001
   if (wantsBoost && !graphExists()) ensureGraph(mediaElements())
-  if (graphExists()) setBoost(wantsBoost ? volumeBoost : 1)
+  // Extra quiet is the one route to a graph in the iPhone app — see
+  // `quietGraphAllowed`.
+  if (wantsQuiet && !graphExists()) ensureGraph(mediaElements(), { forQuiet: true })
+  if (graphExists()) {
+    setBoost((wantsBoost ? volumeBoost : 1) * (wantsQuiet ? 10 ** (quietDb / 20) : 1))
+  }
 }
 
 /** Call once, from `main.tsx`. */

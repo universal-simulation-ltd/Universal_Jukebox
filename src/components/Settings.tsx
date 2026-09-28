@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGlobalPreferences } from '@unisim/sdk'
-import { graphAllowed, graphUnavailable } from '../lib/audioGraph'
+import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
@@ -17,6 +17,7 @@ import {
   DECK_SETTINGS,
   MAX_BOOST,
   MAX_FADE_SEC,
+  MIN_QUIET_DB,
   NEEDLE_STEP_MAX,
   NEEDLE_STEP_MIN,
   levelToStep,
@@ -59,6 +60,7 @@ export default function Settings() {
   // Web Audio graph, and a browser can refuse us one. Saying so is better than
   // a slider that does nothing.
   const boostBroken = graphUnavailable()
+  const quietBroken = quietUnavailable()
   // Where the engine will not let an app set `element.volume`, a fade is a
   // slider that moves and changes nothing you can hear. The suite's rule for a
   // capability gap is to say so rather than to fail at the moment of use — the
@@ -112,6 +114,7 @@ export default function Settings() {
     }`,
     sound: sentence([
       s.stableVolume ? 'stable volume' : 'original sound levels',
+      ...(s.quietDb < 0 && !quietBroken ? [`extra quiet ${formatQuiet(-s.quietDb)}`] : []),
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
@@ -285,6 +288,21 @@ export default function Settings() {
             hint="Tick to play every song exactly as loud as it was made. Unticked, loud songs are turned down to meet the rest, so a track doesn’t blast your ears off — each song is measured once, on this device, the first time it plays, and quiet songs are left as they are."
             checked={!s.stableVolume}
             onChange={(v) => s.set('stableVolume', !v)}
+          />
+          {/* James, 2026-09-28: quieter than the phone's lowest notch, for
+              listening in bed. On the iPhone this is an experiment — see
+              `quietGraphAllowed` in lib/audioGraph.ts. */}
+          <Slider
+            label="Extra quiet"
+            hint="Turns the music down further than the phone’s lowest volume, for listening in bed. Set the phone to its first notch, then slide this until it’s right."
+            value={-s.quietDb}
+            min={0}
+            max={-MIN_QUIET_DB}
+            step={3}
+            disabled={quietBroken}
+            disabledHint="This browser wouldn’t give the app the audio graph this needs. Everything else still works."
+            format={formatQuiet}
+            onChange={(v) => s.set('quietDb', -v)}
           />
           <Slider
             label="Volume boost"
@@ -644,6 +662,11 @@ function formatStep(v: number): string {
 /** The boost multiplier, as its slider shows it. */
 function formatBoost(v: number): string {
   return v <= 1.001 ? 'Off' : `${v.toFixed(1)}×`
+}
+
+/** The Extra quiet turn-down (positive dB), as its slider shows it. */
+function formatQuiet(v: number): string {
+  return v < 0.5 ? 'Off' : `−${Math.round(v)} dB`
 }
 
 /** A fade length, as its slider shows it. */

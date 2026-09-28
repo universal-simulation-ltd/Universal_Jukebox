@@ -36,6 +36,7 @@
 // getting this wrong once is not recoverable within the session.
 
 import { isNativeShell, nativePlatform } from './nativeFile'
+import { noteEvent } from './bgLog'
 
 /**
  * May the app build this graph at all here?
@@ -50,7 +51,44 @@ import { isNativeShell, nativePlatform } from './nativeFile'
  * playing with the phone in a pocket, so on iOS they are simply not offered.
  */
 export function graphAllowed(): boolean {
-  return !(isNativeShell() && nativePlatform() === 'ios')
+  return !isIosApp()
+}
+
+function isIosApp(): boolean {
+  return isNativeShell() && nativePlatform() === 'ios'
+}
+
+/**
+ * ⚠️ THE EXPERIMENT (James, 2026-09-28) — Extra quiet is the one thing allowed
+ * to build the graph in the iOS app, and only once somebody moves its slider.
+ *
+ * The reasoning above still stands; what is new is WebKit's Audio Session API.
+ * Setting `navigator.audioSession.type = 'playback'` BEFORE the context is made
+ * tells WebKit this page's sound is media playback, which is the category iOS
+ * keeps running on a locked phone. Whether that holds for an `AudioContext` in
+ * a WKWebView was untried: if the music stops when the phone locks, this
+ * experiment failed and the next step is the native quieter-copy plugin (see
+ * the backlog), NOT loosening `graphAllowed`. The saved background log records
+ * whether the API existed and what the context did on the way out.
+ */
+export function quietGraphAllowed(): boolean {
+  return true
+}
+
+interface AudioSessionLike {
+  type?: string
+}
+
+/** Ask WebKit for a media-playback session. Reports what happened. */
+function requestPlaybackSession(): string {
+  try {
+    const session = (navigator as unknown as { audioSession?: AudioSessionLike }).audioSession
+    if (!session) return 'missing'
+    session.type = 'playback'
+    return `set:${session.type ?? '?'}`
+  } catch (err) {
+    return `threw:${String(err)}`
+  }
 }
 
 let context: AudioContext | null = null
@@ -73,13 +111,17 @@ export interface Graph {
  * unavailable or the wiring failed; callers must treat that as "this feature is
  * not available here", never as an error worth showing over the music.
  */
-export function ensureGraph(elements: HTMLAudioElement[]): Graph | null {
+export function ensureGraph(
+  elements: HTMLAudioElement[],
+  opts: { forQuiet?: boolean } = {},
+): Graph | null {
   if (analyser && context) return { context, analyser }
   if (unavailable) return null
-  if (!graphAllowed()) {
-    unavailable = true
-    return null
-  }
+  // Not `unavailable = true`: on the iPhone the visualiser asking first must
+  // not shut the door on Extra quiet asking later.
+  if (!graphAllowed() && !(opts.forQuiet && quietGraphAllowed())) return null
+
+  if (isIosApp()) noteEvent('quiet-graph', { audioSession: requestPlaybackSession() })
 
   try {
     const Ctor =
@@ -112,6 +154,11 @@ export function ensureGraph(elements: HTMLAudioElement[]): Graph | null {
       sources = captured
       boostGain = gain
       analyser = node
+      if (isIosApp()) {
+        // What the phone did to the context around locking — the verdict on
+        // the experiment, read back from the saved log.
+        ctx.addEventListener('statechange', () => noteEvent('ctx-state', { state: ctx.state }))
+      }
       void ctx.resume().catch(() => {})
       return { context: ctx, analyser: node }
     } catch (wiring) {
@@ -149,6 +196,11 @@ export function graphUnavailable(): boolean {
   return unavailable || !graphAllowed()
 }
 
+/** Whether Extra quiet can't work here: the browser refused the graph. */
+export function quietUnavailable(): boolean {
+  return unavailable || !quietGraphAllowed()
+}
+
 /**
  * Resume the context if it is suspended.
  *
@@ -164,7 +216,7 @@ export function ensureRunning(): void {
 }
 
 /**
- * Set the extra gain, 1 = unity.
+ * Set the graph's gain, 1 = unity: the boost times the Extra quiet turn-down.
  *
  * Ramped rather than assigned: a step change in gain is an audible click, and
  * on a boost of 4x it is a loud one.

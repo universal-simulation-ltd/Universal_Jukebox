@@ -178,6 +178,16 @@ export interface Settings {
    * cost (see `lib/audioGraph.ts`), so it happens ONLY when this is above 1.
    */
   volumeBoost: number
+  /**
+   * Turn-down below the phone's quietest notch, in dB. 0 = off.
+   *
+   * James, 2026-09-28: "want an option to make the sound quieter than the
+   * current minimum. When listening in bed it seems loud". The element's own
+   * `volume` is inaudible on the iPhone and iOS mutes below one notch of the
+   * system volume, so this is a Web Audio `GainNode` — and on the iPhone that
+   * is the EXPERIMENT in `audioGraph.ts` (`quietGraphAllowed`).
+   */
+  quietDb: number
   /** Seconds of fade at the start of a track. 0 = straight in. */
   fadeInSec: number
   /** Seconds of fade before the end of a track. 0 = straight out. */
@@ -289,6 +299,7 @@ export const DEFAULTS: Settings = {
   needleDrop: true,
   needleDropLevel: 1,
   volumeBoost: 1,
+  quietDb: 0,
   fadeInSec: 0,
   fadeOutSec: 0,
   lyricsOnline: false,
@@ -316,6 +327,8 @@ export const DEFAULTS: Settings = {
 export const MAX_FADE_SEC = 8
 /** The loudest boost offered. Past ~4x almost everything clips audibly. */
 export const MAX_BOOST = 4
+/** The quietest Extra quiet offers: −30 dB is about 3% of the signal. */
+export const MIN_QUIET_DB = -30
 /**
  * The needle-drop level's range, as a multiplier.
  *
@@ -461,6 +474,7 @@ function readStored(): Settings {
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
+    quietDb: clamp(stored.quietDb, MIN_QUIET_DB, 0, DEFAULTS.quietDb),
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
     fadeOutSec: clamp(stored.fadeOutSec, 0, MAX_FADE_SEC, DEFAULTS.fadeOutSec),
     // ⚠️ `=== true`, not a truthy read. A stored value of anything other than
@@ -567,6 +581,7 @@ function persist(state: Settings) {
     needleDrop: state.needleDrop,
     needleDropLevel: state.needleDropLevel,
     volumeBoost: state.volumeBoost,
+    quietDb: state.quietDb,
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
     lyricsOnline: state.lyricsOnline,
