@@ -5,6 +5,7 @@ import { clock } from '../lib/format'
 import { currentRoute, navigate } from '../lib/route'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
+import { haptic } from '../lib/haptics'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 
 // The persistent transport, pinned to the bottom of every view.
@@ -36,6 +37,7 @@ export default function PlayerBar() {
   // While dragging, the bar follows the pointer rather than the audio clock —
   // otherwise every `timeupdate` yanks the thumb back under the finger.
   const [scrubbing, setScrubbing] = useState<number | null>(null)
+  const swipe = useSwipe({ onLeft: next, onRight: previous, onUp: () => navigate({ view: 'playing' }) })
 
   if (!track) return null
   const album = albums.find((a) => a.id === track.albumId)
@@ -87,9 +89,15 @@ export default function PlayerBar() {
           // animation page and then click the art on the media player, take
           // them to the album view (like clicking the animation)").
           onClick={() => {
+            if (swipe.swallowClick()) return
             if (currentRoute().view !== 'playing') navigate({ view: 'playing' })
             else if (album) navigate({ view: 'album', albumId: album.id })
           }}
+          // Swipe it sideways to change song, up to open Now Playing — what
+          // every other music app's mini player does, so it is what a thumb
+          // tries first (see `useSwipe`).
+          {...swipe.handlers}
+          style={swipe.style}
           className="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
         >
           {/* ⚠️ THE COUNTDOWN, OVER THE SLEEVE (James, 2026-09-10: "you also need
@@ -191,6 +199,79 @@ export default function PlayerBar() {
       </div>
     </div>
   )
+}
+
+/** How far a finger must travel before a swipe on the bar counts. */
+const SWIPE_PX = 44
+
+/**
+ * Swipes on the song in the bar: left for the next song, right for the one
+ * before, up for Now Playing.
+ *
+ * ⚠️ `touch-action: none` on the song ONLY — the page does not scroll from a
+ * finger that starts on it, which is fine for a strip 60px tall pinned to the
+ * bottom, and is what lets an upward swipe be read at all. The buttons beside
+ * it are untouched.
+ *
+ * ⚠️ The song follows the finger a little (damped, at most 56px) so the
+ * gesture is visibly being read; it springs back whether or not it counted.
+ * A swipe that counted eats the click that follows it, or lifting the finger
+ * would also open Now Playing (or the album).
+ */
+function useSwipe({ onLeft, onRight, onUp }: { onLeft(): void; onRight(): void; onUp(): void }) {
+  const start = useRef<{ x: number; y: number; id: number } | null>(null)
+  const swiped = useRef(false)
+  const [offset, setOffset] = useState<{ x: number; y: number } | null>(null)
+  const end = () => {
+    start.current = null
+    setOffset(null)
+  }
+  return {
+    handlers: {
+      onPointerDown: (e: React.PointerEvent) => {
+        if (e.pointerType === 'mouse') return
+        start.current = { x: e.clientX, y: e.clientY, id: e.pointerId }
+        swiped.current = false
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        const from = start.current
+        if (!from || from.id !== e.pointerId) return
+        const dx = e.clientX - from.x
+        const dy = e.clientY - from.y
+        const damp = (v: number) => Math.sign(v) * Math.min(56, Math.abs(v) * 0.45)
+        setOffset(Math.abs(dx) >= Math.abs(dy) ? { x: damp(dx), y: 0 } : { x: 0, y: Math.min(0, damp(dy)) })
+      },
+      onPointerUp: (e: React.PointerEvent) => {
+        const from = start.current
+        end()
+        if (!from || from.id !== e.pointerId) return
+        const dx = e.clientX - from.x
+        const dy = e.clientY - from.y
+        if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          swiped.current = true
+          haptic('tick')
+          if (dx < 0) onLeft()
+          else onRight()
+        } else if (-dy >= SWIPE_PX && -dy > Math.abs(dx) * 1.5) {
+          swiped.current = true
+          onUp()
+        }
+      },
+      onPointerCancel: end,
+    },
+    style: {
+      touchAction: 'none' as const,
+      transform: offset ? `translate(${offset.x}px, ${offset.y}px)` : undefined,
+      opacity: offset ? 1 - Math.min(0.4, Math.hypot(offset.x, offset.y) / 140) : undefined,
+      transition: offset ? 'none' : 'transform 220ms ease-out, opacity 220ms ease-out',
+    },
+    /** True once, straight after a swipe that counted. */
+    swallowClick() {
+      const was = swiped.current
+      swiped.current = false
+      return was
+    },
+  }
 }
 
 /**
