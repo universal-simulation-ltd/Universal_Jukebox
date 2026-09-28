@@ -26,15 +26,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 
-    /// Hands every scene to `SceneDelegate`.
+    /// Hands every scene to `SceneDelegate` — Capacitor 8.5's template.
     ///
-    /// ⚠️ This method, and the `UIApplicationSceneManifest` in Info.plist, are
-    /// what make this app launch at all once it is built against the iOS 27
-    /// SDK: an app that has not adopted the scene life cycle is terminated
-    /// immediately. Both halves are required — a manifest alone does not
-    /// satisfy it, because the runtime checks that the app delegate answers
-    /// this call. See `SceneDelegate.swift`; `npm run check:ios-launch`
-    /// guards all three pieces.
+    /// ⚠️ This and the `UIApplicationSceneManifest` in Info.plist are both
+    /// required: the runtime asks the app delegate rather than trusting the
+    /// plist alone. `npm run check:ios-launch` fails the build if either goes.
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
@@ -85,48 +81,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         print("[jukebox:native] audio route change reason=\(reason) \(AudioReport.now())")
     }
 
-    // ⚠️ THE FIVE METHODS BELOW ARE NEVER CALLED under the scene life cycle —
-    // iOS sends the equivalents to the scene delegate instead. Their
-    // `[jukebox:native]` lifecycle log lines now live on `SceneDelegate`'s
-    // `sceneWillResignActive`/`sceneDidEnterBackground`/… (same prefix, same
-    // `AudioReport`). They are kept empty only because they are Capacitor's
-    // template and their absence would read as a deletion; put nothing in
-    // them. And per the note above, nothing on either side may touch the
-    // audio session.
-
-    func applicationWillResignActive(_ application: UIApplication) {
-    }
-
-    func applicationDidEnterBackground(_ application: UIApplication) {
-    }
-
-    func applicationWillEnterForeground(_ application: UIApplication) {
-    }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
-    }
+    // ⚠️ Capacitor's template also carries application(_:open:options:),
+    // application(_:continue:restorationHandler:) and the four
+    // applicationDid…/applicationWill… activity methods, and this app had
+    // application(_:performActionFor:) for its Home Screen shortcuts. Under the
+    // scene life cycle iOS never calls any of them, so they are not here: a
+    // suite link and a Universal Link arrive at `SceneDelegate`, which hands
+    // them to Capacitor's `SceneDelegateProxy`; a shortcut arrives there too
+    // (`windowScene(_:performActionFor:completionHandler:)`), and the
+    // `[jukebox:native]` lifecycle log lines live on its `scene…` methods. Put
+    // nothing that must run on a URL, a shortcut or a foreground change in
+    // this file — and per the note above, nothing on either side may touch
+    // the audio session.
 
     func applicationWillTerminate(_ application: UIApplication) {
-    }
-
-    // ⚠️ Also never called under the scene life cycle. `SceneDelegate` takes
-    // all three — a Home Screen shortcut tapped while running
-    // (`windowScene(_:performActionFor:completionHandler:)`), a
-    // `unisim-jukebox://` link and a Universal Link — and forwards them the
-    // same way. Kept as the pre-scene fallback.
-
-    /// A Home Screen shortcut tapped while the app was already running.
-    func application(_ application: UIApplication, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
-        ShortcutsBridge.receive(shortcutItem.type)
-        completionHandler(true)
-    }
-
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-    }
-
-    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
 }

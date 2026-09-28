@@ -8,6 +8,7 @@ import { logNativeDiagnostics } from './lib/nativeDiagnostics'
 import { watchAudioRoute } from './lib/nowPlayingNative'
 import './index.css'
 import { installShortcuts } from './lib/shortcuts'
+import { followThemeWithStatusBar } from './lib/systemBars'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
 // mount <UniversalProvider> so the shared navbar works and, when the visitor is
@@ -71,6 +72,8 @@ startApplyingSettings()
 logNativeDiagnostics()
 void watchAudioRoute()
 installShortcuts()
+// The status-bar glyphs flip with Light/Dark where the page is under the bar.
+followThemeWithStatusBar()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

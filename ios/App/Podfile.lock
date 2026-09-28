@@ -1,16 +1,14 @@
 PODS:
-  - Capacitor (7.6.9):
+  - Capacitor (8.5.2):
     - CapacitorCordova
-  - CapacitorApp (7.1.2):
+  - CapacitorApp (8.1.1):
     - Capacitor
-  - CapacitorCordova (7.6.9)
-  - CapacitorFilesystem (7.1.8):
+  - CapacitorCordova (8.5.2)
+  - CapacitorFilesystem (8.1.3):
     - Capacitor
     - IONFilesystemLib (~> 1.1.1)
-  - CapacitorStatusBar (7.0.6):
-    - Capacitor
   - IONFilesystemLib (1.1.2)
-  - UnisimSdk (0.161.0):
+  - UnisimSdk (0.163.0):
     - Capacitor
 
 DEPENDENCIES:
@@ -18,7 +16,6 @@ DEPENDENCIES:
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorFilesystem (from `../../node_modules/@capacitor/filesystem`)"
-  - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
   - "UnisimSdk (from `../../node_modules/@unisim/sdk`)"
 
 SPEC REPOS:
@@ -34,20 +31,17 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/ios"
   CapacitorFilesystem:
     :path: "../../node_modules/@capacitor/filesystem"
-  CapacitorStatusBar:
-    :path: "../../node_modules/@capacitor/status-bar"
   UnisimSdk:
     :path: "../../node_modules/@unisim/sdk"
 
 SPEC CHECKSUMS:
-  Capacitor: 46067d1c8df89760dbed78780d436327d588c726
-  CapacitorApp: f01a913211780e0718dae9750442c3e23f96e106
-  CapacitorCordova: 2080fc0d6bfbc9dcc0e6d88e77fa624190d343ca
-  CapacitorFilesystem: c63fc54df41e5a6761785a7f3c49dc696c22e296
-  CapacitorStatusBar: 416e9e53fd6397e668d4a181cd2131617d949bd6
+  Capacitor: 89067779e14fb7ea56af07b4817f45d1f0c2a269
+  CapacitorApp: 305bd13c44f6f9d164e2ee66a4faa956ed8c0e06
+  CapacitorCordova: 5bec5648cbd09a176ce34ce5e7b6cdabb2c8a327
+  CapacitorFilesystem: b2bbd84bb91c177906c9dbc252864cb71ab9957b
   IONFilesystemLib: 21a63377696b2d8fab5632ecfb7d2ac67bddb68a
-  UnisimSdk: 97fc80ea37ddf7b76c9571f2e9fc8df1a757fc2c
+  UnisimSdk: 674a6950776b97a6cd6bc3b5b30c92f457b21f49
 
-PODFILE CHECKSUM: 75ea747ff853bd790f8fcc21a4bd919345177e31
+PODFILE CHECKSUM: 86a91a7ea9b75312e527004b599671ab116d8129
 
 COCOAPODS: 1.16.2
