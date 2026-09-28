@@ -128,8 +128,12 @@ export type DeckSetting = DeckStyle | 'automatic'
 export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'jukebox', 'pocket', 'automatic']
 
 /** The first-run tips — see `components/Tip.tsx`. */
-export type TipId = 'record' | 'cover'
-export const TIP_IDS: TipId[] = ['record', 'cover']
+// 'hold' and 'shelfPlay' are the hints in the shelves' captions ("tap to play,
+// hold for options", "tap the record to play the shelf from here"): shown under
+// every record until the thing they describe has been done once, then gone —
+// a line repeated under every shelf for ever is noise by the second visit.
+export type TipId = 'record' | 'cover' | 'hold' | 'shelfPlay'
+export const TIP_IDS: TipId[] = ['record', 'cover', 'hold', 'shelfPlay']
 
 /** How many albums across (James, 2026-09-11) — or the jukebox shelf. */
 export type LibraryColumns = 1 | 2 | 3 | 4 | 'jukebox'

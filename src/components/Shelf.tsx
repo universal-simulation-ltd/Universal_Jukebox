@@ -9,6 +9,8 @@ import { grooveRings } from '../lib/grooves'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { newSeed, shelfRows, shelfStarts, SHELF_MAX_ROWS, TRACK_SHELF_MAX_ROWS } from '../lib/libraryView'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useSettingsStore } from '../stores/settingsStore'
+import { markTipSeen } from '../lib/tips'
 import { withResumeRow } from './resumeRow'
 import type { Album, Track } from '../lib/types'
 
@@ -285,6 +287,7 @@ export function TrackShelf({
   }, [albums])
   /** The song whose options are open, from a hold. */
   const [options, setOptions] = useState<Track | null>(null)
+  const holdLearnt = useSettingsStore((s) => s.tipsSeen.includes('hold'))
   return (
     <>
     {options && <TrackOptions track={options} onPlay={() => onPlay(options)} onClose={() => setOptions(null)} />}
@@ -309,8 +312,15 @@ export function TrackShelf({
           open={(t) => onPlay(t)}
           // Play now or queue it from a tap and HOLD, not from buttons under
           // the record (James, 2026-09-27) — `TrackOptions`.
-          hold={(t) => setOptions(t)}
-          caption={(t) => ({ title: t.title, detail: `${t.artist ?? t.albumArtist ?? 'Unknown artist'} — tap to play, hold for options` })}
+          hold={(t) => {
+            markTipSeen('hold')
+            setOptions(t)
+          }}
+          // The how-to goes once somebody has held a record (`TipId`).
+          caption={(t) => ({
+            title: t.title,
+            detail: `${t.artist ?? t.albumArtist ?? 'Unknown artist'}${holdLearnt ? '' : ' — tap to play, hold for options'}`,
+          })}
         />
       )}
     />

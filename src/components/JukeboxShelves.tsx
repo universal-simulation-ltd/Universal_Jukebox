@@ -10,6 +10,8 @@ import { NAME_MAX, NEW_SHELF, shelfName, shelvesToShow } from '../lib/shelves'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useShelvesStore } from '../stores/shelvesStore'
+import { useSettingsStore } from '../stores/settingsStore'
+import { markTipSeen } from '../lib/tips'
 import type { Album, Track } from '../lib/types'
 
 // The Jukebox tab: shelves you fill yourself, each one a playlist of songs
@@ -88,6 +90,7 @@ function JukeboxShelfRow({
   const shuffle = usePlayerStore((s) => s.shuffle)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
   const [editing, setEditing] = useState(false)
+  const shelfPlayLearnt = useSettingsStore((s) => s.tipsSeen.includes('shelfPlay'))
   const slots: Slot[] = [...songs, PLUS]
   const pill =
     'inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1 text-[12.5px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400'
@@ -185,14 +188,21 @@ function JukeboxShelfRow({
         open={(s, i) => {
           if (isPlus(s)) onAdd()
           else if (editing) setPicked((p) => (p === s.id ? null : s.id))
-          else playTracks(songs, i)
+          else {
+            markTipSeen('shelfPlay')
+            playTracks(songs, i)
+          }
         }}
         caption={(s) =>
           isPlus(s)
             ? { title: songs.length > 0 ? 'Add another song' : 'An empty shelf', detail: 'Tap + to put a song on it' }
             : {
                 title: s.title,
-                detail: `${s.artist ?? s.albumArtist ?? 'Unknown artist'} — ${editing ? 'tap a record to move it or take it off' : 'tap the record to play the shelf from here'}`,
+                // The how-to goes once a shelf has been played from (`TipId`);
+                // Edit's stays, since it is a different mode's instructions.
+                detail: `${s.artist ?? s.albumArtist ?? 'Unknown artist'}${
+                  editing ? ' — tap a record to move it or take it off' : shelfPlayLearnt ? '' : ' — tap the record to play the shelf from here'
+                }`,
               }
         }
       />
