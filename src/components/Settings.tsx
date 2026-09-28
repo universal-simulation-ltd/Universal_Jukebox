@@ -9,6 +9,7 @@ import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId } from '../lib/settingsSection'
 import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify'
 import { canSetElementVolume } from '../lib/volumeSupport'
+import CrossfadeDialog from './CrossfadeDialog'
 import { DeckMiniature } from './Deck'
 import { useAboutStore } from '../stores/aboutStore'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -62,6 +63,7 @@ export default function Settings() {
   // Arrived from "Customise" under Now Playing: that section opens, and the
   // page scrolls to it once App has put the page at its top.
   const [openSection] = useState<SettingsSectionId | null>(pendingSettingsSection)
+  const [crossfadeOpen, setCrossfadeOpen] = useState(false)
   useEffect(() => {
     forgetSettingsSection()
     if (!openSection) return
@@ -260,6 +262,16 @@ export default function Settings() {
             checked={!s.recordCrossfade}
             onChange={(v) => s.set('recordCrossfade', !v)}
           />
+          {/* James, 2026-09-28: "an 'Advanced' button next to the crossfade
+              option and popup with these controls" — the lengths, the
+              quiet-opening hold, the silent-ending skip and the shape. */}
+          <Action
+            label="Crossfade timing"
+            hint={`${s.xfTrackSec.toFixed(1)} s within a record, ${s.xfRecordSec.toFixed(1)} s between records, ${s.xfSkipSec.toFixed(1)} s when you press Next.`}
+            button="Advanced…"
+            onClick={() => setCrossfadeOpen(true)}
+          />
+          {crossfadeOpen && <CrossfadeDialog onClose={() => setCrossfadeOpen(false)} />}
           <Toggle
             label={`Mute the ${deck.soundLabel.toLowerCase()}`}
             hint={`Tick to go without it. ${deck.soundHint}`}

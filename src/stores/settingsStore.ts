@@ -255,6 +255,22 @@ export interface Settings {
    */
   recordCrossfade: boolean
   /**
+   * The crossfade's own numbers, Settings ▸ Advanced… beside "No crossfade
+   * between records" (James, 2026-09-28: "these are the controls I want the
+   * user to be able to customise"). Defaults are the values that were
+   * constants in `playerStore.ts` until then; see `CROSSFADE_LIMITS`.
+   */
+  xfTrackSec: number
+  xfRecordSec: number
+  /** A skip's blend within a record; across records it is 1.25× this. */
+  xfSkipSec: number
+  /** Longest hold for a quiet opening. 0 = never hold. */
+  xfIntroMax: number
+  /** Longest stretch of silence at a song's end skipped. 0 = never skip. */
+  xfOutroMax: number
+  /** The shape of a blend at the end of a song. A skip keeps `lead-out`. */
+  xfShape: CrossfadeShape
+  /**
    * A notification each time a new song starts, one card replacing the last
    * (James, 2026-09-13) — `lib/trackNotify.ts`.
    *
@@ -327,6 +343,12 @@ export const DEFAULTS: Settings = {
   libraryColumns: { artists: 3, albums: 4, tracks: 'jukebox' },
   resumeCard: true,
   recordCrossfade: true,
+  xfTrackSec: 1.8,
+  xfRecordSec: 4.5,
+  xfSkipSec: 1.2,
+  xfIntroMax: 6,
+  xfOutroMax: 8,
+  xfShape: 'staggered',
   trackNotifications: false,
   aboutOnline: false,
   keepAwake: false,
@@ -343,6 +365,23 @@ export const MAX_LEVEL_DB = 30
 /** What the Quiet and Loud buttons under Now Playing step through, after Off. */
 export const QUIET_STEPS_DB = [-10, -20, -30] as const
 export const LOUD_STEPS_DB = [10, 20, 30] as const
+
+/** The crossfade shapes offered for the end of a song (`lib/fadeCurve.ts`). */
+export const CROSSFADE_SHAPES = ['staggered', 'equal-power', 'linear'] as const
+export type CrossfadeShape = (typeof CROSSFADE_SHAPES)[number]
+
+/**
+ * Each crossfade setting's range, [min, max]. The maxima of `intro` and
+ * `outro` are the old hard caps (`INTRO_HOLD_MAX`, `OUTRO_LEAD_MAX`), and
+ * `playerStore` rearms from the largest total these allow.
+ */
+export const CROSSFADE_LIMITS = {
+  track: [0.5, 8],
+  record: [1, 10],
+  skip: [0.3, 4],
+  intro: [0, 6],
+  outro: [0, 8],
+} as const satisfies Record<string, readonly [number, number]>
 
 /** Every button the row under Now Playing can show, in its order. */
 export const MODE_KEYS = [
@@ -556,6 +595,12 @@ function readStored(): Settings {
     ),
     resumeCard: stored.resumeCard !== false,
     recordCrossfade: stored.recordCrossfade !== false,
+    xfTrackSec: clamp(stored.xfTrackSec, ...CROSSFADE_LIMITS.track, DEFAULTS.xfTrackSec),
+    xfRecordSec: clamp(stored.xfRecordSec, ...CROSSFADE_LIMITS.record, DEFAULTS.xfRecordSec),
+    xfSkipSec: clamp(stored.xfSkipSec, ...CROSSFADE_LIMITS.skip, DEFAULTS.xfSkipSec),
+    xfIntroMax: clamp(stored.xfIntroMax, ...CROSSFADE_LIMITS.intro, DEFAULTS.xfIntroMax),
+    xfOutroMax: clamp(stored.xfOutroMax, ...CROSSFADE_LIMITS.outro, DEFAULTS.xfOutroMax),
+    xfShape: CROSSFADE_SHAPES.includes(stored.xfShape as CrossfadeShape) ? (stored.xfShape as CrossfadeShape) : DEFAULTS.xfShape,
     trackNotifications: stored.trackNotifications === true,
     keepAwake: stored.keepAwake === true,
     lockScreenLyrics: stored.lockScreenLyrics === true,
@@ -642,6 +687,12 @@ function persist(state: Settings) {
     libraryColumns: state.libraryColumns,
     resumeCard: state.resumeCard,
     recordCrossfade: state.recordCrossfade,
+    xfTrackSec: state.xfTrackSec,
+    xfRecordSec: state.xfRecordSec,
+    xfSkipSec: state.xfSkipSec,
+    xfIntroMax: state.xfIntroMax,
+    xfOutroMax: state.xfOutroMax,
+    xfShape: state.xfShape,
     trackNotifications: state.trackNotifications,
     aboutOnline: state.aboutOnline,
     keepAwake: state.keepAwake,

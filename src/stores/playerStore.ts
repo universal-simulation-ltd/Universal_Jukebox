@@ -18,12 +18,12 @@ import { shuffled } from '../lib/audio'
 import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from './libraryStore'
 import { newSeed, shuffleQueue, type ShuffleKind } from '../lib/libraryView'
-import { settings, useSettingsStore } from './settingsStore'
+import { CROSSFADE_LIMITS, settings, useSettingsStore } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
 import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
-import { INTRO_HOLD_MAX, cachedIntro, introHold, measureIntro } from '../lib/intro'
-import { OUTRO_LEAD_MAX, cachedOutro, measureOutro, outroLead } from '../lib/outro'
+import { cachedIntro, introHold, measureIntro } from '../lib/intro'
+import { cachedOutro, measureOutro, outroLead } from '../lib/outro'
 import { noteEvent } from '../lib/bgLog'
 import { followLockLyrics } from '../lib/lockLyrics'
 
@@ -688,20 +688,28 @@ const BEATS = { one: 780, land: 1050, start: 1560 }
  * being seen to change. `SWAP_IN_MS` is how long the new record takes to settle
  * once it is on.
  */
-const CROSSFADE = {
-  SEC: 1.8,
-  // ⚠️ 0.9 UNTIL 2026-09-15, and too short to be a blend at all once the shape
-  // was right. A skipped song is at full level — nothing about it is fading —
-  // so 0.9s had to take a whole song from full to nothing, which is a cut with
-  // a ramp on it however the ramp is drawn. `lead-out` has the outgoing song
-  // finished 30% before the end of the blend (`LEAD_OUT`), so at 1.2s it is
-  // gone in 0.84s — no longer hanging about than the old 0.9s did — while the
-  // song arriving gets the full 1.2s to come up.
-  MANUAL_SEC: 1.2,
-  // A change of RECORD crossfades longer — long enough to watch one machine
-  // slide out and the next slide in, counting 3, 2, 1 — and a skip, quicker.
-  RECORD_SEC: 4.5,
-  RECORD_MANUAL_SEC: 1.5,
+/**
+ * The crossfade's numbers, read from Settings ▸ Advanced… each time (James,
+ * 2026-09-28: "these are the controls I want the user to be able to
+ * customise"). Until then these were constants — 1.8, 1.2, 4.5, 1.5 — and those
+ * are still the defaults. A skip across records stays 1.25× a skip within one.
+ *
+ * ⚠️ MANUAL_SEC was 0.9 until 2026-09-15, and too short to be a blend at all
+ * once the shape was right: a skipped song is at full level, so 0.9s took a
+ * whole song from full to nothing, which is a cut with a ramp on it. `lead-out`
+ * has the outgoing song finished 30% before the end of the blend (`LEAD_OUT`).
+ */
+function crossfadeTimes() {
+  const s = settings()
+  return {
+    SEC: s.xfTrackSec,
+    MANUAL_SEC: s.xfSkipSec,
+    RECORD_SEC: s.xfRecordSec,
+    RECORD_MANUAL_SEC: s.xfSkipSec * 1.25,
+    INTRO_MAX: s.xfIntroMax,
+    OUTRO_MAX: s.xfOutroMax,
+    SHAPE: s.xfShape,
+  }
 }
 export const HANDOVER = { LIFT_MS: 420, SWAP_IN_MS: 620, FADE_OUT_SEC: 0.32, FADE_IN_SEC: 0.55 }
 /**
@@ -783,7 +791,7 @@ function runHandover(
 
   // The blend. Both tracks are audible for a moment; the pickup catches up.
   if (plan.crossfade && options.crossfadeFile) {
-    const seconds = options.crossfadeSec ?? CROSSFADE.MANUAL_SEC
+    const seconds = options.crossfadeSec ?? crossfadeTimes().MANUAL_SEC
     if (plan.swap) {
       // A change of RECORD, blended — see `startBlend`.
       startBlend(set, get, plan, seconds)
@@ -1369,7 +1377,7 @@ function playPrepared(
   }, {
     duckFirst: !naturalEnd,
     crossfadeFile: file,
-    crossfadeSec: plan.swap ? CROSSFADE.RECORD_MANUAL_SEC : CROSSFADE.MANUAL_SEC,
+    crossfadeSec: plan.swap ? crossfadeTimes().RECORD_MANUAL_SEC : crossfadeTimes().MANUAL_SEC,
     // ⚠️ EVERY CHANGE THAT REACHES HERE IS ONE SOMEBODY ASKED FOR — Next, a
     // swipe, a tap in the queue — so the next song is heard AT ONCE rather
     // than after the staggered silence the end-of-song blend uses. The natural
@@ -1416,7 +1424,9 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   // else — a flag cleared on load — misses the case where the crossfade is
   // superseded by the user pressing next inside the lead. The longest lead is
   // a record change's, so that is the distance that rearms.
-  if (remainingSec > CROSSFADE.RECORD_SEC + INTRO_HOLD_MAX + OUTRO_LEAD_MAX + 1) {
+  // The longest lead the settings could ever allow, so a change made mid-song
+  // never finds the flag still set from the last one.
+  if (remainingSec > CROSSFADE_LIMITS.record[1] + CROSSFADE_LIMITS.intro[1] + CROSSFADE_LIMITS.outro[1] + 1) {
     crossfadeArmed = false
     return
   }
@@ -1442,7 +1452,8 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   // longer.
   // …and a next song that starts QUIETLY comes in that much earlier, the song
   // ending holding at full through its quiet opening (`lib/intro.ts`).
-  const hold = introHold(to.id)
+  const CROSSFADE = crossfadeTimes()
+  const hold = Math.min(introHold(to.id), CROSSFADE.INTRO_MAX)
   const blendLead = (plan.swap ? CROSSFADE.RECORD_SEC : CROSSFADE.SEC) + hold
   // …and a song ending on DEAD AIR hands over that much earlier again (James,
   // 2026-09-15: "If there's a few blank seconds at the end of the track start
@@ -1455,7 +1466,7 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
   // full by the time the dead air would have begun and the dead air is never
   // heard. Lengthening the blend instead would fade a song out across seconds
   // of nothing, which sounds like the app losing its place.
-  const trail = outroLead(from.id)
+  const trail = Math.min(outroLead(from.id), CROSSFADE.OUTRO_MAX)
   const lead = blendLead + trail
   if (remainingSec > lead) return
 
@@ -1493,6 +1504,7 @@ function maybeStartEarlyCrossfade(remainingSec: number): void {
     crossfadeFile: file,
     crossfadeSec: blendSec,
     holdSec,
+    crossfadeCurve: CROSSFADE.SHAPE,
   })
 }
 
