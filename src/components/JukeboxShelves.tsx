@@ -55,8 +55,28 @@ export default function JukeboxShelves() {
         // songs went with a library that was cleared or re-imported under new
         // ids. It stays stored, so it comes back if they do.
         .filter(({ shelf, songs }) => shelf.id === NEW_SHELF || songs.length > 0)
-        .map(({ shelf, songs }, i) => {
+        .map(({ shelf, songs }, i, all) => {
         const name = shelfName(shelf, i)
+        // ⚠️ The empty shelf at the end is a single row once there is a full
+        // shelf above it (James, 2026-09-28, from the UX review): a whole
+        // record's height of dashed circle under every jukebox pushed
+        // Requests off the screen. The first shelf keeps the big + — it is
+        // the whole of the tab until something is on it.
+        if (shelf.id === NEW_SHELF && all.length > 1) {
+          return (
+            <button
+              key={shelf.id}
+              type="button"
+              onClick={() => setPicking({ shelfId: shelf.id, name })}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 py-3.5 text-[14px] font-medium text-slate-600 transition hover:border-orange-400 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-600 dark:hover:text-orange-400"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Start another shelf
+            </button>
+          )
+        }
         return (
           <JukeboxShelfRow
             key={shelf.id}
