@@ -8,6 +8,7 @@ import KeepAwakeButton from './KeepAwakeButton'
 import SleepButton from './SleepButton'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
 import { useSettingsStore, type ModeKey } from '../stores/settingsStore'
+import { openSettingsAt } from '../lib/settingsSection'
 
 // The row of round buttons under the records waiting to go on: shuffle and the
 // two repeats (James, 2026-09-11: "repeat: add three buttons, centred, under
@@ -36,6 +37,8 @@ export default function PlayModes() {
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
   const setRepeat = usePlayerStore((s) => s.setRepeat)
   const hidden = useSettingsStore((s) => s.hiddenModes)
+  const customiseSeen = useSettingsStore((s) => s.customiseSeen)
+  const setSetting = useSettingsStore((s) => s.set)
   if (queued === 0) return null
   const pick = (mode: Exclude<Repeat, 'off'>) => setRepeat(repeat === mode ? 'off' : mode)
   const shows = (key: ModeKey) => !hidden.includes(key)
@@ -92,11 +95,36 @@ export default function PlayModes() {
           {shows('sleep') && <SleepButton />}
         </div>
       )}
+      {/* "Customise" (James, 2026-09-28): shows where the row is set up, then
+          goes for good once used — "they now know where to go". It is not one
+          of the row's own buttons, so it cannot be hidden from Settings. */}
+      {!customiseSeen && (
+        <ModeButton
+          label="Customise"
+          ariaLabel="Choose which buttons show here, in Settings"
+          onClick={() => {
+            setSetting('customiseSeen', true)
+            openSettingsAt('buttons')
+          }}
+        >
+          <SlidersGlyph />
+        </ModeButton>
+      )}
     </div>
   )
 }
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
+
+function SlidersGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden>
+      <path d="M3.5 6h6M13.5 6h3M3.5 14h3M10.5 14h6" />
+      <circle cx="11.5" cy="6" r="2" />
+      <circle cx="8.5" cy="14" r="2" />
+    </svg>
+  )
+}
 
 function RepeatGlyph() {
   return (

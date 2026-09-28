@@ -192,6 +192,11 @@ export interface Settings {
   levelDb: number
   /** Buttons left out of the row under Now Playing (`PlayModes`). None by default. */
   hiddenModes: ModeKey[]
+  /**
+   * The row's "Customise" button has been used once, so it is gone for good
+   * (James, 2026-09-28: "doesn't show again … they now know where to go").
+   */
+  customiseSeen: boolean
   /** Seconds of fade at the start of a track. 0 = straight in. */
   fadeInSec: number
   /** Seconds of fade before the end of a track. 0 = straight out. */
@@ -305,6 +310,7 @@ export const DEFAULTS: Settings = {
   volumeBoost: 1,
   levelDb: 0,
   hiddenModes: [],
+  customiseSeen: false,
   fadeInSec: 0,
   fadeOutSec: 0,
   lyricsOnline: false,
@@ -513,6 +519,7 @@ function readStored(): Settings {
       -MAX_LEVEL_DB, MAX_LEVEL_DB, DEFAULTS.levelDb,
     ),
     hiddenModes: sanitiseModes(stored.hiddenModes),
+    customiseSeen: stored.customiseSeen === true,
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
     fadeOutSec: clamp(stored.fadeOutSec, 0, MAX_FADE_SEC, DEFAULTS.fadeOutSec),
     // ⚠️ `=== true`, not a truthy read. A stored value of anything other than
@@ -621,6 +628,7 @@ function persist(state: Settings) {
     volumeBoost: state.volumeBoost,
     levelDb: state.levelDb,
     hiddenModes: state.hiddenModes,
+    customiseSeen: state.customiseSeen,
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
     lyricsOnline: state.lyricsOnline,

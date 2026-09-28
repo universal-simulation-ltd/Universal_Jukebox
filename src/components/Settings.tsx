@@ -5,6 +5,8 @@ import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
 import { goHome, navigate } from '../lib/route'
+import { scrollBelowBar } from '../lib/scrollBelowBar'
+import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId } from '../lib/settingsSection'
 import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { DeckMiniature } from './Deck'
@@ -57,6 +59,21 @@ export default function Settings() {
   // plain Light / Dark / System and sets the global value (SDK 0.144.0).
   const { split: prefsSplit, setColorScheme: setGlobalColorScheme } = useGlobalPreferences()
   const libraryReady = useLibraryStore((l) => l.status === 'ready')
+  // Arrived from "Customise" under Now Playing: that section opens, and the
+  // page scrolls to it once App has put the page at its top.
+  const [openSection] = useState<SettingsSectionId | null>(pendingSettingsSection)
+  useEffect(() => {
+    forgetSettingsSection()
+    if (!openSection) return
+    let reduced = false
+    try {
+      reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    } catch { /* animate */ }
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() => scrollBelowBar(document.getElementById(`settings-${openSection}`), reduced)),
+    )
+    return () => cancelAnimationFrame(frame)
+  }, [openSection])
 
   // The boost is the one setting that can be genuinely unavailable: it needs a
   // Web Audio graph, and a browser can refuse us one. Saying so is better than
@@ -356,6 +373,8 @@ export default function Settings() {
             the settings, so they click each button they want to appear". */}
         <Section
           title="Buttons under the song"
+          id="settings-buttons"
+          open={openSection === 'buttons'}
           note="Tap a button to show or hide it in the row under Now Playing."
           summary={summaries.buttons}
         >
@@ -758,10 +777,19 @@ function sentence(parts: string[]): string {
  * section still starts shut on every visit, and that was decided, not missed.
  */
 function Section({
-  title, note, summary, children,
-}: { title: string; note?: string; summary?: string; children: React.ReactNode }) {
+  title, note, summary, id, open, children,
+}: {
+  title: string
+  note?: string
+  summary?: string
+  /** For `openSettingsAt` to scroll to. */
+  id?: string
+  /** Starts unfolded — only when `openSettingsAt` asked for this section. */
+  open?: boolean
+  children: React.ReactNode
+}) {
   return (
-    <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+    <details id={id} open={open || undefined} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       {/* `list-none` plus the webkit marker rule: without BOTH, one engine keeps
           its own triangle and the row ends up with two disclosure arrows. */}
       <summary className="flex cursor-pointer list-none items-start gap-3 px-5 py-4 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-orange-600 dark:hover:bg-slate-800/50 [&::-webkit-details-marker]:hidden">
