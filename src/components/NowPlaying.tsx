@@ -23,6 +23,7 @@ import PlayModes from './PlayModes'
 import FoldUp from './FoldUp'
 import LyricsAround from './LyricsAround'
 import Visualiser from './Visualiser'
+import StageTransport from './StageTransport'
 import DeckPicker from './DeckPicker'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { requestLyricsReveal } from '../lib/lyricsReveal'
@@ -197,7 +198,9 @@ export default function NowPlaying() {
       className={
         landscape
           ? 'flex flex-row items-center gap-6'
-          : 'flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-14'
+          : // gap-4 below `lg`: the transport under the record has to fit on a
+            // short phone too (`StageTransport`).
+            'flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-14'
       }
     >
       {/* The cover, stretched across the whole page as the ground (James,
@@ -268,10 +271,18 @@ export default function NowPlaying() {
           ))}
         </div>
 
+        {/* The big transport under the record (phone, portrait) — see
+            `StageTransport`; from `lg` the bar at the bottom does it and the
+            count stays a line of text. */}
         {!landscape && (
-          <p className="mt-4 text-[12px] text-slate-400 dark:text-slate-500">
-            {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
-          </p>
+          <>
+            <div className="mt-2 lg:hidden">
+              <StageTransport />
+            </div>
+            <p className="mt-4 hidden text-[12px] text-slate-400 lg:block dark:text-slate-500">
+              {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
+            </p>
+          </>
         )}
 
         <div className={`flex flex-wrap justify-center gap-2 lg:justify-start ${landscape ? 'mt-3' : 'mt-4'}`}>
@@ -501,7 +512,12 @@ function clampDeck(landscape = false, room: number | null = null): number {
   // that is not a fixed fraction of anything — the example library's notice
   // alone is 70px of it. Guessed at 0.38 of the screen, the record sat under
   // the player bar on a 390px-tall phone.
-  const byHeight = landscape ? (room ?? window.innerHeight * 0.38) : window.innerHeight * 0.46
+  // Standing up below `lg`, the record shares the height with the title above
+  // and the transport below (`StageTransport`) — about 440px of the screen is
+  // theirs, and on a short phone the record gives way rather than pushing the
+  // play button under the fold.
+  const standing = window.innerWidth < 1024 ? window.innerHeight - 440 : Infinity
+  const byHeight = landscape ? (room ?? window.innerHeight * 0.38) : Math.min(window.innerHeight * 0.46, standing)
   const floor = landscape ? 110 : 180
   return Math.round(Math.max(floor, Math.min(420, byWidth, byHeight)))
 }

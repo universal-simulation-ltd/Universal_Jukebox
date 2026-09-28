@@ -6,6 +6,7 @@ import { currentRoute, navigate } from '../lib/route'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { haptic } from '../lib/haptics'
+import { useLandscapeStage } from '../lib/stageLayout'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 
 // The persistent transport, pinned to the bottom of every view.
@@ -15,7 +16,12 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 // broken layout: an empty stage under a full navbar reads as a bug, so the bar
 // grows rather than the page emptying. See §22.10.
 
-export default function PlayerBar() {
+export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
+  // Now Playing draws its own, bigger transport under the record in portrait
+  // below `lg` (`StageTransport`); there this bar steps aside. Lying down it
+  // stays — the stage has no room for a second row.
+  const landscape = useLandscapeStage()
+  const stepAside = onStage && !landscape
   const track = usePlayerStore(currentTrack)
   const playing = usePlayerStore((s) => s.playing)
   const loading = usePlayerStore((s) => s.loading)
@@ -51,7 +57,7 @@ export default function PlayerBar() {
     // `contentInset: 'never'`, so without it the transport sits UNDER the home
     // indicator on a phone — the play button and the scrub bar are the things
     // that end up beneath it. 0 on the web, so nothing changes there.
-    <div data-jb-playerbar className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+    <div data-jb-playerbar className={`${stepAside ? 'max-lg:hidden' : ''} sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95`}>
       {/* The scrub bar spans the full width above the controls: it is the one
           control people aim at without looking, so it gets the whole edge. */}
       <input

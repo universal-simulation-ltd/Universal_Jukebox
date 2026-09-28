@@ -712,7 +712,9 @@ export default function App() {
         )}
       </main>
 
-      <PlayerBar />
+      {/* On a phone's Now Playing the transport is under the record instead
+          (`StageTransport`) — not both. */}
+      <PlayerBar onStage={view === 'playing' && !mini} />
       <ScrollTopButton />
 
       <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
