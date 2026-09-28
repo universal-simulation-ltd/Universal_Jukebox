@@ -150,11 +150,14 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
   const track = usePlayerStore(currentTrack)
   const lastTrack = useRef(track)
   const [turn, setTurn] = useState(0)
+  // Not on shuffle: two songs that happen to fall in order are not an album
+  // being played through.
+  const shuffled = usePlayerStore((s) => s.shuffle)
   useEffect(() => {
     const was = lastTrack.current
     lastTrack.current = track
-    if (ceremonial && !reduced && was?.id !== track?.id && turnsOver(was, track, album)) setTurn((n) => n + 1)
-  }, [ceremonial, reduced, track, album])
+    if (ceremonial && !reduced && !shuffled && was?.id !== track?.id && turnsOver(was, track, album)) setTurn((n) => n + 1)
+  }, [ceremonial, reduced, shuffled, track, album])
   // The needle touching the record, felt as well as seen — the ceremony's
   // landing and every change of record after it. Only on the stage deck, and
   // only on the way DOWN: lifting the arm is not an event under the thumb.
