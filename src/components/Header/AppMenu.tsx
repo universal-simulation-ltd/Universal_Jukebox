@@ -222,7 +222,7 @@ export default function AppMenu() {
           base. The second "Tune this app — language & colour" row went (the
           colour is Settings ▸ Appearance; the app is English-only until 1.1),
           and Global Tuning went to the SDK's account panel, for signed-in
-          users only (`showGlobalPreferences` in App.tsx). */}
+          users only (the SDK's rule since 0.165.0). */}
       <Row onClick={() => navigate({ view: 'settings' })}>Tune this app…</Row>
       <button
         type="button"
