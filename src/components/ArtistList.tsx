@@ -6,6 +6,7 @@ import { leadWith, useResumable } from '../lib/resume'
 import Cover from './Cover'
 import CoverFan from './CoverFan'
 import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
+import { PlayGlyph } from './AlbumView'
 import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
@@ -239,8 +240,8 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
               </button>
             </li>
             {isOpen &&
-              artist.albums.map((album, i) => (
-                <li key={album.id} id={i === artist.albums.length - 1 ? lastTileId : undefined}>
+              artist.albums.map((album) => (
+                <li key={album.id}>
                   <button
                     type="button"
                     onClick={() => navigate({ view: 'album', albumId: album.id })}
@@ -259,6 +260,30 @@ export default function ArtistList({ query, order }: { query: string; order: Lib
                   </button>
                 </li>
               ))}
+            {/* Every song of theirs, to play or shuffle (James, 2026-09-28: "I
+                thought we added a way to open an artist with a playlist of all
+                their albums / songs?"). The artist page had it, but only the
+                shelf layout and an album's "All N albums by …" led there. Last
+                in the run, so it carries `lastTileId`. */}
+            {isOpen && (
+              <li key="all-songs" id={lastTileId}>
+                <button
+                  type="button"
+                  onClick={() => navigate({ view: 'artist', artist: artist.name })}
+                  className={`group w-full text-left focus:outline-none ${GROUP_MEMBER_TINT}`}
+                >
+                  <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-orange-600 dark:ring-white/10">
+                    <span className="flex h-1/3 w-1/3 items-center justify-center [&>svg]:h-full [&>svg]:w-full" aria-hidden>
+                      <PlayGlyph />
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
+                    All songs by {artist.name}
+                  </p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400">Play or shuffle</p>
+                </button>
+              </li>
+            )}
           </Fragment>
         )
       }), across, genre !== null)}
