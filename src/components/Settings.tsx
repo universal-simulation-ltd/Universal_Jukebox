@@ -17,7 +17,9 @@ import {
   DECK_SETTINGS,
   MAX_BOOST,
   MAX_FADE_SEC,
-  MIN_QUIET_DB,
+  MAX_LEVEL_DB,
+  MODE_KEYS,
+  MODE_LABELS,
   NEEDLE_STEP_MAX,
   NEEDLE_STEP_MIN,
   levelToStep,
@@ -114,10 +116,14 @@ export default function Settings() {
     }`,
     sound: sentence([
       s.stableVolume ? 'stable volume' : 'original sound levels',
-      ...(s.quietDb < 0 && !quietBroken ? [`extra quiet ${formatQuiet(-s.quietDb)}`] : []),
+      ...(s.levelDb !== 0 && !quietBroken ? [`${s.levelDb < 0 ? 'quiet' : 'loud'} ${formatLevel(s.levelDb)}`] : []),
       boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
       fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
     ]),
+    buttons:
+      s.hiddenModes.length === 0
+        ? 'All shown'
+        : `${MODE_KEYS.length - s.hiddenModes.length} of ${MODE_KEYS.length} shown`,
     lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: sentence([
@@ -290,19 +296,19 @@ export default function Settings() {
             onChange={(v) => s.set('stableVolume', !v)}
           />
           {/* James, 2026-09-28: quieter than the phone's lowest notch, for
-              listening in bed. On the iPhone this is an experiment — see
-              `quietGraphAllowed` in lib/audioGraph.ts. */}
+              listening in bed, and louder too. On the iPhone this is an
+              experiment — see `quietGraphAllowed` in lib/audioGraph.ts. */}
           <Slider
-            label="Extra quiet"
-            hint="Turns the music down further than the phone’s lowest volume, for listening in bed. Set the phone to its first notch, then slide this until it’s right."
-            value={-s.quietDb}
-            min={0}
-            max={-MIN_QUIET_DB}
+            label="Quiet or loud"
+            hint="Left of centre turns the music down further than the phone’s lowest volume, for listening in bed. Right of centre turns it up; past +10 dB most songs will distort."
+            value={s.levelDb}
+            min={-MAX_LEVEL_DB}
+            max={MAX_LEVEL_DB}
             step={5}
             disabled={quietBroken}
             disabledHint="This browser wouldn’t give the app the audio graph this needs. Everything else still works."
-            format={formatQuiet}
-            onChange={(v) => s.set('quietDb', -v)}
+            format={formatLevel}
+            onChange={(v) => s.set('levelDb', v)}
           />
           <Slider
             label="Volume boost"
@@ -344,6 +350,39 @@ export default function Settings() {
             format={formatFade}
             onChange={(v) => s.set('fadeOutSec', v)}
           />
+        </Section>
+
+        {/* James, 2026-09-28: "have the hidden controls bar customisable in
+            the settings, so they click each button they want to appear". */}
+        <Section
+          title="Buttons under the song"
+          note="Tap a button to show or hide it in the row under Now Playing."
+          summary={summaries.buttons}
+        >
+          <Row>
+            <div className="flex flex-wrap gap-2">
+              {MODE_KEYS.map((key) => {
+                const shown = !s.hiddenModes.includes(key)
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={shown}
+                    onClick={() =>
+                      s.set('hiddenModes', shown ? [...s.hiddenModes, key] : s.hiddenModes.filter((k) => k !== key))
+                    }
+                    className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
+                      shown
+                        ? 'bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm'
+                        : 'border border-slate-300 text-slate-500 line-through decoration-slate-400 hover:border-orange-500 dark:border-slate-700 dark:text-slate-400'
+                    }`}
+                  >
+                    {MODE_LABELS[key]}
+                  </button>
+                )
+              })}
+            </div>
+          </Row>
         </Section>
 
         <Section
@@ -664,9 +703,10 @@ function formatBoost(v: number): string {
   return v <= 1.001 ? 'Off' : `${v.toFixed(1)}×`
 }
 
-/** The Extra quiet turn-down (positive dB), as its slider shows it. */
-function formatQuiet(v: number): string {
-  return v < 0.5 ? 'Off' : `−${Math.round(v)} dB`
+/** The Quiet / Loud level, as its slider and button show it. */
+function formatLevel(v: number): string {
+  const db = Math.round(v)
+  return db === 0 ? 'Off' : db < 0 ? `−${-db} dB` : `+${db} dB`
 }
 
 /** A fade length, as its slider shows it. */

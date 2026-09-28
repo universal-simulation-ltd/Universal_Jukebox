@@ -229,7 +229,8 @@ export function ensureRunning(): void {
  */
 export function setBoost(multiplier: number): void {
   if (!boostGain || !context) return
-  const value = Math.max(0, Math.min(8, multiplier))
+  // Up to Loud's +30 dB on top of a 4× boost.
+  const value = Math.max(0, Math.min(128, multiplier))
   try {
     const now = context.currentTime
     boostGain.gain.cancelScheduledValues(now)

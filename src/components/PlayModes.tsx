@@ -3,10 +3,11 @@ import { AboutToggle } from './AboutTrack'
 import AddToShelf from './AddToShelf'
 import { ModeButton } from './ModeButton'
 import OutputButton from './OutputButton'
-import QuietButton from './QuietButton'
+import LevelButton from './LevelButton'
 import KeepAwakeButton from './KeepAwakeButton'
 import SleepButton from './SleepButton'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
+import { useSettingsStore, type ModeKey } from '../stores/settingsStore'
 
 // The row of round buttons under the records waiting to go on: shuffle and the
 // two repeats (James, 2026-09-11: "repeat: add three buttons, centred, under
@@ -19,6 +20,10 @@ import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore
 // the deck. Five fit across a phone (`ModeButton` narrows there); on anything
 // narrower the second pair wraps as a pair rather than splitting.
 //
+// Every button can be left out in Settings ▸ Buttons under the song (James,
+// 2026-09-28: "I wouldn't want shuffle there but someone else might"); a group
+// with nothing left in it is not drawn, so it leaves no gap.
+//
 // Repeat all and repeat one are either/or: tapping the one that is on turns
 // repeat off. (The mini player no longer has a repeat button at all; shuffle is
 // in its queue popup.)
@@ -30,26 +35,37 @@ export default function PlayModes() {
   const repeat = usePlayerStore((s) => s.repeat)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
   const setRepeat = usePlayerStore((s) => s.setRepeat)
+  const hidden = useSettingsStore((s) => s.hiddenModes)
   if (queued === 0) return null
   const pick = (mode: Exclude<Repeat, 'off'>) => setRepeat(repeat === mode ? 'off' : mode)
+  const shows = (key: ModeKey) => !hidden.includes(key)
+  const any = (...keys: ModeKey[]) => keys.some(shows)
 
   return (
     <div className="mt-5 flex flex-wrap justify-center gap-x-1 gap-y-3 sm:gap-x-5">
-      <div role="group" aria-label="Play order" className="flex gap-x-1 sm:gap-x-5">
-        <ModeButton label="Shuffle" on={shuffle} onClick={() => toggleShuffle()}>
-          <ShuffleGlyph />
-        </ModeButton>
-        <ModeButton label="Repeat all" on={repeat === 'all'} onClick={() => pick('all')}>
-          <RepeatGlyph />
-        </ModeButton>
-        <ModeButton label="Repeat one" on={repeat === 'one'} onClick={() => pick('one')}>
-          <RepeatOneGlyph />
-        </ModeButton>
-      </div>
-      {track && (
+      {any('shuffle', 'repeatAll', 'repeatOne') && (
+        <div role="group" aria-label="Play order" className="flex gap-x-1 sm:gap-x-5">
+          {shows('shuffle') && (
+            <ModeButton label="Shuffle" on={shuffle} onClick={() => toggleShuffle()}>
+              <ShuffleGlyph />
+            </ModeButton>
+          )}
+          {shows('repeatAll') && (
+            <ModeButton label="Repeat all" on={repeat === 'all'} onClick={() => pick('all')}>
+              <RepeatGlyph />
+            </ModeButton>
+          )}
+          {shows('repeatOne') && (
+            <ModeButton label="Repeat one" on={repeat === 'one'} onClick={() => pick('one')}>
+              <RepeatOneGlyph />
+            </ModeButton>
+          )}
+        </div>
+      )}
+      {track && any('shelf', 'about') && (
         <div className="flex gap-x-1 sm:gap-x-5">
-          <AddToShelf tracks={[track]} variant="mode" />
-          <AboutToggle />
+          {shows('shelf') && <AddToShelf tracks={[track]} variant="mode" />}
+          {shows('about') && <AboutToggle />}
         </div>
       )}
       {/* ⚠️ A THIRD GROUP, and so a second line on a phone — deliberately. The
@@ -58,19 +74,24 @@ export default function PlayModes() {
           size a thumb can aim at. Its own group because it is neither the play
           ORDER nor about the SONG — it is about the room you are in. Absent
           entirely where the engine has no picker to show (`OutputButton`). */}
-      <div role="group" aria-label="Sound" className="flex gap-x-1 sm:gap-x-5">
-        <OutputButton />
-        {/* Extra quiet (2026-09-28) — also about the room: turning it down for bed. */}
-        <QuietButton />
-      </div>
+      {any('output', 'quiet', 'loud') && (
+        <div role="group" aria-label="Sound" className="flex gap-x-1 sm:gap-x-5">
+          {shows('output') && <OutputButton />}
+          {/* Quiet and Loud (2026-09-28) — also about the room: down for bed. */}
+          {shows('quiet') && <LevelButton kind="quiet" />}
+          {shows('loud') && <LevelButton kind="loud" />}
+        </div>
+      )}
       {/* Beside Output on a phone's second line, and for the same reason it is
           its own group: it is about the SCREEN, so the lyrics can be read along
           to without the phone locking (James, 2026-09-16). */}
-      <div role="group" aria-label="Screen" className="flex gap-x-1 sm:gap-x-5">
-        <KeepAwakeButton />
-        {/* The sleep timer (2026-09-27): about the evening, beside the screen. */}
-        <SleepButton />
-      </div>
+      {any('keepAwake', 'sleep') && (
+        <div role="group" aria-label="Screen" className="flex gap-x-1 sm:gap-x-5">
+          {shows('keepAwake') && <KeepAwakeButton />}
+          {/* The sleep timer (2026-09-27): about the evening, beside the screen. */}
+          {shows('sleep') && <SleepButton />}
+        </div>
+      )}
     </div>
   )
 }

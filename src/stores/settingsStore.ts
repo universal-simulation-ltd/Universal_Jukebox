@@ -179,15 +179,19 @@ export interface Settings {
    */
   volumeBoost: number
   /**
-   * Turn-down below the phone's quietest notch, in dB. 0 = off.
+   * Quiet (below 0) or Loud (above 0), in dB. 0 = off.
    *
    * James, 2026-09-28: "want an option to make the sound quieter than the
-   * current minimum. When listening in bed it seems loud". The element's own
-   * `volume` is inaudible on the iPhone and iOS mutes below one notch of the
-   * system volume, so this is a Web Audio `GainNode` — and on the iPhone that
-   * is the EXPERIMENT in `audioGraph.ts` (`quietGraphAllowed`).
+   * current minimum. When listening in bed it seems loud", then "also add an
+   * option for 'loud' with +10, 20, 30 db". One signed value, so Quiet and Loud
+   * can never both be on. The element's own `volume` is inaudible on the iPhone
+   * and iOS mutes below one notch of the system volume, so this is a Web Audio
+   * `GainNode` — and on the iPhone that is the EXPERIMENT in `audioGraph.ts`
+   * (`quietGraphAllowed`).
    */
-  quietDb: number
+  levelDb: number
+  /** Buttons left out of the row under Now Playing (`PlayModes`). None by default. */
+  hiddenModes: ModeKey[]
   /** Seconds of fade at the start of a track. 0 = straight in. */
   fadeInSec: number
   /** Seconds of fade before the end of a track. 0 = straight out. */
@@ -299,7 +303,8 @@ export const DEFAULTS: Settings = {
   needleDrop: true,
   needleDropLevel: 1,
   volumeBoost: 1,
-  quietDb: 0,
+  levelDb: 0,
+  hiddenModes: [],
   fadeInSec: 0,
   fadeOutSec: 0,
   lyricsOnline: false,
@@ -327,10 +332,36 @@ export const DEFAULTS: Settings = {
 export const MAX_FADE_SEC = 8
 /** The loudest boost offered. Past ~4x almost everything clips audibly. */
 export const MAX_BOOST = 4
-/** The quietest Extra quiet offers: −30 dB is about 3% of the signal. */
-export const MIN_QUIET_DB = -30
-/** What the Quiet button under Now Playing steps through, after Off. */
+/** How far Quiet and Loud go: ±30 dB is about 3% / 32× of the signal. */
+export const MAX_LEVEL_DB = 30
+/** What the Quiet and Loud buttons under Now Playing step through, after Off. */
 export const QUIET_STEPS_DB = [-10, -20, -30] as const
+export const LOUD_STEPS_DB = [10, 20, 30] as const
+
+/** Every button the row under Now Playing can show, in its order. */
+export const MODE_KEYS = [
+  'shuffle', 'repeatAll', 'repeatOne', 'shelf', 'about', 'output', 'quiet', 'loud', 'keepAwake', 'sleep',
+] as const
+export type ModeKey = (typeof MODE_KEYS)[number]
+
+/** Each button's word, as it reads under the button and in Settings. */
+export const MODE_LABELS: Record<ModeKey, string> = {
+  shuffle: 'Shuffle',
+  repeatAll: 'Repeat all',
+  repeatOne: 'Repeat one',
+  shelf: 'Add to shelf',
+  about: 'About',
+  output: 'Output',
+  quiet: 'Quiet',
+  loud: 'Loud',
+  keepAwake: 'Keep awake',
+  sleep: 'Sleep',
+}
+
+function sanitiseModes(value: unknown): ModeKey[] {
+  if (!Array.isArray(value)) return []
+  return MODE_KEYS.filter((key) => value.includes(key))
+}
 /**
  * The needle-drop level's range, as a multiplier.
  *
@@ -476,7 +507,12 @@ function readStored(): Settings {
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
     volumeBoost: clamp(stored.volumeBoost, 1, MAX_BOOST, DEFAULTS.volumeBoost),
-    quietDb: clamp(stored.quietDb, MIN_QUIET_DB, 0, DEFAULTS.quietDb),
+    // `quietDb` was this setting's name for its first hours (2026-09-28).
+    levelDb: clamp(
+      stored.levelDb ?? (stored as { quietDb?: unknown }).quietDb,
+      -MAX_LEVEL_DB, MAX_LEVEL_DB, DEFAULTS.levelDb,
+    ),
+    hiddenModes: sanitiseModes(stored.hiddenModes),
     fadeInSec: clamp(stored.fadeInSec, 0, MAX_FADE_SEC, DEFAULTS.fadeInSec),
     fadeOutSec: clamp(stored.fadeOutSec, 0, MAX_FADE_SEC, DEFAULTS.fadeOutSec),
     // ⚠️ `=== true`, not a truthy read. A stored value of anything other than
@@ -583,7 +619,8 @@ function persist(state: Settings) {
     needleDrop: state.needleDrop,
     needleDropLevel: state.needleDropLevel,
     volumeBoost: state.volumeBoost,
-    quietDb: state.quietDb,
+    levelDb: state.levelDb,
+    hiddenModes: state.hiddenModes,
     fadeInSec: state.fadeInSec,
     fadeOutSec: state.fadeOutSec,
     lyricsOnline: state.lyricsOnline,
