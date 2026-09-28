@@ -478,13 +478,21 @@ export default function App() {
           <>
             {/* On a phone, search waits folded above the tabs until pulled down. */}
             <PhoneSearch ref={phoneSearch} query={query} setQuery={setQuery} open={searchOpen} setOpen={setSearchOpen} />
-            <div className="relative mb-5 flex flex-wrap items-center gap-2">
-              {/* If the tabs are ever wider than the screen, the row scrolls
-                  sideways — the tab you are on is brought into view
-                  (`tabsNav`). */}
+            <div className="relative mb-5 flex flex-wrap items-center gap-1 sm:gap-2">
+              {/* ⚠️ ALL FOUR TABS FIT A 360px PHONE. The Android store capture
+                  cut the last tab to "Jukeb": the nav was `flex-1` (a basis
+                  of 0), so it never wrapped — it shrank and scrolled, and the
+                  options and shuffle icons kept their room. Now the nav's basis
+                  is its own width (`flex-auto`), so when the tabs and the icons
+                  cannot share a line (a 320px phone) the ICONS wrap, both
+                  together, to the line below instead of the tabs being cut —
+                  and a phone's tabs are a little tighter (8px sides, 2px
+                  apart) so that at 360px they do share it. `max-w-full` keeps the sideways scroll for
+                  a row wider than the screen (search counts): the tab you are
+                  on is brought into view (`tabsNav`). */}
               <nav
                 ref={tabsNav}
-                className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] sm:flex-none [&::-webkit-scrollbar]:hidden"
+                className="flex max-w-full min-w-0 flex-auto items-center gap-0.5 overflow-x-auto sm:gap-1 [scrollbar-width:none] sm:flex-none [&::-webkit-scrollbar]:hidden"
                 aria-label="Library views"
               >
                 {TABS.map((tab) => {
@@ -514,7 +522,7 @@ export default function App() {
                       }}
                       aria-current={active ? 'page' : undefined}
                       title={isHome ? `${tab.label} — the library opens here` : `Double-tap to open the library on ${tab.label}`}
-                      className={`shrink-0 touch-manipulation rounded-full px-2.5 py-1.5 text-[13px] font-medium transition ${
+                      className={`shrink-0 touch-manipulation rounded-full px-2 py-1.5 sm:px-2.5 text-[13px] font-medium transition ${
                         active
                           ? isHome
                             ? 'bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm'
@@ -544,7 +552,10 @@ export default function App() {
                   / full album to keep the UI clean"). A dot on it while any of
                   them is changed from its usual, so a filtered list never looks
                   like a missing one. */}
+              {/* The two icons are one piece, so a row too narrow for them
+                  beside the tabs moves both to the next line, never one. */}
               {view !== 'jukebox' && (
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setOptionsOpen((o) => !o)}
@@ -563,11 +574,12 @@ export default function App() {
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-slate-100 dark:ring-slate-950" aria-hidden />
                 )}
               </button>
-              )}
               {/* Shuffle this list, beside its options — not on the Jukebox
                   tab, and not during a search, when the list is not the
                   library. */}
-              {!query.trim() && view !== 'jukebox' && <ShuffleLibrary view={listTab} />}
+              {!query.trim() && <ShuffleLibrary view={listTab} />}
+              </div>
+              )}
               {/* Said to a screen reader only: the tab's orange pop is the
                   whole of it on screen (James, 2026-09-27: "remove the
                   confirmation text 'library opens on'"). */}
