@@ -57,7 +57,7 @@ export default function NowPlaying() {
   const landscape = useLandscapeStage()
   /** The stage row, and how much height is left for it — see `useDeckRoom`. */
   const stage = useRef<HTMLDivElement>(null)
-  const room = useDeckRoom(stage, landscape)
+  const { room, height: stageHeight } = useDeckRoom(stage, landscape, lyricsAround)
   const track = usePlayerStore(currentTrack)
   // Every visit to Now Playing starts with the lyrics closed (James, 2026-09-10):
   // leaving closes them. They stay open across songs while you stay — see
@@ -169,10 +169,16 @@ export default function NowPlaying() {
           </div>
         ) : (
           <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
-            <h1 className="text-2xl font-semibold text-balance text-slate-900 sm:text-3xl dark:text-slate-100">
+            <h1
+              className={`font-semibold text-balance text-slate-900 dark:text-slate-100 ${
+                // Lying down: two lines at most, so a long title cannot push
+                // the transport under it off the screen.
+                landscape ? 'line-clamp-2 text-xl' : 'text-2xl sm:text-3xl'
+              }`}
+            >
               {track.title}
             </h1>
-            <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-300">
+            <p className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 dark:text-slate-300`}>
               {track.artist ?? track.albumArtist ?? 'Unknown artist'}
             </p>
             {track.album && (
@@ -192,16 +198,23 @@ export default function NowPlaying() {
 
   return (
     <>
-    <BackToLibrary />
+    {/* Lying down it moves into the words column, small — see below. */}
+    {!landscape && <BackToLibrary />}
     <div
       ref={stage}
       className={
         landscape
-          ? 'flex flex-row items-center gap-6'
+          ? // ⚠️ THE NOTCH. The page is drawn under it (`viewport-fit=cover`),
+            // and lying down it is on one side or the other; nothing else on
+            // the page pads for it, and the words ran into it.
+            // Centred as a pair, the words capped at a readable width: spread
+            // edge to edge, the middle of the screen was empty.
+            'flex flex-row items-center justify-center gap-10 pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]'
           : // gap-4 below `lg`: the transport under the record has to fit on a
             // short phone too (`StageTransport`).
             'flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-14'
       }
+      style={landscape && stageHeight ? { height: stageHeight } : undefined}
     >
       {/* The cover, stretched across the whole page as the ground (James,
           2026-09-09: "noticeable but not distracting"). Behind everything, and
@@ -249,9 +262,10 @@ export default function NowPlaying() {
           // neighbours peek in from both sides (`DeckSwiper`), and reversing
           // the row reverses those too — the record that is coming next would
           // arrive from the left.
-          landscape ? 'order-first text-left' : 'text-center lg:text-left'
+          landscape ? 'order-first max-w-sm text-left' : 'text-center lg:text-left'
         }`}
       >
+        {landscape && <BackToLibrary compact />}
         <div className={landscape ? 'block' : 'hidden lg:block'}>{heading}</div>
 
         {/* Spec chips — the honest technical facts about the file that is
@@ -274,6 +288,13 @@ export default function NowPlaying() {
         {/* The big transport under the record (phone, portrait) — see
             `StageTransport`; from `lg` the bar at the bottom does it and the
             count stays a line of text. */}
+        {/* Lying down, the same transport in the words column — the player bar
+            steps aside there too now (`PlayerBar`). */}
+        {landscape && (
+          <div className="mt-3">
+            <StageTransport compact after={<span className="ml-1"><LyricsToggle /></span>} />
+          </div>
+        )}
         {!landscape && (
           <>
             <div className="mt-2 lg:hidden">
@@ -285,9 +306,11 @@ export default function NowPlaying() {
           </>
         )}
 
-        <div className={`flex flex-wrap justify-center gap-2 lg:justify-start ${landscape ? 'mt-3' : 'mt-4'}`}>
-          <LyricsToggle />
-        </div>
+        {!landscape && (
+          <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
+            <LyricsToggle />
+          </div>
+        )}
 
         {/* Hidden below 560px (T5) — the first thing to go from the words
             column, because it is the only part of it that is decoration. Gone
@@ -469,12 +492,12 @@ function useLeavingAlbum(album: Album | undefined, leaving: boolean): Album | un
  * the arm is still in the air should start the music, not walk away from a
  * record suspended mid-cue.
  */
-function BackToLibrary() {
+function BackToLibrary({ compact = false }: { compact?: boolean }) {
   return (
     <button
       type="button"
       onClick={goHome}
-      className="mb-4 hidden items-center gap-1.5 text-[13px] text-slate-600 sm:inline-flex hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400"
+      className={`${compact ? 'mb-1.5 inline-flex text-[12px]' : 'mb-4 hidden text-[13px] sm:inline-flex'} items-center gap-1.5 text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400`}
     >
       <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
         <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
@@ -505,7 +528,7 @@ function clampDeck(landscape = false, room: number | null = null): number {
   // ⚠️ And the FLOOR goes with it. 180 is right when the record is the whole
   // screen; lying down it is taller than the room there is, and a floor that
   // cannot be met is how the record ended up under the player bar.
-  const byWidth = window.innerWidth * (landscape ? 0.34 : 0.62)
+  const byWidth = window.innerWidth * (landscape ? 0.4 : 0.62)
   // ⚠️ MEASURED, not a share of the screen, whenever the stage can measure
   // itself. Lying down, what is left for the record is whatever the navbar,
   // the way back, any banner and the player bar have not already taken, and
@@ -523,53 +546,63 @@ function clampDeck(landscape = false, room: number | null = null): number {
 }
 
 /**
- * How tall the record may be while the stage is lying down.
+ * The stage lying down: how tall it is, and how big that lets the record be.
  *
- * The space between the top of the stage row and the top of the player bar,
- * less what the record's own disc stands proud of its sleeve by (`OVERHANG`).
- * Everything above the row — the navbar, "Back to your library", the example
- * library's notice, a scan banner — has already taken its height by the time
- * this runs, so the answer is what is genuinely left rather than a guess.
+ * ⚠️ THE STAGE IS EXACTLY ONE SCREEN TALL, FROM WHERE IT STARTS TO THE BOTTOM
+ * OF THE GLASS (James, 2026-09-29, a landscape screenshot with the record run
+ * under the player bar: "needs redesigning to be user friendly"). The record
+ * used to be sized from the gap between the stage's top and the player bar's,
+ * which went wrong both ways — under a banner it was a thumbnail, and on the
+ * phone it came out bigger than the screen. Now the bar steps aside
+ * (`PlayerBar`), the stage's height is set in CSS — `100dvh` less its own top
+ * and the home indicator's inset — and the record is sized from that height,
+ * which nothing the record does can change. Whatever comes after the stage
+ * (the words, the records waiting, the buttons) is a scroll away, below it.
  *
- * ⚠️ No feedback loop: the row's top is set by what is ABOVE it and the player
- * bar is fixed to the bottom, so neither moves when the deck's size changes.
- * Measuring the row's own height instead would oscillate.
+ * ⚠️ No feedback loop: the height depends only on the stage's top, which is
+ * set by what is ABOVE it; the record changes only what is inside.
  */
-const OVERHANG = 1.3
+// Measured: the record draws about 1.15× the size it is given (the disc
+// stands proud of the sleeve). 1.3 left a quarter of the height unused.
+const OVERHANG = 1.15
+/** What the lyrics around the record need, top and bottom together. */
+const LYRICS_RING = 56
 
-function useDeckRoom(stage: RefObject<HTMLDivElement | null>, landscape: boolean): number | null {
+function useDeckRoom(
+  stage: RefObject<HTMLDivElement | null>,
+  landscape: boolean,
+  lyricsAround: boolean,
+): { room: number | null; height: string | null } {
+  const [top, setTop] = useState<number | null>(null)
   const [room, setRoom] = useState<number | null>(null)
-  // ⚠️ AFTER EVERY RENDER, deliberately, and not on a dependency list. What
-  // sits above the stage comes and goes on its own schedule — the example
-  // library's notice, a scan banner, the update notice, a song with a longer
-  // title wrapping to two lines — and each of them moves the row's top without
-  // changing anything this component could list. Measured once on mount, the
-  // record was sized for a page that no longer existed and ended up under the
-  // player bar.
-  //
-  // ⚠️ It cannot loop: the row's top is set by what is ABOVE it, and the deck's
-  // size only changes the row's own height. The 2px threshold stops a
-  // sub-pixel measurement ping-ponging anyway — which is exactly what the rule
-  // below is warning about, and why it is answered rather than obeyed.
+  // ⚠️ AFTER EVERY RENDER, deliberately: what sits above the stage — the
+  // example library's notice, a scan banner — comes and goes on its own
+  // schedule and moves the stage's top without anything here being told. The
+  // 2px thresholds stop a sub-pixel measurement ping-ponging.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     if (!landscape) {
       if (room !== null) setRoom(null)
+      if (top !== null) setTop(null)
       return
     }
     const measure = () => {
       const el = stage.current
       if (!el) return
-      const top = el.getBoundingClientRect().top
-      const bar = document.querySelector('[data-jb-playerbar]')?.getBoundingClientRect().top ?? window.innerHeight
-      const next = Math.round(Math.max(110, (bar - top - 8) / OVERHANG))
+      // Where the stage starts on the PAGE, so a scroll does not resize it.
+      const nextTop = Math.round(el.getBoundingClientRect().top + window.scrollY)
+      setTop((current) => (current === null || Math.abs(current - nextTop) > 2 ? nextTop : current))
+      const tall = el.clientHeight
+      if (!tall) return
+      const next = Math.round(Math.max(110, (tall - 12 - (lyricsAround ? LYRICS_RING : 0)) / OVERHANG))
       setRoom((current) => (current === null || Math.abs(current - next) > 2 ? next : current))
     }
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   })
-  return room
+  const height = landscape && top !== null ? `calc(100dvh - ${top}px - env(safe-area-inset-bottom))` : null
+  return { room, height }
 }
 
 /**

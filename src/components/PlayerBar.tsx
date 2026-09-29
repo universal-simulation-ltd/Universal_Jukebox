@@ -6,7 +6,6 @@ import { currentRoute, navigate } from '../lib/route'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { haptic } from '../lib/haptics'
-import { useLandscapeStage } from '../lib/stageLayout'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 
 // The persistent transport, pinned to the bottom of every view.
@@ -17,11 +16,16 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 // grows rather than the page emptying. See §22.10.
 
 export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
-  // Now Playing draws its own, bigger transport under the record in portrait
-  // below `lg` (`StageTransport`); there this bar steps aside. Lying down it
-  // stays — the stage has no room for a second row.
-  const landscape = useLandscapeStage()
-  const stepAside = onStage && !landscape
+  // Now Playing draws its own, bigger transport below `lg` (`StageTransport`),
+  // under the record standing up and beside it lying down; there this bar
+  // steps aside.
+  //
+  // ⚠️ LYING DOWN TOO, since 2026-09-29 (James, a landscape screenshot: "needs
+  // redesigning to be user friendly"). It used to stay there, on the grounds
+  // that the stage had no room for a second row — but the bar WAS the second
+  // row, 80 of a 393px screen, and the record ended up under it. The stage's
+  // words column carries the transport now (`NowPlaying`).
+  const stepAside = onStage
   const track = usePlayerStore(currentTrack)
   const playing = usePlayerStore((s) => s.playing)
   const loading = usePlayerStore((s) => s.loading)

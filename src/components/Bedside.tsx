@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import Deck from './Deck'
 import { ModeButton } from './ModeButton'
 import SleepButton from './SleepButton'
+import LevelButton from './LevelButton'
 import { useKeepAwake } from '../lib/keepAwake'
 import { rgba, useSleeveColour } from '../lib/sleeveColour'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -147,6 +148,11 @@ function Bedside({ onClose }: { onClose(): void }) {
               )}
             </button>
             <SleepButton />
+            {/* Quiet (James, 2026-09-29: "Add the quiet control shortcut to the
+                sleep screen") — the one that steps the music down for bed,
+                the same button as in the row under the song. It draws nothing
+                where the engine cannot turn the music down (`quietUnavailable`). */}
+            <LevelButton kind="quiet" />
           </div>
         </div>
       </div>

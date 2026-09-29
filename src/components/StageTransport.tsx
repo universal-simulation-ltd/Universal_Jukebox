@@ -14,7 +14,12 @@ import { usePlayerStore } from '../stores/playerStore'
 // there the bar stays and this is not drawn; from `lg` the bar stays too,
 // because the words column beside the record is not under a thumb.
 
-export default function StageTransport() {
+/**
+ * `compact` is the phone lying down, where this sits in the words column beside
+ * the record and every row is height the record could have had: hard left,
+ * tighter, and a smaller play button that is still well over a thumb's width.
+ */
+export default function StageTransport({ compact = false, after }: { compact?: boolean; after?: React.ReactNode }) {
   const playing = usePlayerStore((s) => s.playing)
   const loading = usePlayerStore((s) => s.loading)
   const ceremony = usePlayerStore((s) => s.ceremony)
@@ -38,7 +43,7 @@ export default function StageTransport() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm px-2">
+    <div className={compact ? 'w-full max-w-sm' : 'mx-auto w-full max-w-sm px-2'}>
       <input
         type="range"
         min={0}
@@ -63,7 +68,7 @@ export default function StageTransport() {
         <span>{known ? `−${clock(Math.max(0, durationSec - position))}` : '—'}</span>
       </div>
 
-      <div className="mt-3 flex items-center justify-center gap-8">
+      <div className={`flex items-center ${compact ? 'mt-1.5 justify-start gap-5' : 'mt-3 justify-center gap-8'}`}>
         <RoundButton label="Previous track" onPress={previous}>
           <svg viewBox="0 0 20 20" className="h-6 w-6" fill="currentColor" aria-hidden>
             <path d="M6 4h2v12H6zM17 4.7v10.6a1 1 0 0 1-1.53.85l-8.2-5.3a1 1 0 0 1 0-1.7l8.2-5.3A1 1 0 0 1 17 4.7Z" />
@@ -78,7 +83,7 @@ export default function StageTransport() {
             toggle()
           }}
           aria-label={ceremony ? 'Skip the intro' : playing ? 'Pause' : 'Play'}
-          className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-lg shadow-orange-600/25 transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]"
+          className={`inline-flex ${compact ? 'h-14 w-14' : 'h-16 w-16'} items-center justify-center rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-lg shadow-orange-600/25 transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]`}
         >
           {loading && !playing ? (
             <svg viewBox="0 0 20 20" className="h-7 w-7 motion-safe:animate-spin" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
@@ -99,6 +104,9 @@ export default function StageTransport() {
             <path d="M12 4h2v12h-2zM3 4.7v10.6a1 1 0 0 0 1.53.85l8.2-5.3a1 1 0 0 0 0-1.7l-8.2-5.3A1 1 0 0 0 3 4.7Z" />
           </svg>
         </RoundButton>
+        {/* Lying down, the row's spare width carries "Show lyrics" — a row
+            of its own was one more than the screen had. */}
+        {after}
       </div>
     </div>
   )
