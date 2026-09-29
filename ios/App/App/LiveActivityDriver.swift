@@ -141,14 +141,38 @@ final class LiveActivityDriver {
         state = nil
         guard let running = activity else { return }
         activity = nil
-        Task { await running.end(nil, dismissalPolicy: .immediate) }
+        Self.holdingOn("live activity end") { await running.end(nil, dismissalPolicy: .immediate) }
     }
 
     private func push() {
         guard let running = activity, var current = state else { return }
         current = Self.fit(current)
         state = current
-        Task { await running.update(ActivityContent(state: current, staleDate: stale(current))) }
+        let content = ActivityContent(state: current, staleDate: stale(current))
+        Self.holdingOn("live activity update") { await running.update(content) }
+    }
+
+    /// ⚠️ EVERY UPDATE IS SENT UNDER A BACKGROUND TASK (James's lock screen,
+    /// 2026-09-29: the activity still showing the song before last, run to its
+    /// end, while the page's saved log showed two changes of song handed to the
+    /// plugin with the phone locked). The music plays in WebKit's own process,
+    /// so THIS process is only woken for the moment a bridge call takes — and
+    /// `update` is asynchronous. It was handed over and the process went back to
+    /// sleep before it was sent. Asking for background time keeps it awake
+    /// until the update is out, then gives the time straight back.
+    private static func holdingOn(_ name: String, _ work: @escaping () async -> Void) {
+        var task = UIBackgroundTaskIdentifier.invalid
+        task = UIApplication.shared.beginBackgroundTask(withName: name) {
+            UIApplication.shared.endBackgroundTask(task)
+            task = .invalid
+        }
+        Task { @MainActor in
+            await work()
+            if task != .invalid {
+                UIApplication.shared.endBackgroundTask(task)
+                task = .invalid
+            }
+        }
     }
 
     /// ⚠️ A MINUTE PAST THE SONG'S END, while it plays. If the page has not
