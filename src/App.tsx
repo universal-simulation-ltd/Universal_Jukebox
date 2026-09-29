@@ -18,6 +18,7 @@ import ExampleNotice from './components/ExampleNotice'
 import Landing from './components/Landing'
 import NowPlaying from './components/NowPlaying'
 import PhoneSearch, { type PhoneSearchHandle } from './components/PhoneSearch'
+import { BedsideHost } from './components/Bedside'
 import PlayerBar from './components/PlayerBar'
 import ScrollTopButton from './components/ScrollTopButton'
 import ScanBanner from './components/ScanBanner'
@@ -716,6 +717,9 @@ export default function App() {
       {/* On a phone's Now Playing the transport is under the record instead
           (`StageTransport`) — not both. */}
       <PlayerBar onStage={view === 'playing' && !mini} />
+      {/* Above everything, and outside the Now Playing row its button is in,
+          so turning the phone cannot close it — see `useBedside`. */}
+      <BedsideHost />
       <ScrollTopButton />
 
       {/* Not in the phone apps (James, 2026-09-28, from the UX review): there

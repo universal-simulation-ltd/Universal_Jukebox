@@ -72,15 +72,20 @@ const OPEN_MS = 240
 /** Near enough the end of the page to count as at it: a fractional scroll, a hair of bounce. */
 const AT_END = 2
 /**
- * How far from the end of the page counts as having scrolled back up.
+ * How little of the row may still show before it counts as scrolled back up:
+ * its TOP this close to the bottom of the screen.
  *
- * ⚠️ Shorter than the row is tall, on purpose: it folds while it is still
- * partly on screen, so what you see is the box closing rather than the page
- * quietly rearranging itself somewhere below. And comfortably more than a
- * thumb's jitter or iOS's rubber band at the bottom, which goes the other way
- * and reads as a NEGATIVE gap here.
+ * ⚠️ MEASURED FROM THE ROW'S TOP, NOT FROM THE PAGE'S END (James, 2026-09-29,
+ * a screen recording: "Hidden box bouncing back on reveal"). It used to be
+ * "more than 96px from the end of the page", which was only ever the same
+ * thing while the row was shorter than 96px. Since the Output, Quiet/Loud and
+ * Bedside buttons joined it, it is some 250px tall, and an opening that left
+ * its last line below the screen — iOS clamps a `scrollBy` made while the page
+ * is still growing to the page's OLD length — was already "96px from the end"
+ * the moment it finished, and folded straight back. From the top it cannot
+ * matter how tall the row is: it folds once it has really gone.
  */
-const CLOSE_GAP = 96
+const CLOSE_LEFT = 24
 
 /** Fast away, gentle in — the shape the CSS transition used to have. */
 const ease = (t: number) => 1 - (1 - t) ** 3
@@ -145,6 +150,12 @@ export default function FoldUp({
     const done = () => {
       frame.current = 0
       if (to > 0) el.style.height = 'auto'
+      // ⚠️ ONE last anchor, once the height has stopped moving. On iOS a
+      // `scrollBy` made while the page grows is clamped to the length the
+      // scroller last heard about, so the steps above can fall short, and the
+      // row ends with its bottom below the screen. The page is finished
+      // growing now, so its end is where it will stay.
+      if (follow) requestAnimationFrame(() => window.scrollTo(0, document.documentElement.scrollHeight))
     }
     let reduced = false
     try {
@@ -197,8 +208,7 @@ export default function FoldUp({
       // other way this opens (see the note above), and folding it then would
       // take the focused control off the page mid-read.
       if (el.contains(document.activeElement)) return
-      const gap = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight)
-      if (gap > CLOSE_GAP) closer.current()
+      if (el.getBoundingClientRect().top > window.innerHeight - CLOSE_LEFT) closer.current()
     }
     const scrolled = () => {
       if (waiting) return

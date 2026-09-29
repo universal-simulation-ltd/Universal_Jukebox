@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { create } from 'zustand'
 import Deck from './Deck'
 import { ModeButton } from './ModeButton'
 import SleepButton from './SleepButton'
@@ -24,21 +25,37 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 // while playing), with no countdown, no tonearm to grab and no tips. The stage
 // deck on Now Playing, underneath, still owns all of that.
 
+/**
+ * Whether Bedside is up — in a STORE, not in the button, and drawn by
+ * `BedsideHost` at the top of `App` rather than beside the button.
+ *
+ * ⚠️ TURNING THE PHONE USED TO CLOSE IT (James, 2026-09-29: "Bedside mode
+ * should stay in mode after rotate instead of coming out"). The button lives in
+ * the Now Playing row, which on a phone is folded inside `FoldUp` and wider than
+ * one is not — so lying the phone down swaps the row's wrapper, React builds
+ * the row afresh, and a `useState` in the button went with it. Held here, the
+ * row can be rebuilt as often as it likes.
+ */
+const useBedside = create<{ open: boolean }>(() => ({ open: false }))
+const close = () => useBedside.setState({ open: false })
+
+export function BedsideHost() {
+  const open = useBedside((s) => s.open)
+  return open ? <Bedside onClose={close} /> : null
+}
+
 export function BedsideButton() {
-  const [open, setOpen] = useState(false)
-  const close = useCallback(() => setOpen(false), [])
   return (
     <>
       <ModeButton
         label="Bedside"
         ariaLabel="Bedside: the record, the time and the sleep timer, dimmed, with the screen kept on"
-        onClick={() => setOpen(true)}
+        onClick={() => useBedside.setState({ open: true })}
       >
         <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M15.5 12.2A6.5 6.5 0 0 1 7.8 4.5a6.5 6.5 0 1 0 7.7 7.7Z" />
         </svg>
       </ModeButton>
-      {open && <Bedside onClose={close} />}
     </>
   )
 }

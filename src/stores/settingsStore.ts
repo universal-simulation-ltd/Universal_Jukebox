@@ -351,7 +351,11 @@ export const DEFAULTS: Settings = {
   // The shelf is the standard (James, 2026-09-11: "put jukebox shelf as
   // standard") — and everyone who had the old default is moved to it once,
   // `adoptShelf` below.
-  libraryColumns: { artists: 3, albums: 4, tracks: 'jukebox' },
+  // Albums on the jukebox shelf and Tracks as the list since 2026-09-29
+  // (James: "Library album default to jukebox view … And in tracks default to
+  // list") — moved once onto existing devices, see `read`. Tracks has only two
+  // looks, and the list is any number (the toggle writes 2).
+  libraryColumns: { artists: 3, albums: 'jukebox', tracks: 2 },
   resumeCard: true,
   recordCrossfade: true,
   xfTrackSec: 1.8,
@@ -474,6 +478,8 @@ const SHELF_STANDARD_KEY = 'jukebox:shelf-standard'
 const STABLE_STANDARD_KEY = 'jukebox:stable-volume-standard'
 /** Set once the 2026-09-27 library defaults have been adopted on this device. */
 const LIBRARY_STANDARD_KEY = 'jukebox:library-standard-2026-09-27'
+/** Set once Albums (the shelf) and Tracks (the list) have been moved on this device (2026-09-29). */
+const ALBUMS_TRACKS_KEY = 'jukebox:albums-shelf-tracks-list-2026-09-29'
 /** The single-purpose key `playerStore` used before this store existed. */
 const LEGACY_CRACKLE_KEY = 'unisim-jukebox-crackle'
 
@@ -512,6 +518,13 @@ function read(): Settings {
     settings.libraryColumns = { ...DEFAULTS.libraryColumns }
     settings.fullAlbumsOnly = DEFAULTS.fullAlbumsOnly
     settings.artistsMin3 = DEFAULTS.artistsMin3
+    persist(settings)
+  }
+  // …and Albums onto the shelf and Tracks onto the list, the same once-only
+  // way: the 2026-09-27 move above put every device on 4 across and the
+  // tracks' shelf, chosen or not.
+  if (adoptOnce(ALBUMS_TRACKS_KEY)) {
+    settings.libraryColumns = { ...settings.libraryColumns, albums: 'jukebox', tracks: DEFAULTS.libraryColumns.tracks }
     persist(settings)
   }
   return settings
