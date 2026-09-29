@@ -101,20 +101,21 @@ private struct LockScreenView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
             } else {
+                // ⚠️ NO TITLE ROW (James, 2026-09-29: the line was cut off at one
+                // line, "…and I'll learn how to…"). A Live Activity has a fixed
+                // ceiling on its height, and a row naming the song — which the
+                // lock screen's own card right above already names — was
+                // spending it. The record and the buttons sit BESIDE the words
+                // instead, so a long line gets its two lines.
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        Record(state: state, size: 26)
-                        Text("\(state.title) · \(state.artist)")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(palette.ink.opacity(0.7))
-                            .lineLimit(1)
-                        Spacer(minLength: 4)
+                    HStack(alignment: .top, spacing: 10) {
+                        Record(state: state, size: 34)
+                        Words(state: state, ink: palette.ink, accent: palette.accent, big: .title3)
                         Controls(state: state, tint: palette.ink, size: 16)
                     }
-                    Words(state: state, ink: palette.ink, accent: palette.accent, big: .title2)
                     Progress(state: state, tint: palette.accent, ink: palette.ink)
                 }
-                .padding(16)
+                .padding(14)
             }
         }
         .background(

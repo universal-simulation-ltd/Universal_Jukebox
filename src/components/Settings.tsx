@@ -491,6 +491,9 @@ export default function Settings() {
             hint="While a song plays, the line being sung takes the artist’s place on the lock screen and in the phone’s music controls — the artist comes back between lines. Needs lyrics with timings. With this on, each song’s lyrics are found as it starts, even if you never open them."
             checked={s.lockScreenLyrics}
             onChange={(v) => s.set('lockScreenLyrics', v)}
+            // Rests while the Lyrics Live Activity runs — see `followLockLyrics`.
+            disabled={s.liveActivity && liveActivityAvailable()}
+            disabledHint="Resting while the Lyrics Live Activity below is on, so the words aren’t shown twice. It comes back when that is off."
           />
           {liveActivityAvailable() && (
             <Toggle

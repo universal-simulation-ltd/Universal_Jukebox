@@ -62,8 +62,12 @@ export function nextLockScreenLine(sheet: LyricSheet | null, sec: number): strin
  */
 export function followLockLyrics(track: Track | null, sec: number): void {
   if (!track) return
-  const onLockScreen = settings().lockScreenLyrics
   const inActivity = liveActivityOn()
+  // ⚠️ NOT BOTH AT ONCE (James, 2026-09-29, a screenshot of the same line on
+  // the lock screen's card AND in the Lyrics Live Activity under it). With the
+  // activity running the words are there already, so the card gets its artist
+  // back; the setting itself is untouched and returns when the activity is off.
+  const onLockScreen = settings().lockScreenLyrics && !inActivity
   let line: string | null = null
   let next: string | null = null
   /** Does this song have lyrics with timings? Null while that is still being found out. */
