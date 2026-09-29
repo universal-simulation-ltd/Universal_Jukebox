@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { resolveDeck } from '../lib/decks'
 import { ON_THE_DECK, blendSlideMs, rowPose, swipeReach, swipeSteps, type Seat } from '../lib/transition'
-import { SHAPES } from './decks/face'
+import { SHAPES, type DeckFaceProps } from './decks/face'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -12,6 +12,7 @@ import { ARC_ACROSS, ARC_RISE, DeckSlideContext, type DeckSlide } from './decks/
 import { Medium } from './UpNextReel'
 import { VinylRecord } from './decks/VinylRecord'
 import PocketDeck from './decks/PocketDeck'
+import ReelToReelDeck from './decks/ReelToReelDeck'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { grooveRings } from '../lib/grooves'
 import { haptic } from '../lib/haptics'
@@ -790,7 +791,7 @@ function seatOf(arriving: DeckStyle, onDeck: DeckStyle): Seat | undefined {
 
 /**
  * A neighbour, most of it off the edge of the screen — drawn as its own MEDIUM
- * (a record, a disc, a cassette, a single, a pocket player), the same drawing
+ * (a record, a disc, a cassette, a single, a pocket player, a reel-to-reel), the same drawing
  * the row of records waiting to go on uses, scaled up.
  */
 // ⚠️ `forwardRef`, because this is React 18: a plain `ref` prop on a function
@@ -900,15 +901,28 @@ function rowStyle(side: 'left' | 'right', size: number, top: number, motion: Pee
  * ratio tall, centred on the square the row places it by — exactly the box the
  * deck draws it in. The CD player and the jukebox are left on their `Medium`:
  * what travels there is the disc or the record, going INTO the machine.
+ *
+ * ⚠️ THE REEL-TO-REEL TOO (2026-09-29), for the pocket player's reason. Its
+ * `Medium` is one round spool, and grown to the deck's width that is a single
+ * reel the size of a machine that holds two — it would land and turn into
+ * something else entirely. The album is only the supply reel's label on that
+ * deck, so what slides in is the machine with the album's reel on it, full,
+ * at its own 0.9 ratio.
  */
+const WHOLE: Partial<Record<DeckStyle, React.ComponentType<DeckFaceProps>>> = {
+  pocket: PocketDeck,
+  reel: ReelToReelDeck,
+}
+
 function Drawn({
   album, style, deck, shown, grooves,
 }: { album: Album | undefined; style: DeckStyle; deck: number; shown: number; grooves?: number }) {
-  if (style === 'pocket') {
-    const tall = shown * SHAPES.pocket.frame.ratio
+  const Whole = WHOLE[style]
+  if (Whole) {
+    const tall = shown * SHAPES[style].frame.ratio
     return (
       <span className="absolute left-0 block" style={{ top: (shown - tall) / 2, width: shown, height: tall }}>
-        <PocketDeck
+        <Whole
           progress={0}
           engaged={false}
           spinning={false}

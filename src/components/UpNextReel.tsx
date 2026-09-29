@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import Cover from './Cover'
 import { plural } from '../lib/format'
 import { resolveDeck } from '../lib/decks'
+import { sectorPath } from '../lib/reels'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -385,7 +386,7 @@ function MoreRecords({ count, onOpen }: { count: number; onOpen?: () => void }) 
 }
 
 /**
- * One waiting record, disc, cassette or single.
+ * One waiting record, disc, cassette, reel or single.
  *
  * ⚠️ NOT the deck faces from `components/decks/`, and that is deliberate. Those
  * draw the MACHINE — a tonearm, a laser sled on its rail, a Discman body with
@@ -438,6 +439,8 @@ export function Medium({ album, style }: { album: Album | undefined; style: Deck
     )
   }
 
+  if (style === 'reel') return <TapeSpool album={album} />
+
   if (style === 'cd') {
     return (
       <div
@@ -488,6 +491,53 @@ export function Medium({ album, style }: { album: Album | undefined; style: Deck
         className="absolute rounded-full bg-slate-100 dark:bg-slate-900"
         style={{ inset: single ? '43%' : '47%' }}
       />
+    </div>
+  )
+}
+
+/**
+ * A reel of tape, as it comes out of its box: a full pack behind a metal
+ * flange with three windows in it, and the album on the hub.
+ *
+ * ⚠️ JUST THE SPOOL, not the machine — the rule for this row (see `Medium`).
+ * What is waiting to go on a reel-to-reel is the reel. It is the SUPPLY reel
+ * of `ReelToReelDeck`, full, which is what it is when it goes on.
+ *
+ * One path with its windows cut by `evenodd`, rather than the face's rounded
+ * mask: at 76px nobody can see the windows' corners are square. The gradients
+ * still need ids, one set per spool — the row holds several, and a `url(#…)`
+ * that resolves to a spool which has just faded out of the row paints nothing.
+ */
+function TapeSpool({ album }: { album: Album | undefined }) {
+  const uid = useId().replace(/:/g, '')
+  const metal = `jb-spool-metal-${uid}`
+  const pack = `jb-spool-pack-${uid}`
+  const c = { x: 38, y: 38 }
+  const windows = [0, 120, 240].map((at) => sectorPath(c, 15.5, 32, at + 12, at + 96)).join(' ')
+  const flange = `M 38 0.5 A 37.5 37.5 0 1 1 37.99 0.5 Z ${windows}`
+  return (
+    <div className="relative h-[76px] w-[76px] rounded-full shadow-md">
+      <svg viewBox="0 0 76 76" className="absolute inset-0 h-full w-full" aria-hidden>
+        <defs>
+          <radialGradient id={metal} cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0.3" stopColor="#aab2be" />
+            <stop offset="0.85" stopColor="#e5e9ef" />
+            <stop offset="1" stopColor="#b3bbc6" />
+          </radialGradient>
+          <radialGradient id={pack} cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0.45" stopColor="#3a271a" />
+            <stop offset="0.9" stopColor="#5e412b" />
+            <stop offset="1" stopColor="#7a5738" />
+          </radialGradient>
+        </defs>
+        <circle cx="38" cy="38" r="37.5" fill="#3f4652" />
+        <circle cx="38" cy="38" r="34" fill={`url(#${pack})`} />
+        <path d={flange} fill={`url(#${metal})`} fillRule="evenodd" stroke="rgba(15,23,42,.3)" strokeWidth="0.6" />
+      </svg>
+      <div className="absolute overflow-hidden rounded-full ring-1 ring-slate-900/30" style={{ inset: '31%' }}>
+        <Cover album={album} className="h-full w-full" rounded={false} />
+      </div>
+      <div className="absolute rounded-full bg-slate-200 ring-1 ring-slate-500/60" style={{ inset: '46%' }} />
     </div>
   )
 }

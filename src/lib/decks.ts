@@ -92,6 +92,22 @@ export const DECKS: Record<DeckSetting, DeckCopy> = {
       'The clunk of the play key latching and a moment of tape hiss — putting a cassette in, changing track, and previewing one. Rides your volume, and never plays on its own.',
     pickup: 'tape head',
   },
+  // ⚠️ `reel`, the setting, is the reel-to-reel — not the row of records
+  // waiting to go on, which the code also calls a reel (`UpNextReel`). The
+  // stored word had to be short and one word like the others; the copy says
+  // "reel-to-reel" wherever the two could be confused.
+  reel: {
+    label: 'Reel-to-reel',
+    hint: 'A tape deck with two open spools and the tape threaded across the heads — the left reel empties onto the right as the track plays, turning faster as it goes.',
+    noun: 'reel',
+    verb: 'swings the pinch roller up to the capstan',
+    startTitle: 'Threading a reel',
+    startNote: 'The reel-to-reel animation, the countdown, and the sound of the transport engaging.',
+    soundLabel: 'Transport sound',
+    soundHint:
+      'The solenoid thunk of the transport engaging, the reels taking up the slack, and a breath of tape hiss — threading a reel, changing track, and previewing one. Rides your volume, and never plays on its own.',
+    pickup: 'tape head',
+  },
   jukebox: {
     label: 'Jukebox',
     hint: 'The cabinet the app is named after — the 45 swung out of the rack by the gripper, laid on the platter under the lit arch, and played.',
@@ -143,6 +159,15 @@ export function deckCopy(setting: DeckSetting): DeckCopy {
 /**
  * The machines in the order of their day — what `automatic` walks through as
  * the years go by. The Settings miniature for Automatic draws the last four.
+ *
+ * ⚠️ THE REEL-TO-REEL IS NOT IN IT, and that is a decision rather than an
+ * omission. `automatic` puts an album on the machine most people bought it for,
+ * and nobody's record collection was on open reel: pre-recorded reels were a
+ * hi-fi niche that never had an era of its own, and giving it one would take
+ * a slice of somebody's vinyl or cassette years for a machine they never
+ * owned. It is a deck you choose, never one the rotation chooses for you.
+ * `ERA_ORDER` is a `DeckStyle[]` rather than a `Record`, so the compiler does
+ * not ask about this — the test in `decks.test.ts` does.
  */
 export const ERA_ORDER: DeckStyle[] = ['jukebox', 'vinyl', 'cassette', 'cd', 'pocket']
 

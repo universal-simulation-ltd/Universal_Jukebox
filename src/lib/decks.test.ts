@@ -75,6 +75,23 @@ describe('the deck tables', () => {
     }
   })
 
+  it('offers the reel-to-reel, with copy that never calls it a cassette', () => {
+    expect(DECK_SETTINGS).toContain('reel')
+    const reel = DECKS.reel
+    for (const line of Object.values(reel)) expect(line.toLowerCase()).not.toContain('cassette')
+    // A sentence is built round `noun` ("a different ___ goes on"), so it has
+    // to be a bare noun rather than the machine's name.
+    expect(reel.noun).toBe('reel')
+  })
+
+  it('keeps the reel-to-reel a deck you choose, never one automatic picks', () => {
+    expect(ERA_ORDER).not.toContain('reel')
+    for (let year = 1900; year <= 2100; year += 1) {
+      expect(resolveDeck('automatic', { year })).not.toBe('reel')
+    }
+    expect(resolveDeck('reel', { year: 1958 })).toBe('reel')
+  })
+
   it('offers automatic and the pocket player, and no longer random', () => {
     expect(DECK_SETTINGS).toContain('automatic')
     expect(DECK_SETTINGS).toContain('pocket')

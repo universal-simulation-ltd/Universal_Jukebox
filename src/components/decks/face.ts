@@ -172,6 +172,16 @@ export const SHAPES: Record<
   // above and below the deck that nothing fills. Its notes leave the tape head,
   // low and centre.
   cassette: { frame: { ratio: 0.66, radius: '14px' }, notes: { right: '40%', top: '80%' } },
+  // The reel-to-reel is the deck standing up — 100 × 90 in `ReelToReelDeck`'s
+  // own drawing, so a little shorter than it is wide, with the faceplate's
+  // corners (4 across, which is 4.44 of its 90 down). Its notes leave the
+  // heads, in the middle of the tape path.
+  //
+  // ⚠️ No `seat`, though a reel is a thing you take off the machine: the album
+  // is only the supply spool's LABEL here (`labelFade`), and the swiper brings
+  // the whole machine in, as it does the pocket player (`Drawn` in
+  // `DeckSwiper`). A seat would slide in a reel the size of the deck.
+  reel: { frame: { ratio: 0.9, radius: '4% / 4.44%' }, notes: { right: '46%', top: '56%' } },
   // ⚠️ A CABINET, so this is the one frame that is TALLER than it is wide, and
   // the radius is an ARCH — two radii per corner, because a jukebox dome is
   // wider than it is tall and the single-value form would give it a circle.

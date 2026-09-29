@@ -2,12 +2,14 @@ import type { DeckStyle } from '../stores/settingsStore'
 
 // The moment the pickup engages: a low thunk, then noise fading under the music.
 //
-// FOUR cues, one per deck (Settings ▸ What you're playing on):
+// One cue per deck (Settings ▸ What you're playing on):
 //
 //   vinyl     the needle landing — a thunk, then surface noise and pops
 //   cd        the lid clicking shut, then a servo spinning the disc up
 //   cassette  the play key latching, then tape hiss
+//   reel      the transport's solenoid, the reels taking up slack, then hiss
 //   jukebox   the gripper clacking, the carriage swinging across, then vinyl
+//   pocket    the click wheel, then the centre button
 //
 // ⚠️ They are all the same SHAPE — an impact, then a bed of filtered noise
 // fading out under the first bar — and that is deliberate. The four rules below
@@ -97,7 +99,16 @@ export function playTransportCue(style: DeckStyle, volume = 0.8, level = 1): voi
 }
 
 /**
- * The four cues, as numbers.
+ * How long a deck's cue lasts, start to last sound — for the test that holds
+ * every one of them to rule 3 above.
+ */
+export function cueSeconds(style: DeckStyle): number {
+  const cue = CUES[style] ?? CUES.vinyl
+  return Math.max(...cue.map((part) => part.at + part.seconds))
+}
+
+/**
+ * The cues, as numbers.
  *
  * ⚠️ Every one of them finishes inside a second (rule 3 above) — check the
  * largest `at + seconds` in a row before adding to it. The vinyl row is the
@@ -126,6 +137,19 @@ const CUES: Record<DeckStyle, CuePart[]> = {
     { kind: 'noise', at: 0.07, freq: 900, q: 1.4, peak: 0.28, seconds: 0.05, pops: 0 },
     { kind: 'tone', at: 0, wave: 'sine', from: 96, to: 52, peak: 0.26, seconds: 0.22 },
     { kind: 'noise', at: 0.1, freq: 4600, q: 0.7, peak: 0.3, seconds: 0.8, pops: 0 },
+  ],
+  // The reel-to-reel: the heavy solenoid thunk of a transport engaging — lower
+  // and longer than the cassette's key, because the machine is ten times the
+  // size — then the pinch roller meeting the capstan a beat later, the reel
+  // motors taking up the slack (a low swell that RISES, the one thing a
+  // cassette has no room for), and a hiss that is darker and quieter than the
+  // cassette's: wider tape moving faster is what open reel was bought for.
+  reel: [
+    { kind: 'noise', at: 0, freq: 340, q: 1.2, peak: 0.42, seconds: 0.07, pops: 0 },
+    { kind: 'tone', at: 0, wave: 'sine', from: 78, to: 40, peak: 0.3, seconds: 0.26 },
+    { kind: 'noise', at: 0.12, freq: 720, q: 1.6, peak: 0.22, seconds: 0.04, pops: 0 },
+    { kind: 'tone', at: 0.08, wave: 'triangle', from: 44, to: 92, peak: 0.08, seconds: 0.36 },
+    { kind: 'noise', at: 0.14, freq: 3400, q: 0.6, peak: 0.24, seconds: 0.8, pops: 0 },
   ],
   // The one cue with TWO impacts a third of a second apart, because a jukebox
   // is the one machine that does two things: the gripper takes the record out

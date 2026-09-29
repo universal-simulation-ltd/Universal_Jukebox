@@ -16,6 +16,7 @@
 //     `ground` — so the video's first frame and the still match.
 
 import type { DeckStyle } from '../stores/settingsStore'
+import { outerTangent, packRadius, type Point } from './reels'
 
 export interface LockArt {
   /** Names this album on this machine; the native side caches videos by it. */
@@ -33,7 +34,7 @@ export interface LockArt {
 
 /** Bumped whenever the drawing changes, so no stale picture is reused — the
  *  native side caches its videos under the key this is part of. */
-const VERSION = 3
+const VERSION = 4
 const STILL = 600
 const DISC = 1024
 
@@ -93,7 +94,7 @@ export function hslToHex(h: number, s: number, l: number): string {
   return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`
 }
 
-function isDisc(style: DeckStyle): boolean {
+function isDisc(style: DeckStyle): style is 'vinyl' | 'jukebox' | 'cd' {
   return style === 'vinyl' || style === 'jukebox' || style === 'cd'
 }
 
@@ -124,8 +125,18 @@ async function draw(
     if (input.style !== 'cd') sheen(ctx, STILL / 2, (size / 2) * 0.995, (size / 2) * LABEL[input.style])
   } else if (input.style === 'cassette') {
     drawCassette(ctx, STILL, img, input.hue)
-  } else {
+  } else if (input.style === 'reel') {
+    drawReelToReel(ctx, STILL, img, input.hue)
+  } else if (input.style === 'pocket') {
     drawPocket(ctx, STILL, img, input.hue)
+  } else {
+    // ⚠️ Every machine has its own branch above, so this is `never` — and a
+    // new `DeckStyle` reaching it fails the build, as `Medium`'s last case
+    // does in `UpNextReel`, instead of going on the lock screen as whatever
+    // the last branch drew. This was a bare `else` for the pocket player, and
+    // the reel-to-reel went through it as one until it had a branch of its own.
+    const unknown: never = input.style
+    return unknown
   }
 
   const stillPng = await png(stillCanvas)
@@ -297,6 +308,149 @@ function drawCassette(ctx: CanvasRenderingContext2D, S: number, img: HTMLImageEl
     circle(ctx, x + w * sx, y + h * sy, S * 0.008)
     ctx.fill()
   }
+}
+
+/**
+ * `ReelToReelDeck`, from the heads up: the two spools, the tape down round the
+ * guides and across the heads, and the album on the supply reel's hub. The
+ * transport strip is left off — at lock-screen size it is a smudge, and the
+ * reels are what say "reel-to-reel".
+ *
+ * ⚠️ The reels are drawn HALF wound, not at the start of a track: a still has
+ * no progress to show, and two equal packs are the one pose that says both
+ * "tape" and "two reels" at a glance. The label is a touch bigger than the
+ * face's, like the discs' (`LABEL`), because the cover is the point.
+ */
+function drawReelToReel(ctx: CanvasRenderingContext2D, S: number, img: HTMLImageElement | null, hue: number): void {
+  const w = S * 0.92
+  const u = w / 100
+  const h = 73 * u
+  const x = (S - w) / 2
+  const y = (S - h) / 2
+  const at = (p: Point): Point => ({ x: x + p.x * u, y: y + p.y * u })
+
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'
+  ctx.shadowBlur = S * 0.04
+  ctx.shadowOffsetY = S * 0.015
+  const plate = ctx.createLinearGradient(x, y, x + w * 0.35, y + h)
+  plate.addColorStop(0, '#2b313c')
+  plate.addColorStop(0.55, '#1a1f28')
+  plate.addColorStop(1, '#0f131a')
+  ctx.fillStyle = plate
+  rounded(ctx, x, y, w, h, 4 * u)
+  ctx.fill()
+  ctx.restore()
+
+  const supply = { x: 26, y: 25 }
+  const takeUp = { x: 74, y: 25 }
+  const left = { x: 6.4, y: 57 }
+  const right = { x: 93.6, y: 57 }
+  const pack = packRadius(0.5, 11, 20.6)
+  const tapeY = 59.6
+
+  // The heads, under the tape.
+  for (const hx of [36, 44.5, 53]) {
+    ctx.fillStyle = '#cbd5e1'
+    rounded(ctx, x + (hx - 2.7) * u, y + (tapeY - 4.6) * u, 5.4 * u, 9 * u, 1.4 * u)
+    ctx.fill()
+  }
+
+  for (const c of [supply, takeUp]) {
+    const p = at(c)
+    ctx.fillStyle = '#3f4652'
+    circle(ctx, p.x, p.y, 22.5 * u)
+    ctx.fill()
+    ctx.fillStyle = '#5e412b'
+    circle(ctx, p.x, p.y, pack * u)
+    ctx.fill()
+  }
+
+  // The tape: off the outside of each pack, round the guides, level across.
+  const [a, b] = outerTangent(supply, pack, left, 2.6, 'right')
+  const [c, d] = outerTangent(takeUp, pack, right, 2.6, 'left')
+  ctx.strokeStyle = '#6f4b2f'
+  ctx.lineWidth = 1.3 * u
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  const pts = [a, b, { x: left.x, y: tapeY }, { x: right.x, y: tapeY }, d, c].map(at)
+  ctx.moveTo(pts[0].x, pts[0].y)
+  for (const q of pts.slice(1)) ctx.lineTo(q.x, q.y)
+  ctx.stroke()
+
+  // The front flanges, their three windows cut out.
+  for (const cc of [supply, takeUp]) {
+    const p = at(cc)
+    const metal = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 22.5 * u)
+    metal.addColorStop(0, '#9aa3b1')
+    metal.addColorStop(0.5, '#c9d0da')
+    metal.addColorStop(0.86, '#e7ebf0')
+    metal.addColorStop(1, '#c3cad4')
+    ctx.fillStyle = metal
+    ctx.beginPath()
+    ctx.arc(p.x, p.y, 22.5 * u, 0, Math.PI * 2)
+    for (const start of [0, 120, 240]) {
+      const a0 = ((start + 14 - 90) * Math.PI) / 180
+      const a1 = ((start + 94 - 90) * Math.PI) / 180
+      ctx.moveTo(p.x + 19.6 * u * Math.cos(a0), p.y + 19.6 * u * Math.sin(a0))
+      ctx.arc(p.x, p.y, 19.6 * u, a0, a1)
+      ctx.arc(p.x, p.y, 12.8 * u, a1, a0, true)
+      ctx.closePath()
+    }
+    ctx.fill('evenodd')
+  }
+
+  // The album on the supply hub; bare metal on the take-up.
+  const hub = at(supply)
+  const label = 12 * u
+  ctx.save()
+  circle(ctx, hub.x, hub.y, label)
+  ctx.clip()
+  drawCover(ctx, img, hue, hub.x - label, hub.y - label, label * 2, label * 2)
+  ctx.restore()
+  const bare = at(takeUp)
+  ctx.fillStyle = '#aab2be'
+  circle(ctx, bare.x, bare.y, label)
+  ctx.fill()
+  // The adaptor's three holes, as on the face.
+  ctx.fillStyle = '#1f2530'
+  for (const start of [0, 120, 240]) {
+    const a0 = ((start + 25 - 90) * Math.PI) / 180
+    const a1 = ((start + 95 - 90) * Math.PI) / 180
+    ctx.beginPath()
+    ctx.arc(bare.x, bare.y, 8.4 * u, a0, a1)
+    ctx.arc(bare.x, bare.y, 4.2 * u, a1, a0, true)
+    ctx.closePath()
+    ctx.fill()
+  }
+  for (const p of [hub, bare]) {
+    ctx.strokeStyle = 'rgba(15,23,42,0.35)'
+    ctx.lineWidth = 0.5 * u
+    circle(ctx, p.x, p.y, label)
+    ctx.stroke()
+    ctx.fillStyle = '#e5e9ef'
+    circle(ctx, p.x, p.y, 2.3 * u)
+    ctx.fill()
+  }
+
+  // The guides over the tape, and the head block over the heads' bases.
+  for (const g of [left, right]) {
+    const p = at(g)
+    ctx.fillStyle = '#d5dbe3'
+    circle(ctx, p.x, p.y, 1.95 * u)
+    ctx.fill()
+  }
+  ctx.fillStyle = '#242a34'
+  rounded(ctx, x + 29 * u, y + (tapeY + 2.2) * u, 31 * u, 10 * u, 2 * u)
+  ctx.fill()
+  const capstan = at({ x: 71, y: tapeY - 2.15 })
+  ctx.fillStyle = '#e2e8f0'
+  circle(ctx, capstan.x, capstan.y, 1.5 * u)
+  ctx.fill()
+  const roller = at({ x: 71, y: tapeY + 3.35 })
+  ctx.fillStyle = '#0b0f16'
+  circle(ctx, roller.x, roller.y, 2.7 * u)
+  ctx.fill()
 }
 
 /** `PocketDeck`: the cover on the screen, the click wheel below it. */

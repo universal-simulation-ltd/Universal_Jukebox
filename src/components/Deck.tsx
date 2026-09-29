@@ -10,6 +10,7 @@ import type { Album } from '../lib/types'
 import { SHAPES, type DeckFaceProps, type NotesAnchor } from './decks/face'
 import CassetteDeck from './decks/CassetteDeck'
 import CdDeck from './decks/CdDeck'
+import ReelToReelDeck from './decks/ReelToReelDeck'
 import JukeboxDeck from './decks/JukeboxDeck'
 import VinylDeck from './decks/VinylDeck'
 import PocketDeck from './decks/PocketDeck'
@@ -71,6 +72,7 @@ const FACES: Record<DeckStyle, React.ComponentType<DeckFaceProps>> = {
   vinyl: VinylDeck,
   cd: CdDeck,
   cassette: CassetteDeck,
+  reel: ReelToReelDeck,
   jukebox: JukeboxDeck,
   pocket: PocketDeck,
 }
@@ -184,7 +186,8 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
 
   /**
    * How far through the track we are, 0 → 1, and so how far the pickup has
-   * travelled — or, on the cassette, how full the reels are.
+   * travelled — or, on the cassette and the reel-to-reel, how full the reels
+   * are.
    *
    * ⚠️ Guarded on a KNOWN duration. A track whose length the browser has not
    * worked out yet reports NaN or Infinity; dividing by either gives a rotation

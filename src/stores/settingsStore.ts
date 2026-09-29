@@ -79,6 +79,8 @@ export type ListTab = Exclude<HomeTab, 'jukebox'>
  *                app was before this setting existed).
  * - `cd`       — a disc under a Discman-style laser sled, tracking outward.
  * - `cassette` — a Walkman-style shell, the tape spooling left to right.
+ * - `reel`     — a reel-to-reel deck: two open spools, the tape threaded
+ *                across the heads and the capstan between them.
  * - `jukebox`  — the cabinet the app is named after: a 45 lifted out of the
  *                rack by a gripper, laid on the platter, and played.
  *
@@ -92,7 +94,7 @@ export type ListTab = Exclude<HomeTab, 'jukebox'>
  * ⚠️ This is a MACHINE, always one of these four. What the user may have
  * chosen is a `DeckSetting`, which has one more value — see below.
  */
-export type DeckStyle = 'vinyl' | 'cd' | 'cassette' | 'jukebox' | 'pocket'
+export type DeckStyle = 'vinyl' | 'cd' | 'cassette' | 'reel' | 'jukebox' | 'pocket'
 
 /**
  * What the user picked, which is not quite the same thing.
@@ -125,7 +127,7 @@ export type DeckSetting = DeckStyle | 'automatic'
  * ⚠️ `automatic` is LAST on purpose: it is the option that is not a machine, and
  * putting it at the end of the radio list keeps the four real ones together.
  */
-export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'jukebox', 'pocket', 'automatic']
+export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'reel', 'jukebox', 'pocket', 'automatic']
 
 /** The first-run tips — see `components/Tip.tsx`. */
 // 'hold' and 'shelfPlay' are the hints in the shelves' captions ("tap to play,
