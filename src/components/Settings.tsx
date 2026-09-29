@@ -4,6 +4,7 @@ import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGr
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
+import { liveActivityAvailable } from '../lib/nowPlayingNative'
 import { goHome, navigate } from '../lib/route'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId } from '../lib/settingsSection'
@@ -143,7 +144,7 @@ export default function Settings() {
       s.hiddenModes.length === 0
         ? 'All shown'
         : `${MODE_KEYS.length - s.hiddenModes.length} of ${MODE_KEYS.length} shown`,
-    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
+    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}${s.liveActivity && liveActivityAvailable() ? ', in a Live Activity' : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: sentence([
       s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
@@ -447,6 +448,14 @@ export default function Settings() {
             checked={s.lockScreenLyrics}
             onChange={(v) => s.set('lockScreenLyrics', v)}
           />
+          {liveActivityAvailable() && (
+            <Toggle
+              label="Live Activity"
+              hint="The song and the line being sung on the Lock Screen and in the Dynamic Island, with play, pause and next. Shows the song even when it has no lyrics. It starts the next time a song plays with the app open."
+              checked={s.liveActivity}
+              onChange={(v) => s.set('liveActivity', v)}
+            />
+          )}
           <DownloadedLyrics />
         </Section>
 

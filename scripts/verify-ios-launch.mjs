@@ -160,7 +160,15 @@ if (delegateName) {
     fail(`${source} does not exist`, `The scene manifest names ${delegateClass}, so that class has to be here.`)
   }
   const pbxproj = readFileSync(PBXPROJ, 'utf8')
-  const sources = pbxproj.match(/isa = PBXSourcesBuildPhase;[\s\S]*?\);/)?.[0] ?? ''
+  // ⚠️ THE APP TARGET'S Sources phase, found through the target — not the
+  // first one in the file. Since the widget extension (2026-09-29) there are
+  // two, and the extension's sorts first.
+  const appTarget = pbxproj.match(/isa = PBXNativeTarget;(?:(?!isa = PBXNativeTarget;)[\s\S])*?name = App;/)?.[0] ?? ''
+  const phaseIds = [...(appTarget.match(/buildPhases = \(([\s\S]*?)\);/)?.[1] ?? '').matchAll(/([0-9A-F]{24})/g)].map((m) => m[1])
+  const sources =
+    phaseIds
+      .map((id) => pbxproj.match(new RegExp(`\\t${id} /\\* [^*]*\\*/ = \\{\\s*isa = PBXSourcesBuildPhase;[\\s\\S]*?\\);`))?.[0])
+      .find(Boolean) ?? ''
   if (!sources.includes(source)) {
     fail(
       `${source} is not in the Xcode target's Sources build phase`,

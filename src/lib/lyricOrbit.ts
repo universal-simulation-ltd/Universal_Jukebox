@@ -74,13 +74,15 @@ const MIN_LINE_SEC = 1.2
 const LINE_CEILING_SEC = 3.5
 /**
  * Where the first line waits before the song reaches it, and where the last one
- * goes — the edges of what `LyricsAround` draws: words come in at three
- * o'clock (90°, since 2026-09-27; the bottom before) and are gone by nine
- * o'clock (90°), so the song starts and ends with nothing parked on screen.
+ * goes — the edges of what `LyricsAround` draws (`COMING_DEG`, `GONE_DEG`):
+ * words come in at five o'clock and are gone by seven (150° each way, since
+ * 2026-09-29 — both ends at the bottom, where the leaving words and the
+ * arriving ones meet), so the song starts and ends with nothing parked on
+ * screen.
  */
-const ENTRY_DEG = 90
+const ENTRY_DEG = 150
 const ENTRY_SEC = 4
-const EXIT_DEG = 90
+const EXIT_DEG = 150
 const EXIT_SEC = 6
 
 /** One word, at its fixed place on the ribbon. */

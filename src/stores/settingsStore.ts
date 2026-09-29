@@ -304,6 +304,13 @@ export interface Settings {
    */
   lockScreenLyrics: boolean
   /**
+   * The iPhone's Live Activity: the song, and the line being sung, on the Lock
+   * Screen and in the Dynamic Island (James, 2026-09-29) — `setLiveActivity`
+   * in `lib/nowPlayingNative.ts`, drawn by `ios/App/JukeboxWidget/`. Off by
+   * default, like every switch here; offered only in the iPhone app.
+   */
+  liveActivity: boolean
+  /**
    * Hide the error banners — "couldn't play and was skipped", "could not be
    * opened", "some files were skipped" — and just carry on (James, 2026-09-16:
    * "Just skip them silently until they deselect the option").
@@ -357,6 +364,7 @@ export const DEFAULTS: Settings = {
   aboutOnline: false,
   keepAwake: false,
   lockScreenLyrics: false,
+  liveActivity: false,
   hideErrors: true,
 }
 
@@ -609,6 +617,7 @@ function readStored(): Settings {
     trackNotifications: stored.trackNotifications === true,
     keepAwake: stored.keepAwake === true,
     lockScreenLyrics: stored.lockScreenLyrics === true,
+    liveActivity: stored.liveActivity === true,
     hideErrors: stored.hideErrors !== false,
     // `=== true`, for the reason `lyricsOnline` gives above.
     aboutOnline: stored.aboutOnline === true,
@@ -702,6 +711,7 @@ function persist(state: Settings) {
     aboutOnline: state.aboutOnline,
     keepAwake: state.keepAwake,
     lockScreenLyrics: state.lockScreenLyrics,
+    liveActivity: state.liveActivity,
     hideErrors: state.hideErrors,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }

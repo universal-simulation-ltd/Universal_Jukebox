@@ -69,8 +69,20 @@ const SHARP_DEG = 26
 // clockwise from the bottom, so the same side — so a fade-in "at 9 o'clock"
 // taken literally would be where the sung words leave. It is the mirror of it:
 // in at 3 o'clock, read at 12, gone at 9.
-const COMING_DEG = 90
-const GONE_DEG = 90
+//
+// ⚠️ AND THAT MIRROR WAS THE WRONG READING (James, 2026-09-29, drawing the
+// sung words carrying on down the left and round the bottom: "As one lyric
+// leaves have the new ones come in instead of at opposite sides — I thought we
+// changed this already"). What he wants is the 2026-09-15 brief — "start and
+// finish at the bottom, old lyrics go out and new lyrics come in": on a ring
+// turning anti-clockwise the only place where the leaving words and the
+// arriving ones MEET is the bottom. So both ends are 150°: in at five o'clock,
+// out at seven, a 60° gap at the bottom between the last word going and the
+// next one coming. The fade still does the work of keeping it readable — a
+// word is sharp only within `SHARP_DEG` of the top and all but gone by the
+// lower half.
+const COMING_DEG = 150
+const GONE_DEG = 150
 /** The blur on a word at the very edge of that. */
 const MAX_BLUR_PX = 3
 /** How far outside the machine the ribbon runs. */

@@ -1,0 +1,203 @@
+import Foundation
+import UIKit
+import ActivityKit
+
+/// Starts, feeds and ends the Live Activity (`JukeboxActivityAttributes`) —
+/// the song on the Lock Screen and in the Dynamic Island, and the line being
+/// sung under it.
+///
+/// ⚠️ IT RIDES ON `NowPlayingPlugin`, and adds no bridge traffic of its own
+/// but the lyric line. The page already tells that plugin about every song
+/// (`show`), every play/pause and jump (`update`, at least every two seconds
+/// while a song plays), and the end of the queue (`clear`); the plugin passes
+/// each of them on to here. So the activity knows exactly what the lock
+/// screen's own entry knows, from the same calls, and cannot disagree with it.
+///
+/// ⚠️ A NEW ACTIVITY CAN ONLY BE STARTED WITH THE APP ON SCREEN. `request`
+/// throws from the background. That is fine for the way music starts — in the
+/// app — and a song changing on a locked phone only UPDATES the running one,
+/// which is allowed. What it means: switched on while the app is on screen,
+/// the activity appears at once; if it was swiped away, it comes back the next
+/// time a song starts with the app open, never behind the user's back.
+///
+/// ⚠️ THE BAR AND THE CLOCK RUN THEMSELVES. `startedAt` is when the song would
+/// have begun had it played straight through to now, and the widget draws
+/// `ProgressView(timerInterval:)` and `Text(timerInterval:)` from it — so the
+/// system moves them every second without this app being woken at all. An
+/// update goes out only when that picture would be WRONG: play or pause, a new
+/// song, a jump, or a new line.
+@available(iOS 16.2, *)
+final class LiveActivityDriver {
+    static let shared = LiveActivityDriver()
+
+    typealias State = JukeboxActivityAttributes.ContentState
+
+    /// The setting ("Live Activity", off by default) — sent by the page at
+    /// start-up and whenever it changes.
+    private(set) var enabled = false
+
+    private var activity: Activity<JukeboxActivityAttributes>?
+    private var state: State?
+    /// The user swiped it away: leave it gone until the queue ends or the app
+    /// is opened on a new song — see `show`.
+    private var dismissed = false
+    private var watcher: Task<Void, Never>?
+
+    private init() {}
+
+    /// Anything left over from a run that ended without `clear` — the app
+    /// killed while playing — would sit on the Lock Screen for hours showing a
+    /// song that is not playing. Called once at launch.
+    func endLeftovers() {
+        for leftover in Activity<JukeboxActivityAttributes>.activities {
+            Task { await leftover.end(nil, dismissalPolicy: .immediate) }
+        }
+    }
+
+    func setEnabled(_ on: Bool) {
+        guard on != enabled else { return }
+        enabled = on
+        if !on { end() }
+        CommandLog.note("live activity \(on ? "on" : "off") allowed=\(ActivityAuthorizationInfo().areActivitiesEnabled)")
+    }
+
+    /// A new song — or the same one redrawn (a different machine chosen).
+    func show(title: String, artist: String, elapsed: Double, duration: Double,
+              playing: Bool, cover: Data?, ground: [String]) {
+        guard enabled else { return }
+        let foreground = UIApplication.shared.applicationState != .background
+        // Opening the app on a song is the user coming back to it — a swipe
+        // away was about the last song, not every song after it.
+        if foreground { dismissed = false }
+        guard !dismissed, ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+
+        let next = State(
+            title: title,
+            artist: artist,
+            line: nil,
+            next: nil,
+            playing: playing,
+            startedAt: Date().addingTimeInterval(-elapsed),
+            elapsed: elapsed,
+            duration: duration,
+            cover: cover,
+            top: ground.first ?? "#ffffff",
+            bottom: ground.count > 1 ? ground[1] : "#e2e8f0")
+        let fitted = Self.fit(next)
+        state = fitted
+
+        if let running = activity, running.activityState == .active {
+            push()
+            return
+        }
+        activity = nil
+        guard foreground else { return }
+        do {
+            let started = try Activity.request(
+                attributes: JukeboxActivityAttributes(),
+                content: ActivityContent(state: fitted, staleDate: stale(fitted)),
+                pushType: nil)
+            activity = started
+            watch(started)
+            CommandLog.note("live activity started")
+        } catch {
+            CommandLog.note("live activity refused: \(error.localizedDescription)")
+        }
+    }
+
+    /// Where playback is. Heard at least every two seconds while a song plays,
+    /// and acted on only when the running clock would otherwise be wrong.
+    func progress(elapsed: Double, duration: Double, playing: Bool) {
+        guard var current = state, activity != nil else { return }
+        let expected = current.playing ? Date().timeIntervalSince(current.startedAt) : current.elapsed
+        let jumped = abs(expected - elapsed) > 2
+        let lengthChanged = duration > 0 && abs(duration - current.duration) > 0.5
+        guard playing != current.playing || jumped || lengthChanged else { return }
+        current.playing = playing
+        current.elapsed = elapsed
+        current.startedAt = Date().addingTimeInterval(-elapsed)
+        if duration > 0 { current.duration = duration }
+        state = current
+        push()
+    }
+
+    /// The line being sung and the one after it; nil between lines.
+    func lyric(line: String?, next: String?) {
+        guard var current = state, activity != nil else { return }
+        guard line != current.line || next != current.next else { return }
+        current.line = line
+        current.next = next
+        state = current
+        push()
+    }
+
+    /// The queue ended, or the setting went off.
+    func end() {
+        watcher?.cancel()
+        watcher = nil
+        dismissed = false
+        state = nil
+        guard let running = activity else { return }
+        activity = nil
+        Task { await running.end(nil, dismissalPolicy: .immediate) }
+    }
+
+    private func push() {
+        guard let running = activity, var current = state else { return }
+        current = Self.fit(current)
+        state = current
+        Task { await running.update(ActivityContent(state: current, staleDate: stale(current))) }
+    }
+
+    /// ⚠️ A MINUTE PAST THE SONG'S END, while it plays. If the page has not
+    /// said "next song" by then it has stopped being able to — the phone
+    /// suspended it — and the system dims the activity rather than letting a
+    /// full bar pass for a song still playing.
+    private func stale(_ state: State) -> Date? {
+        guard state.playing, state.duration > 0 else { return nil }
+        return state.startedAt.addingTimeInterval(state.duration + 60)
+    }
+
+    private func watch(_ running: Activity<JukeboxActivityAttributes>) {
+        watcher?.cancel()
+        watcher = Task { @MainActor [weak self] in
+            for await change in running.activityStateUpdates {
+                guard let self = self else { return }
+                if change == .dismissed || change == .ended {
+                    if self.activity?.id == running.id {
+                        self.activity = nil
+                        self.dismissed = change == .dismissed
+                    }
+                    CommandLog.note("live activity \(change == .dismissed ? "dismissed" : "ended")")
+                    return
+                }
+            }
+        }
+    }
+
+    /// ⚠️ THE 4 KB CEILING. ActivityKit refuses an update whose state encodes
+    /// larger than that, and says so only in the device log — the activity just
+    /// stops changing. The words are what matter, so it is the COVER that
+    /// gives way: redrawn smaller and coarser until the whole state fits under
+    /// `budget`, and left off altogether (the label is then drawn plain) if
+    /// even the smallest does not.
+    static let budget = 3_600
+
+    static func fit(_ state: State) -> State {
+        guard let cover = state.cover, let image = UIImage(data: cover) else { return state }
+        let encoder = JSONEncoder()
+        var trial = state
+        if let size = try? encoder.encode(trial).count, size <= budget { return trial }
+        for (side, quality) in [(40.0, 0.5), (32.0, 0.45), (24.0, 0.4)] {
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            let small = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { _ in
+                image.draw(in: CGRect(x: 0, y: 0, width: side, height: side))
+            }
+            trial.cover = small.jpegData(compressionQuality: quality)
+            if let size = try? encoder.encode(trial).count, size <= budget { return trial }
+        }
+        trial.cover = nil
+        return trial
+    }
+}

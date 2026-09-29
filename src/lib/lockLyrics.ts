@@ -22,7 +22,7 @@
 
 import { activeLine, type LyricSheet } from './lyrics'
 import * as ms from './mediaSession'
-import { setLockArtist } from './nowPlayingNative'
+import { liveActivityOn, setLiveLyric, setLockArtist } from './nowPlayingNative'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { settings } from '../stores/settingsStore'
 import type { Track } from './types'
@@ -36,15 +36,46 @@ export function lockScreenLine(sheet: LyricSheet | null, sec: number): string | 
   return text === '' ? null : text
 }
 
-/** Called on every playback tick, and when the setting changes. Writes only on a change. */
+/**
+ * The line AFTER the one at `sec` that has words in it — the Live Activity
+ * draws it faintly under the sung one. Null at the end, and whenever there is
+ * no sung line (an intro has nothing to follow).
+ */
+export function nextLockScreenLine(sheet: LyricSheet | null, sec: number): string | null {
+  if (!sheet?.synced) return null
+  const at = activeLine(sheet.lines, sec)
+  if (at < 0 || sheet.lines[at].text.trim() === '') return null
+  for (let i = at + 1; i < sheet.lines.length; i++) {
+    const text = sheet.lines[i].text.trim()
+    if (text !== '') return text
+  }
+  return null
+}
+
+/**
+ * Called on every playback tick, and when either setting changes. Writes only on a change.
+ *
+ * ⚠️ TWO SWITCHES, ONE LOOK-UP. "Lyrics on the lock screen" puts the line in
+ * the artist's place; the iPhone's Live Activity shows it under the song. Either
+ * one on is reason to find each song's words as it starts — and the artist's
+ * line is changed ONLY by the first, so turning on the Live Activity alone
+ * leaves the lock screen's own entry saying who is singing.
+ */
 export function followLockLyrics(track: Track | null, sec: number): void {
   if (!track) return
+  const onLockScreen = settings().lockScreenLyrics
+  const inActivity = liveActivityOn()
   let line: string | null = null
-  if (settings().lockScreenLyrics) {
+  let next: string | null = null
+  if (onLockScreen || inActivity) {
     const lyrics = useLyricsStore.getState()
     if (lyrics.trackId !== track.id) lyrics.load(track)
-    else if (lyrics.status === 'ready') line = lockScreenLine(lyrics.sheet, sec)
+    else if (lyrics.status === 'ready') {
+      line = lockScreenLine(lyrics.sheet, sec)
+      next = nextLockScreenLine(lyrics.sheet, sec)
+    }
   }
-  ms.setArtistLine(track, line)
-  setLockArtist(track, line)
+  ms.setArtistLine(track, onLockScreen ? line : null)
+  setLockArtist(track, onLockScreen ? line : null)
+  setLiveLyric(line, next)
 }
