@@ -35,8 +35,12 @@ public struct JukeboxActivityAttributes: ActivityAttributes {
         public var artist: String
         /// The line being sung, or nil between lines and for a song without timed lyrics.
         public var line: String?
-        /// The line after it, drawn faintly — nil at the end of the sheet.
+        /// The next line with words — under the sung one, or on its own through
+        /// an intro or a break. Nil at the end of the sheet.
         public var next: String?
+        /// Whether the song has lyrics with timings: false draws the slim
+        /// "no lyrics" strip, nil (still being looked up) the lyrics layout.
+        public var timed: Bool?
         public var playing: Bool
         /// When the song WOULD have started, had it played straight through to
         /// now — so `Text(timerInterval:)` and the progress bar run on their own

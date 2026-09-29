@@ -45,7 +45,7 @@ interface NowPlayingPlugin {
   artist(options: { artist: string }): Promise<void>
   clear(): Promise<void>
   liveActivity(options: { enabled: boolean }): Promise<{ available: boolean }>
-  lyric(options: { line: string | null; next: string | null }): Promise<void>
+  lyric(options: { line: string | null; next: string | null; timed: boolean | null }): Promise<void>
   addListener(event: 'command', fn: (e: { action: string; position?: number }) => void): Promise<unknown>
   addListener(event: 'audio', fn: (e: { kind: string } & Record<string, unknown>) => void): Promise<unknown>
 }
@@ -181,13 +181,17 @@ export function liveActivityOn(): boolean {
 /** What the Live Activity was last told — `undefined` for nothing yet. */
 let lineSent: string | undefined
 
-/** The line being sung and the one after, for the Live Activity. Writes only on a change. */
-export function setLiveLyric(line: string | null, next: string | null): void {
+/**
+ * The line being sung and the one after, for the Live Activity — and whether
+ * the song has timed lyrics at all (null: not known yet), which decides whether
+ * the activity is the lyrics or the slim "no lyrics" strip. Writes only on a change.
+ */
+export function setLiveLyric(line: string | null, next: string | null, timed: boolean | null): void {
   if (!liveOn || !plugin) return
-  const key = `${line ?? ''}\n${next ?? ''}`
+  const key = `${line ?? ''}\n${next ?? ''}\n${timed}`
   if (key === lineSent) return
   lineSent = key
-  void plugin.lyric({ line, next }).catch(() => {})
+  void plugin.lyric({ line, next, timed }).catch(() => {})
 }
 
 /** An interruption of the audio — Siri, a call, a timer — as iOS described it. */

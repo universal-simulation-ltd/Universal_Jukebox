@@ -303,8 +303,9 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func lyric(_ call: CAPPluginCall) {
         let line = call.getString("line")
         let next = call.getString("next")
+        let timed = call.getBool("timed")
         DispatchQueue.main.async {
-            if #available(iOS 16.2, *) { LiveActivityDriver.shared.lyric(line: line, next: next) }
+            if #available(iOS 16.2, *) { LiveActivityDriver.shared.lyric(line: line, next: next, timed: timed) }
             call.resolve()
         }
     }

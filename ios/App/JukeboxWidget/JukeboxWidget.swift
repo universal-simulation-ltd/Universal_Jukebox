@@ -14,6 +14,18 @@ struct JukeboxWidgets: WidgetBundle {
     }
 }
 
+/// ⚠️ A LYRICS ACTIVITY, NOT A SECOND MUSIC PLAYER (James, 2026-09-29, a
+/// screenshot of it under the lock screen's own player: "what is the advantage
+/// of the live in this case?" — none, on a song without lyrics). The system's
+/// card already has the song, the scrub bar and the buttons; what it cannot
+/// have is the words. So the line being sung is the biggest thing here, the
+/// next one waits under it, and a song without timed lyrics shrinks the whole
+/// thing to a slim strip rather than repeating the card above it.
+///
+/// ⚠️ SHRUNK, NOT ENDED. iOS lets an app START a Live Activity only while it is
+/// on screen, so one ended for a song without lyrics could not come back for
+/// the next song that has them — not with the phone locked, which is the whole
+/// point of it.
 struct JukeboxLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: JukeboxActivityAttributes.self) { context in
@@ -25,35 +37,25 @@ struct JukeboxLiveActivity: Widget {
             let palette = Palette(state, dark: true)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Record(state: state, size: 52)
+                    Record(state: state, size: 44)
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Controls(state: state, tint: palette.accent, size: 20)
+                    Controls(state: state, tint: palette.accent, size: 18)
                         .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(state.title)
-                            .font(.headline)
-                            .lineLimit(1)
-                        Text(state.artist)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(state.title)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 6) {
-                        if let line = state.line {
-                            Text(line)
-                                .font(.system(.body, design: .rounded).weight(.semibold))
-                                .foregroundStyle(palette.accent)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                        Words(state: state, ink: .white, accent: palette.accent, big: .title3)
+                        if state.timed != false {
+                            Progress(state: state, tint: palette.accent, ink: .white)
                         }
-                        Progress(state: state, tint: palette.accent, ink: .white)
                     }
                     .padding(.horizontal, 4)
                 }
@@ -80,51 +82,82 @@ private struct LockScreenView: View {
 
     var body: some View {
         let palette = Palette(state, dark: scheme == .dark)
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
-                Record(state: state, size: 60)
-                VStack(alignment: .leading, spacing: 2) {
-                    // ⚠️ THE LINE IS THE STAR WHEN THERE IS ONE. The song's name
-                    // steps down to a caption above it, because the words are
-                    // what this activity is for; between lines the song comes
-                    // back to full size, as the lock screen's own entry does.
-                    if let line = state.line {
+        Group {
+            if state.timed == false {
+                // The slim strip: which song, and that it has nothing to sing.
+                HStack(spacing: 10) {
+                    Record(state: state, size: 30)
+                    VStack(alignment: .leading, spacing: 1) {
                         Text("\(state.title) · \(state.artist)")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(palette.ink.opacity(0.65))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(palette.ink.opacity(0.8))
                             .lineLimit(1)
-                        Text(line)
-                            .font(.system(.title3, design: .rounded).weight(.bold))
-                            .foregroundStyle(palette.ink)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
-                        if let next = state.next {
-                            Text(next)
-                                .font(.system(.footnote, design: .rounded))
-                                .foregroundStyle(palette.ink.opacity(0.45))
-                                .lineLimit(1)
-                        }
-                    } else {
-                        Text(state.title)
-                            .font(.headline)
-                            .foregroundStyle(palette.ink)
-                            .lineLimit(1)
-                        Text(state.artist)
-                            .font(.subheadline)
+                        Text("♪ No lyrics for this song")
+                            .font(.caption2)
+                            .foregroundStyle(palette.ink.opacity(0.55))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Record(state: state, size: 26)
+                        Text("\(state.title) · \(state.artist)")
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(palette.ink.opacity(0.7))
                             .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Controls(state: state, tint: palette.ink, size: 16)
                     }
+                    Words(state: state, ink: palette.ink, accent: palette.accent, big: .title2)
+                    Progress(state: state, tint: palette.accent, ink: palette.ink)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Controls(state: state, tint: palette.ink, size: 22)
+                .padding(16)
             }
-            Progress(state: state, tint: palette.accent, ink: palette.ink)
         }
-        .padding(16)
         .background(
             LinearGradient(colors: [palette.top, palette.ground], startPoint: .top, endPoint: .bottom)
         )
         .opacity(stale ? 0.6 : 1)
+    }
+}
+
+/// The words: the line being sung, big, and the next one faint under it —
+/// or, through an intro or a break, the next one on its own, waiting.
+private struct Words: View {
+    let state: JukeboxActivityAttributes.ContentState
+    let ink: Color
+    let accent: Color
+    let big: Font.TextStyle
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if state.timed == false {
+                Text("♪ No lyrics for this song")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(ink.opacity(0.6))
+            } else if let line = state.line {
+                Text(line)
+                    .font(.system(big, design: .rounded).weight(.bold))
+                    .foregroundStyle(ink)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.75)
+                if let next = state.next {
+                    Text(next)
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(ink.opacity(0.45))
+                        .lineLimit(1)
+                }
+            } else {
+                Text(state.next.map { "♪ \($0)" } ?? "♪")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(ink.opacity(0.5))
+                    .lineLimit(2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -224,15 +257,22 @@ private struct Progress: View {
                 ProgressView(value: min(state.elapsed, max(state.duration, 0.01)), total: max(state.duration, 0.01))
                     .tint(tint)
             }
-            HStack {
+            // ⚠️ EACH CLOCK PINNED TO ITS OWN EDGE. A timer `Text` takes all the
+            // width it is offered, so a `Spacer` between two of them does
+            // nothing and the second clock landed mid-bar, without its minus
+            // (James's screenshot, 2026-09-29: "1:02 … 2:09").
+            HStack(spacing: 0) {
                 if state.playing, state.duration > 0 {
                     Text(timerInterval: state.startedAt...end, countsDown: false)
-                    Spacer()
-                    Text(timerInterval: state.startedAt...end, countsDown: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    (Text("−") + Text(timerInterval: state.startedAt...end, countsDown: true))
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 } else {
                     Text(Self.clock(state.elapsed))
-                    Spacer()
-                    Text(state.duration > 0 ? Self.clock(state.duration) : "")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(state.duration > 0 ? "−" + Self.clock(max(0, state.duration - state.elapsed)) : "")
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
             .font(.caption2.monospacedDigit())

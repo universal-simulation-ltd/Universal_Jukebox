@@ -37,14 +37,13 @@ export function lockScreenLine(sheet: LyricSheet | null, sec: number): string | 
 }
 
 /**
- * The line AFTER the one at `sec` that has words in it — the Live Activity
- * draws it faintly under the sung one. Null at the end, and whenever there is
- * no sung line (an intro has nothing to follow).
+ * The next line with words in it after `sec` — the Live Activity draws it
+ * faintly under the sung one, and on its own through an intro or a break, so
+ * the words coming are there to read before they are sung. Null at the end.
  */
 export function nextLockScreenLine(sheet: LyricSheet | null, sec: number): string | null {
   if (!sheet?.synced) return null
   const at = activeLine(sheet.lines, sec)
-  if (at < 0 || sheet.lines[at].text.trim() === '') return null
   for (let i = at + 1; i < sheet.lines.length; i++) {
     const text = sheet.lines[i].text.trim()
     if (text !== '') return text
@@ -67,15 +66,21 @@ export function followLockLyrics(track: Track | null, sec: number): void {
   const inActivity = liveActivityOn()
   let line: string | null = null
   let next: string | null = null
+  /** Does this song have lyrics with timings? Null while that is still being found out. */
+  let timed: boolean | null = null
   if (onLockScreen || inActivity) {
     const lyrics = useLyricsStore.getState()
     if (lyrics.trackId !== track.id) lyrics.load(track)
     else if (lyrics.status === 'ready') {
+      timed = lyrics.sheet?.synced === true
       line = lockScreenLine(lyrics.sheet, sec)
       next = nextLockScreenLine(lyrics.sheet, sec)
+    } else if (lyrics.status !== 'loading' && lyrics.status !== 'idle') {
+      // none, instrumental, untagged, error: nothing to sing along to.
+      timed = false
     }
   }
   ms.setArtistLine(track, onLockScreen ? line : null)
   setLockArtist(track, onLockScreen ? line : null)
-  setLiveLyric(line, next)
+  setLiveLyric(line, next, timed)
 }

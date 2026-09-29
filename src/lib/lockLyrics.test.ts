@@ -41,9 +41,12 @@ describe('nextLockScreenLine', () => {
     expect(nextLockScreenLine(sheet, 9)).toBeNull()
   })
 
-  it('is null wherever there is no sung line to follow', () => {
-    expect(nextLockScreenLine(sheet, 1)).toBeNull()
-    expect(nextLockScreenLine(sheet, 6)).toBeNull()
+  it('is the words coming through an intro or a break', () => {
+    expect(nextLockScreenLine(sheet, 1)).toBe('First line')
+    expect(nextLockScreenLine(sheet, 6)).toBe('Second line')
+  })
+
+  it('is null for a sheet without timings, or no sheet', () => {
     expect(nextLockScreenLine({ ...sheet, synced: false }, 3)).toBeNull()
     expect(nextLockScreenLine(null, 3)).toBeNull()
   })

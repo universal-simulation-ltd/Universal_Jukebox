@@ -145,7 +145,7 @@ export default function Settings() {
       s.hiddenModes.length === 0
         ? 'All shown'
         : `${MODE_KEYS.length - s.hiddenModes.length} of ${MODE_KEYS.length} shown`,
-    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}${s.liveActivity && liveActivityAvailable() ? ', in a Live Activity' : ''}`,
+    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}${s.liveActivity && liveActivityAvailable() ? ', in a Lyrics Live Activity' : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: sentence([
       s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
@@ -456,8 +456,8 @@ export default function Settings() {
           />
           {liveActivityAvailable() && (
             <Toggle
-              label="Live Activity"
-              hint="The song and the line being sung on the Lock Screen and in the Dynamic Island, with play, pause and next. Shows the song even when it has no lyrics. It starts the next time a song plays with the app open."
+              label="Lyrics Live Activity"
+              hint="The line being sung, big, with the next one under it — on the Lock Screen, in the Dynamic Island and in StandBy. A song without timed lyrics shrinks it to a slim strip. It starts the next time a song plays with the app open."
               checked={s.liveActivity}
               onChange={(v) => s.set('liveActivity', v)}
             />

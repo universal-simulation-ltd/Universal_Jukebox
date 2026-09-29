@@ -76,6 +76,7 @@ final class LiveActivityDriver {
             artist: artist,
             line: nil,
             next: nil,
+            timed: nil,
             playing: playing,
             startedAt: Date().addingTimeInterval(-elapsed),
             elapsed: elapsed,
@@ -121,12 +122,13 @@ final class LiveActivityDriver {
         push()
     }
 
-    /// The line being sung and the one after it; nil between lines.
-    func lyric(line: String?, next: String?) {
+    /// The line being sung and the next one; whether the song has timed lyrics.
+    func lyric(line: String?, next: String?, timed: Bool?) {
         guard var current = state, activity != nil else { return }
-        guard line != current.line || next != current.next else { return }
+        guard line != current.line || next != current.next || timed != current.timed else { return }
         current.line = line
         current.next = next
+        current.timed = timed
         state = current
         push()
     }
