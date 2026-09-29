@@ -1,6 +1,8 @@
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { outerTangent, packRadius, revolutionSeconds, sectorPath, type Point } from '../../lib/reels'
 import type { DeckFaceProps } from './face'
+import { Scrubber } from './scrub'
+import { rotary, rotaryDetents, turnShare } from '../../lib/scrub'
 
 // The reel-to-reel — a home tape deck standing up, seen from the front: two
 // open spools across the top, the tape threaded down round the guides, across
@@ -96,8 +98,17 @@ export default function ReelToReelDeck({ progress, engaged, spinning, reduced, u
 
   // The supply reel empties as the take-up reel fills; between them, always
   // one reel's worth of tape.
-  const supply = packRadius(1 - progress, REEL.HUB, REEL.FULL)
-  const takeUp = packRadius(progress, REEL.HUB, REEL.FULL)
+  //
+  // Wound by hand (James, 2026-09-29, of the cassette: "doing circles at the
+  // tape turning") — the packs follow the finger, the spools turn under it
+  // and keep where they were left, and the song moves when it lets go.
+  const [held, setHeld] = useState<number | null>(null)
+  const [turn, setTurn] = useState(0)
+  const [winding, setWinding] = useState(false)
+  const at = held ?? progress
+  const supply = packRadius(1 - at, REEL.HUB, REEL.FULL)
+  const takeUp = packRadius(at, REEL.HUB, REEL.FULL)
+  const spoolsTurning = spinning && !winding
 
   // The tape, off the OUTSIDE of each pack — the left of the supply reel, the
   // right of the take-up — down to its guide. Both reels turn anticlockwise in
@@ -235,7 +246,8 @@ export default function ReelToReelDeck({ progress, engaged, spinning, reduced, u
         <Spool
           at={REEL.SUPPLY}
           radius={supply}
-          spinning={spinning}
+          turn={turn}
+          spinning={spoolsTurning}
           reduced={reduced}
           mask={flangeMask}
           metal={metal}
@@ -260,7 +272,8 @@ export default function ReelToReelDeck({ progress, engaged, spinning, reduced, u
         <Spool
           at={REEL.TAKE_UP}
           radius={takeUp}
-          spinning={spinning}
+          turn={turn}
+          spinning={spoolsTurning}
           reduced={reduced}
           mask={flangeMask}
           metal={metal}
@@ -354,6 +367,45 @@ export default function ReelToReelDeck({ progress, engaged, spinning, reduced, u
           <KeyButton label="Next track" x={KEY_X[3]} onPress={controls.next} />
         </>
       )}
+
+      {/* Either spool, wound by hand. ⚠️ ANTICLOCKWISE IS ON, the way the
+          spools turn when the tape plays (see `Spool`) — so the finger follows
+          the tape, where the cassette and the pocket player go clockwise. */}
+      {controls && engaged && controls.durationSec > 0 &&
+        [REEL.SUPPLY, REEL.TAKE_UP].map((reel) => (
+          <Scrubber
+            key={reel.x}
+            controls={controls}
+            position={progress}
+            held={held}
+            setHeld={setHeld}
+            detents={rotaryDetents(controls.durationSec)}
+            label="Tape spool — circle it anticlockwise to wind on through the song, clockwise to wind back"
+            className="aspect-square cursor-grab rounded-full active:cursor-grabbing"
+            style={{
+              left: `${reel.x}%`,
+              top: `${(reel.y / 90) * 100}%`,
+              width: 'max(44px, 44%)',
+              transform: 'translate(-50%, -50%)',
+            }}
+            begin={(x0, y0, from, el) => {
+              const box = el.getBoundingClientRect()
+              const base = turn
+              setWinding(true)
+              return rotary(
+                box.left + box.width / 2,
+                box.top + box.height / 2,
+                x0,
+                y0,
+                from,
+                -turnShare(controls.durationSec),
+                (degrees) => setTurn(base + degrees),
+              )
+            }}
+            onEnd={() => setWinding(false)}
+            bubble="inside"
+          />
+        ))}
     </div>
   )
 }
@@ -374,10 +426,12 @@ export default function ReelToReelDeck({ progress, engaged, spinning, reduced, u
  * surface there moves with it.
  */
 function Spool({
-  at, radius, spinning, reduced, mask, metal, children,
+  at, radius, turn, spinning, reduced, mask, metal, children,
 }: {
   at: Point
   radius: number
+  /** How far a finger has wound it, degrees — outside the motor's turn. */
+  turn: number
   spinning: boolean
   reduced: boolean
   mask: string
@@ -387,6 +441,7 @@ function Spool({
   const turning = useRef<SVGGElement>(null)
   const base = useTurnRate(turning, revolutionSeconds(radius, TAPE_SPEED))
   return (
+    <g transform={turn ? `rotate(${turn % 360} ${at.x} ${at.y})` : undefined}>
     <g
       ref={turning}
       style={{
@@ -420,6 +475,7 @@ function Spool({
         />
       ))}
       <circle cx={at.x} cy={at.y} r="0.8" fill="#475569" />
+    </g>
     </g>
   )
 }

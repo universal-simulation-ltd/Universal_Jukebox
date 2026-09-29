@@ -40,6 +40,7 @@ export function Scrubber({
   style,
   onTap,
   onEnd,
+  bubble = 'above',
   children,
 }: {
   controls: DeckControls
@@ -61,6 +62,12 @@ export function Scrubber({
   onTap?(x: number, y: number, el: HTMLElement): boolean
   /** The gesture is over, dragged or not — for a face that turned something. */
   onEnd?(): void
+  /**
+   * Where the time shows: above the control, or in its middle — for one at
+   * the very top of its machine, where above would be cut off (the
+   * reel-to-reel's spools).
+   */
+  bubble?: 'above' | 'inside'
   children?: ReactNode
 }) {
   const press = useRef<{ x: number; y: number; map: ScrubMap | null; dragging: boolean; eat: boolean } | null>(null)
@@ -168,7 +175,7 @@ export function Scrubber({
     >
       {children}
       {active && held !== null && (
-        <span className="pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-full bg-slate-900/85 px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-white tabular-nums shadow dark:bg-white/90 dark:text-slate-900">
+        <span className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${bubble === 'inside' ? 'top-1/2 -translate-y-1/2' : 'bottom-full mb-1'} rounded-full bg-slate-900/85 px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-white tabular-nums shadow dark:bg-white/90 dark:text-slate-900`}>
           {clock(held * controls.durationSec)}
         </span>
       )}
