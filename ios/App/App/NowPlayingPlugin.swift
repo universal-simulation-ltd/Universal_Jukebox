@@ -59,6 +59,13 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
     private var sentDuration: Double = 0
     private var sentAt = Date()
 
+    /// Diagnostics for the ▶-over-a-playing-song bug (2026-09-29): when the page
+    /// last said play/pause, and when the keeper last said it was alive — both
+    /// into `commands.log`, which survives the phone being locked.
+    private var loggedRate: Double = -1
+    private var loggedUpdateAt = Date.distantPast
+    private var loggedKeeperAt = Date.distantPast
+
     /// Headphones in or out, and interruptions, for the page's saved log
     /// (James, 2026-09-11: "still random issues with the lockscreen controls -
     /// not sure if it was when i put headphone in"). OBSERVED only: this app
@@ -220,6 +227,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
                 if #available(iOS 13.0, *) { center.playbackState = rate > 0 ? .playing : .paused }
             }
             self.keep()
+            CommandLog.note("show \"\(title)\" rate=\(rate) at=\(Int(elapsed)) app=\(UIApplication.shared.applicationState.rawValue)")
             if #available(iOS 16.2, *) {
                 LiveActivityDriver.shared.show(
                     title: title, artist: artist, elapsed: elapsed, duration: duration,
@@ -256,6 +264,11 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             if #available(iOS 16.2, *) {
                 LiveActivityDriver.shared.progress(elapsed: elapsed, duration: duration, playing: rate > 0)
+            }
+            if rate != self.loggedRate || Date().timeIntervalSince(self.loggedUpdateAt) > 30 {
+                CommandLog.note("update rate=\(rate) at=\(Int(elapsed)) mode=\(self.mode.rawValue) app=\(UIApplication.shared.applicationState.rawValue)")
+                self.loggedRate = rate
+                self.loggedUpdateAt = Date()
             }
             guard self.mode == .own, !self.ours.isEmpty else { call.resolve(); return }
             self.ours[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
@@ -373,7 +386,13 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         keeper = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             guard let self = self, !self.ours.isEmpty else { return }
             let center = MPNowPlayingInfoCenter.default()
+            if Date().timeIntervalSince(self.loggedKeeperAt) > 30 {
+                CommandLog.note("keeper alive state=\(center.playbackState.rawValue) sentRate=\(self.sentRate) app=\(UIApplication.shared.applicationState.rawValue)")
+                self.loggedKeeperAt = Date()
+            }
             if (center.nowPlayingInfo?[key] as AnyObject?) !== (self.ours[key] as AnyObject?) {
+                let rate = center.nowPlayingInfo?[MPNowPlayingInfoPropertyPlaybackRate] ?? "none"
+                CommandLog.note("keeper: entry overwritten (rate there=\(rate) state=\(center.playbackState.rawValue)) — reapplied")
                 // Not where the page last said it was — where it would have got
                 // to since, or the bar jumps backwards on every rescue.
                 if self.mode == .own { self.ours[MPNowPlayingInfoPropertyElapsedPlaybackTime] = self.elapsedNow() }
@@ -382,7 +401,10 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             guard self.mode == .own else { return }
             if #available(iOS 13.0, *) {
                 let wanted: MPNowPlayingPlaybackState = self.sentRate > 0 ? .playing : .paused
-                if center.playbackState != wanted { center.playbackState = wanted }
+                if center.playbackState != wanted {
+                    CommandLog.note("keeper: playbackState was \(center.playbackState.rawValue), set \(wanted.rawValue) app=\(UIApplication.shared.applicationState.rawValue)")
+                    center.playbackState = wanted
+                }
             }
         }
     }
@@ -572,6 +594,10 @@ enum CommandLog {
         .appendingPathComponent("commands.log")
 
     static func note(_ line: String) {
+        // Kept under half a megabyte: the keeper now writes a line every 30 s.
+        if let size = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int, size > 512_000 {
+            try? FileManager.default.removeItem(at: url)
+        }
         let stamp = ISO8601DateFormatter().string(from: Date())
         guard let data = "\(stamp) \(line)\n".data(using: .utf8) else { return }
         if let handle = try? FileHandle(forWritingTo: url) {

@@ -366,6 +366,9 @@ export function followProgress(playing: boolean, sec: number, duration: number):
   const restating = now < restateUntil
   const stale = playing && now - sent.at >= RESTATE_EVERY_MS
   if (!restating && !stale && playing === sent.playing && duration === sent.duration && !jumped) return
+  // Diagnostics for the ▶-over-a-playing-song bug (2026-09-29): every time the
+  // page tells the lock screen play or pause, in the saved log.
+  if (playing !== sent.playing) noteEvent('lock-rate', { playing, sec: Math.round(sec) })
   sent = { playing, at: now, sec, duration }
   void plugin.update({ elapsed: sec, duration, rate: playing ? 1 : 0 }).catch(() => {})
 }
