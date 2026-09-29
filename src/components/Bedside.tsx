@@ -52,9 +52,7 @@ export function BedsideButton() {
         ariaLabel="Bedside: the record, the time and the sleep timer, dimmed, with the screen kept on"
         onClick={() => useBedside.setState({ open: true })}
       >
-        <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M15.5 12.2A6.5 6.5 0 0 1 7.8 4.5a6.5 6.5 0 1 0 7.7 7.7Z" />
-        </svg>
+        <BedsideGlyph />
       </ModeButton>
     </>
   )
@@ -162,4 +160,17 @@ function deckSize(): number {
   const { innerWidth: w, innerHeight: h } = window
   const landscape = w > h
   return Math.round(Math.max(140, Math.min(360, landscape ? h * 0.55 : Math.min(w * 0.6, h * 0.36))))
+}
+
+/**
+ * A bed — not a moon, which is Sleep's, the button beside it (the two read as
+ * one button twice once Settings showed them side by side, 2026-09-29).
+ */
+export function BedsideGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M2.5 5v11M2.5 12.5h15V16M17.5 12.5v-1.8a2.7 2.7 0 0 0-2.7-2.7H9v4.5" />
+      <circle cx="5.8" cy="9.8" r="1.6" />
+    </svg>
+  )
 }

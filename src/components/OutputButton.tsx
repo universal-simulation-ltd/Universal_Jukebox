@@ -62,7 +62,7 @@ export default function OutputButton() {
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 
 /** A speaker throwing sound — with the sound leaving it, once it has gone elsewhere. */
-function OutputGlyph({ away }: { away: boolean }) {
+export function OutputGlyph({ away }: { away: boolean }) {
   return (
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden>
       <path d="M3 7.5h2.5L9 4.5v11L5.5 12.5H3z" />

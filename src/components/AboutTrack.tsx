@@ -96,11 +96,7 @@ export function AboutToggle() {
         setOpen(true)
       }}
     >
-      {/* A plain "i" — the circle is the button's own. */}
-      <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden>
-        <circle cx="10" cy="5.25" r="1.5" />
-        <path d="M8 8.25h3.25v6.5H12.5v1.75h-4.75v-1.75H9V10H8V8.25Z" />
-      </svg>
+      <InfoGlyph />
     </ModeButton>
   )
 }
@@ -269,5 +265,15 @@ function Note({ children }: { children: React.ReactNode }) {
     <Card>
       <p className="text-[13.5px] text-slate-600 dark:text-slate-300">{children}</p>
     </Card>
+  )
+}
+
+/** A plain "i" — the circle is the button's own. */
+export function InfoGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden>
+      <circle cx="10" cy="5.25" r="1.5" />
+      <path d="M8 8.25h3.25v6.5H12.5v1.75h-4.75v-1.75H9V10H8V8.25Z" />
+    </svg>
   )
 }

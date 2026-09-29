@@ -130,7 +130,7 @@ function SlidersGlyph() {
   )
 }
 
-function RepeatGlyph() {
+export function RepeatGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden>
       <path d="M4 8V7a3 3 0 0 1 3-3h9M16 12v1a3 3 0 0 1-3 3H4" />
@@ -139,7 +139,7 @@ function RepeatGlyph() {
   )
 }
 
-function RepeatOneGlyph() {
+export function RepeatOneGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden>
       <path d="M4 8V7a3 3 0 0 1 3-3h9M16 12v1a3 3 0 0 1-3 3H4" />

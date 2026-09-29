@@ -11,6 +11,7 @@ import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId }
 import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import CrossfadeDialog from './CrossfadeDialog'
+import ModeGlyph from './ModeGlyph'
 import { DeckMiniature } from './Deck'
 import { useAboutStore } from '../stores/aboutStore'
 import { useLyricsStore } from '../stores/lyricsStore'
@@ -403,12 +404,17 @@ export default function Settings() {
                     onClick={() =>
                       s.set('hiddenModes', shown ? [...s.hiddenModes, key] : s.hiddenModes.filter((k) => k !== key))
                     }
-                    className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
+                    className={`inline-flex items-center gap-1.5 rounded-full py-1.5 pr-3.5 pl-2.5 text-[13px] font-medium transition ${
                       shown
                         ? 'bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm'
                         : 'border border-slate-300 text-slate-500 line-through decoration-slate-400 hover:border-orange-500 dark:border-slate-700 dark:text-slate-400'
                     }`}
                   >
+                    {/* Its icon as well as its word — as it looks on the
+                        player (James, 2026-09-29). Hidden ones fade with it. */}
+                    <span className={`inline-flex ${shown ? '' : 'opacity-60'}`}>
+                      <ModeGlyph mode={key} />
+                    </span>
                     {MODE_LABELS[key]}
                   </button>
                 )

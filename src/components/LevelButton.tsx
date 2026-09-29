@@ -39,7 +39,7 @@ export default function LevelButton({ kind }: { kind: 'quiet' | 'loud' }) {
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 
 /** A speaker with one small wave. */
-function QuietGlyph() {
+export function QuietGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden>
       <path d="M3 8v4h3l4 3.5v-11L6 8z" />
@@ -49,7 +49,7 @@ function QuietGlyph() {
 }
 
 /** A speaker with three waves. */
-function LoudGlyph() {
+export function LoudGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden>
       <path d="M2.5 8v4h3l4 3.5v-11L5.5 8z" />

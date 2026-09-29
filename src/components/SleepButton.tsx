@@ -161,7 +161,7 @@ function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: 
 }
 
 /** A crescent moon. */
-function MoonGlyph() {
+export function MoonGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M16 12.2A6.5 6.5 0 0 1 7.8 4a6.5 6.5 0 1 0 8.2 8.2z" />

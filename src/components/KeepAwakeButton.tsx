@@ -29,7 +29,7 @@ export default function KeepAwakeButton() {
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 
 /** A sun — the screen left lit. */
-function AwakeGlyph() {
+export function AwakeGlyph() {
   return (
     <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden>
       <circle cx="10" cy="10" r="3.2" />
