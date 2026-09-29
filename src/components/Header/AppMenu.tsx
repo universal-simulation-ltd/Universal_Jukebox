@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useLibraryStore } from '../../stores/libraryStore'
 import { trackCountFor } from '../../lib/roots'
 import { plural } from '../../lib/format'
-import { navigate } from '../../lib/route'
+import { goHome, navigate } from '../../lib/route'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
 import { hasMusicLibrary } from '../../lib/appleMusic'
 import { hasNativeImporter } from '../../lib/nativeImport'
@@ -58,6 +58,8 @@ export default function AppMenu() {
   const addNativeFolder = useLibraryStore((s) => s.addNativeFolder)
   const importMusicLibrary = useLibraryStore((s) => s.importMusicLibrary)
   const pickNativeFiles = useLibraryStore((s) => s.pickNativeFiles)
+  const trying = useLibraryStore((s) => s.trying)
+  const leaveExample = useLibraryStore((s) => s.leaveExample)
   const native = isNativeShell()
   // Android: the folder is chosen, not fixed — see `usesChosenFolder`.
   const chosen = usesChosenFolder()
@@ -127,7 +129,28 @@ export default function AppMenu() {
 
   return (
     <div ref={menu} className="min-w-[15rem] py-1 text-[13px] text-slate-700 dark:text-slate-200">
-      {hasLibrary && (
+      {/* ⚠️ TRYING THE EXAMPLE LIBRARY, THE LIBRARY ROW IS THE WAY BACK
+          (`libraryStore.tryExample`). Its folders and "Add…" rows would all be
+          about the demo standing in for your library — "Remove" on it, "Rescan"
+          of it — and the one thing anybody in a trial needs from this menu is
+          the way out. Adding your own music still works: from your library,
+          once you are back in it. */}
+      {trying && (
+        <>
+          <Row
+            onClick={() => {
+              leaveExample()
+              goHome()
+            }}
+            title="Puts your own library back, exactly as you left it"
+          >
+            <span className="block font-medium text-slate-800 dark:text-slate-100">Back to my music</span>
+            <span className="block text-[11.5px] text-slate-400 dark:text-slate-500">Leave the example library</span>
+          </Row>
+          <Divider />
+        </>
+      )}
+      {hasLibrary && !trying && (
         <>
           {/* The one row. It opens here rather than closing the menu, so it is
               a plain button and not a `Row`. */}

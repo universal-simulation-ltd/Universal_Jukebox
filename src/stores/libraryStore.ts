@@ -42,6 +42,7 @@ import {
   walkNativeLibrary,
 } from '../lib/nativeFile'
 import { applyFixes } from '../lib/tidy'
+import { holdSession } from '../lib/session'
 import { mergeDiscSets } from '../lib/discs'
 import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
 
@@ -137,6 +138,40 @@ interface LibraryState {
   addFiles(files: FileList | File[], label?: string, intoRootId?: string): Promise<void>
   /** Fill the library with the generated example records — see `lib/exampleLibrary.ts`. */
   loadExample(): Promise<void>
+  /**
+   * True while the example library is on screen IN PLACE OF a real library,
+   * which stays saved exactly as it was — "Try the example library" in Tune
+   * this app. See `tryExample`.
+   */
+  trying: boolean
+  /**
+   * Show the example library for a while, without touching the real one.
+   *
+   * ⚠️ NOT `loadExample`, which REPLACES the library — clears IndexedDB, gives
+   * back the phone's folder grants — and is therefore offered only where there
+   * is nothing to replace (the landing page). This is the second door the
+   * example library never had (backlog, 2026-09-29: "if it wants a second
+   * door … that door needs a confirm and a way back, and neither exists"): the
+   * real library is set aside IN MEMORY, live file handles and all, and
+   * nothing is written anywhere. `leaveExample` puts it back as it was.
+   *
+   * ⚠️ AND A RELOAD IS ALSO A WAY BACK, by construction. Nothing about the
+   * trial is persisted — not the flag, not the example's records — so the page
+   * opens again on the real library read from IndexedDB, which was never
+   * touched. That was chosen over "still trying, after a reload" on purpose:
+   * the alternative means persisting a second library beside the first and a
+   * flag saying which is real, and every bug in THAT is somebody opening the
+   * app to a demo with no idea where their music went. The strip that says
+   * "Back to my music" is the way back you can see; closing the app is the one
+   * that cannot fail.
+   *
+   * Only from a real library that has finished loading: with nothing to set
+   * aside it is the landing page's door, and mid-scan there is no settled
+   * library to put back.
+   */
+  tryExample(): Promise<void>
+  /** End `tryExample`: the real library back exactly as it was set aside. */
+  leaveExample(): void
   /** Re-ask for one folder's permission and re-read it. */
   regrantFolder(id: string): Promise<void>
   /** Re-read one folder, picking up anything new inside it. */
@@ -365,6 +400,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   folderImages: new Map(),
   canPersistFolder: hasDirectoryPicker(),
   stoppedEarly: null,
+  trying: false,
 
   /**
    * Load whatever last session left behind.
@@ -414,6 +450,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
    * pick apart afterwards.
    */
   async loadExample() {
+    // ⚠️ Never while TRYING the example: this one clears the stored library,
+    // and the stored library is the real one the trial promised to keep. Only
+    // the landing page calls it, and that is not on screen during a trial —
+    // this is the belt for whatever calls it next.
+    if (get().trying) return
     releaseAllCovers()
     scanAbort?.abort()
     // Replaces everything, so a scan still finishing must not write over it.
@@ -424,14 +465,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     releaseUnused(get, grants)
 
     const { tracks, albums } = await buildExampleLibrary()
-    const root: Root = {
-      id: EXAMPLE_ROOT_ID,
-      label: EXAMPLE_LABEL,
-      prefix: EXAMPLE_LABEL,
-      handle: null,
-      scannedAt: Date.now(),
-      trackCount: tracks.length,
-    }
+    const root = exampleRoot(tracks.length)
     await Promise.all([db.putTracks(tracks), db.putAlbums(albums), db.putRoot(root)])
 
     set({
@@ -445,9 +479,59 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     })
   },
 
+  async tryExample() {
+    const ready = () => {
+      const now = get()
+      return !now.trying && now.status === 'ready' && !now.roots.some((r) => r.id === EXAMPLE_ROOT_ID)
+    }
+    if (!ready()) return
+    // Anything that throws the library away while the sleeves are being drawn
+    // wins — the trial then has nothing to set aside.
+    const started = generation
+    const { tracks, albums } = await buildExampleLibrary()
+    if (generation !== started || !ready()) return
+
+    // ⚠️ SET ASIDE NOW, after the build, not before it. A duration learnt by
+    // the player or a tidy-up applied while the records were being cut changed
+    // the library in the meantime, and putting back an older copy would undo it.
+    trial = setAside(get())
+    set({
+      trying: true,
+      status: 'ready',
+      tracks,
+      albums,
+      roots: [exampleRoot(tracks.length)],
+      filesByPath: new Map(),
+      folderImages: new Map(),
+      refusals: [],
+      stoppedEarly: null,
+      progress: null,
+      error: null,
+    })
+    // ⚠️ AFTER the `set`, which is what tells the player to save exactly where
+    // it was and stop (see the end of `playerStore`). Held before it, that last
+    // save would be the one thing refused.
+    holdSession(true)
+  },
+
+  leaveExample() {
+    const kept = trial
+    if (!get().trying || !kept) return
+    trial = null
+    // Only the example's own sleeves. The real library's are still minted and
+    // cached, which is part of why the way back is instant.
+    for (const album of get().albums) releaseCover(album.id)
+    set({ trying: false, ...kept, progress: null, error: null })
+    // After the `set`, which is what stopped the example's queue: nothing it
+    // does as it winds down may reach "Resume listening".
+    holdSession(false)
+  },
+
   async addFiles(files, label, intoRootId) {
     const list = Array.from(files)
     if (list.length === 0) return
+    // Real music ends a trial — see `leaveFirst`.
+    leaveFirst(get)
     // The label is the top folder of the first path, which is what the person
     // actually chose — `webkitRelativePath` carries it and nothing else does.
     const first = (list[0] as File & { webkitRelativePath?: string }).webkitRelativePath
@@ -478,6 +562,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
    * cannot half-work.
    */
   async regrantFolder(id) {
+    leaveFirst(get)
     const root = get().roots.find((r) => r.id === id)
     if (!root?.handle) return
     const handle = root.handle as FileSystemDirectoryHandle & {
@@ -499,6 +584,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   async rescanFolder(id) {
+    // The example being tried is made, not read: there is nothing to rescan,
+    // and `loadExample` below would replace the real library with it.
+    if (get().trying && id === EXAMPLE_ROOT_ID) return
+    leaveFirst(get)
     const root = get().roots.find((r) => r.id === id)
     if (!root) return
     // The example library has no folder — "rescan" is simply "build it again".
@@ -542,6 +631,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
    * `db.replaceLibrary` for why.
    */
   async removeFolder(id) {
+    // ⚠️ "Remove" on the example being TRIED is the way back, not a removal.
+    // Taken literally it rewrote the database to the library without the
+    // example — which during a trial is the empty library, over the real one.
+    if (get().trying) {
+      get().leaveExample()
+      if (id === EXAMPLE_ROOT_ID) return
+    }
     const root = get().roots.find((r) => r.id === id)
     if (!root) return
     const prefix = prefixOf(root)
@@ -598,6 +694,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
    * library straight back a moment after it had been cleared.
    */
   async clear() {
+    // Forgetting the library forgets the real one, which is what the button
+    // says — so the trial is ended first and what it set aside is cleared too.
+    leaveFirst(get)
     scanAbort?.abort()
     generation++
     releaseAllCovers()
@@ -614,6 +713,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
   async scanNativeFolder(id) {
     if (!isNativeShell()) return
+    leaveFirst(get)
 
     // ⚠️ ROOTS ARE FOUND BY ID OR BY `nativePath`, NEVER BY A CONSTANT. `runScan`
     // derives a new root's id from its LABEL, so the first native scan creates a
@@ -664,6 +764,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return
     }
     if (!picked) return // Backed out of the picker: not an error, nothing to say.
+    // The plan is made against the REAL library's folders.
+    leaveFirst(get)
 
     const plan = planNativePick(get().roots, picked, intoRootId)
     if (plan.kind === 'rescan') {
@@ -680,6 +782,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   async rescanNativeFolders() {
+    leaveFirst(get)
     const roots = nativeRoots(get().roots)
     if (roots.length === 0) {
       await get().scanNativeFolder()
@@ -751,6 +854,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return
     }
 
+    // Real music ends a trial, and this merges into the real library.
+    leaveFirst(get)
     // A folder scan running at the same time would merge into the same library
     // from under this one.
     scanAbort?.abort()
@@ -996,6 +1101,58 @@ export function musicLibrarySkips(read: Pick<MusicLibraryRead, 'protected' | 'cl
 
 let scanAbort: AbortController | null = null
 
+/** The example library's one root. */
+function exampleRoot(trackCount: number): Root {
+  return {
+    id: EXAMPLE_ROOT_ID,
+    label: EXAMPLE_LABEL,
+    prefix: EXAMPLE_LABEL,
+    handle: null,
+    scannedAt: Date.now(),
+    trackCount,
+  }
+}
+
+/** What `tryExample` sets aside, and `leaveExample` puts back. */
+type SetAside = Pick<
+  LibraryState,
+  'status' | 'tracks' | 'albums' | 'roots' | 'filesByPath' | 'folderImages' | 'refusals' | 'stoppedEarly'
+>
+
+/**
+ * The real library, while the example is being tried in its place — or null.
+ *
+ * ⚠️ MODULE-LEVEL AND NEVER PERSISTED, for the reason at the top of this file:
+ * it holds `filesByPath`, the live handles, and a live handle written anywhere
+ * is a broken reference that looks valid. Keeping the very same Map is what
+ * makes the way back instant on every platform — no permission re-granted on
+ * the web, no folder walked again on a phone. And it is the stored library
+ * that survives a reload, which the trial never wrote to.
+ */
+let trial: SetAside | null = null
+
+function setAside(state: LibraryState): SetAside {
+  const { status, tracks, albums, roots, filesByPath, folderImages, refusals, stoppedEarly } = state
+  return { status, tracks, albums, roots, filesByPath, folderImages, refusals, stoppedEarly }
+}
+
+/**
+ * Every way of getting REAL music into the library ends a trial first.
+ *
+ * ⚠️ NOT OPTIONAL, and the reason is `before`. Each of these reads the library
+ * it is about to add to, merges into it and writes the result to IndexedDB as
+ * the whole picture (`db.replaceLibrary`). During a trial the library in the
+ * store is the example — so a folder added then was merged into the demo, the
+ * demo "stepped aside" (`runScan`), and what was written over the real library
+ * was one new folder and nothing else. Somebody who adds their music while
+ * trying the example means to add it to THEIR library, so that is where it goes.
+ * None of these is on screen during a trial (the menu offers "Back to my
+ * music" in the library's place); this is for the ones that come later.
+ */
+function leaveFirst(get: () => LibraryState): void {
+  if (get().trying) get().leaveExample()
+}
+
 /**
  * Bumped by everything that throws the whole library away — `clear` and
  * `loadExample`. A scan or import records it when it starts and writes nothing
@@ -1034,6 +1191,7 @@ async function scanNative(
   existingId: string | undefined,
   label: string,
 ): Promise<'ok' | 'empty' | 'unreadable'> {
+  leaveFirst(get)
   set({ status: 'scanning', error: null, progress: { seen: 0, added: 0, skipped: 0, where: '', done: false } })
   let entries
   try {
@@ -1125,11 +1283,17 @@ async function reattachNative(
         return
       }
       const prefix = prefixOf(root)
-      const files = new Map<string, SourceFile>(get().filesByPath)
+      // ⚠️ Into the library these files belong to. A trial started while the
+      // walk was still going has set the real library aside, and a set here
+      // would file the phone's music under the EXAMPLE — then lose it on the
+      // way back, leaving every song unplayable until a rescan.
+      const into = trial ?? get()
+      const files = new Map<string, SourceFile>(into.filesByPath)
       for (const entry of entries) {
         files.set(prefix ? `${prefix}/${entry.path}` : entry.path, new NativeFile(entry))
       }
-      set({ filesByPath: files })
+      if (trial) trial.filesByPath = files
+      else set({ filesByPath: files })
     }),
   )
 }
@@ -1145,6 +1309,7 @@ async function runScan(
   /** Set for the native music folder — the phone's answer to `handle`. */
   nativePath: string | null = null,
 ) {
+  leaveFirst(get)
   // A second scan started while one is running aborts the first, or the two
   // walks interleave into one library and the progress count runs backwards.
   scanAbort?.abort()

@@ -16,6 +16,10 @@ function read(): JukeboxShelf[] {
 }
 
 function persist(shelves: JukeboxShelf[]): void {
+  // ⚠️ Not while the example library is being TRIED: its shelves are the
+  // demo's, kept for as long as the trial lasts, and the saved ones are the
+  // real library's — see the note at the foot of this file.
+  if (useLibraryStore.getState().trying) return
   try {
     localStorage.setItem(KEY, JSON.stringify(shelves))
   } catch { /* storage full or off — the shelves last until the app closes */ }
@@ -34,7 +38,8 @@ interface ShelvesState {
 }
 
 export const useShelvesStore = create<ShelvesState>((set, get) => ({
-  shelves: read(),
+  // A store first opened mid-trial starts on the demo's (empty) shelves too.
+  shelves: useLibraryStore.getState().trying ? [] : read(),
   toggle(shelfId, trackId) {
     const result = toggleOnShelf(get().shelves, shelfId, trackId, newId())
     if (result.shelves.find((s) => s.id === result.shelfId)?.trackIds.includes(trackId)) haptic('thunk')
@@ -67,7 +72,28 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
 // shelf"). Its songs went with a library that was cleared or re-imported under
 // new ids, so it can never fill again. Only once the library is READY and has
 // songs: while it loads, or with nothing in it, every shelf looks like that.
+//
+// ⚠️ AND NEVER DURING A TRIAL OF THE EXAMPLE LIBRARY (`libraryStore.tryExample`).
+// That swaps the library for the demo's, none of whose songs is on any of your
+// shelves — so to this rule every shelf you had "can never fill again", and
+// the first thing trying the example did was delete them all, for good. The
+// trial gets shelves of its own instead: empty, kept in memory, gone when it
+// ends; yours are set aside and put back untouched.
+let realShelves: JukeboxShelf[] | null = null
 useLibraryStore.subscribe((now, before) => {
+  if (now.trying !== before.trying) {
+    if (now.trying) {
+      realShelves = useShelvesStore.getState().shelves
+      useShelvesStore.setState({ shelves: [] })
+    } else {
+      // Set aside by the transition above — or, for a store first opened
+      // mid-trial, never taken out of storage in the first place.
+      useShelvesStore.setState({ shelves: realShelves ?? read() })
+      realShelves = null
+    }
+    return
+  }
+  if (now.trying) return
   if (now.status !== 'ready' || now.tracks.length === 0) return
   if (before.status === 'ready' && now.tracks === before.tracks) return
   const have = new Set(now.tracks.map((t) => t.id))

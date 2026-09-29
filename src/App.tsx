@@ -458,8 +458,10 @@ export default function App() {
         <ScanBanner showRefusals={LIBRARY_VIEWS.has(view)} />
 
         {/* "This is the demo", wherever its records are on screen — and not on
-            Settings or About, which are about the app rather than the music. */}
-        {(LIBRARY_VIEWS.has(view) || view === 'playing') && <ExampleNotice />}
+            Settings or About, which are about the app rather than the music.
+            ⚠️ Except while the example is being TRIED in place of a real
+            library: then it carries the way back, and shows on every page. */}
+        <ExampleNotice onLibraryPage={LIBRARY_VIEWS.has(view) || view === 'playing'} />
 
         {view === 'tidy' ? (
           <Tidy />

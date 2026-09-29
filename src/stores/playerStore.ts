@@ -10,7 +10,7 @@ import type { FadeCurve } from '../lib/fadeCurve'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
 import { cachedGain, measureGain } from '../lib/loudness'
-import { readSession, saveSession } from '../lib/session'
+import { holdSession, readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
 import { announceTrack, withdrawTrack } from '../lib/trackNotify'
 import {
@@ -1760,4 +1760,39 @@ useSettingsStore.subscribe((next, prev) => {
   const cached = cachedGain(track.id)
   if (cached !== null) audio.setLevel(cached)
   else levelLater(track)
+})
+
+// Trying the example library (`libraryStore.tryExample`) — and coming back.
+//
+// ⚠️ THE QUEUE IS STOPPED BOTH WAYS, and the way back to what was playing is
+// "Resume listening", not a queue carried across. Going in: the queue holds the
+// REAL library's tracks, whose files the trial has just set aside, so the next
+// song would fail as missing — and music of your own carrying on under a page
+// of made-up records is not what "try the example" means. Where you were is
+// saved first, to the second, because the five-second save may be up to five
+// seconds behind and nothing is saved again until the trial ends (`holdSession`).
+// Coming back: the example's songs have no place in the real library, so they
+// stop, and the card above the records offers the song you left, at the second
+// you left it (`lib/resume.ts` shows it again).
+//
+// ⚠️ HELD BETWEEN THE SAVE AND THE STOP, here, and not a moment later. Stopping
+// the element reports the position as 0 — synchronously, through
+// `audio.subscribe` — while the queue still holds the song, and the five-second
+// save took that as a new position: the card came back offering the right song
+// from its first second (seen in Chromium, 2026-09-29). The store holds it too,
+// once the swap is done; holding it twice is harmless, and this one is the one
+// that is in time.
+useLibraryStore.subscribe((now, before) => {
+  if (now.trying === before.trying) return
+  const player = usePlayerStore.getState()
+  if (now.trying) {
+    const { queue, order, cursor, currentSec } = player
+    saveSession(order.map((i) => queue[i]?.id).filter((id): id is string => !!id), cursor, currentSec)
+    holdSession(true)
+  }
+  player.stopPreview()
+  player.clearQueue()
+  // An error about a song of the other library is about nothing on screen.
+  player.dismissError()
+  player.dismissSkipped()
 })

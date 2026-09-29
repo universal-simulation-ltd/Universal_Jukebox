@@ -183,6 +183,16 @@ export const useTidyStore = create<TidyState>((set, get) => ({
 
     useLibraryStore.setState({ tracks, albums })
 
+    // ⚠️ Tidying the example library while it is being TRIED changes what is
+    // on screen and nothing else. The stored library is the real one, which the
+    // trial leaves alone; written here, the demo's records went into it — and
+    // came back after the next reload, mixed in among somebody's own albums.
+    if (library.trying) {
+      releasePreviews(proposals)
+      set({ status: 'done', proposals: [], chosen: new Set(), applied: taking.length })
+      return
+    }
+
     await Promise.all([
       db.putTracks(tracks),
       db.putAlbums(albums),
@@ -276,3 +286,10 @@ function guessMime(name: string): string | null {
   if (ext === 'gif') return 'image/gif'
   return null
 }
+
+// What was found is about the library it was found in. Trying the example, or
+// coming back from it, swaps the library under the list — so the list goes, and
+// the page looks again at whichever library is now on screen.
+useLibraryStore.subscribe((now, before) => {
+  if (now.trying !== before.trying) useTidyStore.getState().reset()
+})

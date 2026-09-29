@@ -44,7 +44,27 @@ export function windowAround(ids: readonly string[], cursor: number, max = MAX_I
   return { ids: ids.slice(start, start + max), cursor: cursor - start }
 }
 
+/**
+ * True while "Resume listening" must not be written at all — the example
+ * library being tried in place of a real one (`libraryStore.tryExample`).
+ *
+ * ⚠️ HELD HERE, AT THE ONE DOOR, rather than by each caller. The player saves
+ * where you were on every change of track, every five seconds, and as a
+ * stopped queue tears down — three routes, each of which would otherwise write
+ * the example's ids over the real session, and "Resume listening" would come
+ * back from the trial pointing at a demo track the real library does not have.
+ * The card would simply vanish, and with it the way back to the song you were
+ * on. A flag at the door cannot be forgotten by a fourth route.
+ */
+let held = false
+
+/** Stop (or start again) writing "Resume listening" — see `held`. */
+export function holdSession(hold: boolean): void {
+  held = hold
+}
+
 export function saveSession(ids: readonly string[], cursor: number, sec: number): void {
+  if (held) return
   if (cursor < 0 || cursor >= ids.length) return
   const kept = windowAround(ids, cursor)
   try {

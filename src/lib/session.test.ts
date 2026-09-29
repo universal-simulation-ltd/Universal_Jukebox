@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { readSession, saveSession, windowAround } from './session'
+import { holdSession, readSession, saveSession, windowAround } from './session'
 
 describe('windowAround', () => {
   const ids = Array.from({ length: 50 }, (_, i) => `t${i}`)
@@ -53,6 +53,19 @@ describe('saveSession', () => {
   it('still reads a session saved before the split', () => {
     store.set('jukebox:session', JSON.stringify({ ids: ['x', 'y'], cursor: 1, trackId: 'y', sec: 3, at: 1 }))
     expect(readSession()).toMatchObject({ ids: ['x', 'y'], cursor: 1, trackId: 'y', sec: 3 })
+  })
+
+  it('writes nothing while held — the example library being tried — and resumes after', () => {
+    saveSession(['real-1', 'real-2'], 1, 30)
+    holdSession(true)
+    try {
+      saveSession(['demo-1', 'demo-2', 'demo-3'], 2, 90)
+      expect(readSession()).toMatchObject({ ids: ['real-1', 'real-2'], trackId: 'real-2', sec: 30 })
+    } finally {
+      holdSession(false)
+    }
+    saveSession(['real-1', 'real-2'], 0, 5)
+    expect(readSession()).toMatchObject({ trackId: 'real-1', sec: 5 })
   })
 
   it('finds the track if the saved cursor no longer points at it', () => {

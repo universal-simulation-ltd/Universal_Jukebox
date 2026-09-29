@@ -58,8 +58,9 @@ export const useRequestsStore = create<RequestsState>((set, get) => {
   }
   /** Tick off whatever the library has now. */
   const check = (requests: readonly MusicRequest[]) => {
-    const { status, tracks, albums } = useLibraryStore.getState()
-    return status === 'ready' ? tickFound(requests, tracks, albums, Date.now()) : requests
+    const { status, tracks, albums, trying } = useLibraryStore.getState()
+    // Not against the example library while it is being tried — see below.
+    return status === 'ready' && !trying ? tickFound(requests, tracks, albums, Date.now()) : requests
   }
   return {
     // The library may have opened before this store did.
@@ -84,7 +85,15 @@ export const useRequestsStore = create<RequestsState>((set, get) => {
 // check automatically on next library update?"). Only on 'ready': mid-scan the
 // library is half there, and a tick is never taken back by the library, so
 // nothing is lost by waiting for the end.
+//
+// ⚠️ EXCEPT AGAINST THE EXAMPLE LIBRARY BEING TRIED (`libraryStore.tryExample`).
+// A tick is never taken back, and a request is for music in the REAL world: a
+// made-up record with a title like yours would tick it off for good, and the
+// library you came back to would not have it. The requests themselves stay
+// yours throughout — they are a list of what to go and get, not part of the
+// library — so they are shown and kept as ever; they are only not TICKED.
 useLibraryStore.subscribe((now, before) => {
+  if (now.trying) return
   if (now.status !== 'ready') return
   if (before.status === 'ready' && now.tracks === before.tracks && now.albums === before.albums) return
   const { requests } = useRequestsStore.getState()

@@ -12,11 +12,13 @@ import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify
 import { canSetElementVolume } from '../lib/volumeSupport'
 import CrossfadeDialog from './CrossfadeDialog'
 import ModeGlyph from './ModeGlyph'
+import TryExampleDialog from './TryExampleDialog'
 import { DeckMiniature } from './Deck'
 import { useAboutStore } from '../stores/aboutStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useLibraryStore } from '../stores/libraryStore'
+import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import {
   CEREMONY_LADDER,
   DECK_SETTINGS,
@@ -62,6 +64,11 @@ export default function Settings() {
   // plain Light / Dark / System and sets the global value (SDK 0.144.0).
   const { split: prefsSplit, setColorScheme: setGlobalColorScheme } = useGlobalPreferences()
   const libraryReady = useLibraryStore((l) => l.status === 'ready')
+  const trying = useLibraryStore((l) => l.trying)
+  const leaveExample = useLibraryStore((l) => l.leaveExample)
+  // The example loaded from the landing page IS the library: nothing to try.
+  const isExample = useLibraryStore((l) => l.roots.some((r) => r.id === EXAMPLE_ROOT_ID))
+  const [tryingExample, setTryingExample] = useState(false)
   // Arrived from "Customise" under Now Playing: that section opens, and the
   // page scrolls to it once App has put the page at its top.
   const [openSection] = useState<SettingsSectionId | null>(pendingSettingsSection)
@@ -206,6 +213,37 @@ export default function Settings() {
           {libraryReady && (
             <Action label="Tidy up library" button="Open" onClick={() => navigate({ view: 'tidy' })} />
           )}
+          {/* ⚠️ THE EXAMPLE LIBRARY'S SECOND DOOR (backlog, 2026-09-29). The
+              landing page was its only one, because loading it there REPLACES
+              the library and the landing page is only shown when there is none
+              to replace. This one sets the real library aside instead
+              (`libraryStore.tryExample`), behind a confirm that says so, with
+              "Back to my music" as the way out — here, in the strip on every
+              page, and in the menu.
+              ⚠️ Here, and not in the menu's Advanced, which holds only About and
+              the knowledge base (James, 2026-09-28). It is about the library,
+              and this is the library's section. */}
+          {trying ? (
+            <Action
+              label="Trying the example library"
+              hint="Your own music is set aside exactly as it was."
+              button="Back to my music"
+              onClick={() => {
+                leaveExample()
+                goHome()
+              }}
+            />
+          ) : (
+            libraryReady && !isExample && (
+              <Action
+                label="Try the example library"
+                hint="Nine made-up records to explore. Your own library is set aside, untouched, until you come back."
+                button="Try it"
+                onClick={() => setTryingExample(true)}
+              />
+            )
+          )}
+          {tryingExample && <TryExampleDialog onClose={() => setTryingExample(false)} />}
         </Section>
 
         {/* ⚠️ ABOVE the animation section, not inside it, and that order is the
