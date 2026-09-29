@@ -1,5 +1,7 @@
-import { useId, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useId, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import type { DeckFaceProps } from './face'
+import { Scrubber } from './scrub'
+import { rotary, rotaryDetents, turnShare } from '../../lib/scrub'
 
 // The pocket player (James, 2026-09-10: "a 'modern' device option, maybe an
 // iPod like device, or a phone"). A click-wheel player: the album art on its
@@ -21,15 +23,26 @@ import type { DeckFaceProps } from './face'
 // drawing, not SVG shapes, so they can be focused and announced — the SVG is
 // `aria-hidden`. MENU and the rest of the body still open the album, which is
 // what tapping every other machine does.
+//
+// ⚠️ AND IT SCROLLS, as the real one did (James, 2026-09-29: "iPod circling the
+// trackpad"): a thumb going round the wheel moves through the song, clockwise
+// on, anticlockwise back, with a tick per step. That makes the ring one
+// control, laid over the ⏮ ⏭ ⏯ buttons — so a press that never goes round is
+// sorted by WHERE it landed and pressed for them (`wheelTap`). The buttons
+// stay underneath for the keyboard and VoiceOver; the centre button stays on
+// top.
 
 export default function PocketDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, controls }: DeckFaceProps) {
+  const [held, setHeld] = useState<number | null>(null)
+  /** Where the thumb has taken the lit arc, while it goes round. */
+  const [thumb, setThumb] = useState<number | null>(null)
   const uid = useId().replace(/:/g, '')
   const screenClip = `jb-pocket-screen-${uid}`
   const body = `jb-pocket-body-${uid}`
   const wheel = `jb-pocket-wheel-${uid}`
 
   // The bar inside the screen, 8 → 92 across.
-  const barWidth = Math.max(0, Math.min(1, progress)) * 84
+  const barWidth = Math.max(0, Math.min(1, held ?? progress)) * 84
 
   return (
     <div className="absolute inset-0">
@@ -96,11 +109,16 @@ export default function PocketDeck({ progress, engaged, spinning, reduced, url, 
         </g>
         {/* The lit arc a thumb would make going round. */}
         <g
-          style={{
-            transformOrigin: '50px 106px',
-            animation: reduced ? undefined : 'jb-spin 3.6s linear infinite',
-            animationPlayState: spinning ? 'running' : 'paused',
-          }}
+          style={
+            thumb === null
+              ? {
+                  transformOrigin: '50px 106px',
+                  animation: reduced ? undefined : 'jb-spin 3.6s linear infinite',
+                  animationPlayState: spinning ? 'running' : 'paused',
+                }
+              : // Under the thumb: the wheel answering.
+                { transformOrigin: '50px 106px', transform: `rotate(${thumb}deg)` }
+          }
         >
           <path d="M50 81 A25 25 0 0 1 67.7 88.3" fill="none" stroke="#E05504" strokeWidth="1.6" strokeLinecap="round" opacity="0.55" />
         </g>
@@ -114,11 +132,55 @@ export default function PocketDeck({ progress, engaged, spinning, reduced, url, 
           <WheelButton label="Previous track" box={[23, 94, 17, 24]} onPress={controls.previous} />
           <WheelButton label="Next track" box={[60, 94, 17, 24]} onPress={controls.next} />
           <WheelButton label={controls.playing ? 'Pause' : 'Play'} box={[38, 117, 24, 15]} onPress={controls.toggle} />
+          {engaged && controls.durationSec > 0 && (
+            <Scrubber
+              controls={controls}
+              position={progress}
+              held={held}
+              setHeld={setHeld}
+              detents={rotaryDetents(controls.durationSec)}
+              label="Click wheel — go round it clockwise to move on through the song, anticlockwise to go back"
+              className="aspect-square rounded-full"
+              style={{ left: '50%', top: `${(106 / 140) * 100}%`, width: '52%', transform: 'translate(-50%, -50%)' }}
+              begin={(x0, y0, from, el) => {
+                const box = el.getBoundingClientRect()
+                // The arc starts from wherever the thumb went down.
+                const start = (Math.atan2(y0 - box.top - box.height / 2, x0 - box.left - box.width / 2) * 180) / Math.PI + 90
+                return rotary(
+                  box.left + box.width / 2,
+                  box.top + box.height / 2,
+                  x0,
+                  y0,
+                  from,
+                  turnShare(controls.durationSec),
+                  (degrees) => setThumb(start + degrees),
+                )
+              }}
+              onEnd={() => setThumb(null)}
+              onTap={(x, y, el) => wheelTap(x, y, el, controls)}
+            />
+          )}
+          {/* Above the ring, so it is always the centre button. */}
           <WheelButton label={controls.playing ? 'Pause' : 'Play'} box={[40, 96, 20, 20]} onPress={controls.toggle} round />
         </>
       )}
     </div>
   )
+}
+
+/**
+ * A press on the ring that never went round: the button under it. MENU, at
+ * the top, is not answered here, so it goes on to the deck and opens the album
+ * as it always has.
+ */
+function wheelTap(x: number, y: number, el: HTMLElement, controls: { previous(): void; next(): void; toggle(): void }): boolean {
+  const box = el.getBoundingClientRect()
+  const angle = (Math.atan2(y - box.top - box.height / 2, x - box.left - box.width / 2) * 180) / Math.PI
+  if (angle > -45 && angle <= 45) controls.next()
+  else if (angle > 45 && angle <= 135) controls.toggle()
+  else if (angle > 135 || angle <= -135) controls.previous()
+  else return false
+  return true
 }
 
 /**
@@ -151,7 +213,7 @@ function WheelButton({
         onPress()
       }}
       onKeyDown={(e: KeyboardEvent) => e.stopPropagation()}
-      className={`absolute cursor-pointer transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] active:bg-slate-900/15 ${
+      className={`absolute ${round ? 'z-20' : ''} cursor-pointer transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] active:bg-slate-900/15 ${
         round ? 'rounded-full' : 'rounded-[40%]'
       }`}
       style={{ left: `${x}%`, top: `${(y / 140) * 100}%`, width: `${w}%`, height: `${(h / 140) * 100}%` }}

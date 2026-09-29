@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { CD_WELL, type DeckFaceProps } from './face'
+import { Scrubber } from './scrub'
 import { slideInner, slideOuter } from './slide'
 
 // A portable CD player — the disc, the laser, and the machine around them.
@@ -65,11 +67,14 @@ const percent = (share: number) => `${Math.round(share * 1000) / 10}%`
 // too: that is where a disc swiped or crossfaded on to this player lands.
 const WELL = { left: percent(CD_WELL.side), right: percent(CD_WELL.side), top: percent(CD_WELL.top) }
 
-export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide }: DeckFaceProps) {
+export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, controls }: DeckFaceProps) {
+  // While the sled is in a hand it goes where the hand puts it — see the
+  // `Scrubber` at the end.
+  const [held, setHeld] = useState<number | null>(null)
   // Parked at the start until the laser is on: a disc that has not been read
   // yet has its sled at the hub, and the seek back out is what the handover
   // between tracks looks like on this deck.
-  const radius = LASER.START + (engaged ? progress * LASER.TRAVEL : 0)
+  const radius = LASER.START + (engaged ? (held ?? progress) * LASER.TRAVEL : 0)
   const lens = point(radius)
   const railFrom = point(LASER.START)
   const railTo = point(LASER.START + LASER.TRAVEL)
@@ -283,7 +288,8 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
               // Just longer than the ~250ms between `timeupdate` events, so the
               // sled creeps rather than stepping four times a second — the same
               // number as the tonearm, for the same reason.
-              transition: reduced ? undefined : 'transform 0.4s linear',
+              // None while held: a sled lagging the finger feels broken.
+              transition: reduced || held !== null ? undefined : 'transform 0.4s linear',
             }}
           >
             <rect x="-6" y="-3.6" width="12" height="7.2" rx="2" fill="#334155" opacity="0.92" />
@@ -303,6 +309,40 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
             />
           </g>
         </svg>
+
+        {/* The sled, as something you can move (James, 2026-09-29: "CD moving
+            the laser point"). Along its rail, out from the hub: the inner end
+            is the start of the song, the rim the end — the way the disc is
+            read, and the opposite of the tonearm next door. */}
+        {controls && engaged && controls.durationSec > 0 && (
+          <Scrubber
+            controls={controls}
+            position={progress}
+            held={held}
+            setHeld={setHeld}
+            detents={10}
+            label="Laser — drag it along its rail to move through the song"
+            className="cursor-grab rounded-full active:cursor-grabbing"
+            style={{
+              left: `${lens.x}%`,
+              top: `${lens.y}%`,
+              width: 'max(44px, 22%)',
+              height: 'max(44px, 22%)',
+              transform: 'translate(-50%, -50%)',
+            }}
+            begin={(_x, _y, _from, el) => {
+              const well = el.parentElement?.getBoundingClientRect()
+              if (!well || well.width === 0) return null
+              // The finger in the well's own 0–100 units, projected on the rail.
+              return (x, y) => {
+                const u = ((x - well.left) / well.width) * 100 - 50
+                const v = ((y - well.top) / well.height) * 100 - 50
+                const along = u * Math.cos(RAD) + v * Math.sin(RAD)
+                return Math.max(0, Math.min(1, (along - LASER.START) / LASER.TRAVEL))
+              }
+            }}
+          />
+        )}
       </div>
     </>
   )

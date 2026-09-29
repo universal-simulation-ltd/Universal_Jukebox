@@ -1,7 +1,7 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
-import { clock } from '../../lib/format'
-import { haptic } from '../../lib/haptics'
+import { useState } from 'react'
 import type { DeckControls, DeckFaceProps } from './face'
+import type { ScrubMap } from '../../lib/scrub'
+import { Scrubber } from './scrub'
 import { slideInner, slideOuter } from './slide'
 import { VinylRecordFace } from './VinylRecord'
 
@@ -187,15 +187,8 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
  *
  * Drag it across the record and the song goes where the needle is put down,
  * which is how a record is found on a real turntable: the outer groove is the
- * start, the edge of the label the end. The time it would land on rides
- * beside the head while it is held, and a detent is felt every tenth of the
- * song.
- *
- * ⚠️ STOPS THE POINTER AND THE CLICK. The record under it swipes to the next
- * song (`DeckSwiper`), a long press on the deck opens the machine picker and a
- * tap opens the album (`Deck`) — a drag of the arm must be none of those.
- *
- * ⚠️ A slider to a screen reader and the keyboard: ← → move five seconds.
+ * start, the edge of the label the end. The pointer, the time beside the head,
+ * the detents and the keyboard are `Scrubber`'s, shared with the other machines.
  */
 function ArmGrab({
   angle,
@@ -208,8 +201,6 @@ function ArmGrab({
   setHeld(fraction: number | null): void
   controls: DeckControls
 }) {
-  const box = useRef<HTMLDivElement>(null)
-  const tenth = useRef(-1)
   const turn = (angle * Math.PI) / 180
   const head = {
     x: PIVOT.x + HEAD.x * Math.cos(turn) - HEAD.y * Math.sin(turn),
@@ -217,85 +208,32 @@ function ArmGrab({
   }
 
   /** Where on the record a finger at (x, y) would put the needle, 0 → 1. */
-  const fractionAt = (x: number, y: number): number | null => {
-    const frame = box.current?.parentElement?.getBoundingClientRect()
-    if (!frame || frame.width === 0) return null
+  const needleAt = (frame: DOMRect): ScrubMap => (x, y) => {
+    if (frame.width === 0) return null
     const dx = x - (frame.left + PIVOT.x * frame.width)
     const dy = y - (frame.top + PIVOT.y * frame.width)
     const bearing = (Math.atan2(dy, dx) * 180) / Math.PI - HEAD_BEARING
     return Math.max(0, Math.min(1, (bearing - ARM.TRACK_START) / ARM.TRACK_TRAVEL))
   }
-  const follow = (e: PointerEvent) => {
-    const at = fractionAt(e.clientX, e.clientY)
-    if (at === null) return
-    const step = Math.floor(at * 10)
-    if (step !== tenth.current) {
-      if (tenth.current !== -1) haptic('tick')
-      tenth.current = step
-    }
-    setHeld(at)
-  }
-  const position = held ?? (angle - ARM.TRACK_START) / ARM.TRACK_TRAVEL
-  const nudge = (seconds: number) =>
-    controls.seek(Math.max(0, Math.min(1, position + seconds / controls.durationSec)))
 
   return (
-    <div
-      ref={box}
-      role="slider"
-      tabIndex={0}
-      aria-label="Tonearm — drag it across the record to move through the song"
-      aria-valuemin={0}
-      aria-valuemax={Math.round(controls.durationSec)}
-      aria-valuenow={Math.round(position * controls.durationSec)}
-      aria-valuetext={`${clock(position * controls.durationSec)} of ${clock(controls.durationSec)}`}
-      className="absolute z-10 cursor-grab rounded-full focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] active:cursor-grabbing"
+    <Scrubber
+      controls={controls}
+      position={(angle - ARM.TRACK_START) / ARM.TRACK_TRAVEL}
+      held={held}
+      setHeld={setHeld}
+      detents={10}
+      label="Tonearm — drag it across the record to move through the song"
+      className="cursor-grab rounded-full active:cursor-grabbing"
       style={{
         left: `${head.x * 100}%`,
         top: `${head.y * 100}%`,
         width: 'max(44px, 20%)',
         height: 'max(44px, 20%)',
         transform: 'translate(-50%, -50%)',
-        touchAction: 'none',
       }}
-      onPointerDown={(e) => {
-        if (e.button !== 0) return
-        e.stopPropagation()
-        e.currentTarget.setPointerCapture(e.pointerId)
-        tenth.current = -1
-        haptic('tap')
-        follow(e)
-      }}
-      onPointerMove={(e) => {
-        if (held === null) return
-        e.stopPropagation()
-        follow(e)
-      }}
-      onPointerUp={(e) => {
-        if (held === null) return
-        e.stopPropagation()
-        controls.seek(held)
-        setHeld(null)
-      }}
-      onPointerCancel={() => setHeld(null)}
-      onClick={(e) => e.stopPropagation()}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-      }}
-      onKeyDown={(e: KeyboardEvent) => {
-        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') nudge(5)
-        else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') nudge(-5)
-        else return
-        e.preventDefault()
-        e.stopPropagation()
-      }}
-    >
-      {held !== null && (
-        <span className="pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-full bg-slate-900/85 px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-white tabular-nums shadow dark:bg-white/90 dark:text-slate-900">
-          {clock(held * controls.durationSec)}
-        </span>
-      )}
-    </div>
+      // The frame the arm is drawn against is the grab's parent, not the grab.
+      begin={(_x, _y, _from, el) => (el.parentElement ? needleAt(el.parentElement.getBoundingClientRect()) : null)}
+    />
   )
 }

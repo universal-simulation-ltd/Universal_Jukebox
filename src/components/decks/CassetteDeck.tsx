@@ -1,5 +1,7 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import type { DeckFaceProps } from './face'
+import { Scrubber } from './scrub'
+import { rotary, rotaryDetents, turnShare } from '../../lib/scrub'
 
 // The cassette — a Walkman shell with the window facing you.
 //
@@ -34,7 +36,19 @@ function pack(fraction: number): number {
   return Math.sqrt(REEL.HUB * REEL.HUB + (REEL.MAX * REEL.MAX - REEL.HUB * REEL.HUB) * f)
 }
 
-export default function CassetteDeck({ progress, engaged, spinning, reduced, url, hue, labelFade }: DeckFaceProps) {
+export default function CassetteDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, controls }: DeckFaceProps) {
+  // Winding with a finger (James, 2026-09-29: "cassette doing circles at the
+  // tape turning") — the pencil-in-the-hub trick. While wound, the packs show
+  // where the finger has taken the tape and the reels turn with it; the song
+  // moves when it lets go.
+  const [held, setHeld] = useState<number | null>(null)
+  /**
+   * How far the finger has turned the reels, in degrees — KEPT when it lets
+   * go, so they stay where they were wound to and the motor carries on from
+   * there, rather than snapping back by however many laps it took.
+   */
+  const [turn, setTurn] = useState(0)
+  const [winding, setWinding] = useState(false)
   // ⚠️ `useId` gives ids with colons in them, which are legal in HTML but break
   // `url(#…)` references in some engines. Strip them; the point is only that
   // two decks on one page cannot share a clip path.
@@ -45,8 +59,11 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
 
   // Supply reel empties as the take-up reel fills. Together they always hold
   // one cassette's worth of tape.
-  const left = pack(1 - progress)
-  const right = pack(progress)
+  const at = held ?? progress
+  const left = pack(1 - at)
+  const right = pack(at)
+  // Under the finger the reels are the finger's, not the motor's.
+  const reelsTurning = spinning && !winding
 
   return (
     // Only the label fades as a tape goes in or comes out — see `labelFade` in
@@ -91,8 +108,8 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
           {/* The window. */}
           <rect x="13" y="31" width="74" height="27" rx="3" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.16)" strokeWidth="0.7" />
 
-          <Reel x={REEL.LEFT_X} radius={left} spinning={spinning} reduced={reduced} />
-          <Reel x={REEL.RIGHT_X} radius={right} spinning={spinning} reduced={reduced} />
+          <Reel x={REEL.LEFT_X} radius={left} spinning={reelsTurning} reduced={reduced} turn={turn} />
+          <Reel x={REEL.RIGHT_X} radius={right} spinning={reelsTurning} reduced={reduced} turn={turn} />
 
           {/* The head and the pinch roller, which come UP into the tape path
               through the openings in the bottom of the shell when you press
@@ -149,6 +166,41 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
           />
         </g>
       </svg>
+
+      {controls && engaged && controls.durationSec > 0 &&
+        [REEL.LEFT_X, REEL.RIGHT_X].map((x) => (
+          <Scrubber
+            key={x}
+            controls={controls}
+            position={progress}
+            held={held}
+            setHeld={setHeld}
+            detents={rotaryDetents(controls.durationSec)}
+            label="Cassette reel — circle it clockwise to wind on through the song, anticlockwise to wind back"
+            className="aspect-square cursor-grab rounded-full active:cursor-grabbing"
+            style={{
+              left: `${x}%`,
+              top: `${(REEL.Y / 66) * 100}%`,
+              width: 'max(44px, 26%)',
+              transform: 'translate(-50%, -50%)',
+            }}
+            begin={(x0, y0, from, el) => {
+              const box = el.getBoundingClientRect()
+              const base = turn
+              setWinding(true)
+              return rotary(
+                box.left + box.width / 2,
+                box.top + box.height / 2,
+                x0,
+                y0,
+                from,
+                turnShare(controls.durationSec),
+                (degrees) => setTurn(base + degrees),
+              )
+            }}
+            onEnd={() => setWinding(false)}
+          />
+        ))}
     </div>
   )
 }
@@ -166,10 +218,12 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
  * already carries the information.
  */
 function Reel({
-  x, radius, spinning, reduced,
-}: { x: number; radius: number; spinning: boolean; reduced: boolean }) {
+  x, radius, spinning, reduced, turn,
+}: { x: number; radius: number; spinning: boolean; reduced: boolean; turn: number }) {
   const y = REEL.Y
   return (
+    // The finger's turn, outside the motor's.
+    <g transform={turn ? `rotate(${turn % 360} ${x} ${y})` : undefined}>
     <g
       style={{
         transformOrigin: `${x}px ${y}px`,
@@ -200,6 +254,7 @@ function Reel({
           transform={`rotate(${i * 60} ${x} ${y})`}
         />
       ))}
+    </g>
     </g>
   )
 }
