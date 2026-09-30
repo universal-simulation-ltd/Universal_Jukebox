@@ -43,6 +43,8 @@ interface RequestsState {
   requests: readonly MusicRequest[]
   defaultKind: RequestKind
   setDefaultKind(kind: RequestKind): void
+  /** Back to Artist, and forget the double tap — Settings' Reset to defaults. */
+  resetDefaultKind(): void
   add(request: Omit<MusicRequest, 'id' | 'addedAt'>): void
   /** Ticked or not, by hand. */
   setGot(id: string, got: boolean): void
@@ -71,6 +73,12 @@ export const useRequestsStore = create<RequestsState>((set, get) => {
       try {
         localStorage.setItem(KIND_KEY, kind)
       } catch { /* kept until the app closes */ }
+    },
+    resetDefaultKind: () => {
+      set({ defaultKind: 'artist' })
+      try {
+        localStorage.removeItem(KIND_KEY)
+      } catch { /* ignore */ }
     },
     // A request for something already in the library is ticked as it goes on.
     add: (request) => save(check(addRequest(get().requests, { ...request, id: newId(), addedAt: Date.now() }))),

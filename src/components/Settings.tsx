@@ -1,5 +1,13 @@
-import { useEffect, useState } from 'react'
-import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useGlobalPreferences, useUniversal, type Language } from '@unisim/sdk'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  LANGUAGE_LABELS,
+  SUPPORTED_LANGUAGES,
+  translateNav,
+  useGlobalPreferences,
+  useResetAppDefaults,
+  useUniversal,
+  type Language,
+} from '@unisim/sdk'
 import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
@@ -16,6 +24,7 @@ import TryExampleDialog from './TryExampleDialog'
 import { DeckMiniature } from './Deck'
 import { useAboutStore } from '../stores/aboutStore'
 import { useLyricsStore } from '../stores/lyricsStore'
+import { useRequestsStore } from '../stores/requestsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useLibraryStore } from '../stores/libraryStore'
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
@@ -580,18 +589,70 @@ export default function Settings() {
         </Section>
       </div>
 
-      <div className="mt-10 border-t border-slate-200 pt-6 dark:border-slate-800">
-        <button
-          type="button"
-          onClick={() => s.reset()}
-          className="text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
-        >
-          Reset these settings
-        </button>
-        <p className="mt-1.5 text-[12px] text-slate-500 dark:text-slate-400">
-          Puts everything on this page back to its default. Your library and your colour scheme are left alone.
+      <ResetDefaults />
+    </div>
+  )
+}
+
+/**
+ * Reset to defaults — the SDK Tune this app dialog's row, for the page that
+ * stands in for that dialog here (James, 2026-09-30: "Each 'Tune this app'
+ * page should have a reset defaults button"). The SDK's words and flow: it
+ * asks in place (not window.confirm, a bare system alert in the native shell),
+ * then says "Defaults restored". Its words are the SDK's translations, so they
+ * follow the language like the menus do.
+ *
+ * What it resets: everything on this page (`settingsStore`, which includes the
+ * library's opening tab, order and columns), the kind new requests start on
+ * (Requests' double tap), and — through `useResetAppDefaults` — this app's
+ * language and colour scheme overrides and any SDK default views. NOT the
+ * library, the requests, the volume or shuffle/repeat: those are what is
+ * playing, not how the app is tuned.
+ */
+function ResetDefaults() {
+  const { language } = useUniversal()
+  const reset = useSettingsStore((s) => s.reset)
+  const resetKind = useRequestsStore((r) => r.resetDefaultKind)
+  const resetAll = useResetAppDefaults(
+    useCallback(() => { reset(); resetKind() }, [reset, resetKind]),
+    useThemeStore,
+  )
+  const [step, setStep] = useState<'idle' | 'ask' | 'done'>('idle')
+  const link =
+    'text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400'
+  return (
+    <div className="mt-10 border-t border-slate-200 pt-6 dark:border-slate-800" data-testid="jukebox-reset-defaults">
+      {step === 'ask' ? (
+        <>
+          <p className="text-[13px] text-slate-700 dark:text-slate-200">
+            {translateNav(language, 'prefs.reset_confirm').replace('{app}', 'Jukebox')}
+          </p>
+          <div className="mt-2 flex gap-4">
+            <button
+              type="button"
+              onClick={() => { resetAll(); setStep('done') }}
+              className="text-[13px] font-semibold text-red-700 underline-offset-2 hover:underline dark:text-red-400"
+            >
+              {translateNav(language, 'prefs.reset_yes')}
+            </button>
+            <button type="button" onClick={() => setStep('idle')} className={link}>
+              {translateNav(language, 'prefs.reset_cancel')}
+            </button>
+          </div>
+        </>
+      ) : step === 'done' ? (
+        <p role="status" className="text-[13px] text-slate-500 dark:text-slate-400">
+          ✓ {translateNav(language, 'prefs.reset_done')}
         </p>
-      </div>
+      ) : (
+        <button type="button" onClick={() => setStep('ask')} className={link}>
+          ↺ {translateNav(language, 'prefs.reset_defaults')}
+        </button>
+      )}
+      <p className="mt-1.5 text-[12px] text-slate-500 dark:text-slate-400">
+        Puts everything on this page back to its default, with the tab the library opens on and the kind
+        new requests start as. Your library, your requests, the volume and shuffle are left alone.
+      </p>
     </div>
   )
 }
