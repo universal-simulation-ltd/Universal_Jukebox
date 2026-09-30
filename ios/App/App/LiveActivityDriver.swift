@@ -42,6 +42,9 @@ final class LiveActivityDriver {
     /// is opened on a new song — see `show`.
     private var dismissed = false
     private var watcher: Task<Void, Never>?
+    /// The song time the words on the card go out of date — the next timed
+    /// line (`lockScreenLineUntil` in `lockLyrics.ts`). Nil: none known.
+    private var lineUntil: Double?
 
     private init() {}
 
@@ -86,6 +89,7 @@ final class LiveActivityDriver {
             bottom: ground.count > 1 ? ground[1] : "#e2e8f0")
         let fitted = Self.fit(next)
         state = fitted
+        lineUntil = nil
 
         if let running = activity, running.activityState == .active {
             push()
@@ -114,6 +118,9 @@ final class LiveActivityDriver {
         let jumped = abs(expected - elapsed) > 2
         let lengthChanged = duration > 0 && abs(duration - current.duration) > 0.5
         guard playing != current.playing || jumped || lengthChanged else { return }
+        // A jump leaves the next line's time meaning nothing; the page sends
+        // the new one with the line it lands on.
+        if jumped { lineUntil = nil }
         current.playing = playing
         current.elapsed = elapsed
         current.startedAt = Date().addingTimeInterval(-elapsed)
@@ -123,9 +130,10 @@ final class LiveActivityDriver {
     }
 
     /// The line being sung and the next one; whether the song has timed lyrics.
-    func lyric(line: String?, next: String?, timed: Bool?) {
+    func lyric(line: String?, next: String?, timed: Bool?, until: Double?) {
         guard var current = state, activity != nil else { return }
-        guard line != current.line || next != current.next || timed != current.timed else { return }
+        guard line != current.line || next != current.next || timed != current.timed || until != lineUntil else { return }
+        lineUntil = until
         current.line = line
         current.next = next
         current.timed = timed
@@ -139,6 +147,7 @@ final class LiveActivityDriver {
         watcher = nil
         dismissed = false
         state = nil
+        lineUntil = nil
         guard let running = activity else { return }
         activity = nil
         Self.holdingOn("live activity end") { await running.end(nil, dismissalPolicy: .immediate) }
@@ -179,10 +188,26 @@ final class LiveActivityDriver {
     /// said "next song" by then it has stopped being able to — the phone
     /// suspended it — and the system dims the activity rather than letting a
     /// full bar pass for a song still playing.
+    ///
+    /// ⚠️ AND A MOMENT PAST THE NEXT LINE, while there are words to follow
+    /// (James, 2026-09-30: the words froze after one or two lines on a locked
+    /// phone). iOS REFUSES these updates from an app that is in the background
+    /// only for audio — `liveactivitiesd` logs "Process is only playing
+    /// background media so is forbidden to update activity" — and nothing in
+    /// this app can change that (APNs is the only supported way; not chosen).
+    /// So every line is sent with the moment it stops being true, and if the
+    /// next update has not got through by then the widget draws "Unlock to
+    /// follow the words" instead of a line that is no longer being sung.
+    /// `lineGrace` covers the page's tick and the bridge on a phone that IS
+    /// being allowed to update.
     private func stale(_ state: State) -> Date? {
         guard state.playing, state.duration > 0 else { return nil }
-        return state.startedAt.addingTimeInterval(state.duration + 60)
+        let songEnd = state.startedAt.addingTimeInterval(state.duration + 60)
+        guard state.timed == true, let until = lineUntil else { return songEnd }
+        return min(songEnd, state.startedAt.addingTimeInterval(until + Self.lineGrace))
     }
+
+    static let lineGrace: TimeInterval = 2.5
 
     private func watch(_ running: Activity<JukeboxActivityAttributes>) {
         watcher?.cancel()

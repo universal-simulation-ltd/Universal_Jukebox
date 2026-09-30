@@ -52,6 +52,29 @@ export function nextLockScreenLine(sheet: LyricSheet | null, sec: number): strin
 }
 
 /**
+ * The song time at which what `lockScreenLine` and `nextLockScreenLine` say
+ * stops being true — the next timed line, blank or not. Null at the end of the
+ * sheet, or without timings.
+ *
+ * ⚠️ WHAT IT IS FOR: the Lyrics Live Activity goes STALE a moment after this
+ * (`LiveActivityDriver.stale`). iOS refuses Live Activity updates from an app
+ * that is in the background only to play music (`liveactivitiesd`: "Process
+ * is only playing background media so is forbidden to update activity") — so
+ * on a locked phone the line froze after one or two (James, 2026-09-30). The
+ * app cannot get round that, but it can say when the words on the card will be
+ * wrong, and the card then asks to be unlocked instead of showing them.
+ */
+export function lockScreenLineUntil(sheet: LyricSheet | null, sec: number): number | null {
+  if (!sheet?.synced) return null
+  const at = activeLine(sheet.lines, sec)
+  for (let i = at + 1; i < sheet.lines.length; i++) {
+    const time = sheet.lines[i].timeSec
+    if (time !== null && time > sec) return time
+  }
+  return null
+}
+
+/**
  * Called on every playback tick, and when either setting changes. Writes only on a change.
  *
  * ⚠️ TWO SWITCHES, ONE LOOK-UP. "Lyrics on the lock screen" puts the line in
@@ -70,6 +93,7 @@ export function followLockLyrics(track: Track | null, sec: number): void {
   const onLockScreen = settings().lockScreenLyrics && !inActivity
   let line: string | null = null
   let next: string | null = null
+  let until: number | null = null
   /** Does this song have lyrics with timings? Null while that is still being found out. */
   let timed: boolean | null = null
   if (onLockScreen || inActivity) {
@@ -79,6 +103,7 @@ export function followLockLyrics(track: Track | null, sec: number): void {
       timed = lyrics.sheet?.synced === true
       line = lockScreenLine(lyrics.sheet, sec)
       next = nextLockScreenLine(lyrics.sheet, sec)
+      until = lockScreenLineUntil(lyrics.sheet, sec)
     } else if (lyrics.status !== 'loading' && lyrics.status !== 'idle') {
       // none, instrumental, untagged, error: nothing to sing along to.
       timed = false
@@ -86,5 +111,5 @@ export function followLockLyrics(track: Track | null, sec: number): void {
   }
   ms.setArtistLine(track, onLockScreen ? line : null)
   setLockArtist(track, onLockScreen ? line : null)
-  setLiveLyric(line, next, timed)
+  setLiveLyric(line, next, timed, until)
 }

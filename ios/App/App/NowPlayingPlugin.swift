@@ -317,8 +317,9 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         let line = call.getString("line")
         let next = call.getString("next")
         let timed = call.getBool("timed")
+        let until = call.getDouble("until")
         DispatchQueue.main.async {
-            if #available(iOS 16.2, *) { LiveActivityDriver.shared.lyric(line: line, next: next, timed: timed) }
+            if #available(iOS 16.2, *) { LiveActivityDriver.shared.lyric(line: line, next: next, timed: timed, until: until) }
             call.resolve()
         }
     }

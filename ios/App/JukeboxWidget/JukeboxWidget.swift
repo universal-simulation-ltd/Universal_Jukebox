@@ -52,7 +52,7 @@ struct JukeboxLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Words(state: state, ink: .white, accent: palette.accent, big: .title3)
+                        Words(state: state, stale: context.isStale, ink: .white, accent: palette.accent, big: .title3)
                         if state.timed != false {
                             Progress(state: state, tint: palette.accent, ink: .white)
                         }
@@ -110,7 +110,7 @@ private struct LockScreenView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top, spacing: 10) {
                         Record(state: state, size: 34)
-                        Words(state: state, ink: palette.ink, accent: palette.accent, big: .title3)
+                        Words(state: state, stale: stale, ink: palette.ink, accent: palette.accent, big: .title3)
                         Controls(state: state, tint: palette.ink, size: 16)
                     }
                     Progress(state: state, tint: palette.accent, ink: palette.ink)
@@ -121,14 +121,21 @@ private struct LockScreenView: View {
         .background(
             LinearGradient(colors: [palette.top, palette.ground], startPoint: .top, endPoint: .bottom)
         )
-        .opacity(stale ? 0.6 : 1)
+        // Dimmed as a strip; the lyrics layout says what is wrong in words instead (`Words`).
+        .opacity(stale && state.timed == false ? 0.6 : 1)
     }
 }
 
 /// The words: the line being sung, big, and the next one faint under it —
 /// or, through an intro or a break, the next one on its own, waiting.
+///
+/// ⚠️ STALE MEANS THE WORDS ARE WRONG. The app sets the stale date a moment
+/// past the next line (`LiveActivityDriver.stale`); reaching it means iOS did
+/// not let that update through — which it refuses on a locked phone — so the
+/// line here is no longer the one being sung. Say so, rather than show it.
 private struct Words: View {
     let state: JukeboxActivityAttributes.ContentState
+    let stale: Bool
     let ink: Color
     let accent: Color
     let big: Font.TextStyle
@@ -139,6 +146,11 @@ private struct Words: View {
                 Text("♪ No lyrics for this song")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(ink.opacity(0.6))
+            } else if stale {
+                Label("Unlock to follow the words", systemImage: "lock.fill")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(ink.opacity(0.75))
+                    .lineLimit(2)
             } else if let line = state.line {
                 Text(line)
                     .font(.system(big, design: .rounded).weight(.bold))

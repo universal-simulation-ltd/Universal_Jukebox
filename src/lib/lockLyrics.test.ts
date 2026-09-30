@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lockScreenLine, nextLockScreenLine } from './lockLyrics'
+import { lockScreenLine, lockScreenLineUntil, nextLockScreenLine } from './lockLyrics'
 import type { LyricSheet } from './lyrics'
 
 const sheet: LyricSheet = {
@@ -49,5 +49,19 @@ describe('nextLockScreenLine', () => {
   it('is null for a sheet without timings, or no sheet', () => {
     expect(nextLockScreenLine({ ...sheet, synced: false }, 3)).toBeNull()
     expect(nextLockScreenLine(null, 3)).toBeNull()
+  })
+})
+
+describe('lockScreenLineUntil', () => {
+  it('is when the next timed line starts, blank ones included', () => {
+    expect(lockScreenLineUntil(sheet, 1)).toBe(2)
+    expect(lockScreenLineUntil(sheet, 3)).toBe(5)
+    expect(lockScreenLineUntil(sheet, 6)).toBe(8)
+  })
+
+  it('is null after the last line, or without timings', () => {
+    expect(lockScreenLineUntil(sheet, 9)).toBeNull()
+    expect(lockScreenLineUntil({ ...sheet, synced: false }, 3)).toBeNull()
+    expect(lockScreenLineUntil(null, 3)).toBeNull()
   })
 })

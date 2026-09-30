@@ -45,7 +45,7 @@ interface NowPlayingPlugin {
   artist(options: { artist: string }): Promise<void>
   clear(): Promise<void>
   liveActivity(options: { enabled: boolean }): Promise<{ available: boolean }>
-  lyric(options: { line: string | null; next: string | null; timed: boolean | null }): Promise<void>
+  lyric(options: { line: string | null; next: string | null; timed: boolean | null; until: number | null }): Promise<void>
   addListener(event: 'command', fn: (e: { action: string; position?: number }) => void): Promise<unknown>
   addListener(event: 'audio', fn: (e: { kind: string } & Record<string, unknown>) => void): Promise<unknown>
 }
@@ -186,12 +186,13 @@ let lineSent: string | undefined
  * the song has timed lyrics at all (null: not known yet), which decides whether
  * the activity is the lyrics or the slim "no lyrics" strip. Writes only on a change.
  */
-export function setLiveLyric(line: string | null, next: string | null, timed: boolean | null): void {
+export function setLiveLyric(line: string | null, next: string | null, timed: boolean | null, until: number | null = null): void {
   if (!liveOn || !plugin) return
-  const key = `${line ?? ''}\n${next ?? ''}\n${timed}`
+  const key = `${line ?? ''}\n${next ?? ''}\n${timed}\n${until}`
   if (key === lineSent) return
   lineSent = key
-  void plugin.lyric({ line, next, timed }).catch(() => {})
+  // `until`: the song time the words go out of date — see `lockScreenLineUntil`.
+  void plugin.lyric({ line, next, timed, until }).catch(() => {})
 }
 
 /** An interruption of the audio — Siri, a call, a timer — as iOS described it. */
