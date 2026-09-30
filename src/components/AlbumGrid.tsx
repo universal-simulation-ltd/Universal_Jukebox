@@ -77,7 +77,7 @@ export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridPro
           : genre && albums.length > 0
             ? `No genre here has ${GENRE_MIN} songs or more, so there is nothing to file. Switch back to A–Z.`
             : fullOnly && albums.length > 0
-              ? `No full albums — every album here has fewer than ${FULL_ALBUM_MIN} tracks. Turn off “Full albums” to see them.`
+              ? `No full albums — every album here has fewer than ${FULL_ALBUM_MIN} tracks. Tap “Full albums” to show all albums.`
               : 'No albums yet.'}
       </p>
     )

@@ -332,13 +332,15 @@ async function hydrateOnce(
     // A disc set stored as separate albums comes back as one — `lib/discs.ts`.
     const joined = mergeDiscSets(storedTracks, storedAlbums)
     const tracks = joined.tracks
-    // ⚠️ THE STORED COUNTS ARE NOT TRUSTED (James, 2026-09-30: "American Boy"
-    // on the Albums tab with "Full albums" on, and one track in it). The
-    // "Full albums" and "Min. 3" filters read `trackCount`, and a count
-    // that is wrong in storage stays wrong at every launch while the album
-    // page, which counts the tracks it lists, says something else. How it went
-    // wrong was not found. Recounting here costs one pass over the tracks and
-    // repairs it whatever the cause; the next scan writes the counts back.
+    // ⚠️ THE STORED COUNTS ARE NOT TRUSTED. The "Full albums" and "Min. 3"
+    // filters read `trackCount`, and a count that is wrong in storage would
+    // stay wrong at every launch while the album page, which counts the tracks
+    // it lists, says something else. One pass over the tracks rules that out.
+    // [Correction 2026-09-30: this was added for James's "American Boy" (one
+    // track, on the Albums tab under a lit "Full albums"). That was not a stale
+    // count: the lit pill meant the filter was OFF, and the pill said "Full
+    // albums" either way. The label now says what is shown (`App.tsx`). The
+    // recount stays, as a guard.]
     const albums = withCounts(tracks, joined.albums)
     set({
       tracks,

@@ -660,15 +660,26 @@ export default function App() {
                     Min. {GENRE_MIN}
                   </button>
                 )}
+                {/* ⚠️ THE LABEL SAYS WHAT YOU ARE SEEING, like A–Z and the
+                    layout pill beside it (James, 2026-09-30: "selecting it
+                    shows all albums, the text should change to All albums when
+                    selected and Full albums (default) when not"). It used to
+                    say "Full albums" either way, lit when OFF — so a single
+                    showing under a lit "Full albums" read as the filter
+                    failing. */}
                 {view === 'albums' && (
                   <button
                     type="button"
                     onClick={() => setSetting('fullAlbumsOnly', !fullAlbumsOnly)}
-                    aria-pressed={fullAlbumsOnly}
-                    title={`Only albums with ${FULL_ALBUM_MIN} or more tracks`}
+                    aria-label={
+                      fullAlbumsOnly
+                        ? `Full albums, ${FULL_ALBUM_MIN} or more tracks. Tap for all albums`
+                        : 'All albums, singles too. Tap for full albums only'
+                    }
+                    title={fullAlbumsOnly ? `Albums with ${FULL_ALBUM_MIN} or more tracks — tap for all albums` : 'Every album, singles too — tap for full albums only'}
                     className={togglePill(fullAlbumsOnly !== DEFAULTS.fullAlbumsOnly)}
                   >
-                    Full albums
+                    {fullAlbumsOnly ? 'Full albums' : 'All albums'}
                   </button>
                 )}
                 {view === 'artists' && (

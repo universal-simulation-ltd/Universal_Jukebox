@@ -477,7 +477,7 @@ describe('launching: the stored album counts', () => {
     db.allRoots.mockResolvedValueOnce([])
     db.allTracks.mockResolvedValueOnce([track('a1', 'single'), track('b1', 'lp'), track('b2', 'lp'), track('b3', 'lp')])
     db.allAlbums.mockResolvedValueOnce([
-      // Stored claiming twelve, with one track: James's "American Boy".
+      // Stored claiming twelve, with one track.
       { id: 'single', title: 'American Boy', artist: 'Estelle', trackCount: 12, cover: null },
       { id: 'lp', title: 'Shine', artist: 'Estelle', trackCount: 3, cover: null },
       // No tracks at all: gone, rather than a blank tile.
