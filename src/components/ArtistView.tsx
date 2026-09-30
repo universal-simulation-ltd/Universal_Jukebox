@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import AddToQueue from './AddToQueue'
 import AddToShelf from './AddToShelf'
 import Cover from './Cover'
+import { SongRow } from './TrackList'
 import { PlayGlyph, ShuffleGlyph } from './AlbumView'
 import { plural, totalTime } from '../lib/format'
 import { goHome, navigate } from '../lib/route'
@@ -14,8 +15,13 @@ import type { Album, Track } from '../lib/types'
 // to all albums by this artist and they can then play or shuffle all songs from
 // that artist too"). Reached from the album page's "All N albums by …", since
 // the Albums tab no longer folds an artist's records together.
+//
+// ⚠️ TWO WAYS IN, TWO PAGES. `songs` is "All songs by …" on the Artists tab
+// (James, 2026-09-30: "show a track list of all songs of that artist (not the
+// album view)"): the same play and shuffle, then every song as a list. Without
+// it this is the albums page, which "All N albums by …" still wants.
 
-export default function ArtistView({ name }: { name: string }) {
+export default function ArtistView({ name, songs = false }: { name: string; songs?: boolean }) {
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -35,6 +41,12 @@ export default function ArtistView({ name }: { name: string }) {
     }
     return albums.flatMap((album) => sortAlbumTracks(byAlbum.get(album.id) ?? []))
   }, [albums, allTracks])
+
+  /** Each album as a song's second line: "Title · 2009". */
+  const albumLine = useMemo(
+    () => new Map(albums.map((a) => [a.id, [a.title, a.year].filter(Boolean).join(' · ')])),
+    [albums],
+  )
 
   if (albums.length === 0) {
     return (
@@ -74,7 +86,7 @@ export default function ArtistView({ name }: { name: string }) {
         Your library
       </button>
 
-      <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">{name}</h1>
+      <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">{songs ? `All songs by ${name}` : name}</h1>
       <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
         {[plural(albums.length, 'album'), plural(tracks.length, 'song'), totalTime(tracks)].filter(Boolean).join(' · ')}
       </p>
@@ -102,6 +114,29 @@ export default function ArtistView({ name }: { name: string }) {
         <AddToShelf tracks={tracks} variant="pill" />
       </div>
 
+      {songs ? (
+        <>
+          <ul className="mt-8 divide-y divide-slate-200 dark:divide-slate-800">
+            {tracks.map((track, i) => (
+              <SongRow
+                key={track.id}
+                track={track}
+                // From that song on, through the rest of their songs.
+                onPlay={() => playTracks(tracks, i)}
+                // Every row is theirs, so the album is the useful half.
+                subtitle={albumLine.get(track.albumId)}
+              />
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => navigate({ view: 'artist', artist: name })}
+            className="mt-6 text-[13px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+          >
+            Their {plural(albums.length, 'album')} ›
+          </button>
+        </>
+      ) : (
       <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {albums.map((album) => (
           <li key={album.id}>
@@ -124,6 +159,7 @@ export default function ArtistView({ name }: { name: string }) {
           </li>
         ))}
       </ul>
+      )}
     </div>
   )
 }

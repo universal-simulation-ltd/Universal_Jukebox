@@ -15,6 +15,12 @@ export interface Route {
   /** The artist's name, when `view` is 'artist'. */
   artist?: string
   /**
+   * The artist's page as ONE LIST of every song of theirs, rather than their
+   * albums (James, 2026-09-30: "show a track list of all songs of that artist
+   * (not the album view)") — `#/artist/<name>/songs`, from "All songs by …".
+   */
+  songs?: boolean
+  /**
    * A genre opened from the genre list, when `view` is 'artists', 'albums' or
    * 'tracks' — the tab shows only what is in it (`libraryInGenre`). Kept as the
    * tabs change, so Artists / Albums / Tracks all look inside the same genre.
@@ -51,7 +57,12 @@ export function routeFromHash(rawHash: string): Route {
     // spaces, and anything else a tag happens to hold.
     return { view: 'album', albumId: safeDecode(hash.slice('album/'.length)) }
   }
-  if (hash.startsWith('artist/')) return { view: 'artist', artist: safeDecode(hash.slice('artist/'.length)) }
+  if (hash.startsWith('artist/')) {
+    // The name is encoded, so a `/` in it is `%2F` and `/songs` can only be ours.
+    const rest = hash.slice('artist/'.length)
+    if (rest.endsWith('/songs')) return { view: 'artist', artist: safeDecode(rest.slice(0, -'/songs'.length)), songs: true }
+    return { view: 'artist', artist: safeDecode(rest) }
+  }
   const inGenre = /^(albums|artists|tracks)\/genre\/(.+)$/.exec(hash)
   if (inGenre) return { view: inGenre[1] as 'albums' | 'artists' | 'tracks', genre: safeDecode(inGenre[2]) }
   if (hash === 'albums') return { view: 'albums' }
@@ -83,7 +94,7 @@ export function navigate(route: Route): void {
     route.view === 'album' && route.albumId
       ? `#/album/${encodeURIComponent(route.albumId)}`
       : route.view === 'artist' && route.artist
-        ? `#/artist/${encodeURIComponent(route.artist)}`
+        ? `#/artist/${encodeURIComponent(route.artist)}${route.songs ? '/songs' : ''}`
         : route.genre && GENRE_VIEWS.has(route.view)
           ? `#/${route.view}/genre/${encodeURIComponent(route.genre)}`
           : `#/${route.view}`

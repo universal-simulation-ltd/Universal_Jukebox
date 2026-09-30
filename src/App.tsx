@@ -190,7 +190,7 @@ export default function App() {
     }
     // A genre opened from far down the genre list starts at its own top.
     if (PAGE_VIEWS.has(route.view) || route.genre) window.scrollTo(0, 0)
-  }, [route.view, route.albumId, route.artist, route.genre])
+  }, [route.view, route.albumId, route.artist, route.songs, route.genre])
 
   // Where each page is scrolled to, kept as it scrolls.
   useEffect(() => {
@@ -489,7 +489,7 @@ export default function App() {
         ) : view === 'album' && route.albumId ? (
           <AlbumView albumId={route.albumId} />
         ) : view === 'artist' && route.artist ? (
-          <ArtistView name={route.artist} />
+          <ArtistView name={route.artist} songs={route.songs === true} />
         ) : view === 'playing' ? (
           // At T6 the stage is gone and the bar is the app — so Now Playing
           // sends you back to the library rather than rendering an empty stage.

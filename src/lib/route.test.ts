@@ -69,6 +69,12 @@ describe('artist pages', () => {
   it('read the name back, spaces and all', () => {
     expect(routeFromHash(ART)).toEqual({ view: 'artist', artist: 'Bob Marley' })
   })
+  it('open as one list of songs with /songs, a slash in the name and all', () => {
+    expect(routeFromHash(`${ART}/songs`)).toEqual({ view: 'artist', artist: 'Bob Marley', songs: true })
+    expect(routeFromHash('#/artist/AC%2FDC/songs')).toEqual({ view: 'artist', artist: 'AC/DC', songs: true })
+    expect(routeFromHash('#/artist/AC%2FDC')).toEqual({ view: 'artist', artist: 'AC/DC' })
+    expect(levelOf(`${ART}/songs`)).toBe(0.5)
+  })
 })
 
 describe('routeFromHash', () => {

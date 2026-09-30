@@ -69,8 +69,6 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
   const library = useLibraryStore((s) => s.tracks)
   const tracks = useMemo(() => (inGenre ? library.filter((t) => trackInGenre(t, inGenre)) : library), [library, inGenre])
   const playTracks = usePlayerStore((s) => s.playTracks)
-  const playing = usePlayerStore((s) => s.playing)
-  const nowPlaying = usePlayerStore(currentTrack)
   const [showAll, setShowAll] = useState(() => shownAll)
   // Kept outside the list, as the scroll is — back from Now Playing, a list you
   // had opened all the way is still open all the way.
@@ -169,50 +167,11 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
               </li>
             )
           }
-          const isCurrent = nowPlaying?.id === track.id
-          return (
-            <li key={track.id} className="flex items-center gap-2">
-              <button
-                type="button"
-                // Clicking a track in this view queues everything MATCHED, from
-                // that track on — so a search for "live" becomes a playlist by
-                // pressing play on it. Queuing only the one track would make the
-                // list a dead end.
-                onClick={() => playTracks(matched, matched.indexOf(track))}
-                className="group flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left focus:outline-none focus-visible:bg-orange-50 dark:focus-visible:bg-orange-950/30"
-              >
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`block truncate text-[14px] ${
-                      isCurrent
-                        ? 'font-medium text-orange-700 dark:text-orange-400'
-                        : 'text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400'
-                    }`}
-                  >
-                    {isCurrent && playing ? '▶ ' : ''}
-                    {track.title}
-                  </span>
-                  <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
-                    {[track.artist, track.album].filter(Boolean).join(' — ') || 'Unknown'}
-                  </span>
-                </span>
-                {/* Hidden below 560px (tier T5): the format chip is the first
-                    thing that goes when the row has to earn its width. */}
-                <span className="hidden shrink-0 rounded border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-slate-500 uppercase sm:inline dark:border-slate-700 dark:text-slate-400">
-                  {track.ext}
-                </span>
-                <span className="shrink-0 text-[12px] tabular-nums text-slate-400 dark:text-slate-500">
-                  {clock(track.durationSec)}
-                </span>
-              </button>
-              {/* ⚠️ OUTSIDE the row button, not inside it: a button cannot be
-                  nested in a button, and "hear ten seconds of this" must not
-                  also queue the whole list. */}
-              <AddToQueue tracks={[track]} variant="icon" />
-              <AddToShelf tracks={[track]} variant="icon" />
-              <PreviewButton track={track} />
-            </li>
-          )
+          // Clicking a track in this view queues everything MATCHED, from
+          // that track on — so a search for "live" becomes a playlist by
+          // pressing play on it. Queuing only the one track would make the
+          // list a dead end.
+          return <SongRow key={track.id} track={track} onPlay={() => playTracks(matched, matched.indexOf(track))} />
         })}
       </ul>
       )}
@@ -233,6 +192,55 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
       )}
       {genre && <GenreFootnote hidden={genre.hidden} />}
     </>
+  )
+}
+
+/**
+ * One song in a list: tap to play, with queue, shelf and preview beside it.
+ * Shared by the Tracks tab and an artist's "All songs" page (`ArtistView`), so
+ * the two lists are the same list.
+ */
+export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () => void; subtitle?: string }) {
+  const playing = usePlayerStore((s) => s.playing)
+  const isCurrent = usePlayerStore(currentTrack)?.id === track.id
+  return (
+    <li className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onPlay}
+        className="group flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left focus:outline-none focus-visible:bg-orange-50 dark:focus-visible:bg-orange-950/30"
+      >
+        <span className="min-w-0 flex-1">
+          <span
+            className={`block truncate text-[14px] ${
+              isCurrent
+                ? 'font-medium text-orange-700 dark:text-orange-400'
+                : 'text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400'
+            }`}
+          >
+            {isCurrent && playing ? '▶ ' : ''}
+            {track.title}
+          </span>
+          <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
+            {subtitle ?? ([track.artist, track.album].filter(Boolean).join(' — ') || 'Unknown')}
+          </span>
+        </span>
+        {/* Hidden below 560px (tier T5): the format chip is the first
+            thing that goes when the row has to earn its width. */}
+        <span className="hidden shrink-0 rounded border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-slate-500 uppercase sm:inline dark:border-slate-700 dark:text-slate-400">
+          {track.ext}
+        </span>
+        <span className="shrink-0 text-[12px] tabular-nums text-slate-400 dark:text-slate-500">
+          {clock(track.durationSec)}
+        </span>
+      </button>
+      {/* ⚠️ OUTSIDE the row button, not inside it: a button cannot be
+          nested in a button, and "hear ten seconds of this" must not
+          also queue the whole list. */}
+      <AddToQueue tracks={[track]} variant="icon" />
+      <AddToShelf tracks={[track]} variant="icon" />
+      <PreviewButton track={track} />
+    </li>
   )
 }
 
