@@ -38,7 +38,7 @@ export default function GenreIndex({ tab, query }: { tab: ListTab; query: string
           ? `No genre matching “${query}”.`
           : tracks.length === 0
             ? 'No music yet.'
-            : `No genre here has ${GENRE_MIN} songs or more. Turn off “Min. ${GENRE_MIN}” to see them all.`}
+            : `No genre here has ${GENRE_MIN} songs or more. Tap “Min. ${GENRE_MIN}” in the list options to show all genres.`}
       </p>
     )
   }
@@ -70,8 +70,7 @@ export default function GenreIndex({ tab, query }: { tab: ListTab; query: string
       {min3 && hidden.songs > 0 && (
         <p className="mt-6 text-center text-[12px] text-slate-500 dark:text-slate-400">
           {hidden.genres === 1 ? 'One genre has' : `${hidden.genres} genres have`} fewer than {GENRE_MIN} songs (
-          {plural(hidden.songs, 'song')} in all). Turn off “Min. {GENRE_MIN}” in the list options to see{' '}
-          {hidden.genres === 1 ? 'it' : 'them'}.
+          {plural(hidden.songs, 'song')} in all). Tap “Min. {GENRE_MIN}” in the list options to show all genres.
         </p>
       )}
     </>

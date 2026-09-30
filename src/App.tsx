@@ -653,11 +653,16 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setSetting('genresMin3', !genresMin3)}
-                    aria-pressed={genresMin3}
-                    title={`Only genres with ${GENRE_MIN} or more songs`}
+                    // Says what is shown, as "Full albums" does (see below).
+                    aria-label={
+                      genresMin3
+                        ? `Genres with ${GENRE_MIN} or more songs. Tap for all genres`
+                        : `All genres. Tap for only those with ${GENRE_MIN} or more songs`
+                    }
+                    title={genresMin3 ? `Genres with ${GENRE_MIN} or more songs — tap for all genres` : `Every genre — tap for only those with ${GENRE_MIN} or more songs`}
                     className={togglePill(genresMin3 !== DEFAULTS.genresMin3)}
                   >
-                    Min. {GENRE_MIN}
+                    {genresMin3 ? `Min. ${GENRE_MIN}` : 'All genres'}
                   </button>
                 )}
                 {/* ⚠️ THE LABEL SAYS WHAT YOU ARE SEEING, like A–Z and the
@@ -686,11 +691,16 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setSetting('artistsMin3', !artistsMin3)}
-                    aria-pressed={artistsMin3}
-                    title={`Only artists with ${ARTIST_MIN} or more songs`}
+                    // Says what is shown, as "Full albums" does (above).
+                    aria-label={
+                      artistsMin3
+                        ? `Artists with ${ARTIST_MIN} or more songs. Tap for all artists`
+                        : `All artists. Tap for only those with ${ARTIST_MIN} or more songs`
+                    }
+                    title={artistsMin3 ? `Artists with ${ARTIST_MIN} or more songs — tap for all artists` : `Every artist — tap for only those with ${ARTIST_MIN} or more songs`}
                     className={togglePill(artistsMin3 !== DEFAULTS.artistsMin3)}
                   >
-                    Min. {ARTIST_MIN}
+                    {artistsMin3 ? `Min. ${ARTIST_MIN}` : 'All artists'}
                   </button>
                 )}
                 {/* Albums per row: 2, 3, 4, the jukebox shelf, 1 (James,

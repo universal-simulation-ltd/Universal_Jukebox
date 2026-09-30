@@ -123,7 +123,7 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
         {query.trim()
           ? `No artist matching “${query}”.`
           : min3 && library.length > 0 && albums.length === 0
-            ? `No artist has ${ARTIST_MIN} songs or more yet. Turn off “Min. ${ARTIST_MIN}” to see them all.`
+            ? `No artist has ${ARTIST_MIN} songs or more yet. Tap “Min. ${ARTIST_MIN}” to show all artists.`
             : genre && albums.length > 0
             ? `No genre here has ${GENRE_MIN} songs or more, so there is nothing to file. Switch back to A–Z.`
             : 'No artists yet.'}
