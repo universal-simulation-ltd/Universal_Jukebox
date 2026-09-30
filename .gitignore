@@ -23,3 +23,6 @@ blob-report
 
 # Internal project notes — not published (matches the other Universal Apps repos)
 CLAUDE.md
+
+# Supabase CLI local state (linked project ref, version cache) — per machine
+supabase/.temp/
