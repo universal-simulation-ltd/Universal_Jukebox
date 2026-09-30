@@ -468,6 +468,29 @@ describe('launching with phone folders', () => {
   })
 })
 
+describe('launching: the stored album counts', () => {
+  beforeEach(() => vi.resetModules())
+
+  it('recounts each album from its tracks, so "Full albums" cannot be told a stale count', async () => {
+    const track = (id: string, albumId: string): Track =>
+      ({ id, path: id, name: id, size: 1, mtime: 1, ext: 'mp3', title: id, albumId }) as Track
+    db.allRoots.mockResolvedValueOnce([])
+    db.allTracks.mockResolvedValueOnce([track('a1', 'single'), track('b1', 'lp'), track('b2', 'lp'), track('b3', 'lp')])
+    db.allAlbums.mockResolvedValueOnce([
+      // Stored claiming twelve, with one track: James's "American Boy".
+      { id: 'single', title: 'American Boy', artist: 'Estelle', trackCount: 12, cover: null },
+      { id: 'lp', title: 'Shine', artist: 'Estelle', trackCount: 3, cover: null },
+      // No tracks at all: gone, rather than a blank tile.
+      { id: 'empty', title: 'Nothing', artist: 'Nobody', trackCount: 4, cover: null },
+    ] satisfies Album[])
+
+    const { useLibraryStore: launched } = await import('./libraryStore')
+    await launched.getState().hydrate()
+
+    expect(launched.getState().albums.map((a) => [a.id, a.trackCount])).toEqual([['single', 1], ['lp', 3]])
+  })
+})
+
 describe('the skipped-files report', () => {
   it('names the Music library’s skips in words, not as extensions', () => {
     const skips = musicLibrarySkips({ protected: 3, cloudOnly: 2 })

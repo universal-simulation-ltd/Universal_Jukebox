@@ -125,7 +125,7 @@ export function removeRoot(existing: Library, prefix: string): Library {
  * The one place counts are decided, because getting this wrong is invisible
  * until somebody notices an album claiming twelve tracks and listing four.
  */
-function withCounts(tracks: Track[], albums: Album[]): Album[] {
+export function withCounts(tracks: Track[], albums: Album[]): Album[] {
   const counts = new Map<string, number>()
   for (const track of tracks) counts.set(track.albumId, (counts.get(track.albumId) ?? 0) + 1)
   return albums

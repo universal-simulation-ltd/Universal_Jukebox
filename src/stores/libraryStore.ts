@@ -25,6 +25,7 @@ import {
   rootsNeedingAccess,
   uniqueLabel,
   unusedGrants,
+  withCounts,
 } from '../lib/roots'
 import { hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
 import {
@@ -329,7 +330,16 @@ async function hydrateOnce(
   try {
     const [storedTracks, storedAlbums, roots] = await Promise.all([db.allTracks(), db.allAlbums(), db.allRoots()])
     // A disc set stored as separate albums comes back as one — `lib/discs.ts`.
-    const { tracks, albums } = mergeDiscSets(storedTracks, storedAlbums)
+    const joined = mergeDiscSets(storedTracks, storedAlbums)
+    const tracks = joined.tracks
+    // ⚠️ THE STORED COUNTS ARE NOT TRUSTED (James, 2026-09-30: "American Boy"
+    // on the Albums tab with "Full albums" on, and one track in it). The
+    // "Full albums" and "Min. 3" filters read `trackCount`, and a count
+    // that is wrong in storage stays wrong at every launch while the album
+    // page, which counts the tracks it lists, says something else. How it went
+    // wrong was not found. Recounting here costs one pass over the tracks and
+    // repairs it whatever the cause; the next scan writes the counts back.
+    const albums = withCounts(tracks, joined.albums)
     set({
       tracks,
       albums,
