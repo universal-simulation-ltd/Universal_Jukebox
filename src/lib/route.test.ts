@@ -78,3 +78,21 @@ describe('routeFromHash', () => {
     expect(routeFromHash('')).toEqual({ view: 'albums', home: true })
   })
 })
+
+describe('a genre opened from the genre list', () => {
+  const ROCK = '#/tracks/genre/Rock%20%26%20Roll'
+  it('reads its tab and its name back', () => {
+    expect(routeFromHash(ROCK)).toEqual({ view: 'tracks', genre: 'Rock & Roll' })
+    expect(routeFromHash('#/artists/genre/Blues')).toEqual({ view: 'artists', genre: 'Blues' })
+  })
+  it('sits under the library, and over an artist or album opened from it', () => {
+    expect(levelOf(ROCK)).toBe(0.25)
+    expect(planNavigation([TRACKS], ROCK)).toEqual({ back: 0, then: 'push' })
+    expect(planNavigation([TRACKS, ROCK], '#/artist/Bob%20Marley')).toEqual({ back: 0, then: 'push' })
+    expect(planNavigation([TRACKS, ROCK], A)).toEqual({ back: 0, then: 'push' })
+  })
+  it('swaps tabs in place, and goes back up to the genre list', () => {
+    expect(planNavigation([TRACKS, ROCK], '#/albums/genre/Rock%20%26%20Roll')).toEqual({ back: 0, then: 'replace' })
+    expect(planNavigation([TRACKS, ROCK], TRACKS)).toEqual({ back: 1, then: 'none' })
+  })
+})

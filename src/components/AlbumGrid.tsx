@@ -7,7 +7,7 @@ import { matchAlbums } from '../lib/search'
 import { navigate } from '../lib/route'
 import Shelf from './Shelf'
 import { FULL_ALBUM_MIN, gridClass, isFullAlbum, seededOrder, type LibraryOrder } from '../lib/libraryView'
-import { GENRE_MIN, albumGenres, groupByGenre, hiddenByGenre, shownGenres, tallyGenres } from '../lib/genres'
+import { GENRE_MIN, albumGenres, groupByGenre, hiddenByGenre, libraryInGenre, shownGenres, tallyGenres } from '../lib/genres'
 import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -28,11 +28,17 @@ import type { Album } from '../lib/types'
 interface AlbumGridProps {
   query: string
   order: LibraryOrder
+  /** One opened from the genre list — only the albums with a song in it (`route.genre`). */
+  genre?: string
 }
 
-export default function AlbumGrid({ query, order }: AlbumGridProps) {
-  const albums = useLibraryStore((s) => s.albums)
-  const tracks = useLibraryStore((s) => s.tracks)
+export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridProps) {
+  const allAlbums = useLibraryStore((s) => s.albums)
+  const allTracks = useLibraryStore((s) => s.tracks)
+  const { albums, tracks } = useMemo(
+    () => (inGenre ? libraryInGenre(allAlbums, allTracks, inGenre) : { albums: allAlbums, tracks: allTracks }),
+    [allAlbums, allTracks, inGenre],
+  )
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
   const columns = useSettingsStore((s) => s.libraryColumns.albums)
   const [grid, across] = useGridColumns(columns)

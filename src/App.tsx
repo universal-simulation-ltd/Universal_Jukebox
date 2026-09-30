@@ -25,6 +25,7 @@ import ScanBanner from './components/ScanBanner'
 import SkippedBanner from './components/SkippedBanner'
 import ShuffleLibrary from './components/ShuffleLibrary'
 import JukeboxShelves from './components/JukeboxShelves'
+import GenreIndex from './components/GenreIndex'
 import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
@@ -32,6 +33,7 @@ import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route
 import { useBooting } from './lib/boot'
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, matchArtistNames, tabCounts } from './lib/search'
+import { GENRE_MIN, libraryInGenre } from './lib/genres'
 import { ARTIST_MIN, FULL_ALBUM_MIN, albumsOfBigArtists, columnsLabel, isFullAlbum, nextColumns, nextOrder, orderFrom, type LibraryOrder } from './lib/libraryView'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
@@ -83,7 +85,7 @@ function togglePill(active: boolean): string {
 const ORDER_SAID: Record<LibraryOrder['kind'], { now: string; next: string }> = {
   az: { now: 'In A to Z order', next: 'A to Z' },
   random: { now: 'In random order', next: 'random order' },
-  genre: { now: 'Grouped by genre', next: 'genre shelves' },
+  genre: { now: 'By genre', next: 'the list of genres' },
 }
 
 // Artists, Albums, Tracks (James, 2026-09-11) — widest to narrowest.
@@ -186,8 +188,9 @@ export default function App() {
       }
       return
     }
-    if (PAGE_VIEWS.has(route.view)) window.scrollTo(0, 0)
-  }, [route.view, route.albumId, route.artist])
+    // A genre opened from far down the genre list starts at its own top.
+    if (PAGE_VIEWS.has(route.view) || route.genre) window.scrollTo(0, 0)
+  }, [route.view, route.albumId, route.artist, route.genre])
 
   // Where each page is scrolled to, kept as it scrolls.
   useEffect(() => {
@@ -255,6 +258,7 @@ export default function App() {
   const reducedMotion = usePrefersReducedMotion()
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
   const artistsMin3 = useSettingsStore((s) => s.artistsMin3)
+  const genresMin3 = useSettingsStore((s) => s.genresMin3)
   /** The search box on a phone: folded away until pulled down — `PhoneSearch`. */
   const [searchOpen, setSearchOpen] = useState(false)
   const phoneSearch = useRef<PhoneSearchHandle>(null)
@@ -269,13 +273,22 @@ export default function App() {
   const view: View = route.home ? homeTab : route.view
   /** The list on screen — whose order and layout the options row shows and changes. */
   const listTab: ListTab = view === 'artists' ? 'artists' : view === 'tracks' ? 'tracks' : 'albums'
+  /** A genre opened from the genre list — the tabs look inside it (`route.genre`). */
+  const genre = route.home ? undefined : route.genre
   const order = orders[listTab]
+  /**
+   * What the list is ordered by. Inside a genre, "Genre" has done its job and
+   * the list is A–Z; outside one, Genre mode shows the genre list instead of a
+   * list at all (`GenreIndex`).
+   */
+  const listOrder = (o: LibraryOrder): LibraryOrder => (genre && o.kind === 'genre' ? { kind: 'az' } : o)
   const columns = allColumns[listTab]
   /** Anything in this list's options changed from its usual — the dot on the icon. */
   const optionsActive =
     order.kind !== DEFAULTS.libraryOrder[listTab] ||
     (listTab === 'albums' && fullAlbumsOnly !== DEFAULTS.fullAlbumsOnly) ||
-    (listTab === 'artists' && artistsMin3 !== DEFAULTS.artistsMin3) || columns !== DEFAULTS.libraryColumns[listTab]
+    (listTab === 'artists' && artistsMin3 !== DEFAULTS.artistsMin3) ||
+    (order.kind === 'genre' && genresMin3 !== DEFAULTS.genresMin3) || columns !== DEFAULTS.libraryColumns[listTab]
 
   useEffect(() => {
     const nav = tabsNav.current
@@ -296,14 +309,16 @@ export default function App() {
    */
   const counts = useMemo(() => {
     if (!query.trim()) return null
-    const all = tabCounts(albums, tracks, query)
+    // Inside a genre, the counts are of what is in it.
+    const seen = genre ? libraryInGenre(albums, tracks, genre) : { albums, tracks }
+    const all = tabCounts(seen.albums, seen.tracks, query)
     // With "Full albums" or "Min. 3" on, the count is of what the list shows.
     return {
       ...all,
-      ...(fullAlbumsOnly ? { albums: matchAlbums(albums.filter(isFullAlbum), query).length } : {}),
-      ...(artistsMin3 ? { artists: matchArtistNames(albumsOfBigArtists(albums), query).length } : {}),
+      ...(fullAlbumsOnly ? { albums: matchAlbums(seen.albums.filter(isFullAlbum), query).length } : {}),
+      ...(artistsMin3 ? { artists: matchArtistNames(albumsOfBigArtists(seen.albums), query).length } : {}),
     }
-  }, [albums, tracks, query, fullAlbumsOnly, artistsMin3])
+  }, [albums, tracks, query, fullAlbumsOnly, artistsMin3, genre])
 
   useEffect(() => {
     void hydrate()
@@ -523,7 +538,9 @@ export default function App() {
                           setSetting('homeTab', tab.view)
                           setHomeFlash({ view: tab.view, n: Date.now() })
                         }
-                        navigate({ view: tab.view })
+                        // Inside a genre the other tabs look inside it too; the
+                        // Jukebox tab is your own shelves and has no genre.
+                        navigate({ view: tab.view, genre: tab.view === 'jukebox' ? undefined : genre })
                       }}
                       aria-current={active ? 'page' : undefined}
                       title={isHome ? `${tab.label} — the library opens here` : `Double-tap to open the library on ${tab.label}`}
@@ -629,6 +646,20 @@ export default function App() {
                     </span>
                   )}
                 </button>
+                {/* Genre mode's own "Min. 3": the genres with fewer songs
+                    than that are left off the genre list (James, 2026-09-30:
+                    "default as min 3 in a genre to show it"). */}
+                {order.kind === 'genre' && !genre && (
+                  <button
+                    type="button"
+                    onClick={() => setSetting('genresMin3', !genresMin3)}
+                    aria-pressed={genresMin3}
+                    title={`Only genres with ${GENRE_MIN} or more songs`}
+                    className={togglePill(genresMin3 !== DEFAULTS.genresMin3)}
+                  >
+                    Min. {GENRE_MIN}
+                  </button>
+                )}
                 {view === 'albums' && (
                   <button
                     type="button"
@@ -703,14 +734,35 @@ export default function App() {
               </div>
             )}
 
+            {genre && view !== 'jukebox' && (
+              <div className="mb-4 flex items-center gap-3">
+                {/* Up a level, to the genre list. ⚠️ Orders are per tab, so
+                    the tab switched to inside a genre may not be in Genre
+                    mode; without this, "Genres" would open its plain list. For
+                    this visit only — the saved order is left as chosen. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (order.kind !== 'genre') setOrders((all) => ({ ...all, [listTab]: { kind: 'genre' } }))
+                    navigate({ view: listTab })
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-300 px-3 py-1 text-[12.5px] font-medium text-slate-600 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-300 dark:hover:text-orange-400"
+                >
+                  <span aria-hidden>‹</span> Genres
+                </button>
+                <h2 className="min-w-0 truncate text-[17px] font-semibold text-slate-900 dark:text-slate-100">{genre}</h2>
+              </div>
+            )}
             {view === 'jukebox' ? (
               <JukeboxShelves />
+            ) : order.kind === 'genre' && !genre ? (
+              <GenreIndex tab={listTab} query={query} />
             ) : view === 'artists' ? (
-              <ArtistList query={query} order={orders.artists} />
+              <ArtistList query={query} order={listOrder(orders.artists)} genre={genre} />
             ) : view === 'tracks' ? (
-              <TrackList query={query} order={orders.tracks} />
+              <TrackList query={query} order={listOrder(orders.tracks)} genre={genre} />
             ) : (
-              <AlbumGrid query={query} order={orders.albums} />
+              <AlbumGrid query={query} order={listOrder(orders.albums)} genre={genre} />
             )}
           </>
         )}

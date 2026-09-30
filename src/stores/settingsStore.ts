@@ -228,6 +228,11 @@ export interface Settings {
   /** "Min. 3" on the Artists tab — see `albumsOfBigArtists` in `lib/libraryView.ts`. */
   artistsMin3: boolean
   /**
+   * "Min. 3" in Genre mode — a genre with fewer songs than `GENRE_MIN` gets no
+   * entry in the genre list (James, 2026-09-12; made a switch 2026-09-30).
+   */
+  genresMin3: boolean
+  /**
    * The first-run tips already tapped (`components/Tip.tsx`). A tip goes for
    * good once its target has been tapped; "Show the tips again" in the Actions
    * menu empties this.
@@ -347,6 +352,7 @@ export const DEFAULTS: Settings = {
   lyricsAroundStyle: 'arc',
   fullAlbumsOnly: true,
   artistsMin3: true,
+  genresMin3: true,
   tipsSeen: [],
   stableVolume: true,
   libraryOrder: { artists: 'az', albums: 'az', tracks: 'az' },
@@ -603,6 +609,7 @@ function readStored(): Settings {
       : 'arc',
     fullAlbumsOnly: typeof stored.fullAlbumsOnly === 'boolean' ? stored.fullAlbumsOnly : DEFAULTS.fullAlbumsOnly,
     artistsMin3: typeof stored.artistsMin3 === 'boolean' ? stored.artistsMin3 : DEFAULTS.artistsMin3,
+    genresMin3: typeof stored.genresMin3 === 'boolean' ? stored.genresMin3 : DEFAULTS.genresMin3,
     tipsSeen: Array.isArray(stored.tipsSeen)
       ? (stored.tipsSeen as unknown[]).filter((id): id is TipId => TIP_IDS.includes(id as TipId))
       : [],
@@ -710,6 +717,7 @@ function persist(state: Settings) {
     lyricsAroundStyle: state.lyricsAroundStyle,
     fullAlbumsOnly: state.fullAlbumsOnly,
     artistsMin3: state.artistsMin3,
+    genresMin3: state.genresMin3,
     tipsSeen: state.tipsSeen,
     stableVolume: state.stableVolume,
     libraryOrder: state.libraryOrder,

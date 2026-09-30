@@ -11,7 +11,7 @@ import { plural } from '../lib/format'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
 import { ARTIST_MIN, albumsOfBigArtists, gridClass, seededOrder, type LibraryOrder } from '../lib/libraryView'
-import { GENRE_MIN, albumGenres, groupByGenre, hiddenByGenre, shownGenres, tallyGenres } from '../lib/genres'
+import { GENRE_MIN, albumGenres, groupByGenre, hiddenByGenre, libraryInGenre, shownGenres, tallyGenres } from '../lib/genres'
 import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -46,12 +46,17 @@ function maybeResumeRow(cells: ReactNode[], at: number | undefined, grouped: boo
 /** The artist groups left open — see `expanded`. */
 let openArtists: ReadonlySet<string> = new Set()
 
-export default function ArtistList({ query, order }: { query: string; order: LibraryOrder }) {
-  const library = useLibraryStore((s) => s.albums)
+/** `genre`: one opened from the genre list — only the artists with a record in it (`route.genre`). */
+export default function ArtistList({ query, order, genre: inGenre }: { query: string; order: LibraryOrder; genre?: string }) {
+  const allAlbums = useLibraryStore((s) => s.albums)
+  const allTracks = useLibraryStore((s) => s.tracks)
+  const { albums: library, tracks } = useMemo(
+    () => (inGenre ? libraryInGenre(allAlbums, allTracks, inGenre) : { albums: allAlbums, tracks: allTracks }),
+    [allAlbums, allTracks, inGenre],
+  )
   const min3 = useSettingsStore((s) => s.artistsMin3)
   // "Min. 3": only the artists with three songs or more (James, 2026-09-26).
   const albums = useMemo(() => (min3 ? albumsOfBigArtists(library) : library), [library, min3])
-  const tracks = useLibraryStore((s) => s.tracks)
   /** Artists opened out. Names, because that is what groups them. */
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(openArtists))
   // Kept outside the list, which is unmounted while an album is open — so the

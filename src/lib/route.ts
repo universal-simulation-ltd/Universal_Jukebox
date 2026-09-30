@@ -15,6 +15,12 @@ export interface Route {
   /** The artist's name, when `view` is 'artist'. */
   artist?: string
   /**
+   * A genre opened from the genre list, when `view` is 'artists', 'albums' or
+   * 'tracks' — the tab shows only what is in it (`libraryInGenre`). Kept as the
+   * tabs change, so Artists / Albums / Tracks all look inside the same genre.
+   */
+  genre?: string
+  /**
    * True when the hash named no view at all — the app's front door.
    *
    * ⚠️ `view` is still filled in ('albums') so every caller can read it without
@@ -46,6 +52,8 @@ export function routeFromHash(rawHash: string): Route {
     return { view: 'album', albumId: safeDecode(hash.slice('album/'.length)) }
   }
   if (hash.startsWith('artist/')) return { view: 'artist', artist: safeDecode(hash.slice('artist/'.length)) }
+  const inGenre = /^(albums|artists|tracks)\/genre\/(.+)$/.exec(hash)
+  if (inGenre) return { view: inGenre[1] as 'albums' | 'artists' | 'tracks', genre: safeDecode(inGenre[2]) }
   if (hash === 'albums') return { view: 'albums' }
   if (hash === 'artists') return { view: 'artists' }
   if (hash === 'tracks') return { view: 'tracks' }
@@ -67,13 +75,18 @@ function safeDecode(text: string): string {
   }
 }
 
+/** The tabs a genre can be opened in. */
+const GENRE_VIEWS = new Set<View>(['albums', 'artists', 'tracks'])
+
 export function navigate(route: Route): void {
   const hash =
     route.view === 'album' && route.albumId
       ? `#/album/${encodeURIComponent(route.albumId)}`
       : route.view === 'artist' && route.artist
         ? `#/artist/${encodeURIComponent(route.artist)}`
-        : `#/${route.view}`
+        : route.genre && GENRE_VIEWS.has(route.view)
+          ? `#/${route.view}/genre/${encodeURIComponent(route.genre)}`
+          : `#/${route.view}`
   go(hash)
 }
 
@@ -117,12 +130,17 @@ export function goHome(): void {
  * page at 0.5, BETWEEN the library and an album. "All albums by …" from an
  * album is UP (back from the artist is the library, not the album you left),
  * and an album opened from the artist's page comes back to it.
+ *
+ * A genre opened from the genre list is 0.25: below the library (back is the
+ * genre list), above an artist or album opened from inside it (back from those
+ * is the genre), and its three tabs replace each other as the library's do.
  */
 export type Level = number
 
 export function levelOf(hash: string): Level {
-  const { view } = routeFromHash(hash)
+  const { view, genre } = routeFromHash(hash)
   if (view === 'playing') return 2
+  if (genre) return 0.25
   if (view === 'artist') return 0.5
   if (view === 'album' || view === 'settings' || view === 'about' || view === 'tidy') return 1
   return 0

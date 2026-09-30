@@ -9,7 +9,7 @@ import { leadWith, useResumable } from '../lib/resume'
 import { clock } from '../lib/format'
 import { matchTracks } from '../lib/search'
 import { seededOrder, type LibraryOrder } from '../lib/libraryView'
-import { GENRE_MIN, groupByGenre, hiddenByGenre, shownGenres, tallyGenres, trackGenres } from '../lib/genres'
+import { GENRE_MIN, groupByGenre, hiddenByGenre, shownGenres, tallyGenres, trackGenres, trackInGenre } from '../lib/genres'
 import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -64,8 +64,10 @@ function rowsOf(groups: { genre: string; items: Track[] }[] | null, songs: Track
 /** Whether the list was opened past its first few hundred — see `showAll`. */
 let shownAll = false
 
-export default function TrackList({ query, order }: { query: string; order: LibraryOrder }) {
-  const tracks = useLibraryStore((s) => s.tracks)
+/** `genre`: one opened from the genre list — only its songs (`route.genre`). */
+export default function TrackList({ query, order, genre: inGenre }: { query: string; order: LibraryOrder; genre?: string }) {
+  const library = useLibraryStore((s) => s.tracks)
+  const tracks = useMemo(() => (inGenre ? library.filter((t) => trackInGenre(t, inGenre)) : library), [library, inGenre])
   const playTracks = usePlayerStore((s) => s.playTracks)
   const playing = usePlayerStore((s) => s.playing)
   const nowPlaying = usePlayerStore(currentTrack)

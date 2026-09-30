@@ -150,14 +150,17 @@ function byName(a: { name: string }, b: { name: string }): number {
   return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 }
 
-/** The genres that get a shelf: `GENRE_MIN` songs or more, in shelf order. */
-export function shownGenres(tally: readonly GenreTally[]): string[] {
-  return tally.filter((g) => g.songs >= GENRE_MIN).map((g) => g.name)
+/**
+ * The genres that get a shelf: `min` songs or more, in shelf order. `min` is
+ * `GENRE_MIN` unless "Min. 3" has been switched off (`genreMinimum`).
+ */
+export function shownGenres(tally: readonly GenreTally[], min: number = GENRE_MIN): string[] {
+  return tally.filter((g) => g.songs >= min).map((g) => g.name)
 }
 
-/** What the `GENRE_MIN` rule leaves out, so the library can say so rather than just lose it. */
-export function hiddenByGenre(tally: readonly GenreTally[]): { songs: number; genres: number } {
-  const small = tally.filter((g) => g.songs < GENRE_MIN)
+/** What the `min` rule leaves out, so the library can say so rather than just lose it. */
+export function hiddenByGenre(tally: readonly GenreTally[], min: number = GENRE_MIN): { songs: number; genres: number } {
+  const small = tally.filter((g) => g.songs < min)
   return { songs: small.reduce((n, g) => n + g.songs, 0), genres: small.length }
 }
 
@@ -201,4 +204,73 @@ export function albumGenres(tracks: readonly Track[]): (album: Album) => string[
     byAlbum.set(track.albumId, set)
   }
   return (album) => [...(byAlbum.get(album.id) ?? [])]
+}
+
+/** The smallest genre shown: `GENRE_MIN`, or every genre with "Min. 3" off. */
+export function genreMinimum(min3: boolean): number {
+  return min3 ? GENRE_MIN : 1
+}
+
+/**
+ * Is a song in `genre`? The same case-insensitive test the tally groups by, so
+ * a genre opened from the list holds exactly the songs its count said.
+ * `NO_GENRE` is the songs with no genre at all.
+ */
+export function trackInGenre(track: Track, genre: string): boolean {
+  const names = trackGenres(track)
+  if (genre === NO_GENRE) return names.length === 0
+  const key = genre.toLowerCase()
+  return names.some((name) => name.toLowerCase() === key)
+}
+
+/**
+ * The library seen through one genre — what the three tabs show once a genre
+ * has been opened from the genre list.
+ *
+ * ⚠️ AN ALBUM COMES WHOLE. It is in the genre if ANY of its songs is (the same
+ * rule as the shelves, `albumGenres`), and it keeps all of its songs: opening
+ * it plays the record, not the half of it tagged Rock. The TRACKS are the
+ * songs actually in the genre, so the Tracks tab and the count agree.
+ */
+export function libraryInGenre<A extends Album, T extends Track>(
+  albums: readonly A[],
+  tracks: readonly T[],
+  genre: string,
+): { albums: A[]; tracks: T[] } {
+  const inside = tracks.filter((track) => trackInGenre(track, genre))
+  const albumIds = new Set(inside.map((track) => track.albumId))
+  return { albums: albums.filter((album) => albumIds.has(album.id)), tracks: inside }
+}
+
+export interface GenreEntry {
+  name: string
+  songs: number
+  albums: number
+  artists: number
+}
+
+/**
+ * The genre list: every genre with `min` songs or more, A–Z with `NO_GENRE`
+ * last, and how many songs, albums and artists each one holds.
+ */
+export function genreIndex(albums: readonly Album[], tracks: readonly Track[], min: number = GENRE_MIN): GenreEntry[] {
+  const byKey = new Map<string, { albums: Set<string>; artists: Set<string> }>()
+  const artistOf = new Map(albums.map((album) => [album.id, album.artist]))
+  for (const track of tracks) {
+    const names = trackGenres(track)
+    for (const name of names.length > 0 ? names : [NO_GENRE]) {
+      const key = name.toLowerCase()
+      const entry = byKey.get(key) ?? { albums: new Set<string>(), artists: new Set<string>() }
+      entry.albums.add(track.albumId)
+      const artist = artistOf.get(track.albumId)
+      if (artist) entry.artists.add(artist.toLowerCase())
+      byKey.set(key, entry)
+    }
+  }
+  return tallyGenres(tracks)
+    .filter((g) => g.songs >= min)
+    .map((g) => {
+      const entry = byKey.get(g.name.toLowerCase())
+      return { name: g.name, songs: g.songs, albums: entry?.albums.size ?? 0, artists: entry?.artists.size ?? 0 }
+    })
 }

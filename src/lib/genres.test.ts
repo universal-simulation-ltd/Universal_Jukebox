@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   GENRE_MIN, NO_GENRE, albumGenres, groupByGenre, hiddenByGenre, id3v1Genre,
-  normaliseGenres, shownGenres, tallyGenres, trackGenres,
+  genreIndex, genreMinimum, libraryInGenre, normaliseGenres, shownGenres, tallyGenres, trackGenres, trackInGenre,
 } from './genres'
 import type { Album, Track } from './types'
 
@@ -149,5 +149,38 @@ describe('an album or an artist takes its songs’ genres', () => {
 
   it('has no genre when nothing on it is tagged', () => {
     expect(albumGenres([track('a', undefined, 'alb1')])(album('alb1'))).toEqual([])
+  })
+})
+
+describe('the genre list, and a genre opened from it', () => {
+  const album = (id: string, artist: string): Album => ({ id, title: id, artist, trackCount: 0, cover: null })
+  const albums = [album('a1', 'Muddy Waters'), album('a2', 'B.B. King'), album('a3', 'Nickelback')]
+  const tracks = [
+    track('m1', 'Blues', 'a1'), track('m2', 'blues', 'a1'), track('m3', 'Blues;Rock', 'a1'),
+    track('b1', 'Blues', 'a2'),
+    track('n1', 'Rock', 'a3'), track('n2', '(17)', 'a3'), track('n3', undefined, 'a3'),
+  ]
+
+  it('lists genres with the minimum or more, and what is in each', () => {
+    expect(genreIndex(albums, tracks)).toEqual([
+      { name: 'Blues', songs: 4, albums: 2, artists: 2 },
+      { name: 'Rock', songs: 3, albums: 2, artists: 2 },
+    ])
+  })
+
+  it('lists every genre, "No genre" last, with Min. 3 off', () => {
+    expect(genreMinimum(false)).toBe(1)
+    expect(genreIndex(albums, tracks, genreMinimum(false)).map((g) => g.name)).toEqual(['Blues', 'Rock', NO_GENRE])
+  })
+
+  it('opens a genre case-blind, ID3 numbers and all', () => {
+    const rock = libraryInGenre(albums, tracks, 'rock')
+    expect(rock.tracks.map((t) => t.id)).toEqual(['m3', 'n1', 'n2'])
+    expect(rock.albums.map((a) => a.id)).toEqual(['a1', 'a3'])
+  })
+
+  it('opens "No genre" as the songs with none', () => {
+    expect(trackInGenre(tracks[6], NO_GENRE)).toBe(true)
+    expect(libraryInGenre(albums, tracks, NO_GENRE).tracks.map((t) => t.id)).toEqual(['n3'])
   })
 })
