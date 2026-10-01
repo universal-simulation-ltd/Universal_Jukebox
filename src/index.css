@@ -358,3 +358,23 @@ html {
     0 0 3px rgba(2, 6, 23, 0.9),
     0 1px 3px rgba(2, 6, 23, 0.7);
 }
+
+/* ...softened away from the reading point: the glyphs drawn only as a blurred
+   shadow of themselves, under the halo. NOT `filter: blur()` — on an iPhone
+   that made every word a compositing layer, and their edges showed as magenta
+   lines (2026-10-01; see `wordLook` in LyricsAround). The ink is the word's own
+   colour, slate-900 / slate-50, and `color` beats the Tailwind utility because
+   this rule is outside the utilities layer. */
+.jb-orbit-soft {
+  color: transparent;
+  text-shadow:
+    0 0 var(--jb-orbit-blur) #0f172a,
+    0 0 3px rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(255, 255, 255, 0.6);
+}
+:where(.dark) .jb-orbit-soft {
+  text-shadow:
+    0 0 var(--jb-orbit-blur) #f8fafc,
+    0 0 3px rgba(2, 6, 23, 0.9),
+    0 1px 3px rgba(2, 6, 23, 0.7);
+}

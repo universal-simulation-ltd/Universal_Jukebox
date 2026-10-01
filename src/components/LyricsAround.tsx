@@ -442,7 +442,7 @@ function Orbit({ size, lines, currentSec }: { size: number; lines: LyricLine[]; 
           return (
             <span
               key={`${word.line}-${word.index}`}
-              className="jb-orbit-word absolute top-0 left-0 font-semibold whitespace-nowrap text-slate-900 dark:text-slate-50"
+              className={`jb-orbit-word${look.blur > 0 ? ' jb-orbit-soft' : ''} absolute top-0 left-0 font-semibold whitespace-nowrap text-slate-900 dark:text-slate-50`}
               style={{
                 fontSize: font,
                 // Each word: out to its place on the ring, and turned so it
@@ -450,7 +450,7 @@ function Orbit({ size, lines, currentSec }: { size: number; lines: LyricLine[]; 
                 // the ring is the middle of the word.
                 transform: `translate(-50%,-50%) rotate(${word.deg}deg) translateY(${-radius}px)`,
                 opacity: look.opacity,
-                filter: look.filter,
+                ...softBlur(look.blur),
                 transition: snap ? 'none' : `opacity ${TURN_MS}ms linear`,
               }}
             >
@@ -507,7 +507,7 @@ function PathOrbit({ size, shape, lines, currentSec }: { size: number; shape: Sh
         return (
           <span
             key={`${word.line}-${word.index}`}
-            className="jb-orbit-word absolute top-0 left-0 font-semibold whitespace-nowrap text-slate-900 dark:text-slate-50"
+            className={`jb-orbit-word${look.blur > 0 ? ' jb-orbit-soft' : ''} absolute top-0 left-0 font-semibold whitespace-nowrap text-slate-900 dark:text-slate-50`}
             style={{
               fontSize: font,
               offsetPath: `path('${loop.d}')`,
@@ -516,7 +516,7 @@ function PathOrbit({ size, shape, lines, currentSec }: { size: number; shape: Sh
               offsetDistance: `${loop.top + at * perDeg}px`,
               offsetRotate: 'auto',
               opacity: look.opacity,
-              filter: look.filter,
+              ...softBlur(look.blur),
               transition: snap ? 'none' : `offset-distance ${TURN_MS}ms linear, opacity ${TURN_MS}ms linear`,
             }}
           >
@@ -558,20 +558,37 @@ function useSnap(lines: LyricLine[], head: number): boolean {
  * singing is and the words arriving and leaving are a blur rather than a queue
  * of things to read (James: "perhaps with a blur so it's not so hard").
  *
- * ⚠️ The blur is QUANTISED and not transitioned. A filter that changes by a
+ * ⚠️ The blur is QUANTISED and not transitioned. A blur that changes by a
  * hair every quarter of a second is a full re-raster of every word on screen,
  * four times a second, for a difference nobody can see; in steps it is redrawn
  * when it visibly changes and left alone otherwise. Opacity is cheap and does
  * transition.
+ *
+ * ⚠️ AND IT IS NOT A CSS `filter`. It was until 2026-10-01, when James's
+ * iPhone showed short MAGENTA lines beside the words with the music paused —
+ * straight across and straight up the screen while the words beside them were
+ * tilted, so not the text but the compositor: every filtered element is a
+ * layer of its own, and those were the edges of the layers. The softness is
+ * now the word's own glyphs drawn as a blurred shadow with the glyphs
+ * themselves transparent (`.jb-orbit-soft` in index.css) — the same look, and
+ * no layer per word.
  */
-function wordLook(at: number): { opacity: number; filter: string | undefined } | null {
+function wordLook(at: number): { opacity: number; blur: number } | null {
   const away = Math.abs(at)
   // Positive is clockwise from the top: still to come.
   const visible = at >= 0 ? COMING_DEG : GONE_DEG
   if (away > visible) return null
   const out = clamp01((away - SHARP_DEG) / (visible - SHARP_DEG))
   const blur = Math.round(out * MAX_BLUR_PX * 4) / 4
-  return { opacity: (1 - out) ** 1.25, filter: blur > 0 ? `blur(${blur}px)` : undefined }
+  return { opacity: (1 - out) ** 1.25, blur }
+}
+
+/**
+ * The blur radius for `.jb-orbit-soft`. A shadow's blur radius is twice the
+ * deviation a `blur()` filter takes, so this is doubled to look the same.
+ */
+function softBlur(blur: number): React.CSSProperties {
+  return blur > 0 ? ({ '--jb-orbit-blur': `${blur * 2}px` } as React.CSSProperties) : {}
 }
 
 const clamp01 = (value: number) => (value < 0 ? 0 : value > 1 ? 1 : value)
