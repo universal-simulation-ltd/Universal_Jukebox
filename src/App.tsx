@@ -596,10 +596,10 @@ export default function App() {
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-slate-100 dark:ring-slate-950" aria-hidden />
                 )}
               </button>
-              {/* Shuffle this list, beside its options — not on the Jukebox
-                  tab, and not during a search, when the list is not the
-                  library. */}
-              {!query.trim() && <ShuffleLibrary view={listTab} />}
+              {/* Shuffle this list, beside its options — what is on screen:
+                  inside a genre, the genre; during a search, the results. Not
+                  on the Jukebox tab. */}
+              <ShuffleLibrary view={listTab} query={query} genre={genre} />
               </div>
               )}
               {/* Said to a screen reader only: the tab's orange pop is the

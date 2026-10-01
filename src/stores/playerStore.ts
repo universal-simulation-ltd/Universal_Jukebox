@@ -192,10 +192,11 @@ interface PlayerState {
   /** "Resume listening": the last queue, at the song and second you had reached. */
   resume(): void
   /** The Home Screen shortcuts and the library's shuffle button — see `shuffleQueue`. */
-  shuffleSongs(): void
-  /** Only `albums`, when given — "Full albums" on the Albums tab. */
+  /** Only `tracks`, when given — the songs the list shows (a genre, a search). */
+  shuffleSongs(tracks?: readonly Track[]): void
+  /** Only `albums`, when given — the albums the list shows ("Full albums", a genre, a search). */
   shuffleAlbums(albums?: readonly Album[]): void
-  /** Only the artists of `albums`, when given — "Min. 3" on the Artists tab. */
+  /** Only the artists of `albums`, when given — the artists the list shows ("Min. 3", a genre, a search). */
   shuffleArtists(albums?: readonly Album[]): void
   /**
    * Try the missing track again, once its folder is back. The one thing the
@@ -520,8 +521,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     startCeremonyOrPlay(set, get, sequence[at])
   },
 
-  shuffleSongs() {
-    startShuffle(get, 'songs')
+  shuffleSongs(tracks) {
+    startShuffle(get, 'songs', undefined, tracks)
   },
   shuffleAlbums(albums) {
     startShuffle(get, 'albums', albums)
@@ -956,9 +957,9 @@ function unreachable(set: Set, track: Track | undefined, message: string): void 
  * button should say so. ALBUMS and ARTISTS turn it OFF, because their queue has
  * an order that shuffling would destroy: a whole album, then the next.
  */
-function startShuffle(get: Get, kind: ShuffleKind, only?: readonly Album[]): void {
+function startShuffle(get: Get, kind: ShuffleKind, only?: readonly Album[], onlyTracks?: readonly Track[]): void {
   const { tracks, albums } = useLibraryStore.getState()
-  const queue = shuffleQueue(kind, tracks, only ?? albums, newSeed(), sortAlbumTracks)
+  const queue = shuffleQueue(kind, onlyTracks ?? tracks, only ?? albums, newSeed(), sortAlbumTracks)
   if (queue.length === 0) return
   const wantShuffle = kind === 'songs'
   if (get().shuffle !== wantShuffle) get().toggleShuffle()
