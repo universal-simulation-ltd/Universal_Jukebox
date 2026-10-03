@@ -78,7 +78,10 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
             // track than the one whose button was pressed.
             const orderIndex = cursor + 1 + i
             return (
-              <li key={`${track.id}-${orderIndex}`} className="flex items-center gap-3 py-2.5">
+              // Keyed by the queue entry, which never moves: keyed by position,
+              // removing a song remounted every row after it and dropped
+              // keyboard focus to the top of the page.
+              <li key={queueIndex} className="flex items-center gap-3 py-2.5">
                 {/* The row is the control: this list is the only place the rest
                     of the queue is visible, and reaching track six meant
                     pressing next five times. */}
@@ -97,7 +100,19 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => removeFromQueue(orderIndex)}
+                  onClick={(e) => {
+                    const list = e.currentTarget.closest('ol')
+                    removeFromQueue(orderIndex)
+                    // Keep a keyboard user where they were: on the next song's
+                    // remove button (the previous one's, at the end of the list),
+                    // instead of losing focus with the row that went.
+                    requestAnimationFrame(() => {
+                      const buttons = list?.querySelectorAll<HTMLButtonElement>('[data-queue-remove]')
+                      if (!buttons || buttons.length === 0) return
+                      buttons[Math.min(i, buttons.length - 1)].focus()
+                    })
+                  }}
+                  data-queue-remove
                   aria-label={`Remove ${track.title} from the queue`}
                   className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:text-slate-500 dark:hover:text-red-400"
                 >

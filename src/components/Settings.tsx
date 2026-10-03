@@ -1175,6 +1175,7 @@ function Slider({
           value={value}
           disabled={disabled}
           aria-label={label}
+          aria-valuetext={disabled ? undefined : format(value)}
           onChange={(e) => onChange(Number(e.target.value))}
           // Both, because a slider is dragged with a pointer and nudged with the
           // arrow keys, and only handling the first leaves the keyboard user

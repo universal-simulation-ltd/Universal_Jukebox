@@ -52,6 +52,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
         value={known ? Math.min(position, durationSec) : 0}
         disabled={!known}
         aria-label="Seek"
+        aria-valuetext={known ? `${clock(Math.min(position, durationSec))} of ${clock(durationSec)}` : undefined}
         onChange={(e) => setScrubbing(Number(e.target.value))}
         onPointerUp={release}
         onKeyUp={release}

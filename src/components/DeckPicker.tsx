@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { DECKS } from '../lib/decks'
 import { DECK_SETTINGS, useSettingsStore } from '../stores/settingsStore'
 import { DeckMiniature } from './Deck'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // A quick change of machine, from a long press on the one on Now Playing
 // (James, 2026-09-16: "a long-press on the player device on now playing to
@@ -20,6 +21,7 @@ import { DeckMiniature } from './Deck'
 // can be held for any length of time before it lifts.
 
 export default function DeckPicker({ onClose }: { onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const deck = useSettingsStore((s) => s.deck)
   const set = useSettingsStore((s) => s.set)
   const armed = useRef(false)
@@ -53,9 +55,11 @@ export default function DeckPicker({ onClose }: { onClose(): void }) {
   return createPortal(
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label="Play on"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 select-none sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 select-none sm:items-center"
       // ⚠️ NOTHING HERE CAN BE SELECTED. The finger that opened the sheet is
       // still held down, and iOS carried that hold on into a text selection of
       // whatever was drawn under it — "Close", highlighted as if to copy it

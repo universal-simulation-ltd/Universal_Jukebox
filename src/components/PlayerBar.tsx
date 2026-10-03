@@ -72,6 +72,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
         value={known ? Math.min(position, durationSec) : 0}
         disabled={!known}
         aria-label="Seek"
+        aria-valuetext={known ? `${clock(Math.min(position, durationSec))} of ${clock(durationSec)}` : undefined}
         onChange={(e) => setScrubbing(Number(e.target.value))}
         onPointerUp={() => {
           if (scrubbing !== null) seekTo(scrubbing)

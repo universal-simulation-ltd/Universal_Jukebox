@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { goHome } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // Tune this app ▸ Your library ▸ "Try the example library" — the confirm.
 //
@@ -18,6 +19,7 @@ import { usePlayerStore } from '../stores/playerStore'
 // song that is not playing is one more thing to read for nothing.
 
 export default function TryExampleDialog({ onClose }: { onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const tryExample = useLibraryStore((s) => s.tryExample)
   const somethingLoaded = usePlayerStore((s) => s.queue.length > 0)
   const [building, setBuilding] = useState(false)
@@ -42,9 +44,11 @@ export default function TryExampleDialog({ onClose }: { onClose(): void }) {
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-labelledby="jb-try-example-title"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={() => {
         if (!building) onClose()
       }}

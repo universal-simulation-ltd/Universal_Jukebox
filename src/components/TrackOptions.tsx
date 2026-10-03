@@ -5,6 +5,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
 import { ShelfSheet } from './AddToShelf'
 import { TickGlyph } from './DoneBubble'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // A song's options, from a tap and hold on its record on the Tracks shelf
 // (James, 2026-09-27: "remove the play and queue icons instead show options on
@@ -14,6 +15,7 @@ import { TickGlyph } from './DoneBubble'
 const SAID_MS = 900
 
 export default function TrackOptions({ track, onPlay, onClose }: { track: Track; onPlay(): void; onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const enqueue = usePlayerStore((s) => s.enqueue)
   const queued = usePlayerStore((s) => s.queue.length)
   const [said, setSaid] = useState<string | null>(null)
@@ -45,9 +47,11 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label={`Options for ${track.title}`}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
       <div

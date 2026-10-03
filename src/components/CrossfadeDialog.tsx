@@ -6,6 +6,7 @@ import {
   useSettingsStore,
   type CrossfadeShape,
 } from '../stores/settingsStore'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // Settings ▸ the crossfade's Advanced… sheet (James, 2026-09-28: "these are
 // the controls I want the user to be able to customise. Maybe we could have an
@@ -32,6 +33,7 @@ const SHAPE_COPY: Record<CrossfadeShape, { label: string; hint: string }> = {
 type Preview = 'track' | 'record' | 'skip'
 
 export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const s = useSettingsStore()
   const [preview, setPreview] = useState<Preview>('track')
 
@@ -58,9 +60,11 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label="Crossfade settings"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
       <div
@@ -228,6 +232,7 @@ function SecondsSlider({
         max={range[1]}
         step={0.1}
         value={value}
+        aria-valuetext={off && value === 0 ? 'Off' : `${value.toFixed(1)} seconds`}
         onChange={(e) => onChange(Number(e.target.value))}
         className="mt-1.5 w-full accent-[#E05504]"
       />

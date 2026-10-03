@@ -9,6 +9,7 @@ import { useKeepAwake } from '../lib/keepAwake'
 import { rgba, useSleeveColour } from '../lib/sleeveColour'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // Bedside: the record turning, the time, the song, and the sleep timer — on
 // black, with the screen held on, for a phone on a bedside table or an iPad on
@@ -70,6 +71,7 @@ function useClock(): string {
 }
 
 function Bedside({ onClose }: { onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const track = usePlayerStore(currentTrack)
   const playing = usePlayerStore((s) => s.playing)
   const toggle = usePlayerStore((s) => s.toggle)
@@ -97,11 +99,13 @@ function Bedside({ onClose }: { onClose(): void }) {
   return createPortal(
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label="Bedside"
       // ⚠️ Not the document's click: `App.tsx` skips the ceremony on one.
       onClick={(e) => e.stopPropagation()}
-      className="dark fixed inset-0 z-[1100] flex flex-col bg-black text-slate-400"
+      className="outline-none dark fixed inset-0 z-[1100] flex flex-col bg-black text-slate-400"
       style={{
         backgroundImage: colour ? `radial-gradient(70% 55% at 50% 45%, ${rgba(colour, 0.16)} 0%, transparent 70%)` : undefined,
         paddingTop: 'max(16px, env(safe-area-inset-top))',

@@ -9,6 +9,7 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // Sing along: the line being sung, big, on the sleeve's own colour, and
 // nothing else (James, 2026-09-28, from the UX review). The lyrics panel is
@@ -28,6 +29,7 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 const COUNT_IN_SEC = 5
 
 export default function SingAlong({ onClose }: { onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const track = usePlayerStore(currentTrack)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const playing = usePlayerStore((s) => s.playing)
@@ -70,11 +72,13 @@ export default function SingAlong({ onClose }: { onClose(): void }) {
   return createPortal(
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label={`Sing along${track ? ` — ${track.title}` : ''}`}
       // ⚠️ Not the document's click: `App.tsx` skips the ceremony on one.
       onClick={(e) => e.stopPropagation()}
-      className="fixed inset-0 z-[1100] flex flex-col text-white"
+      className="outline-none fixed inset-0 z-[1100] flex flex-col text-white"
       style={{
         background: `radial-gradient(120% 90% at 50% 30%, ${rgba(base, 1)} 0%, ${rgba(deep, 1)} 70%)`,
         paddingTop: 'max(16px, env(safe-area-inset-top))',

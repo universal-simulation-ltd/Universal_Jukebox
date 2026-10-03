@@ -6,6 +6,7 @@ import type { Track } from '../lib/types'
 import { ModeButton } from './ModeButton'
 import { DoneBubble, TickGlyph } from './DoneBubble'
 import { useDone } from '../lib/useDone'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // Put songs on a Jukebox shelf from anywhere (James, 2026-09-11: the Jukebox
 // tab's extras — "yes"): a song's row, an album's or artist's page, the song on
@@ -106,6 +107,7 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
 }
 
 export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title: string; onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const shelves = useShelvesStore((s) => s.shelves)
   const toggle = useShelvesStore((s) => s.toggle)
   const add = useShelvesStore((s) => s.add)
@@ -138,9 +140,11 @@ export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title:
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label={`Add ${title} to a shelf`}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={(e) => {
         e.stopPropagation()
         onClose()

@@ -11,6 +11,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useRequestsStore } from '../stores/requestsStore'
 import type { Album } from '../lib/types'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // The Jukebox tab's requests shelf: music to add to the library, standing as records in the
 // picture you picked, ticked off when the library has it — the rules are
@@ -203,6 +204,7 @@ function RequestArt({ request, sleeve }: { request: MusicRequest; sleeve: Album 
 
 /** Say what to get, and — if you like — find its picture. */
 function RequestDialog({ onClose }: { onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const add = useRequestsStore((s) => s.add)
   const defaultKind = useRequestsStore((s) => s.defaultKind)
   const setDefaultKind = useRequestsStore((s) => s.setDefaultKind)
@@ -267,9 +269,11 @@ function RequestDialog({ onClose }: { onClose(): void }) {
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label="Request music"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
       <div

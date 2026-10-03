@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SLEEP_MAX_MIN, SLEEP_PRESETS, nextSleep, sleepLeft } from '../lib/sleep'
 import { useSleepStore } from '../stores/sleepStore'
 import { ModeButton } from './ModeButton'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // "Sleep" in the row under the records (James, 2026-09-27): a tap steps 15,
 // 30, 45, 60 minutes, then off; a hold opens a picker for any time — "e.g.
@@ -82,6 +83,7 @@ const HOURS = Array.from({ length: SLEEP_MAX_MIN / 60 + 1 }, (_, i) => i)
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5)
 
 function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: boolean; onChoose(minutes: number | null): void; onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const [hours, setHours] = useState(Math.floor(initial / 60))
   const [mins, setMins] = useState(Math.round((initial % 60) / 5) * 5)
   const total = Math.min(SLEEP_MAX_MIN, hours * 60 + mins)
@@ -102,9 +104,11 @@ function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: 
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label="Sleep timer"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
       <div
