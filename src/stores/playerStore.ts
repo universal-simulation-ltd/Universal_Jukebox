@@ -20,7 +20,7 @@ import {
   setRouteHandler,
   showOnLockScreen,
 } from '../lib/nowPlayingNative'
-import { shuffled } from '../lib/audio'
+import { shuffled, shuffleIndices } from '../lib/audio'
 import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from './libraryStore'
 import { newSeed, shuffleQueue, type ShuffleKind } from '../lib/libraryView'
@@ -232,6 +232,24 @@ function readNumber(key: string, fallback: number): number {
 
 const modes = readModes()
 
+// ── Learnt durations (see `onDuration`) ──────────────────────────────────────
+const DURATION_PUBLISH_DELAY_MS = 2500
+const pendingDurations = new Map<string, number>()
+let durationFlush: ReturnType<typeof setTimeout> | null = null
+
+function flushDurations(): void {
+  durationFlush = null
+  if (pendingDurations.size === 0) return
+  const learnt = new Map(pendingDurations)
+  pendingDurations.clear()
+  useLibraryStore.setState({
+    tracks: useLibraryStore.getState().tracks.map((t) => {
+      const sec = learnt.get(t.id)
+      return sec !== undefined && !t.durationSec ? { ...t, durationSec: sec } : t
+    }),
+  })
+}
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   queue: [],
   order: [],
@@ -378,12 +396,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   toggleShuffle() {
     const shuffle = !get().shuffle
-    const { queue, order, cursor } = get()
+    const { order, cursor } = get()
     const playingIndex = cursor >= 0 ? order[cursor] : undefined
 
+    // From the current order, never from queue.length: a song taken out of Up
+    // Next is gone from `order` but still in `queue`, and must stay gone.
     const nextOrder = shuffle
-      ? shuffled(queue.length, playingIndex)
-      : Array.from({ length: queue.length }, (_, i) => i)
+      ? shuffleIndices(order, playingIndex)
+      : [...order].sort((a, b) => a - b)
     // Keep the CURRENT track current. Turning shuffle on or off mid-song must
     // never change what is playing — only what comes after it.
     const nextCursor = playingIndex === undefined ? -1 : nextOrder.indexOf(playingIndex)
@@ -1664,13 +1684,20 @@ audio.setCallbacks({
     // track plays, and written back so the album's total time fills in over
     // time instead of never. See the note on `Track.durationSec`.
     const track = currentTrack(usePlayerStore.getState())
-    if (!track || track.durationSec) return
+    if (!track || track.durationSec || pendingDurations.has(track.id)) return
+    // The queue's own copy of the Track never learns its duration, so ask the
+    // library's copy — or a repeat of the same song would write and republish
+    // it again on every play.
+    if (useLibraryStore.getState().tracks.find((t) => t.id === track.id)?.durationSec) return
     void db.setDuration(track.id, seconds)
-    useLibraryStore.setState({
-      tracks: useLibraryStore.getState().tracks.map((t) =>
-        t.id === track.id ? { ...t, durationSec: seconds } : t,
-      ),
-    })
+    pendingDurations.set(track.id, seconds)
+    // Published to the library a moment later rather than now: every new
+    // track's first play used to rebuild the whole `tracks` array at the exact
+    // moment of the change-over, re-sorting and re-grouping every list on
+    // screen while the deck animated. Several learnt close together go out
+    // as one update.
+    if (durationFlush) clearTimeout(durationFlush)
+    durationFlush = setTimeout(flushDurations, DURATION_PUBLISH_DELAY_MS)
   },
   onError(message) {
     const track = currentTrack(usePlayerStore.getState())

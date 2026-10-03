@@ -1420,7 +1420,20 @@ export function setPreviewVolume(volume: number): void {
  * in order — a bug report nobody can ever reproduce on demand.
  */
 export function shuffled(length: number, keepFirst?: number): number[] {
-  const order = Array.from({ length }, (_, i) => i)
+  return shuffleIndices(Array.from({ length }, (_, i) => i), keepFirst)
+}
+
+/**
+ * Shuffle a given list of queue indices (a copy — the input is untouched),
+ * with `keepFirst` moved to the front when it is in the list.
+ *
+ * Exists so turning shuffle on or off can work on the CURRENT order rather than
+ * on `0…queue.length`: songs removed from Up Next stay in `queue` (only `order`
+ * forgets them), so rebuilding from the queue's length brought every removed
+ * song back.
+ */
+export function shuffleIndices(indices: readonly number[], keepFirst?: number): number[] {
+  const order = [...indices]
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[order[i], order[j]] = [order[j], order[i]]

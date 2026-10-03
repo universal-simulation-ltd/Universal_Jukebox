@@ -107,10 +107,13 @@ export const useLyricsStore = create<LyricsState>((set, get) => ({
     const sheet = parseLyrics(raw, 'upload')
     if (!sheet || sheet.lines.every((line) => line.text.trim() === '')) return false
     // A lookup still in flight for this track must not land on top of it.
-    token++
+    const mine = ++token
     try {
       await putLyricRecord({ id: track.id, raw, at: Date.now(), source: 'upload', v: CACHE_VERSION })
     } catch { /* storage disabled — it still shows now, it just won't be remembered */ }
+    // And the other way round: if the track changed (and a new lookup began)
+    // while the sheet was being saved, this one is kept but not shown over it.
+    if (mine !== token) return true
     set({ trackId: track.id, status: 'ready', sheet, message: null })
     return true
   },
