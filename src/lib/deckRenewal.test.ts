@@ -188,3 +188,61 @@ describe('a deck that slept through the lock', () => {
     expect(states.every(Boolean)).toBe(true)
   })
 })
+
+// Quiet / Loud builds a Web Audio graph on the iPhone, and renewal used to be
+// skipped whenever one existed — so the ▶ came back for anyone who had touched
+// Quiet (James, 2026-10-03). The replacement now goes into the graph instead.
+describe('a deck that slept through the lock, with a graph', () => {
+  const captured: unknown[] = []
+  const released: unknown[] = []
+  let captureWorks = true
+
+  async function loadWithGraph() {
+    captured.length = 0
+    released.length = 0
+    vi.resetModules()
+    vi.doMock('./audioGraph', () => ({
+      graphExists: () => true,
+      ensureRunning: () => {},
+      captureElement: (element: unknown) => {
+        if (captureWorks) captured.push(element)
+        return captureWorks
+      },
+      releaseElement: (element: unknown) => released.push(element),
+    }))
+    return loadAudioModule()
+  }
+
+  afterEach(() => {
+    vi.doUnmock('./audioGraph')
+    captureWorks = true
+  })
+
+  it('is replaced, and the replacement goes into the graph', async () => {
+    const audio = await loadWithGraph()
+    audio.mediaElements()
+    await audio.load(file, true)
+    setHidden(true)
+    await audio.crossfade(file, 1.5)
+
+    expect(built).toHaveLength(3)
+    expect(built[1].removed).toBe(true)
+    expect(captured).toEqual([built[2]])
+    expect(released).toEqual([built[1]])
+    expect(built[2].paused).toBe(false)
+  })
+
+  it('keeps the old element when the graph will not take the new one', async () => {
+    captureWorks = false
+    const audio = await loadWithGraph()
+    audio.mediaElements()
+    await audio.load(file, true)
+    setHidden(true)
+    await audio.crossfade(file, 1.5)
+
+    // Better a ▶ on the lock screen than the next song at full level past Quiet.
+    expect(built[1].removed).toBe(false)
+    expect(built[1].paused).toBe(false)
+    expect(released).toEqual([])
+  })
+})

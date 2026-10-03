@@ -197,6 +197,46 @@ export function graphExists(): boolean {
   return analyser !== null || sources.length > 0
 }
 
+/**
+ * A deck's REPLACEMENT element, into a graph that already exists. True when
+ * it is in (or there is no graph to be in); false when the capture failed and
+ * the element would play by itself, past the boost and Extra quiet.
+ *
+ * ⚠️ WHAT LETS `renewDeck` RUN WITH A GRAPH (James, 2026-10-03, locked, Quiet
+ * on: "the button issue is definitely linked to the track change"). Renewal
+ * is the fix for the lock screen's ▶ over the next song, and it used to be
+ * skipped whenever a graph existed, because the graph only ever captured the
+ * two elements it was built with. A new element is captured on its own, into
+ * the same gain, so the song after a lock keeps the level the one before had.
+ * The once-per-element rule is untouched: every element is still captured
+ * exactly once.
+ */
+export function captureElement(element: HTMLAudioElement): boolean {
+  if (!context) return true
+  if (sources.some((src) => src.mediaElement === element)) return true
+  try {
+    const src = context.createMediaElementSource(element)
+    src.connect(boostGain ?? context.destination)
+    sources.push(src)
+    return true
+  } catch (err) {
+    noteEvent('graph-capture', { failed: String(err) })
+    return false
+  }
+}
+
+/** Let go of an element the deck has thrown away — see `captureElement`. */
+export function releaseElement(element: HTMLAudioElement): void {
+  const src = sources.find((s) => s.mediaElement === element)
+  if (!src) return
+  try {
+    src.disconnect()
+  } catch {
+    /* already disconnected */
+  }
+  sources = sources.filter((s) => s !== src)
+}
+
 /** Whether this browser has refused us a graph. */
 export function graphUnavailable(): boolean {
   return unavailable || !graphAllowed()

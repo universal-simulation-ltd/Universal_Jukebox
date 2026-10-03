@@ -38,7 +38,7 @@
 // crossfade — carry none of the Web Audio risk. Only the boost, which genuinely
 // cannot be done any other way, opts into it.
 
-import { ensureRunning, graphExists } from './audioGraph'
+import { captureElement, ensureRunning, graphExists, releaseElement } from './audioGraph'
 import { releaseTrackUrl, trackUrl } from './trackSource'
 import { noteEvent } from './bgLog'
 
@@ -226,18 +226,35 @@ function el(): HTMLAudioElement {
  * and only interrupts on a CHANGE. So a deck that slept through the lock is
  * replaced rather than reused, and the new one plays as a playing element.
  *
- * ⚠️ NOT WHERE THE WEB AUDIO GRAPH HAS THE ELEMENTS. `createMediaElementSource`
- * is once per element and permanent, and an element outside the graph is silent
- * while the graph is connected (`lib/audioGraph.ts`). The graph is not built
- * on the iPhone (`graphAllowed`), which is the only place this bug exists —
- * EXCEPT for the Extra quiet experiment (`quietGraphAllowed`, 2026-09-28), where
- * renewal is skipped and the lock screen may show paused over the next song.
+ * ⚠️ WITH A WEB AUDIO GRAPH TOO — Quiet / Loud builds one on the iPhone
+ * (`quietGraphAllowed`). Until 2026-10-03 renewal was skipped whenever a graph
+ * existed, because the graph held only the two elements it was built with, and
+ * so the ▶ came back for anyone who had touched Quiet (James, locked, at night:
+ * "the button issue is definitely linked to the track change"). The new element
+ * is now captured into the same graph before the old one is let go. If that
+ * capture fails, the old element is kept: a ▶ on the lock screen is better than
+ * the next song coming out at full level past Quiet.
  */
 function renewDeck(index: 0 | 1): void {
   const deck = decks[index]
-  if (!deck.slept || !deck.el || graphExists()) return
+  if (!deck.slept || !deck.el) return
   const old = deck.el
   deck.el = null
+  // With a graph the replacement is built NOW, so it can be captured before
+  // anything is given up; without one the next `element()` builds it.
+  if (graphExists()) {
+    const fresh = element(index)
+    if (!captureElement(fresh)) {
+      try {
+        fresh.remove()
+      } catch {
+        /* never attached */
+      }
+      deck.el = old
+      noteEvent('deck-renewal-skipped', { deck: index })
+      return
+    }
+  }
   deck.slept = false
   stopRamp(index)
   try {
@@ -248,11 +265,12 @@ function renewDeck(index: 0 | 1): void {
   } catch {
     /* already gone */
   }
+  releaseElement(old)
   if (deck.url) {
     releaseTrackUrl(deck.url)
     deck.url = null
   }
-  noteEvent('deck-renewed', { deck: index })
+  noteEvent('deck-renewed', { deck: index, graph: graphExists() })
 }
 
 // Every element that is silent as the page hides is interrupted by WebKit —
