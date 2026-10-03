@@ -9,6 +9,7 @@ import { goHome, navigate } from '../lib/route'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import type { Album, Track } from '../lib/types'
+import { compareBase } from '../lib/collate'
 
 // One artist: every album of theirs, and every song on them to play or shuffle
 // (James, 2026-09-10: "Once inside the album though we could add a button to go
@@ -167,5 +168,5 @@ export default function ArtistView({ name, songs = false }: { name: string; song
 function byYearThenTitle(a: Album, b: Album): number {
   const year = (a.year ?? 9999) - (b.year ?? 9999)
   if (year !== 0) return year
-  return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+  return compareBase(a.title, b.title)
 }

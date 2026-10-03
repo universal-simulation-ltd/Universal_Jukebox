@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. No event may carry a
@@ -53,6 +53,10 @@ import { isNativeShell } from './lib/nativeFile'
 export const CONTAINER = 'mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8'
 
 const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_Jukebox'
+
+/** One shared A–Z order, so a list inside a genre isn't handed a new object —
+ *  and re-sorted — on every render of the app. */
+const ORDER_AZ: LibraryOrder = { kind: 'az' }
 
 /** Screens that are a PAGE of their own, and so open at their top. */
 const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'about', 'tidy'])
@@ -230,6 +234,13 @@ export default function App() {
 
   const [query, setQuery] = useState('')
   /**
+   * What the lists and tab counts filter by. Deferred, so typing stays at the
+   * keyboard's pace on a big library: the box shows each letter at once and
+   * the lists catch up in the background, rather than every keystroke waiting
+   * for thousands of rows to be matched and re-rendered.
+   */
+  const listQuery = useDeferredValue(query)
+  /**
    * A–Z or Random, for all three lists — see `lib/libraryView.ts`. Random is
    * REMEMBERED (James, 2026-09-11: "on app relaunch remember if they had random
    * button selected"), and each visit gets a fresh shuffle.
@@ -281,7 +292,7 @@ export default function App() {
    * the list is A–Z; outside one, Genre mode shows the genre list instead of a
    * list at all (`GenreIndex`).
    */
-  const listOrder = (o: LibraryOrder): LibraryOrder => (genre && o.kind === 'genre' ? { kind: 'az' } : o)
+  const listOrder = (o: LibraryOrder): LibraryOrder => (genre && o.kind === 'genre' ? ORDER_AZ : o)
   const columns = allColumns[listTab]
   /** Anything in this list's options changed from its usual — the dot on the icon. */
   const optionsActive =
@@ -308,17 +319,17 @@ export default function App() {
    * "Tracks (2)" over a list of three is worse than no count at all.
    */
   const counts = useMemo(() => {
-    if (!query.trim()) return null
+    if (!listQuery.trim()) return null
     // Inside a genre, the counts are of what is in it.
     const seen = genre ? libraryInGenre(albums, tracks, genre) : { albums, tracks }
-    const all = tabCounts(seen.albums, seen.tracks, query)
+    const all = tabCounts(seen.albums, seen.tracks, listQuery)
     // With "Full albums" or "Min. 3" on, the count is of what the list shows.
     return {
       ...all,
-      ...(fullAlbumsOnly ? { albums: matchAlbums(seen.albums.filter(isFullAlbum), query).length } : {}),
-      ...(artistsMin3 ? { artists: matchArtistNames(albumsOfBigArtists(seen.albums), query).length } : {}),
+      ...(fullAlbumsOnly ? { albums: matchAlbums(seen.albums.filter(isFullAlbum), listQuery).length } : {}),
+      ...(artistsMin3 ? { artists: matchArtistNames(albumsOfBigArtists(seen.albums), listQuery).length } : {}),
     }
-  }, [albums, tracks, query, fullAlbumsOnly, artistsMin3, genre])
+  }, [albums, tracks, listQuery, fullAlbumsOnly, artistsMin3, genre])
 
   useEffect(() => {
     void hydrate()
@@ -368,7 +379,14 @@ export default function App() {
       if (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === ' ') {
+        // Space belongs to whatever has focus when that is a control: it
+        // presses a focused button, ticks a switch. Taking it here stopped
+        // keyboard users pressing any button with Space — and played/paused
+        // the music instead.
+        if (el?.closest?.('button, a[href], summary, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="option"], [contenteditable=""], [contenteditable="true"]')) return
         e.preventDefault()
+        // Holding Space shouldn't flicker play/pause on every key repeat.
+        if (e.repeat) return
         toggle()
       } else if (e.key === 'ArrowRight' && e.shiftKey) {
         next()
@@ -599,7 +617,7 @@ export default function App() {
               {/* Shuffle this list, beside its options — what is on screen:
                   inside a genre, the genre; during a search, the results. Not
                   on the Jukebox tab. */}
-              <ShuffleLibrary view={listTab} query={query} genre={genre} />
+              <ShuffleLibrary view={listTab} query={listQuery} genre={genre} />
               </div>
               )}
               {/* Said to a screen reader only: the tab's orange pop is the
@@ -777,13 +795,13 @@ export default function App() {
             {view === 'jukebox' ? (
               <JukeboxShelves />
             ) : order.kind === 'genre' && !genre ? (
-              <GenreIndex tab={listTab} query={query} />
+              <GenreIndex tab={listTab} query={listQuery} />
             ) : view === 'artists' ? (
-              <ArtistList query={query} order={listOrder(orders.artists)} genre={genre} />
+              <ArtistList query={listQuery} order={listOrder(orders.artists)} genre={genre} />
             ) : view === 'tracks' ? (
-              <TrackList query={query} order={listOrder(orders.tracks)} genre={genre} />
+              <TrackList query={listQuery} order={listOrder(orders.tracks)} genre={genre} />
             ) : (
-              <AlbumGrid query={query} order={listOrder(orders.albums)} genre={genre} />
+              <AlbumGrid query={listQuery} order={listOrder(orders.albums)} genre={genre} />
             )}
           </>
         )}

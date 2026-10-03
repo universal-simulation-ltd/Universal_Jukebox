@@ -58,12 +58,27 @@ export function mergeDiscSets(tracks: Track[], albums: Album[]): { tracks: Track
   /** A part's album id → the album it joins, and its disc there (null: keep the tags'). */
   const joins = new Map<string, { id: string; title: string; disc: number | null }>()
   const merged = new Map<string, Album>()
+  // Each album's disc numbers, built only if some group needs them, in ONE pass
+  // over the tracks — a `tracks.filter` per part walked the whole library once
+  // for every part of every disc set, on every scan batch.
+  let discsByAlbum: Map<string, Set<number>> | null = null
+  const discsOf = (albumId: string): Set<number> => {
+    if (!discsByAlbum) {
+      discsByAlbum = new Map()
+      for (const t of tracks) {
+        let set = discsByAlbum.get(t.albumId)
+        if (!set) discsByAlbum.set(t.albumId, (set = new Set()))
+        set.add(t.discNo ?? 0)
+      }
+    }
+    return discsByAlbum.get(albumId) ?? new Set()
+  }
   for (const parts of groups.values()) {
     if (parts.length < 2 || parts.every((p) => p.disc === null)) continue
     parts.sort((a, b) => (a.disc ?? 0) - (b.disc ?? 0))
     const head = parts[0]
 
-    const discsIn = parts.map((p) => new Set(tracks.filter((t) => t.albumId === p.album.id).map((t) => t.discNo ?? 0)))
+    const discsIn = parts.map((p) => discsOf(p.album.id))
     const tagsTellApart = discsIn.every(
       (mine, i) => !mine.has(0) && discsIn.every((other, j) => j === i || [...mine].every((d) => !other.has(d))),
     )

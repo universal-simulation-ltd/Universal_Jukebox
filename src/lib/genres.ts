@@ -1,4 +1,5 @@
 import type { Album, Track } from './types'
+import { compareBase } from './collate'
 
 // Genre, out of the tags people actually have — and the shelves it makes.
 //
@@ -147,7 +148,7 @@ function commonest(spellings: Map<string, number>): string {
 function byName(a: { name: string }, b: { name: string }): number {
   if (a.name === NO_GENRE) return 1
   if (b.name === NO_GENRE) return -1
-  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  return compareBase(a.name, b.name)
 }
 
 /**

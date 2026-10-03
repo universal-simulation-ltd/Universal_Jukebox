@@ -19,13 +19,15 @@ import type { Track } from '../lib/types'
  */
 export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track[]; variant?: 'pill' | 'round' | 'icon' }) {
   const enqueue = usePlayerStore((s) => s.enqueue)
-  const queued = usePlayerStore((s) => s.queue.length)
+  // Only whether anything is queued — a count here re-rendered every row's
+  // button in a long list each time a song was added.
+  const anyQueued = usePlayerStore((s) => s.queue.length > 0)
   const { said, say } = useDone()
 
   // Only offered once something is already playing — "add to queue" with an
   // empty queue is just "play", and two buttons that do the same thing is
   // worse than one.
-  if (queued === 0 && !said) return null
+  if (!anyQueued && !said) return null
 
   const add = () => {
     enqueue(tracks, 'end')

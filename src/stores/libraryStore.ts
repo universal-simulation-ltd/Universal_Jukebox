@@ -46,6 +46,7 @@ import { applyFixes } from '../lib/tidy'
 import { holdSession } from '../lib/session'
 import { mergeDiscSets } from '../lib/discs'
 import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
+import { compareNumeric } from '../lib/collate'
 
 // The library: what was found, and everything about getting it.
 //
@@ -309,7 +310,7 @@ export function sortAlbumTracks(tracks: Track[]): Track[] {
     if (no !== 0) return no
     // Untagged files fall through to filename order, which for a folder of
     // "01 ...", "02 ..." is the right order anyway.
-    return a.path.localeCompare(b.path, undefined, { numeric: true })
+    return compareNumeric(a.path, b.path)
   })
 }
 
@@ -398,6 +399,9 @@ async function hydrateOnce(
  * everything after it is the store's own state and needs no re-read.
  */
 let hydration: Promise<void> | null = null
+
+/** How often a running scan publishes what it has found (see `runScan`). */
+const SCAN_PUBLISH_MS = 750
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   status: 'loading',
@@ -1370,6 +1374,31 @@ async function runScan(
     progress: { seen: 0, added: 0, skipped: 0, where: '', done: false },
   })
 
+  // The library on screen follows the scan, but at most every
+  // SCAN_PUBLISH_MS rather than every 40-track batch: each publish rebuilds
+  // and re-sorts every list on screen, so a 5,000-song first scan used to do
+  // that ~125 times over an ever-growing library. The first batch still shows
+  // at once, and whatever is pending is published before the scan's outcome
+  // is handled below, so nothing found is ever left out.
+  let publishTimer: ReturnType<typeof setTimeout> | null = null
+  let lastPublish = 0
+  const publish = () => {
+    publishTimer = null
+    if (!current()) return
+    lastPublish = Date.now()
+    // ⚠️ The GRID fills in from the merge, not from the batch. Setting the
+    // batch alone was right when a scan replaced the library and would now
+    // make the other folders vanish for the length of the walk.
+    const merged = addScan(before, prefix, { tracks: scanned, albums: [...scannedAlbums.values()] })
+    const joined = mergeDiscSets(merged.tracks, merged.albums)
+    set({ tracks: joined.tracks, albums: joined.albums })
+  }
+  const flushPublish = () => {
+    if (publishTimer === null) return
+    clearTimeout(publishTimer)
+    publish()
+  }
+
   let result
   try {
     result = await scan(source, {
@@ -1378,14 +1407,12 @@ async function runScan(
         if (!current()) return
         for (const t of newTracks) scanned.push(t)
         for (const a of newAlbums) scannedAlbums.set(a.id, a)
-        // ⚠️ The GRID fills in from the merge, not from the batch. Setting the
-        // batch alone was right when a scan replaced the library and would now
-        // make the other folders vanish for the length of the walk.
-        const merged = addScan(before, prefix, { tracks: scanned, albums: [...scannedAlbums.values()] })
         void db.putTracks(newTracks)
         void db.putAlbums(newAlbums)
-        const joined = mergeDiscSets(merged.tracks, merged.albums)
-        set({ tracks: joined.tracks, albums: joined.albums })
+        if (publishTimer !== null) return
+        const wait = lastPublish + SCAN_PUBLISH_MS - Date.now()
+        if (wait <= 0) publish()
+        else publishTimer = setTimeout(publish, wait)
       },
       onProgress: (progress) => {
         if (current()) set({ progress })
@@ -1393,6 +1420,7 @@ async function runScan(
       signal: abort.signal,
     })
   } catch {
+    flushPublish()
     if (scanAbort === abort) scanAbort = null
     if (!current()) return
     set({
@@ -1403,6 +1431,7 @@ async function runScan(
     return
   }
 
+  flushPublish()
   const stopped = abort.signal.aborted
   if (scanAbort === abort) scanAbort = null
   if (!current()) return

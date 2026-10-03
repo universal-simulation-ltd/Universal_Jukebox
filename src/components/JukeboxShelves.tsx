@@ -13,6 +13,8 @@ import { useShelvesStore } from '../stores/shelvesStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
 import type { Album, Track } from '../lib/types'
+import { compareBaseNumeric } from '../lib/collate'
+import { useDialogFocus } from '../lib/useDialogFocus'
 
 // The Jukebox tab: shelves you fill yourself, each one a playlist of songs
 // standing as 45s (James, 2026-09-11: "a jukebox tab that has a jukebox view
@@ -253,6 +255,7 @@ function JukeboxShelfRow({
 
 /** Choose the songs for a shelf: tap to put one on, tap again to take it off. */
 function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string; onClose(): void }) {
+  const dialogRef = useDialogFocus()
   const tracks = useLibraryStore((s) => s.tracks)
   const shelves = useShelvesStore((s) => s.shelves)
   const toggle = useShelvesStore((s) => s.toggle)
@@ -261,7 +264,7 @@ function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string;
   const [query, setQuery] = useState('')
   const onShelf = new Set(shelves.find((s) => s.id === target)?.trackIds ?? [])
   const found = useMemo(
-    () => [...matchTracks(tracks, query)].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true })),
+    () => [...matchTracks(tracks, query)].sort((a, b) => compareBaseNumeric(a.title, b.title)),
     [tracks, query],
   )
   const shown = found.slice(0, PICKER_CAP)
@@ -277,9 +280,11 @@ function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string;
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label={`Add songs to ${name}`}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
+      className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
       <div

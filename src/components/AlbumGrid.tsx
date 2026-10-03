@@ -12,6 +12,7 @@ import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import type { Album } from '../lib/types'
+import { compareBase, compareBaseNumeric } from '../lib/collate'
 
 // The front door once there is a library: a grid of covers.
 //
@@ -47,11 +48,14 @@ export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridPro
   // ⚠️ Ordered first, then filtered through `matchAlbums` — the same function
   // the tab count uses, so the number beside "Albums" and the tiles below it
   // can never disagree.
-  const listed = useMemo(() => {
+  //
+  // Two memos so a keystroke only re-filters: the sort is redone when the
+  // albums or the order change, not on every letter typed.
+  const ordered = useMemo(() => {
     const pool = fullOnly ? albums.filter(isFullAlbum) : albums
-    const ordered = order.kind === 'random' ? seededOrder(pool, (a) => a.id, order.seed) : [...pool].sort(byTitle)
-    return matchAlbums(ordered, query)
-  }, [albums, fullOnly, order, query])
+    return order.kind === 'random' ? seededOrder(pool, (a) => a.id, order.seed) : [...pool].sort(byTitle)
+  }, [albums, fullOnly, order])
+  const listed = useMemo(() => matchAlbums(ordered, query), [ordered, query])
   // While "Resume listening" shows (the row under the first), its album is
   // the first tile (James, 2026-09-11: "in row 1 have the album for that track
   // as item 1"). On the shelf it joins the FIRST shelf instead, and the shelves
@@ -154,9 +158,9 @@ export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridPro
  * the year, only break a tie between two albums of the same name.
  */
 function byTitle(a: Album, b: Album): number {
-  const title = a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true })
+  const title = compareBaseNumeric(a.title, b.title)
   if (title !== 0) return title
-  const artist = a.artist.localeCompare(b.artist, undefined, { sensitivity: 'base' })
+  const artist = compareBase(a.artist, b.artist)
   if (artist !== 0) return artist
   return (a.year ?? 9999) - (b.year ?? 9999)
 }

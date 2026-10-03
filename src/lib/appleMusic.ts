@@ -28,6 +28,7 @@ import { NativeFile } from './nativeFile'
 import { pluginRegistered } from './nativePlugins'
 import { rootOf } from './roots'
 import type { Album, Root, ScanProgress, Track } from './types'
+import { compareBaseNumeric } from './collate'
 
 export const MUSIC_LIBRARY_PLUGIN = 'JukeboxAppleMusic'
 export const MUSIC_LIBRARY_ROOT_ID = 'music-library'
@@ -234,7 +235,7 @@ export async function readMusicLibrary(
 
   // In the shelves' own A–Z order, so each later lot mostly lands after the
   // records already showing rather than in among them.
-  const order = [...albums].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }))
+  const order = [...albums].sort((a, b) => compareBaseNumeric(a.title, b.title))
   const tracksOf = new Map<string, Track[]>()
   for (const t of tracks) {
     const list = tracksOf.get(t.albumId)

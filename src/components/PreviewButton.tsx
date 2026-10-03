@@ -18,9 +18,10 @@ import type { Track } from '../lib/types'
 // nested in a button — the row itself is the play target, and this is not it.
 
 export default function PreviewButton({ track }: { track: Track }) {
-  const previewTrackId = usePlayerStore((s) => s.previewTrackId)
+  // A boolean, so starting a preview re-renders this row's button and the one
+  // it replaced — not every preview button in a long list.
+  const running = usePlayerStore((s) => s.previewTrackId === track.id)
   const preview = usePlayerStore((s) => s.preview)
-  const running = previewTrackId === track.id
 
   const label = running
     ? `Stop previewing ${track.title}`

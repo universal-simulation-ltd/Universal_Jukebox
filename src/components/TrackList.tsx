@@ -14,6 +14,7 @@ import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
+import { compareBase } from '../lib/collate'
 
 // Every track, in one list.
 //
@@ -81,11 +82,15 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
   // ⚠️ `matchTracks` and not an inline filter: the count in the tab above comes
   // from the same function, and two copies of "what counts as a match" drift
   // without anything failing.
-  const listed = useMemo(() => {
-    const found = matchTracks(tracks, query)
-    const ordered = order.kind === 'random' ? seededOrder(found, (t) => t.id, order.seed) : [...found].sort(byTitle)
-    return ordered
-  }, [tracks, query, order])
+  //
+  // Sorted once per library/order change and only FILTERED per keystroke — both
+  // sorts are pairwise and stable, so sort-then-filter lists exactly what
+  // filter-then-sort did, without re-sorting thousands of songs on each letter.
+  const ordered = useMemo(
+    () => (order.kind === 'random' ? seededOrder(tracks, (t) => t.id, order.seed) : [...tracks].sort(byTitle)),
+    [tracks, order],
+  )
+  const listed = useMemo(() => matchTracks(ordered, query), [ordered, query])
   // The song "Resume listening" names, first — at the top of the list, or at
   // the front of the FIRST shelf, the shelves otherwise as they are.
   const resumeTrack = leadId ? listed.find((t) => t.id === leadId) : undefined
@@ -201,8 +206,12 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
  * the two lists are the same list.
  */
 export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () => void; subtitle?: string }) {
-  const playing = usePlayerStore((s) => s.playing)
-  const isCurrent = usePlayerStore(currentTrack)?.id === track.id
+  // One number per row, so pausing or changing track re-renders the row(s)
+  // concerned rather than every row in the list: 0 not this song, 1 this song
+  // paused, 2 this song playing.
+  const here = usePlayerStore((s) => (currentTrack(s)?.id === track.id ? (s.playing ? 2 : 1) : 0))
+  const playing = here === 2
+  const isCurrent = here > 0
   return (
     <li className="flex items-center gap-2">
       <button
@@ -245,7 +254,7 @@ export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () 
 }
 
 function byTitle(a: Track, b: Track): number {
-  const title = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+  const title = compareBase(a.title, b.title)
   if (title !== 0) return title
-  return (a.artist ?? '').localeCompare(b.artist ?? '', undefined, { sensitivity: 'base' })
+  return compareBase(a.artist ?? '', b.artist ?? '')
 }
