@@ -90,7 +90,14 @@ export function followLockLyrics(track: Track | null, sec: number): void {
   // the lock screen's card AND in the Lyrics Live Activity under it). With the
   // activity running the words are there already, so the card gets its artist
   // back; the setting itself is untouched and returns when the activity is off.
-  const onLockScreen = settings().lockScreenLyrics && !inActivity
+  //
+  // ⚠️ …UNLESS THE PAGE IS HIDDEN (James, 2026-10-03: "Lyrics not advancing").
+  // Locked, or with the app in the background, iOS refuses the Live Activity's
+  // updates ("only playing background media"), so its words freeze, but it
+  // still takes the Now Playing card's from a music app. So the card carries
+  // the words then, and the activity points up at it (`Words`, the widget).
+  const hidden = typeof document !== 'undefined' && document.hidden
+  const onLockScreen = (settings().lockScreenLyrics && !inActivity) || (inActivity && hidden)
   let line: string | null = null
   let next: string | null = null
   let until: number | null = null

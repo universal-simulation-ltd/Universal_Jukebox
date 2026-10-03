@@ -110,7 +110,7 @@ private struct LockScreenView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top, spacing: 10) {
                         Record(state: state, size: 34)
-                        Words(state: state, stale: stale, ink: palette.ink, accent: palette.accent, big: .title3)
+                        Words(state: state, stale: stale, ink: palette.ink, accent: palette.accent, big: .title3, lockScreen: true)
                         Controls(state: state, tint: palette.ink, size: 16)
                     }
                     Progress(state: state, tint: palette.accent, ink: palette.ink)
@@ -133,12 +133,19 @@ private struct LockScreenView: View {
 /// past the next line (`LiveActivityDriver.stale`); reaching it means iOS did
 /// not let that update through — which it refuses on a locked phone — so the
 /// line here is no longer the one being sung. Say so, rather than show it.
+///
+/// ⚠️ AND SAY WHERE THEY ARE (James, 2026-10-03: "Lyrics not advancing"). With
+/// the app's page hidden, the line being sung goes into the artist's place in
+/// the Now Playing card, which iOS DOES let a background music app update
+/// (`followLockLyrics`). On the lock screen that card sits right above this one.
 private struct Words: View {
     let state: JukeboxActivityAttributes.ContentState
     let stale: Bool
     let ink: Color
     let accent: Color
     let big: Font.TextStyle
+    /// The lock screen, where the Now Playing card is directly above.
+    var lockScreen = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -147,7 +154,8 @@ private struct Words: View {
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(ink.opacity(0.6))
             } else if stale {
-                Label("Unlock to follow the words", systemImage: "lock.fill")
+                Label(lockScreen ? "The words are in the player above" : "Unlock to follow the words",
+                      systemImage: lockScreen ? "arrow.up" : "lock.fill")
                     .font(.system(.headline, design: .rounded))
                     .foregroundStyle(ink.opacity(0.75))
                     .lineLimit(2)
