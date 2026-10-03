@@ -171,6 +171,21 @@ describe('a deck that slept through the lock', () => {
     expect(built).toHaveLength(1)
   })
 
+  it('is replaced on the SECOND change-over too, the deck stopped while hidden', async () => {
+    // James, 2026-10-03: ▶ after Next in Control Centre, with no Quiet. The
+    // first change-over moves to the deck that was silent at lock; the second
+    // moves back to the one that was playing then, stopped since.
+    audio.mediaElements()
+    await audio.load(file, true)
+    setHidden(true)
+    await audio.crossfade(file, 0.01)
+    await new Promise((r) => setTimeout(r, 60))
+    // A new crossfade finishes the last one off, which is when deck 0 stops.
+    await audio.crossfade(file, 0.01)
+    expect(built[0].removed).toBe(true)
+    expect(built.at(-1)!.paused).toBe(false)
+  })
+
   it('stops the replaced element from speaking for the deck', async () => {
     audio.mediaElements()
     await audio.load(file, true)

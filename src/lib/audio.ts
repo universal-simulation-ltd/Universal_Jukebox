@@ -602,9 +602,9 @@ export async function crossfade(
 
   const from = active
   const to: 0 | 1 = active === 0 ? 1 : 0
-  // ⚠️ THE DECK A CROSSFADE MOVES TO IS THE ONE THAT WAS SILENT AT LOCK, every
-  // time — so this is the line that takes the ▶ off the lock screen. See
-  // `renewDeck`.
+  // ⚠️ THE DECK A CROSSFADE MOVES TO WAS SILENT AT LOCK, OR STOPPED SINCE —
+  // either way marked, so this is the line that takes the ▶ off the lock
+  // screen. See `renewDeck` and `finishRetirement`.
   renewDeck(to)
   const incoming = decks[to]
   const audio = element(to)
@@ -689,6 +689,15 @@ function finishRetirement(): void {
     // its ▶ over the song now playing, and nothing answered it (James,
     // 2026-09-17). A song that ENDED inside the blend has had its event already.
     if (sounding) onOtherDeckStopped?.('retired')
+    // ⚠️ A deck stopped WHILE HIDDEN is renewed too, not only one silent at the
+    // moment of hiding (James, 2026-10-03: ▶ over a song after Next in Control
+    // Centre, Quiet off). The first change-over after hiding moves to the deck
+    // that was silent then, which `visibilitychange` marked; the SECOND moves
+    // back to the one that was playing then and has been stopped here since,
+    // which nothing marked. A fresh element costs nothing, so every change-over
+    // while hidden gets one rather than relying on which deck WebKit has
+    // interrupted.
+    if (typeof document !== 'undefined' && document.hidden) deck.slept = true
   }
   if (deck.url) {
     releaseTrackUrl(deck.url)

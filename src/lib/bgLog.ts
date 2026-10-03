@@ -10,7 +10,9 @@
 // nothing.
 
 const KEY = 'jukebox:bglog'
-const MAX = 120
+// 400, not 120 (2026-10-03): an hour of background play pushed the one skip
+// that mattered out of 120 before anyone could read it.
+const MAX = 400
 let enabled = false
 
 export interface BgEvent {
