@@ -7,6 +7,32 @@
     "ipad",
     "android"
   ],
+  "video": {
+    "raw": [
+      "now-vinyl",
+      "now-cassette",
+      "now-cd",
+      "now-jukebox"
+    ],
+    "spin": {
+      "now-vinyl": {
+        "at": [
+          541,
+          1186,
+          136
+        ],
+        "rpm": 33
+      },
+      "now-cd": {
+        "at": [
+          540,
+          1168,
+          116
+        ],
+        "rpm": 60
+      }
+    }
+  },
   "screens": [
     {
       "id": "01-hero",
