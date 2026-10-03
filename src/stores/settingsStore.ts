@@ -409,7 +409,7 @@ export const CROSSFADE_LIMITS = {
 
 /** Every button the row under Now Playing can show, in its order. */
 export const MODE_KEYS = [
-  'shuffle', 'repeatAll', 'repeatOne', 'shelf', 'about', 'output', 'quiet', 'loud', 'keepAwake', 'sleep', 'bedside',
+  'shuffle', 'repeatAll', 'repeatOne', 'shelf', 'about', 'output', 'quiet', 'loud', 'player', 'keepAwake', 'sleep', 'bedside',
 ] as const
 export type ModeKey = (typeof MODE_KEYS)[number]
 
@@ -423,6 +423,7 @@ export const MODE_LABELS: Record<ModeKey, string> = {
   output: 'Output',
   quiet: 'Quiet',
   loud: 'Loud',
+  player: 'Player',
   keepAwake: 'Keep awake',
   sleep: 'Sleep',
   bedside: 'Bedside',
