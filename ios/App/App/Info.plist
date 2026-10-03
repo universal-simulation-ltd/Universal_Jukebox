@@ -31,12 +31,6 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<!-- The Live Activity — the song and the line being sung on the Lock Screen
-	     and in the Dynamic Island (`LiveActivityDriver.swift`,
-	     `JukeboxWidget/`). Without this key `Activity.request` throws and
-	     nothing says why. -->
-	<key>NSSupportsLiveActivities</key>
-	<true/>
 	<!-- ⚠️ THE APP DOES NOT LAUNCH WITHOUT THIS once it is built against the
 	     iOS 27 SDK. iOS terminates an app built against that SDK that still
 	     uses the old app-delegate window life cycle, before any of our code

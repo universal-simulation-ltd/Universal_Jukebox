@@ -311,13 +311,6 @@ export interface Settings {
    */
   lockScreenLyrics: boolean
   /**
-   * The iPhone's Live Activity: the song, and the line being sung, on the Lock
-   * Screen and in the Dynamic Island (James, 2026-09-29) — `setLiveActivity`
-   * in `lib/nowPlayingNative.ts`, drawn by `ios/App/JukeboxWidget/`. Off by
-   * default, like every switch here; offered only in the iPhone app.
-   */
-  liveActivity: boolean
-  /**
    * Hide the error banners — "couldn't play and was skipped", "could not be
    * opened", "some files were skipped" — and just carry on (James, 2026-09-16:
    * "Just skip them silently until they deselect the option").
@@ -376,7 +369,6 @@ export const DEFAULTS: Settings = {
   aboutOnline: false,
   keepAwake: false,
   lockScreenLyrics: false,
-  liveActivity: false,
   hideErrors: true,
 }
 
@@ -563,7 +555,8 @@ function adoptOnce(key: string): boolean {
 }
 
 function readStored(): Settings {
-  let stored: Partial<Record<keyof Settings, unknown>> = {}
+  // `liveActivity`: a key no longer in `Settings`, read once more — see `lockScreenLyrics`.
+  let stored: Partial<Record<keyof Settings | 'liveActivity', unknown>> = {}
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
@@ -639,8 +632,11 @@ function readStored(): Settings {
     xfShape: CROSSFADE_SHAPES.includes(stored.xfShape as CrossfadeShape) ? (stored.xfShape as CrossfadeShape) : DEFAULTS.xfShape,
     trackNotifications: stored.trackNotifications === true,
     keepAwake: stored.keepAwake === true,
-    lockScreenLyrics: stored.lockScreenLyrics === true,
-    liveActivity: stored.liveActivity === true,
+    // ⚠️ …OR THE LIVE ACTIVITY WAS ON. It is gone (James, 2026-10-03: iOS
+    // freezes its words on a locked phone, so the card above it is the only
+    // place they can follow), and whoever had it on wanted the words on the
+    // lock screen. A once-only move: the old key is never written again.
+    lockScreenLyrics: stored.lockScreenLyrics === true || stored.liveActivity === true,
     hideErrors: stored.hideErrors !== false,
     // `=== true`, for the reason `lyricsOnline` gives above.
     aboutOnline: stored.aboutOnline === true,
@@ -735,7 +731,6 @@ function persist(state: Settings) {
     aboutOnline: state.aboutOnline,
     keepAwake: state.keepAwake,
     lockScreenLyrics: state.lockScreenLyrics,
-    liveActivity: state.liveActivity,
     hideErrors: state.hideErrors,
   }
   try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }

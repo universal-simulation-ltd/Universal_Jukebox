@@ -29,9 +29,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "update", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "artist", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "liveActivity", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "lyric", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise)
     ]
 
     private enum Mode: String { case unknown, merge, own }
@@ -76,23 +74,6 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
                            name: AVAudioSession.routeChangeNotification, object: nil)
         centre.addObserver(self, selector: #selector(interrupted(_:)),
                            name: AVAudioSession.interruptionNotification, object: nil)
-        centre.addObserver(self, selector: #selector(liveCommand(_:)),
-                           name: .jukeboxLiveCommand, object: nil)
-        if #available(iOS 16.2, *) { LiveActivityDriver.shared.endLeftovers() }
-    }
-
-    /// A Live Activity button (`JukeboxCommandIntent`), for the page's Media
-    /// Session handlers — the same road as the lock screen's own buttons.
-    ///
-    /// ⚠️ IN BOTH MODES. In `merge` the lock screen's buttons are WebKit's and
-    /// never come through here, so the page listens for `command` whenever
-    /// the Live Activity is on, not only in `own` (`nowPlayingNative.ts`).
-    @objc private func liveCommand(_ note: Notification) {
-        guard let action = note.userInfo?["action"] as? String else { return }
-        CommandLog.note("live \(action) state=\(UIApplication.shared.applicationState.rawValue)")
-        DispatchQueue.main.async {
-            self.notifyListeners("command", data: ["action": action])
-        }
     }
 
     @objc private func routeChanged(_ note: Notification) {
@@ -168,8 +149,6 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         let disc = call.getString("disc").flatMap { Data(base64Encoded: $0) }.flatMap { UIImage(data: $0) }
-        // The Live Activity's label — a small JPEG, sent only while it is on.
-        let cover = call.getString("cover").flatMap { Data(base64Encoded: $0) }
         let ground = call.getArray("ground", String.self) ?? ["#1e293b", "#020617"]
         let spin = call.getDouble("spinSeconds")
         let title = call.getString("title") ?? ""
@@ -228,11 +207,6 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             self.keep()
             CommandLog.note("show \"\(title)\" rate=\(rate) at=\(Int(elapsed)) app=\(UIApplication.shared.applicationState.rawValue)")
-            if #available(iOS 16.2, *) {
-                LiveActivityDriver.shared.show(
-                    title: title, artist: artist, elapsed: elapsed, duration: duration,
-                    playing: rate > 0, cover: cover, ground: ground)
-            }
             call.resolve(["animated": animated, "supportedKeys": supported, "mode": self.mode.rawValue])
         }
     }
@@ -261,9 +235,6 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             // track change").
             if #available(iOS 13.0, *) {
                 MPNowPlayingInfoCenter.default().playbackState = rate > 0 ? .playing : .paused
-            }
-            if #available(iOS 16.2, *) {
-                LiveActivityDriver.shared.progress(elapsed: elapsed, duration: duration, playing: rate > 0)
             }
             if rate != self.loggedRate || Date().timeIntervalSince(self.loggedUpdateAt) > 30 {
                 CommandLog.note("update rate=\(rate) at=\(Int(elapsed)) mode=\(self.mode.rawValue) app=\(UIApplication.shared.applicationState.rawValue)")
@@ -299,34 +270,8 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    /// The "Live Activity" setting — at start-up and whenever it changes.
-    @objc func liveActivity(_ call: CAPPluginCall) {
-        let on = call.getBool("enabled") ?? false
-        DispatchQueue.main.async {
-            guard #available(iOS 16.2, *) else {
-                call.resolve(["available": false])
-                return
-            }
-            LiveActivityDriver.shared.setEnabled(on)
-            call.resolve(["available": true])
-        }
-    }
-
-    /// The line being sung, and the one after it, for the Live Activity.
-    @objc func lyric(_ call: CAPPluginCall) {
-        let line = call.getString("line")
-        let next = call.getString("next")
-        let timed = call.getBool("timed")
-        let until = call.getDouble("until")
-        DispatchQueue.main.async {
-            if #available(iOS 16.2, *) { LiveActivityDriver.shared.lyric(line: line, next: next, timed: timed, until: until) }
-            call.resolve()
-        }
-    }
-
     @objc func clear(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            if #available(iOS 16.2, *) { LiveActivityDriver.shared.end() }
             self.keeper?.invalidate()
             self.keeper = nil
             if self.mode == .own {

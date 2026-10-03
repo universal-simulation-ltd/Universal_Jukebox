@@ -17,7 +17,6 @@ import {
   clearLockScreen,
   followProgress,
   setInterruptionHandler,
-  setLiveActivity,
   setRouteHandler,
   showOnLockScreen,
 } from '../lib/nowPlayingNative'
@@ -629,7 +628,6 @@ function publishNowPlaying(track: Track | null): void {
           const { currentSec, durationSec, playing } = usePlayerStore.getState()
           return { elapsed: currentSec, duration: durationSec, playing }
         },
-        cover,
       )
     },
   )
@@ -1712,21 +1710,6 @@ useSettingsStore.subscribe((next, prev) => {
   if (next.deck === prev.deck && next.deckEras === prev.deckEras) return
   const track = currentTrack(usePlayerStore.getState())
   if (track) publishNowPlaying(track)
-})
-
-// The Live Activity's switch, to the plugin — now, for the one saved last time,
-// and on every change. Switched ON, the song already on the deck is sent again
-// so the activity appears at once rather than at the next song; its lyric line
-// follows from `followLockLyrics` below.
-void setLiveActivity(settings().liveActivity)
-useSettingsStore.subscribe((next, prev) => {
-  if (next.liveActivity === prev.liveActivity) return
-  void setLiveActivity(next.liveActivity).then(() => {
-    const state = usePlayerStore.getState()
-    const track = currentTrack(state)
-    if (next.liveActivity && track) publishNowPlaying(track)
-    followLockLyrics(track, state.currentSec)
-  })
 })
 
 // "Lyrics on the lock screen" switched while paused changes the card now, not

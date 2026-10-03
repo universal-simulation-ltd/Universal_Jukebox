@@ -15,7 +15,6 @@
 // The mode is in `[jukebox:diag]` as `lockArt`.
 
 import { pluginRegistered } from './nativePlugins'
-import { isNativeShell, nativePlatform } from './nativeFile'
 import { dispatchAction } from './mediaSession'
 import { noteEvent } from './bgLog'
 import type { LockArt } from './lockArt'
@@ -29,8 +28,6 @@ interface ShowOptions {
   disc: string | null
   ground: [string, string]
   spinSeconds: number | null
-  /** The Live Activity's label: the cover, 48 px, JPEG — only while it is on. */
-  cover: string | null
   title: string
   artist: string
   album: string
@@ -44,8 +41,6 @@ interface NowPlayingPlugin {
   update(options: { elapsed: number; duration: number; rate: number }): Promise<void>
   artist(options: { artist: string }): Promise<void>
   clear(): Promise<void>
-  liveActivity(options: { enabled: boolean }): Promise<{ available: boolean }>
-  lyric(options: { line: string | null; next: string | null; timed: boolean | null; until: number | null }): Promise<void>
   addListener(event: 'command', fn: (e: { action: string; position?: number }) => void): Promise<unknown>
   addListener(event: 'audio', fn: (e: { kind: string } & Record<string, unknown>) => void): Promise<unknown>
 }
@@ -83,8 +78,6 @@ export async function showOnLockScreen(
    * the mode was not known yet — so nothing ever corrected it.
    */
   now: () => { elapsed: number; duration: number; playing: boolean },
-  /** The album cover's URL, for the Live Activity's label; null for none. */
-  cover: string | null = null,
 ): Promise<void> {
   if (!nativeNowPlayingAvailable()) return
   try {
@@ -96,7 +89,6 @@ export async function showOnLockScreen(
       disc: art.disc ? await base64(art.disc) : null,
       ground: art.ground,
       spinSeconds: art.spinSeconds,
-      cover: liveOn && cover ? await thumbnail(cover) : null,
       title: track.title,
       artist: track.artist ?? track.albumArtist ?? '',
       album: track.album ?? '',
@@ -105,8 +97,6 @@ export async function showOnLockScreen(
       rate: at.playing ? 1 : 0,
     })
     mode = result.mode
-    // A new song starts the Live Activity with no line; say the current one again.
-    lineSent = undefined
     // What the entry says now — `setLockArtist` puts a lyric line back over it.
     artistSent = track.artist ?? track.albumArtist ?? ''
     report = `mode=${result.mode} animated=${result.animated} keys=${result.supportedKeys.join(',') || 'none'}`
@@ -127,72 +117,14 @@ export async function showOnLockScreen(
 }
 
 /**
- * The lock screen's buttons (`own` mode) and the Live Activity's (either
- * mode), into the page's Media Session handlers. Once.
- *
- * ⚠️ NOT ONLY IN `own` ANY MORE. In `merge` the lock screen's buttons are
- * WebKit's and never reach the plugin, so nothing listened there — but the
- * Live Activity's buttons come through the plugin in both modes, and without
- * this a press on one would be dropped without a word.
+ * The lock screen's buttons (`own` mode), into the page's Media Session
+ * handlers. Once. In `merge` they are WebKit's and never reach the plugin.
  */
 async function listenForCommands(): Promise<void> {
   if (listening || !plugin) return
   listening = true
   // Logged, with its route, by the gate in `dispatchAction`.
   await plugin.addListener('command', (e) => dispatchAction(e.action, e.position))
-}
-
-/**
- * Is there a Live Activity to offer? The iPhone app only.
- *
- * ⚠️ BY PLATFORM, NOT BY PLUGIN. The Android app's plugin carries the same
- * name on purpose (`NowPlayingPlugin.java`, so this file drives both), and has
- * no `liveActivity` method — a registered plugin says nothing about which.
- */
-export function liveActivityAvailable(): boolean {
-  return nativeNowPlayingAvailable() && isNativeShell() && nativePlatform() === 'ios'
-}
-
-let liveOn = false
-
-/**
- * The "Live Activity" setting, to the plugin — at start-up and on every change.
- * Switched on, it appears with the next `show`; `playerStore` sends one at once
- * for whatever is already playing.
- */
-export async function setLiveActivity(enabled: boolean): Promise<void> {
-  if (!liveActivityAvailable()) return
-  liveOn = enabled
-  lineSent = undefined
-  try {
-    await load()
-    const { available } = await plugin!.liveActivity({ enabled })
-    noteEvent('live-activity', { enabled, available })
-    if (enabled) await listenForCommands()
-  } catch (error) {
-    noteEvent('live-activity', { enabled, failed: error instanceof Error ? error.message : String(error) })
-  }
-}
-
-export function liveActivityOn(): boolean {
-  return liveOn
-}
-
-/** What the Live Activity was last told — `undefined` for nothing yet. */
-let lineSent: string | undefined
-
-/**
- * The line being sung and the one after, for the Live Activity — and whether
- * the song has timed lyrics at all (null: not known yet), which decides whether
- * the activity is the lyrics or the slim "no lyrics" strip. Writes only on a change.
- */
-export function setLiveLyric(line: string | null, next: string | null, timed: boolean | null, until: number | null = null): void {
-  if (!liveOn || !plugin) return
-  const key = `${line ?? ''}\n${next ?? ''}\n${timed}\n${until}`
-  if (key === lineSent) return
-  lineSent = key
-  // `until`: the song time the words go out of date — see `lockScreenLineUntil`.
-  void plugin.lyric({ line, next, timed, until }).catch(() => {})
 }
 
 /** An interruption of the audio — Siri, a call, a timer — as iOS described it. */
@@ -372,48 +304,6 @@ export function followProgress(playing: boolean, sec: number, duration: number):
   if (playing !== sent.playing) noteEvent('lock-rate', { playing, sec: Math.round(sec) })
   sent = { playing, at: now, sec, duration }
   void plugin.update({ elapsed: sec, duration, rate: playing ? 1 : 0 }).catch(() => {})
-}
-
-/**
- * The cover as the Live Activity's label: a 48 px square JPEG, cropped from
- * the middle, as base64. Null if it will not draw.
- *
- * ⚠️ SMALL ON PURPOSE. It travels inside the activity's state, which has a 4 KB
- * ceiling for EVERYTHING — the words included — and the plugin shrinks it
- * further, or drops it, if the whole state would not fit
- * (`LiveActivityDriver.fit`). It is only ever the record's label, a third of
- * the disc, so 48 px is sharp at every size the activity draws it.
- */
-const THUMB_PX = 48
-
-async function thumbnail(url: string): Promise<string | null> {
-  try {
-    const img = new Image()
-    img.src = url
-    await img.decode()
-    const side = Math.min(img.naturalWidth, img.naturalHeight)
-    if (side <= 0) return null
-    const canvas = document.createElement('canvas')
-    canvas.width = THUMB_PX
-    canvas.height = THUMB_PX
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return null
-    ctx.drawImage(
-      img,
-      (img.naturalWidth - side) / 2,
-      (img.naturalHeight - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      THUMB_PX,
-      THUMB_PX,
-    )
-    const url64 = canvas.toDataURL('image/jpeg', 0.6)
-    return url64.slice(url64.indexOf(',') + 1)
-  } catch {
-    return null
-  }
 }
 
 function base64(blob: Blob): Promise<string> {

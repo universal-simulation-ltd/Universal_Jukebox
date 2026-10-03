@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lockScreenLine, lockScreenLineUntil, nextLockScreenLine } from './lockLyrics'
+import { lockScreenLine } from './lockLyrics'
 import type { LyricSheet } from './lyrics'
 
 const sheet: LyricSheet = {
@@ -29,39 +29,5 @@ describe('lockScreenLine', () => {
   it('shows nothing for a sheet without timings, or no sheet', () => {
     expect(lockScreenLine({ ...sheet, synced: false }, 9)).toBeNull()
     expect(lockScreenLine(null, 9)).toBeNull()
-  })
-})
-
-describe('nextLockScreenLine', () => {
-  it('is the next line with words, skipping blank ones', () => {
-    expect(nextLockScreenLine(sheet, 3)).toBe('Second line')
-  })
-
-  it('is null at the end of the sheet', () => {
-    expect(nextLockScreenLine(sheet, 9)).toBeNull()
-  })
-
-  it('is the words coming through an intro or a break', () => {
-    expect(nextLockScreenLine(sheet, 1)).toBe('First line')
-    expect(nextLockScreenLine(sheet, 6)).toBe('Second line')
-  })
-
-  it('is null for a sheet without timings, or no sheet', () => {
-    expect(nextLockScreenLine({ ...sheet, synced: false }, 3)).toBeNull()
-    expect(nextLockScreenLine(null, 3)).toBeNull()
-  })
-})
-
-describe('lockScreenLineUntil', () => {
-  it('is when the next timed line starts, blank ones included', () => {
-    expect(lockScreenLineUntil(sheet, 1)).toBe(2)
-    expect(lockScreenLineUntil(sheet, 3)).toBe(5)
-    expect(lockScreenLineUntil(sheet, 6)).toBe(8)
-  })
-
-  it('is null after the last line, or without timings', () => {
-    expect(lockScreenLineUntil(sheet, 9)).toBeNull()
-    expect(lockScreenLineUntil({ ...sheet, synced: false }, 3)).toBeNull()
-    expect(lockScreenLineUntil(null, 3)).toBeNull()
   })
 })

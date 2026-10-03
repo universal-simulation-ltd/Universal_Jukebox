@@ -4,7 +4,6 @@ import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGr
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
-import { liveActivityAvailable } from '../lib/nowPlayingNative'
 import { goHome, navigate } from '../lib/route'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId } from '../lib/settingsSection'
@@ -152,7 +151,7 @@ export default function Settings() {
       s.hiddenModes.length === 0
         ? 'All shown'
         : `${MODE_KEYS.length - s.hiddenModes.length} of ${MODE_KEYS.length} shown`,
-    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}${s.liveActivity && liveActivityAvailable() ? ', in a Lyrics Live Activity' : ''}`,
+    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: sentence([
       s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
@@ -491,18 +490,7 @@ export default function Settings() {
             hint="While a song plays, the line being sung takes the artist’s place on the lock screen and in the phone’s music controls — the artist comes back between lines. Needs lyrics with timings. With this on, each song’s lyrics are found as it starts, even if you never open them."
             checked={s.lockScreenLyrics}
             onChange={(v) => s.set('lockScreenLyrics', v)}
-            // Rests while the Lyrics Live Activity runs — see `followLockLyrics`.
-            disabled={s.liveActivity && liveActivityAvailable()}
-            disabledHint="Resting while the Lyrics Live Activity below is on, so the words aren’t shown twice. It comes back when that is off."
           />
-          {liveActivityAvailable() && (
-            <Toggle
-              label="Lyrics Live Activity"
-              hint="The line being sung, big, with the next one under it — on the Lock Screen, in the Dynamic Island and in StandBy. A song without timed lyrics shrinks it to a slim strip. It starts the next time a song plays with the app open."
-              checked={s.liveActivity}
-              onChange={(v) => s.set('liveActivity', v)}
-            />
-          )}
           <DownloadedLyrics />
         </Section>
 

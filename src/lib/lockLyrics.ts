@@ -22,7 +22,7 @@
 
 import { activeLine, type LyricSheet } from './lyrics'
 import * as ms from './mediaSession'
-import { liveActivityOn, setLiveLyric, setLockArtist } from './nowPlayingNative'
+import { setLockArtist } from './nowPlayingNative'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { settings } from '../stores/settingsStore'
 import type { Track } from './types'
@@ -37,86 +37,17 @@ export function lockScreenLine(sheet: LyricSheet | null, sec: number): string | 
 }
 
 /**
- * The next line with words in it after `sec` — the Live Activity draws it
- * faintly under the sung one, and on its own through an intro or a break, so
- * the words coming are there to read before they are sung. Null at the end.
- */
-export function nextLockScreenLine(sheet: LyricSheet | null, sec: number): string | null {
-  if (!sheet?.synced) return null
-  const at = activeLine(sheet.lines, sec)
-  for (let i = at + 1; i < sheet.lines.length; i++) {
-    const text = sheet.lines[i].text.trim()
-    if (text !== '') return text
-  }
-  return null
-}
-
-/**
- * The song time at which what `lockScreenLine` and `nextLockScreenLine` say
- * stops being true — the next timed line, blank or not. Null at the end of the
- * sheet, or without timings.
- *
- * ⚠️ WHAT IT IS FOR: the Lyrics Live Activity goes STALE a moment after this
- * (`LiveActivityDriver.stale`). iOS refuses Live Activity updates from an app
- * that is in the background only to play music (`liveactivitiesd`: "Process
- * is only playing background media so is forbidden to update activity") — so
- * on a locked phone the line froze after one or two (James, 2026-09-30). The
- * app cannot get round that, but it can say when the words on the card will be
- * wrong, and the card then asks to be unlocked instead of showing them.
- */
-export function lockScreenLineUntil(sheet: LyricSheet | null, sec: number): number | null {
-  if (!sheet?.synced) return null
-  const at = activeLine(sheet.lines, sec)
-  for (let i = at + 1; i < sheet.lines.length; i++) {
-    const time = sheet.lines[i].timeSec
-    if (time !== null && time > sec) return time
-  }
-  return null
-}
-
-/**
- * Called on every playback tick, and when either setting changes. Writes only on a change.
- *
- * ⚠️ TWO SWITCHES, ONE LOOK-UP. "Lyrics on the lock screen" puts the line in
- * the artist's place; the iPhone's Live Activity shows it under the song. Either
- * one on is reason to find each song's words as it starts — and the artist's
- * line is changed ONLY by the first, so turning on the Live Activity alone
- * leaves the lock screen's own entry saying who is singing.
+ * Called on every playback tick, and when the setting changes. Writes only on a change.
  */
 export function followLockLyrics(track: Track | null, sec: number): void {
   if (!track) return
-  const inActivity = liveActivityOn()
-  // ⚠️ NOT BOTH AT ONCE (James, 2026-09-29, a screenshot of the same line on
-  // the lock screen's card AND in the Lyrics Live Activity under it). With the
-  // activity running the words are there already, so the card gets its artist
-  // back; the setting itself is untouched and returns when the activity is off.
-  //
-  // ⚠️ …UNLESS THE PAGE IS HIDDEN (James, 2026-10-03: "Lyrics not advancing").
-  // Locked, or with the app in the background, iOS refuses the Live Activity's
-  // updates ("only playing background media"), so its words freeze, but it
-  // still takes the Now Playing card's from a music app. So the card carries
-  // the words then, and the activity points up at it (`Words`, the widget).
-  const hidden = typeof document !== 'undefined' && document.hidden
-  const onLockScreen = (settings().lockScreenLyrics && !inActivity) || (inActivity && hidden)
+  const onLockScreen = settings().lockScreenLyrics
   let line: string | null = null
-  let next: string | null = null
-  let until: number | null = null
-  /** Does this song have lyrics with timings? Null while that is still being found out. */
-  let timed: boolean | null = null
-  if (onLockScreen || inActivity) {
+  if (onLockScreen) {
     const lyrics = useLyricsStore.getState()
     if (lyrics.trackId !== track.id) lyrics.load(track)
-    else if (lyrics.status === 'ready') {
-      timed = lyrics.sheet?.synced === true
-      line = lockScreenLine(lyrics.sheet, sec)
-      next = nextLockScreenLine(lyrics.sheet, sec)
-      until = lockScreenLineUntil(lyrics.sheet, sec)
-    } else if (lyrics.status !== 'loading' && lyrics.status !== 'idle') {
-      // none, instrumental, untagged, error: nothing to sing along to.
-      timed = false
-    }
+    else if (lyrics.status === 'ready') line = lockScreenLine(lyrics.sheet, sec)
   }
   ms.setArtistLine(track, onLockScreen ? line : null)
   setLockArtist(track, onLockScreen ? line : null)
-  setLiveLyric(line, next, timed, until)
 }

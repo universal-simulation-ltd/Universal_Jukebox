@@ -7,18 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		154E997BF028EFAAEE5B2154 /* JukeboxWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB38168542233CF6B2E4F8F /* JukeboxWidget.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
-		3BFFA9E5E68BA925B2597222 /* LiveActivityDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E5BC304D5F3975D45AF45F /* LiveActivityDriver.swift */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
-		60712915394F83A5F90C769E /* JukeboxLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52CB1565AEC5BB947EB226B /* JukeboxLiveActivity.swift */; };
-		70291BD8ADE50067A2CDF3E2 /* JukeboxWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 038F01D4B7CD59EB6AB84FEA /* JukeboxWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		81984CD79E61DDAA81E90C4A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53DC09D6B11F35263046497B /* Foundation.framework */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		A1B2C3D4E5F6071800000002 /* MusicFolderPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071800000001 /* MusicFolderPlugin.swift */; };
 		A1B2C3D4E5F6071800000004 /* JukeboxViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071800000003 /* JukeboxViewController.swift */; };
@@ -29,41 +24,11 @@
 		A1B2C3D4E5F607180000000E /* LoudnessPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F607180000000D /* LoudnessPlugin.swift */; };
 		A1B2C3D4E5F6071800000010 /* NotifyPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F607180000000F /* NotifyPlugin.swift */; };
 		A1B2C3D4E5F6071800000012 /* KeepAwakePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071800000011 /* KeepAwakePlugin.swift */; };
-		B5E31D8D354C10A2DBA05C1E /* JukeboxLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52CB1565AEC5BB947EB226B /* JukeboxLiveActivity.swift */; };
 		C0DE1A1B2C3D4E5F60718294 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C0DE1A1B2C3D4E5F60718293 /* PrivacyInfo.xcprivacy */; };
 		C0DE5CE1E000000000000002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE5CE1E000000000000001 /* SceneDelegate.swift */; };
-		EA4A7816DA7F0CCBEEE731A7 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FE5166CB2E3D3BAC69B4EF69 /* SwiftUI.framework */; };
-		FA675A58B7EA0C2948798962 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 188866C590C81984546B4E3D /* WidgetKit.framework */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		7809DF56ECF02DDFC7A30F52 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 803DB405F4537D6540E4B114;
-			remoteInfo = JukeboxWidgetExtension;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		047C6AF766F00D014CE2FDE8 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				70291BD8ADE50067A2CDF3E2 /* JukeboxWidgetExtension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		038F01D4B7CD59EB6AB84FEA /* JukeboxWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = JukeboxWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		06E5BC304D5F3975D45AF45F /* LiveActivityDriver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveActivityDriver.swift; sourceTree = "<group>"; };
-		188866C590C81984546B4E3D /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -83,15 +48,11 @@
 		A1B2C3D4E5F607180000000D /* LoudnessPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoudnessPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F607180000000F /* NotifyPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotifyPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6071800000011 /* KeepAwakePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepAwakePlugin.swift; sourceTree = "<group>"; };
-		A52CB1565AEC5BB947EB226B /* JukeboxLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JukeboxLiveActivity.swift; sourceTree = "<group>"; };
 		AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		C0DE1A1B2C3D4E5F60718293 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C0DE5CE1E000000000000001 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		D35D157784D468D74CE0637F /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		ECB38168542233CF6B2E4F8F /* JukeboxWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JukeboxWidget.swift; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
-		FE5166CB2E3D3BAC69B4EF69 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,29 +64,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		59FBCFD641CBFD82EFED046B /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				81984CD79E61DDAA81E90C4A /* Foundation.framework in Frameworks */,
-				FA675A58B7EA0C2948798962 /* WidgetKit.framework in Frameworks */,
-				EA4A7816DA7F0CCBEEE731A7 /* SwiftUI.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		03FE2C2EB6DF2A144E3E5F0B /* JukeboxWidget */ = {
-			isa = PBXGroup;
-			children = (
-				ECB38168542233CF6B2E4F8F /* JukeboxWidget.swift */,
-				D35D157784D468D74CE0637F /* Info.plist */,
-			);
-			name = JukeboxWidget;
-			path = JukeboxWidget;
-			sourceTree = "<group>";
-		};
 		27E2DDA53C4D2A4D1A88CE4A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -142,7 +83,6 @@
 				504EC3051FED79650016851F /* Products */,
 				7F8756D8B27F46E3366F6CEA /* Pods */,
 				27E2DDA53C4D2A4D1A88CE4A /* Frameworks */,
-				03FE2C2EB6DF2A144E3E5F0B /* JukeboxWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -150,7 +90,6 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
-				038F01D4B7CD59EB6AB84FEA /* JukeboxWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -177,8 +116,6 @@
 				C0DE1A1B2C3D4E5F60718293 /* PrivacyInfo.xcprivacy */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
-				A52CB1565AEC5BB947EB226B /* JukeboxLiveActivity.swift */,
-				06E5BC304D5F3975D45AF45F /* LiveActivityDriver.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -196,8 +133,6 @@
 			isa = PBXGroup;
 			children = (
 				53DC09D6B11F35263046497B /* Foundation.framework */,
-				188866C590C81984546B4E3D /* WidgetKit.framework */,
-				FE5166CB2E3D3BAC69B4EF69 /* SwiftUI.framework */,
 			);
 			name = iOS;
 			sourceTree = "<group>";
@@ -213,35 +148,16 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
-				047C6AF766F00D014CE2FDE8 /* Embed Foundation Extensions */,
 				9592DBEFFC6D2A0C8D5DEB22 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				87A1AFD9A887403D0C175B1E /* PBXTargetDependency */,
 			);
 			name = App;
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
-		};
-		803DB405F4537D6540E4B114 /* JukeboxWidgetExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = EC2F0FE0D5DF9C60504C0497 /* Build configuration list for PBXNativeTarget "JukeboxWidgetExtension" */;
-			buildPhases = (
-				32C332DE9EC27259B46B59D0 /* Sources */,
-				59FBCFD641CBFD82EFED046B /* Frameworks */,
-				8E520E613A8C888E45A958BB /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = JukeboxWidgetExtension;
-			productName = JukeboxWidgetExtension;
-			productReference = 038F01D4B7CD59EB6AB84FEA /* JukeboxWidgetExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -273,7 +189,6 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
-				803DB405F4537D6540E4B114 /* JukeboxWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -290,13 +205,6 @@
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				C0DE1A1B2C3D4E5F60718294 /* PrivacyInfo.xcprivacy in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		8E520E613A8C888E45A958BB /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,15 +247,6 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		32C332DE9EC27259B46B59D0 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				154E997BF028EFAAEE5B2154 /* JukeboxWidget.swift in Sources */,
-				B5E31D8D354C10A2DBA05C1E /* JukeboxLiveActivity.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -363,21 +262,10 @@
 				A1B2C3D4E5F6071800000012 /* KeepAwakePlugin.swift in Sources */,
 				A1B2C3D4E5F6071800000002 /* MusicFolderPlugin.swift in Sources */,
 				A1B2C3D4E5F6071800000004 /* JukeboxViewController.swift in Sources */,
-				60712915394F83A5F90C769E /* JukeboxLiveActivity.swift in Sources */,
-				3BFFA9E5E68BA925B2597222 /* LiveActivityDriver.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		87A1AFD9A887403D0C175B1E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = JukeboxWidgetExtension;
-			target = 803DB405F4537D6540E4B114 /* JukeboxWidgetExtension */;
-			targetProxy = 7809DF56ECF02DDFC7A30F52 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -399,30 +287,6 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		03D36BD6079A79D678D3A9A3 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10000;
-				DEVELOPMENT_TEAM = ZH9C5TS86A;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = JukeboxWidget/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = uk.co.unisim.jukebox.widget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 		504EC3141FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -573,29 +437,6 @@
 			};
 			name = Release;
 		};
-		CAEEB52078F1259FF0E8162D /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10000;
-				DEVELOPMENT_TEAM = ZH9C5TS86A;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = JukeboxWidget/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = uk.co.unisim.jukebox.widget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -613,15 +454,6 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		EC2F0FE0D5DF9C60504C0497 /* Build configuration list for PBXNativeTarget "JukeboxWidgetExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				03D36BD6079A79D678D3A9A3 /* Release */,
-				CAEEB52078F1259FF0E8162D /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
