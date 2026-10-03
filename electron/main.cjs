@@ -76,7 +76,10 @@ function createWindow() {
       shell.openExternal(url)
       return { action: 'deny' }
     }
-    return { action: 'allow' }
+    // Nothing else opens a window: a file:, blob: or data: URL would get a
+    // child BrowserWindow inheriting this one's preload, and the app never
+    // needs one.
+    return { action: 'deny' }
   })
   // `setWindowOpenHandler` only sees window.open and target=_blank; a plain
   // <a href> navigates the window itself. The bundle is a local file, so any
