@@ -45,4 +45,24 @@ export function runShortcut(action: string): void {
   if (action === 'shuffle-songs') player.shuffleSongs()
   else if (action === 'shuffle-albums') player.shuffleAlbums()
   else if (action === 'shuffle-artists') player.shuffleArtists()
+  else if (action === 'play') playMusic()
+}
+
+/**
+ * "Hey Siri, play music in Jukebox" (`ios/App/App/SiriIntents.swift`). Carries
+ * on with what is loaded, then with the session saved from last time, and
+ * shuffles songs only when there is nothing to carry on with.
+ */
+function playMusic(): void {
+  const player = usePlayerStore.getState()
+  // Already playing, or the first-play ceremony is about to — a toggle would
+  // pause it or skip the ceremony.
+  if (player.playing || player.ceremony) return
+  if (player.cursor >= 0) {
+    player.toggle()
+    return
+  }
+  player.resume()
+  // `resume` loads the saved queue synchronously, or does nothing if there is none.
+  if (usePlayerStore.getState().cursor < 0) player.shuffleSongs()
 }

@@ -214,6 +214,15 @@
 		<string>unisim-jukebox</string>
 	</array>
 	<!-- END unisim suite app links -->
+	<!-- What Siri answers to besides the display name, so "Hey Siri, shuffle
+	     songs in Jukebox" works without the "Universal" (SiriIntents.swift). -->
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Jukebox</string>
+		</dict>
+	</array>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>
