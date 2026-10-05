@@ -49,6 +49,8 @@ interface RequestsState {
   remove(id: string): void
   /** Take every ticked one off the shelf. */
   clearGot(): void
+  /** The whole list at once — a restore from a backup, already merged (`lib/backup.ts`). */
+  replaceAll(requests: readonly MusicRequest[]): void
 }
 
 export const useRequestsStore = create<RequestsState>((set, get) => {
@@ -77,6 +79,8 @@ export const useRequestsStore = create<RequestsState>((set, get) => {
     setGot: (id, got) => save(setGot(get().requests, id, got, Date.now())),
     remove: (id) => save(get().requests.filter((r) => r.id !== id)),
     clearGot: () => save(get().requests.filter((r) => !r.gotAt)),
+    // Checked against the library on the way in, like any new request.
+    replaceAll: (requests) => save(check(requests)),
   }
 })
 

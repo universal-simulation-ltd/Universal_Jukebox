@@ -86,7 +86,37 @@ Songs you sync to the iPhone from a computer can be played. The first time one p
 
 ## What the app keeps
 
-The app keeps a catalogue of your library — titles, artists, albums and small copies of the covers — on your device, so it opens quickly next time. That catalogue isn’t backed up or shared between devices: each device builds its own. Clearing a browser’s data for this site clears the catalogue, but never your music.`,
+The app keeps a catalogue of your library — titles, artists, albums and small copies of the covers — on your device, so it opens quickly next time. That catalogue isn’t shared between devices: each device builds its own. Clearing a browser’s data for this site clears the catalogue, but never your music. Your shelves, requests and settings can be backed up: see Keeping your music safe.`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Keeping your music safe',
+    summary: 'Your music in your own cloud, and a backup of your shelves.',
+    group: 'How it works',
+    body: `Universal Jukebox never uploads your music, so it can’t lose it either. Your music is only as safe as the place you keep it. A lost or broken phone shouldn’t take your collection with it, so keep a copy somewhere else.
+
+## Keep your music in your own cloud
+
+Any cloud storage you already use will do: Proton Drive, iCloud Drive, Google Drive, OneDrive, or a computer you back up. On your phone:
+
+1. Put your music folder in your cloud storage.
+2. In that service’s app, make the folder available offline, so the songs are stored on the phone and play without a connection. Songs that are only online can’t be played.
+3. In Jukebox, open the menu, choose **Your complete library** and add the folder. On an iPhone, the cloud service needs to appear in the Files app; on Android, in the folder picker.
+
+After adding or removing songs in the cloud, choose **Rescan**.
+
+## Back up what you made in Jukebox
+
+Your shelves, your requests, your settings and any lyrics files you added exist only in the app. To keep them, open **Tune this app** and then **Backup**:
+
+- **Save a backup file** makes one small file you can keep anywhere, Proton Drive included. No account is needed. In the phone apps it is saved in the app’s Documents folder, and you can move it from the Files app.
+- **Back up to your Universal ID** keeps the same backup with your account, if you are signed in. It is replaced each time you back up, and you can delete it. It isn’t end-to-end encrypted. If it is too big for your account, the app says what it left out, and a backup file keeps everything.
+
+## On a new phone
+
+Copy your music across or make it available offline, add the folder, and wait for the library to load. Then restore your backup. Your settings are replaced by the backup’s. Its shelves and requests are added to what you have, and nothing is removed.
+
+Songs are found again by their title, artist and album, so a shelf comes back even though the files are new copies. A song that isn’t in your library yet is left off. Restore again after adding more music to bring it back.`,
   },
   {
     id: 'between-songs',
@@ -190,7 +220,7 @@ If you like to watch the record turn, **Keep awake** stops the screen dimming or
 - **Your library catalogue**: titles, artists, albums, small copies of the covers, and any tidy-up corrections.
 - **Your settings, your requests and where you left off.** They stay in the app on this device.
 
-None of this is backed up or synced by the app. If you use Jukebox on two devices, each keeps its own library.
+None of this leaves your device unless you make a backup. A backup file goes wherever you save it. A backup to your Universal ID holds your settings, shelves, requests and any lyrics you added, named by title, artist and album; it never holds your music. If you use Jukebox on two devices, each keeps its own library.
 
 ## The three lookups
 
@@ -204,7 +234,7 @@ Answers from the first two are kept on your device, so a song is looked up only 
 
 ## Universal ID
 
-Signing in with a Universal ID is optional. It keeps you signed in across the UNI·SIM apps. While you are signed in, the app records one “opened” event against your account each time it starts. That event says nothing about your music.
+Signing in with a Universal ID is optional. It keeps you signed in across the UNI·SIM apps, and lets you keep a backup with your account if you choose to. While you are signed in, the app records one “opened” event against your account each time it starts. That event says nothing about your music.
 
 ## Permissions
 

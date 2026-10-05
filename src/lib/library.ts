@@ -334,6 +334,12 @@ export async function putLyricRecord(record: LyricRecord): Promise<void> {
   await tx(STORE_LYRICS, 'readwrite', (s) => s.put(record))
 }
 
+/** The lyrics files the person added themselves — what a backup carries (`lib/backup.ts`). */
+export async function uploadedLyrics(): Promise<{ id: string; raw: string }[]> {
+  const all = (await tx<LyricRecord[]>(STORE_LYRICS, 'readonly', (s) => s.getAll())) ?? []
+  return all.filter((r) => r.source === 'upload' && typeof r.raw === 'string' && r.raw.trim() !== '').map((r) => ({ id: r.id, raw: r.raw! }))
+}
+
 /** "Forget the lyrics I've downloaded" — offered on the Settings page. */
 export async function clearLyrics(): Promise<void> {
   await tx(STORE_LYRICS, 'readwrite', (s) => s.clear())
