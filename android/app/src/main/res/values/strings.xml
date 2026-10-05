@@ -4,4 +4,7 @@
     <string name="title_activity_main">Universal Jukebox</string>
     <string name="package_name">uk.co.unisim.jukebox</string>
     <string name="custom_url_scheme">uk.co.unisim.jukebox</string>
+    <string name="shortcut_shuffle_songs">Shuffle songs</string>
+    <string name="shortcut_shuffle_albums">Shuffle albums</string>
+    <string name="shortcut_shuffle_artists">Shuffle artists</string>
 </resources>

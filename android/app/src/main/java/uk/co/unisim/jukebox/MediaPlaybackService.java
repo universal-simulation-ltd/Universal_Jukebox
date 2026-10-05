@@ -78,6 +78,8 @@ public class MediaPlaybackService extends Service {
             @Override public void onSkipToPrevious() { NowPlayingPlugin.emitCommand("previoustrack", null); }
             @Override public void onSeekTo(long pos) { NowPlayingPlugin.emitCommand("seekto", pos / 1000.0); }
             @Override public void onStop() { NowPlayingPlugin.emitCommand("pause", null); }
+            // "Hey Google, play … on Jukebox" while the app is running — see ShortcutsPlugin.
+            @Override public void onPlayFromSearch(String query, android.os.Bundle extras) { ShortcutsPlugin.search(query, extras); }
         });
         Intent open = getPackageManager().getLaunchIntentForPackage(getPackageName());
         if (open != null) {
@@ -119,7 +121,7 @@ public class MediaPlaybackService extends Service {
             .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO
-                | PlaybackStateCompat.ACTION_STOP)
+                | PlaybackStateCompat.ACTION_STOP | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH)
             .setState(state.playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED,
                 (long) (state.elapsed * 1000), state.playing ? 1f : 0f)
             .build());

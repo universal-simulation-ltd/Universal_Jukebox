@@ -18,6 +18,9 @@ public class MainActivity extends BridgeActivity {
         // Background play, lock-screen and notification controls, audio
         // focus — see NowPlayingPlugin and MediaPlaybackService.
         registerPlugin(NowPlayingPlugin.class);
+        // Launcher shortcuts and "Hey Google, play … on Jukebox" — see
+        // ShortcutsPlugin.
+        registerPlugin(ShortcutsPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

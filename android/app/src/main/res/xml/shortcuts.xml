@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the icon: the iPhone's three Home Screen shortcuts
+     (ios/App/App/Info.plist UIApplicationShortcutItems). Each opens the app
+     with an action ShortcutsPlugin turns into shuffle-songs and so on. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shuffle-songs"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_shuffle"
+        android:shortcutShortLabel="@string/shortcut_shuffle_songs">
+        <intent
+            android:action="uk.co.unisim.jukebox.SHORTCUT.SHUFFLE_SONGS"
+            android:targetPackage="uk.co.unisim.jukebox"
+            android:targetClass="uk.co.unisim.jukebox.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="shuffle-albums"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_album"
+        android:shortcutShortLabel="@string/shortcut_shuffle_albums">
+        <intent
+            android:action="uk.co.unisim.jukebox.SHORTCUT.SHUFFLE_ALBUMS"
+            android:targetPackage="uk.co.unisim.jukebox"
+            android:targetClass="uk.co.unisim.jukebox.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="shuffle-artists"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_artist"
+        android:shortcutShortLabel="@string/shortcut_shuffle_artists">
+        <intent
+            android:action="uk.co.unisim.jukebox.SHORTCUT.SHUFFLE_ARTISTS"
+            android:targetPackage="uk.co.unisim.jukebox"
+            android:targetClass="uk.co.unisim.jukebox.MainActivity" />
+    </shortcut>
+</shortcuts>

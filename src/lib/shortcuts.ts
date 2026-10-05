@@ -1,10 +1,13 @@
 import { pluginRegistered } from './nativePlugins'
-import { useLibraryStore } from '../stores/libraryStore'
+import { planVoice, type VoiceFocus, type VoiceRequest } from './voiceSearch'
+import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 
-// The iPhone's Home Screen shortcuts — long-press the icon for Shuffle songs,
-// Shuffle albums or Shuffle artists (James, 2026-09-11). The items and the tap
-// are native (`ios/App/App/ShortcutsPlugin.swift`); the playing is here.
+// The Home Screen shortcuts — long-press the icon for Shuffle songs, Shuffle
+// albums or Shuffle artists (James, 2026-09-11) — and the voice assistants:
+// Siri's App Shortcuts, and on Android "Hey Google, play … on Jukebox". The
+// native halves are `ios/App/App/ShortcutsPlugin.swift` + `SiriIntents.swift`
+// and `android/…/ShortcutsPlugin.java`; the playing is here.
 //
 // ⚠️ The library may still be loading when the tap arrives — a shortcut is
 // usually a cold launch — so the action waits for it to be ready.
@@ -16,13 +19,19 @@ export function installShortcuts(): void {
   void (async () => {
     const { registerPlugin } = await import('@capacitor/core')
     const plugin = registerPlugin<{
-      addListener(event: 'shortcut', fn: (data: { action?: string }) => void): Promise<unknown>
+      addListener(event: 'shortcut', fn: (data: ShortcutEvent) => void): Promise<unknown>
     }>(NAME)
     await plugin.addListener('shortcut', (data) => {
       const action = data.action
-      if (action) whenLibraryReady(() => runShortcut(action))
+      if (action === 'search') whenLibraryReady(() => playFromSearch(data))
+      else if (action) whenLibraryReady(() => runShortcut(action))
     })
   })()
+}
+
+/** `search` carries what the Android assistant asked for (`MEDIA_PLAY_FROM_SEARCH`). */
+interface ShortcutEvent extends VoiceRequest {
+  action?: string
 }
 
 function whenLibraryReady(run: () => void): void {
@@ -65,4 +74,32 @@ function playMusic(): void {
   player.resume()
   // `resume` loads the saved queue synchronously, or does nothing if there is none.
   if (usePlayerStore.getState().cursor < 0) player.shuffleSongs()
+}
+
+const FOCUSES: readonly VoiceFocus[] = ['artist', 'album', 'song', 'genre', 'any']
+
+/** "Hey Google, play Radiohead on Jukebox" — see `voiceSearch.ts`. */
+export function playFromSearch(request: VoiceRequest): void {
+  const focus = FOCUSES.includes(request.focus as VoiceFocus) ? request.focus : undefined
+  const plan = planVoice({ ...request, focus }, useLibraryStore.getState().tracks, sortAlbumTracks)
+  const player = usePlayerStore.getState()
+  switch (plan.kind) {
+    case 'play':
+      playMusic()
+      return
+    case 'shuffle':
+      runShortcut(`shuffle-${plan.what}`)
+      return
+    case 'mix':
+      player.shuffleSongs(plan.tracks)
+      return
+    case 'inOrder':
+      // An album is asked for in its own order, whatever shuffle was left at.
+      if (player.shuffle) player.toggleShuffle()
+      player.playTracks(plan.tracks, plan.at)
+      return
+    case 'none':
+      // Shown only with Settings › "Show error messages" ticked, like every error.
+      usePlayerStore.setState({ error: `Nothing called “${plan.asked}” in your library.` })
+  }
 }
