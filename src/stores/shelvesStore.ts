@@ -35,6 +35,8 @@ interface ShelvesState {
   add(shelfId: string, trackIds: readonly string[]): string
   rename(shelfId: string, name: string): void
   move(shelfId: string, trackId: string, delta: -1 | 1): void
+  /** The whole set at once — a restore from a backup, already merged (`lib/backup.ts`). */
+  replaceAll(shelves: JukeboxShelf[]): void
 }
 
 export const useShelvesStore = create<ShelvesState>((set, get) => ({
@@ -62,6 +64,10 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
   },
   move(shelfId, trackId, delta) {
     const shelves = moveOnShelf(get().shelves, shelfId, trackId, delta)
+    set({ shelves })
+    persist(shelves)
+  },
+  replaceAll(shelves) {
     set({ shelves })
     persist(shelves)
   },

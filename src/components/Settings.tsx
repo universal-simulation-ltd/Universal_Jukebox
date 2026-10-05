@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
-import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useGlobalPreferences, useUniversal, type Language } from '@unisim/sdk'
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, SignInDialog, useGlobalPreferences, useUniversal, type Language } from '@unisim/sdk'
 import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
+import { isNativeShell } from '../lib/nativeFile'
 import { goHome, navigate } from '../lib/route'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId } from '../lib/settingsSection'
+import { applyBackup, deleteOnline, gatherBackup, loadOnline, readBackupFile, saveBackupFile, saveOnline, type RestoreResult } from '../lib/backupIo'
+import type { JukeboxBackup } from '../lib/backup'
 import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import CrossfadeDialog from './CrossfadeDialog'
@@ -182,7 +185,7 @@ export default function Settings() {
         Tune this app
       </h1>
       <p className="mt-2 text-[14px] text-slate-600 dark:text-slate-300">
-        Everything here is kept on this device only, like the rest of the app.
+        Everything here is kept on this device, unless you back it up under Backup.
       </p>
 
       {/* The seven folds, as a stack. Adjacent cards with a small gap
@@ -244,6 +247,11 @@ export default function Settings() {
           )}
           {tryingExample && <TryExampleDialog onClose={() => setTryingExample(false)} />}
         </Section>
+
+        {/* James, 2026-10-05: "Go ahead with B and backup" — the music stays in
+            the person's own cloud; what they made in the app is backed up.
+            See `lib/backup.ts`. */}
+        <BackupSection />
 
         {/* ⚠️ ABOVE the animation section, not inside it, and that order is the
             argument for the whole feature: what you are playing ON comes before
@@ -582,6 +590,278 @@ export default function Settings() {
       </div>
     </div>
   )
+}
+
+/**
+ * Backup: where the music should live, and a copy of what only exists in here.
+ *
+ * ⚠️ THE MUSIC IS NOT BACKED UP, AND THE FIRST ROW SAYS SO. It stays wherever
+ * the person keeps it — their own cloud, made available offline and added as
+ * a folder — so "nothing is uploaded" stays true. What IS backed up is listed
+ * in the hint of every button, so nobody has to guess.
+ *
+ * ⚠️ A restore always asks first, because it REPLACES the settings (the
+ * shelves and requests it only adds to — see `lib/backup.ts`).
+ */
+function BackupSection() {
+  const { supabase, session, noAccounts } = useUniversal()
+  const userId = session?.user?.id ?? null
+  const libraryReady = useLibraryStore((l) => l.status === 'ready')
+  const trying = useLibraryStore((l) => l.trying)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
+  const [signingIn, setSigningIn] = useState(false)
+  /** The backup waiting on "Restore" to be confirmed, and where it came from. */
+  const [pending, setPending] = useState<{ backup: JukeboxBackup; from: string } | null>(null)
+  /** When the account's backup was made: undefined while asking, null for none. */
+  const [online, setOnline] = useState<number | null | undefined>(undefined)
+
+  useEffect(() => {
+    if (!userId) {
+      setOnline(undefined)
+      return
+    }
+    let live = true
+    void supabase
+      .from('app_settings_backups')
+      .select('updated_at')
+      .eq('app', 'jukebox')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (live) setOnline(data ? Date.parse((data as { updated_at: string }).updated_at) : null)
+      })
+    return () => { live = false }
+  }, [supabase, userId])
+
+  const run = async (work: () => Promise<string | null>) => {
+    setBusy(true)
+    setMessage(null)
+    try {
+      const text = await work()
+      if (text) setMessage({ text })
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : 'Something went wrong.', error: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const restore = (backup: JukeboxBackup) =>
+    run(async () => {
+      setPending(null)
+      return restoredSentence(await applyBackup(backup))
+    })
+
+  const blocked = trying || !libraryReady
+  const blockedHint = trying
+    ? 'Go back to your own music first — the example library is being tried.'
+    : 'Available once your library has loaded.'
+
+  return (
+    <Section
+      title="Backup"
+      note="Keep your music in your own cloud. Back up your shelves, requests and settings here."
+      summary={online ? `Backed up ${formatWhen(online)}` : 'Your music stays on your devices'}
+    >
+      <Row>
+        <Label
+          text="Your music"
+          hint="Jukebox never uploads your music, so keep a copy somewhere safe yourself: Proton Drive, iCloud Drive, Google Drive or OneDrive all work. Make the music folder available offline on your phone, then add it from Your complete library in the menu. On a new phone, do the same and restore a backup below to get your shelves back."
+        />
+      </Row>
+      <Action
+        label="Save a backup file"
+        hint={blocked ? blockedHint : 'Your shelves, requests, settings and any lyrics you added, as one small file. Keep it wherever you like, Proton Drive included. No account needed.'}
+        button="Save"
+        disabled={busy || blocked}
+        onClick={() =>
+          void run(async () => {
+            const name = await saveBackupFile(await gatherBackup())
+            return isNativeShell()
+              ? `Saved as ${name} in the app’s Documents folder. You can move it from the Files app.`
+              : `Saved as ${name}.`
+          })
+        }
+      />
+      <FileRestore
+        disabled={busy || blocked}
+        hint={blocked ? blockedHint : 'Puts back the shelves and requests from a backup file, and its settings.'}
+        onFile={(file) =>
+          void run(async () => {
+            setPending({ backup: await readBackupFile(file), from: 'the file' })
+            return null
+          })
+        }
+      />
+      {!noAccounts && (userId ? (
+        <>
+          <Action
+            label="Back up to your Universal ID"
+            hint={
+              blocked
+                ? blockedHint
+                : `The same backup, kept with your account and replaced each time you tap Back up. It isn’t end-to-end encrypted: like your account details, UNI·SIM could see it. ${
+                    online === undefined ? '' : online ? `Last backed up ${formatWhen(online)}.` : 'Nothing backed up yet.'
+                  }`
+            }
+            button="Back up"
+            disabled={busy || blocked}
+            onClick={() =>
+              void run(async () => {
+                const saved = await saveOnline(supabase, userId, await gatherBackup())
+                if (!saved) {
+                  throw new Error('Your shelves are too big to keep with your account. Save a backup file instead — it has no limit.')
+                }
+                setOnline(saved.savedAt)
+                const left = [
+                  saved.left.lyrics ? `${saved.left.lyrics} added lyrics` : '',
+                  saved.left.pictures ? `${saved.left.pictures} request pictures` : '',
+                ].filter(Boolean)
+                return left.length
+                  ? `Backed up, except ${left.join(' and ')}, which didn’t fit. A backup file keeps everything.`
+                  : 'Backed up.'
+              })
+            }
+          />
+          {online ? (
+            <Action
+              label="Restore from your Universal ID"
+              hint={blocked ? blockedHint : `From ${formatWhen(online)}.`}
+              button="Restore"
+              disabled={busy || blocked}
+              onClick={() =>
+                void run(async () => {
+                  const backup = await loadOnline(supabase)
+                  if (!backup) throw new Error('There’s no backup on your account to restore.')
+                  setPending({ backup, from: 'your Universal ID' })
+                  return null
+                })
+              }
+            />
+          ) : null}
+          {online ? (
+            <Row>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    await deleteOnline(supabase)
+                    setOnline(null)
+                    return 'Your online backup has been deleted. Nothing on this device has changed.'
+                  })
+                }
+                className="text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:opacity-50 dark:text-slate-400 dark:hover:text-orange-400"
+              >
+                Delete the online backup
+              </button>
+            </Row>
+          ) : null}
+        </>
+      ) : (
+        <Action
+          label="Back up to your Universal ID"
+          hint="Sign in to keep a backup with your account, ready for a new phone. Optional: a backup file works without one."
+          button="Sign in"
+          onClick={() => setSigningIn(true)}
+        />
+      ))}
+      {pending && (
+        <Row>
+          <p className="text-[13.5px] text-slate-800 dark:text-slate-200">
+            Restore the backup from {pending.from}, made {formatWhen(pending.backup.savedAt)}?
+          </p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+            Its settings replace the ones here. Its shelves and requests are added to yours, and nothing you have now is removed. A song only goes back on a shelf if it’s in your library, so restore again after adding more music to bring back the rest.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void restore(pending.backup)}
+              className="rounded-full bg-orange-600 px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+            >
+              Restore
+            </button>
+            <button
+              type="button"
+              onClick={() => setPending(null)}
+              className="rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] font-medium text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:text-orange-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </Row>
+      )}
+      {message && (
+        <Row>
+          <p
+            role="status"
+            className={`text-[13px] ${message.error ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}
+          >
+            {message.text}
+          </p>
+        </Row>
+      )}
+      <SignInDialog open={signingIn} onClose={() => setSigningIn(false)} />
+    </Section>
+  )
+}
+
+/** "Restore from a file": an Action whose button is a file picker. */
+function FileRestore({ disabled, hint, onFile }: { disabled: boolean; hint: string; onFile(file: File): void }) {
+  return (
+    <Row>
+      <div className="flex items-center justify-between gap-4">
+        <span className="min-w-0">
+          <Label text="Restore from a file" hint={hint} />
+        </span>
+        <label
+          className={`shrink-0 rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] font-medium text-slate-700 transition dark:border-slate-600 dark:text-slate-200 ${
+            disabled
+              ? 'cursor-default opacity-50'
+              : 'cursor-pointer hover:border-orange-500 hover:text-orange-700 focus-within:outline-2 focus-within:outline-orange-600 dark:hover:text-orange-400'
+          }`}
+        >
+          Open
+          <input
+            type="file"
+            accept=".json,application/json"
+            disabled={disabled}
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              // Cleared, so choosing the same file again still fires.
+              e.target.value = ''
+              if (file) onFile(file)
+            }}
+          />
+        </label>
+      </div>
+    </Row>
+  )
+}
+
+function restoredSentence(r: RestoreResult): string {
+  const parts = [
+    'Settings restored',
+    r.found ? `${r.found === 1 ? '1 song' : `${r.found} songs`} back on your shelves` : '',
+    r.requests ? `${r.requests === 1 ? '1 request' : `${r.requests} requests`} added` : '',
+    r.lyrics ? `lyrics for ${r.lyrics === 1 ? '1 song' : `${r.lyrics} songs`}` : '',
+  ].filter(Boolean)
+  const missing = r.missing
+    ? ` ${r.missing === 1 ? '1 song isn’t' : `${r.missing} songs aren’t`} in your library yet: add the music, then restore again to put ${r.missing === 1 ? 'it' : 'them'} back.`
+    : ''
+  return `${sentence(parts)}.${missing}`
+}
+
+/** "5 Oct 2026, 14:03", in the reader's own calendar. */
+function formatWhen(ms: number): string {
+  try {
+    return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return new Date(ms).toISOString().slice(0, 16).replace('T', ' ')
+  }
 }
 
 /**

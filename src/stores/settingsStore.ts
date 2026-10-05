@@ -554,16 +554,20 @@ function adoptOnce(key: string): boolean {
   }
 }
 
-function readStored(): Settings {
+function readStored(given?: Record<string, unknown>): Settings {
   // `liveActivity`: a key no longer in `Settings`, read once more — see `lockScreenLyrics`.
   let stored: Partial<Record<keyof Settings | 'liveActivity', unknown>> = {}
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (raw) {
-      const parsed: unknown = JSON.parse(raw)
-      if (parsed && typeof parsed === 'object') stored = parsed as typeof stored
-    }
-  } catch { /* storage disabled, or somebody else's JSON under our key */ }
+  if (given) {
+    stored = given as typeof stored
+  } else {
+    try {
+      const raw = localStorage.getItem(KEY)
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw)
+        if (parsed && typeof parsed === 'object') stored = parsed as typeof stored
+      }
+    } catch { /* storage disabled, or somebody else's JSON under our key */ }
+  }
 
   const mode = stored.ceremonyMode
   const tab = stored.homeTab
@@ -679,6 +683,12 @@ function legacyNeedleDrop(): boolean {
 interface SettingsState extends Settings {
   set<K extends keyof Settings>(key: K, value: Settings[K]): void
   reset(): void
+  /**
+   * Settings from a backup (`lib/backup.ts`), read field by field exactly as
+   * the stored blob is — so a backup from an older or newer version keeps
+   * every field this one understands and falls back on the rest.
+   */
+  restore(blob: Record<string, unknown>): void
 }
 
 export const useSettingsStore = create<SettingsState>((setState, get) => ({
@@ -693,10 +703,22 @@ export const useSettingsStore = create<SettingsState>((setState, get) => ({
     setState({ ...DEFAULTS })
     persist(DEFAULTS)
   },
+
+  restore(blob) {
+    try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* read back from memory below anyway */ }
+    const restored = readStored(blob)
+    setState(restored)
+    persist(restored)
+  },
 }))
 
 function persist(state: Settings) {
-  const blob: Settings = {
+  try { localStorage.setItem(KEY, JSON.stringify(settingsBlob(state))) } catch { /* ignore */ }
+}
+
+/** Exactly the fields that are stored — what `persist` writes and a backup carries. */
+export function settingsBlob(state: Settings): Settings {
+  return {
     ceremonyMode: state.ceremonyMode,
     homeTab: state.homeTab,
     deck: state.deck,
@@ -733,7 +755,6 @@ function persist(state: Settings) {
     lockScreenLyrics: state.lockScreenLyrics,
     hideErrors: state.hideErrors,
   }
-  try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* ignore */ }
 }
 
 /** The current settings, for non-React callers (the stores and the audio layer). */
