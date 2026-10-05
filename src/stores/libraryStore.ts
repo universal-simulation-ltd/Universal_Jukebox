@@ -1072,7 +1072,7 @@ function emptyFolderMessage(folder: string): string {
     nativePlatform() === 'ios'
       ? 'Open the Files app, go to On My iPhone \u2192 Universal Jukebox, and copy an album in.'
       : 'Copy an album into the Universal Jukebox folder in your Files app.'
-  return `No music in your folder yet. ${where} Folders are kept, so Artist/Album/track.mp3 is exactly right \u2014 then scan again. Or tap \u201cadd music from this device\u201d to pick files here.`
+  return `No music in your folder yet. ${where} Folders are kept, so Artist/Album/track.mp3 is exactly right \u2014 then scan again. Or tap \u201cAdd songs one at a time\u201d to pick files here.`
 }
 
 /** Why a Music library came back with nothing this app can play. */

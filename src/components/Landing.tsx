@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { hasNativeImporter } from '../lib/nativeImport'
@@ -26,6 +26,57 @@ import { keepsFolderWhenInstalled } from '../lib/persistence'
 // that CANNOT work, and shipping it would be the exact failure the paragraph
 // above describes. The native screen therefore does not ask for a folder at
 // all — it says where the folder already is. See `lib/nativeFile.ts`.
+
+/**
+ * The answers to "Where is your music?" — in the listener's words, not ours.
+ *
+ * ⚠️ ASKED BY WHERE THE MUSIC IS, NOT BY HOW WE READ IT (James, 2026-10-05:
+ * "ask questions such as where is your music stored: In your Apple Library, in
+ * the cloud somewhere, on this device, on a streaming service ('sorry, we can't
+ * help with this one')"). The answers used to be named after our mechanisms —
+ * "Files — the Universal Jukebox folder", "A folder of my choice" — which is
+ * only a question somebody can answer once they know how the app works. Each
+ * answer now maps, behind the scenes, to the same per-platform mechanisms as
+ * before; only the question changed.
+ */
+type Answer = 'device' | 'apple' | 'cloud' | 'streaming' | 'example'
+
+// The answer last opened, kept across a remount. A scan that finds nothing
+// sends the library back to 'empty' and this screen is mounted afresh under
+// the error that says why — and that error's advice ("add songs one at a time",
+// "choose a different folder") is about buttons inside the answer that was
+// open. Coming back with it still open keeps them on screen.
+let lastAnswer: Answer | null = null
+
+/** The Windows/desktop app — Electron's preload exposes this and nothing else does. */
+function isDesktopApp(): boolean {
+  return typeof window !== 'undefined' && 'unisimDesktop' in window
+}
+
+/** A phone or tablet's browser: "this device", not "this computer". */
+function isTouchOnly(): boolean {
+  try {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  } catch {
+    return false
+  }
+}
+
+/** "phone", or "iPad" on an iPad (which reports itself as a touch-screen Mac). */
+function deviceWord(): 'phone' | 'iPad' {
+  if (typeof navigator === 'undefined') return 'phone'
+  const iPad = /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  return iPad ? 'iPad' : 'phone'
+}
+
+interface Step {
+  /** The one-line next step, in plain words. */
+  say: ReactNode
+  /** The main action — a filled button. */
+  action?: { label: string; run(): void }
+  /** Quieter ways on, as links under the button. */
+  more?: { label: string; run(): void }[]
+}
 
 export default function Landing() {
   const pickFolder = useLibraryStore((s) => s.pickFolder)
@@ -57,6 +108,7 @@ export default function Landing() {
   const nativePicker = hasNativeImporter()
   const importMusicLibrary = useLibraryStore((s) => s.importMusicLibrary)
   const pickNativeFiles = useLibraryStore((s) => s.pickNativeFiles)
+  const desktopApp = !native && isDesktopApp()
   // Building it draws eleven sleeves, which is fast but not instant — and a
   // button that appears to do nothing for half a second is a button people
   // press twice.
@@ -70,59 +122,176 @@ export default function Landing() {
   // button and a demo section — with a paragraph under each. Now it asks one
   // question, and each answer carries its own sentence. Which answers appear is
   // still decided per platform, exactly as before: only what can work here.
-  const [choosing, setChoosing] = useState(false)
+  //
+  // The button reads "Find my music" since 2026-10-05: "Scan my music folder"
+  // was wrong for two of the answers behind it (the Music library is not a
+  // folder, and a streaming service cannot be scanned at all).
+  const [choosing, setChoosing] = useState(lastAnswer !== null)
+  const [answer, setAnswerState] = useState<Answer | null>(lastAnswer)
+  const setAnswer = (next: Answer | null) => {
+    lastAnswer = next
+    setAnswerState(next)
+  }
   const busy = importProgress !== null || building
 
-  const sources: { key: SourceKind; title: string; hint: string; act(): void }[] = []
-  if (native && (own || !chosen)) {
-    sources.push({
-      key: 'files',
-      title: 'Files — the Universal Jukebox folder',
-      hint: 'Music copied into the Universal Jukebox folder in the Files app — AirDropped, dragged over from a computer, or saved there. Sub-folders are fine.',
-      act: () => void scanNativeFolder(),
-    })
+  const tryExample = () => {
+    setBuilding(true)
+    void loadExample().finally(() => setBuilding(false))
   }
-  // ⚠️ THE ONE MOST PEOPLE WITH AN iPHONE ACTUALLY NEED. Songs synced from a
-  // Mac live in the Music app's library, which no folder — ours or one chosen —
-  // can see (James, 2026-09-10). See `lib/appleMusic.ts`.
+
+  // ── The mechanisms, chosen per platform exactly as before ─────────────────
+  // A folder of the app's OWN (iOS, or a shell whose one folder is fixed).
+  const ownFolder = native && (own || !chosen)
+  // The folder picker: the phone's own where there is one; in a browser, the
+  // real picker where the folder can be remembered, `webkitdirectory` where not.
+  const chooseFolder = () => {
+    if (chosen) void addNativeFolder()
+    else if (canPersist) void pickFolder()
+    else folderInput.current?.click()
+  }
+  // ⚠️ Not on Android. The importer copies into `Directory.Documents`, which
+  // there is the phone's SHARED Documents folder — not the folder the library
+  // reads — so it would copy files somewhere they are never found.
+  const canPickSongs = !chosen || own
+  const pickSongs = () => (nativePicker ? void pickNativeFiles() : fileInput.current?.click())
+
+  const here = native ? `this ${deviceWord()}` : isTouchOnly() ? 'this device' : 'this computer'
+  // Said only where it is true — see the ⚠️ at the top of this file.
+  const remembers = desktopApp
+    ? 'The app remembers it, so your library will still be here next time.'
+    : canPersist
+    ? `This browser can remember the folder, so your library will still be here next time — you’ll just be asked to confirm access once.${
+        keepsFolderWhenInstalled() ? ' Install it as an app from Chrome’s address bar and it won’t ask even that.' : ''
+      }`
+    : 'This browser can’t remember a folder, so you’ll choose it again each visit. Your library and its artwork are kept, so it comes back instantly.'
+
+  type Entry = { key: Answer; title: string; sub: string; step?: Step }
+  const answers: Entry[] = []
+  let apple: Entry | null = null
+
+  // ⚠️ THE ONE MOST PEOPLE WITH AN iPHONE ACTUALLY NEED, so it comes first
+  // there (and second, after "On this computer", everywhere else). Songs synced from a Mac live in the Music app's library, which no
+  // folder — ours or one chosen — can see (James, 2026-09-10). See
+  // `lib/appleMusic.ts`. On a computer the same library IS a folder, so it is
+  // the folder picker with directions; on Android, and in a phone's browser,
+  // there is no Apple library this app could reach, so it is not offered.
   if (musicLibrary) {
-    sources.push({
-      key: 'music',
-      title: 'My Music library',
-      hint: 'The songs synced to this iPhone from your computer, as they are in the Music app. Apple Music subscription downloads are protected, and iOS doesn’t let other apps play them.',
-      act: () => void importMusicLibrary(),
-    })
+    apple = {
+      key: 'apple',
+      title: 'In my Apple Music library',
+      sub: `Songs synced to this ${deviceWord()} from a computer`,
+      step: {
+        say: (
+          <>
+            The songs synced to this {deviceWord()}, as they are in the Music app. Apple Music subscription
+            downloads are protected, and iOS doesn’t let other apps play them.
+          </>
+        ),
+        action: { label: 'Use my Music library', run: () => void importMusicLibrary() },
+      },
+    }
+  } else if (!native && !isTouchOnly()) {
+    apple = {
+      key: 'apple',
+      title: 'In my Apple Music or iTunes library',
+      sub: 'The Music or iTunes app on this computer',
+      step: {
+        say: (
+          <>
+            Those songs are files in a folder. Choose your <strong>Music</strong> folder, then{' '}
+            <strong>Music → Media</strong> (or <strong>iTunes → iTunes Media</strong>). Songs you’ve bought or
+            added yourself will play; Apple Music subscription downloads are protected and can’t.
+          </>
+        ),
+        action: { label: 'Choose the folder', run: chooseFolder },
+      },
+    }
   }
-  if (chosen) {
-    sources.push({
-      key: 'folder',
-      title: own ? 'A different folder' : 'A folder of my choice',
-      hint: own
-        ? 'iCloud Drive, On My iPhone, a connected drive — the app keeps permission to read it, so your library is still here next time.'
-        : 'Pick the folder your music is in — usually Music. Sub-folders are fine, and the app keeps permission to read it.',
-      act: () => void addNativeFolder(),
-    })
-  } else if (!native) {
-    sources.push({
-      key: 'folder',
-      title: 'A folder on this computer',
-      hint: canPersist
-        ? `This browser can remember the folder, so your library will still be here next time — you’ll just be asked to confirm access once.${
-            keepsFolderWhenInstalled() ? ' Install it as an app from Chrome’s address bar and it won’t ask even that.' : ''
-          }`
-        : 'This browser can’t remember a folder, so you’ll choose it again each visit. Your library and its artwork are kept, so it comes back instantly.',
-      act: () => (canPersist ? void pickFolder() : folderInput.current?.click()),
-    })
-  }
-  // Visibly the side door: last in the list, and it says what it is.
-  sources.push({
-    key: 'example',
-    title: building ? 'Cutting the records…' : 'The example library',
-    hint: 'Nine records by four artists that don’t exist — the music and the sleeves are both made on this device. Nothing is downloaded, and choosing your own afterwards replaces it.',
-    act: () => {
-      setBuilding(true)
-      void loadExample().finally(() => setBuilding(false))
+  if (apple && musicLibrary) answers.push(apple)
+
+  answers.push({
+    key: 'device',
+    title: `On ${here}`,
+    sub: native ? 'Music files you’ve copied or downloaded' : 'A folder of music files',
+    step: ownFolder
+      ? {
+          say: own
+            ? `Put it in the Files app, under On My ${deviceWord() === 'iPad' ? 'iPad' : 'iPhone'} → Universal Jukebox — AirDrop it, or drag it across from a computer. Folders are fine.`
+            : 'Put it in the Universal Jukebox folder in the Files app — folders are fine.',
+          action: { label: 'Scan the Jukebox folder', run: () => void scanNativeFolder() },
+          more: [
+            ...(chosen ? [{ label: 'Choose a different folder', run: () => void addNativeFolder() }] : []),
+            ...(canPickSongs ? [{ label: 'Add songs one at a time', run: pickSongs }] : []),
+          ],
+        }
+      : {
+          say: native
+            ? 'Choose the folder your music is in — usually Music. Folders inside it are fine, and the app keeps permission to read it.'
+            : (
+              <>
+                Choose the folder your music is in — usually Music. Folders inside it are fine.{' '}
+                <span className="text-slate-500 dark:text-slate-400">{remembers}</span>
+              </>
+            ),
+          action: { label: 'Choose the folder', run: chooseFolder },
+          more: canPickSongs ? [{ label: 'Or pick individual files', run: pickSongs }] : [],
+        },
+  })
+
+  if (apple && !musicLibrary) answers.push(apple)
+
+  answers.push({
+    key: 'cloud',
+    title: 'In the cloud',
+    sub: 'iCloud Drive, Google Drive, Dropbox, OneDrive…',
+    step: native
+      ? own && chosen
+        ? {
+            say: `If your cloud shows up in the Files app — iCloud Drive always does — choose your music folder there. If it doesn’t, download the music to this ${deviceWord()} first.`,
+            action: { label: 'Choose the folder', run: () => void addNativeFolder() },
+          }
+        : chosen
+        ? {
+            say: 'Cloud apps on Android usually can’t share a whole folder, so download the music to this phone first — into Music or Downloads — then choose that folder.',
+            action: { label: 'Choose the folder', run: () => void addNativeFolder() },
+          }
+        : {
+            say: 'Download the music to this phone first, then put it in the Universal Jukebox folder in the Files app.',
+            action: { label: 'Scan the Jukebox folder', run: () => void scanNativeFolder() },
+          }
+      : isTouchOnly()
+      ? {
+          say: 'Download the music to this device first, then choose the folder it’s in.',
+          action: { label: 'Choose the folder', run: chooseFolder },
+        }
+      : {
+          say: 'If your cloud’s app is installed on this computer, it keeps a folder here — choose your music inside it. If not, download the music first.',
+          action: { label: 'Choose the folder', run: chooseFolder },
+        },
+  })
+
+  // The honest dead end — and still a way to see what the app does.
+  answers.push({
+    key: 'streaming',
+    title: 'On a streaming service',
+    sub: 'Spotify, Apple Music, YouTube Music, Amazon Music…',
+    step: {
+      say: (
+        <>
+          <strong className="font-semibold text-slate-900 dark:text-slate-100">Sorry, we can’t help with this one.</strong>{' '}
+          Streaming services lock their songs inside their own apps — even downloaded ones — so no other player
+          can open them. Jukebox plays music files you own: CDs you’ve copied, or albums bought as downloads.
+        </>
+      ),
+      action: { label: building ? 'Cutting the records…' : 'Try the example library', run: tryExample },
     },
+  })
+
+  // Visibly the side door: last in the list, and it acts at once.
+  answers.push({
+    key: 'example',
+    title: building ? 'Cutting the records…' : 'I just want to try it',
+    sub: 'Nine made-up records, made on this device — nothing is downloaded',
   })
 
   return (
@@ -130,12 +299,15 @@ export default function Landing() {
       <Turntable />
 
       <h1 className="mt-6 text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-        {native ? 'Plays the music on your phone' : 'Plays your whole music library, in your browser'}
+        {native
+          ? `Plays the music on your ${deviceWord()}`
+          : desktopApp
+          ? 'Plays the music on your computer'
+          : 'Plays your whole music library, in your browser'}
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
-        It reads the tags and the real album art out of your own files and plays them — MP3, M4A,
-        FLAC and WAV. Nothing is uploaded, nothing needs an account, and there is no catalogue to
-        sign into.
+        It reads the tags and the real album art out of your own music files and plays them — MP3, M4A, FLAC and
+        WAV. Nothing is uploaded, and you don’t need an account.
       </p>
 
       <div className="mt-7 flex flex-col items-center gap-3">
@@ -147,43 +319,80 @@ export default function Landing() {
           className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
           <FolderGlyph />
-          Scan my music folder
+          Find my music
         </button>
 
         {choosing && (
-          <div id="jb-sources" className="mt-2 w-full max-w-md space-y-2.5 text-left" role="group" aria-label="Where is your music?">
-            <p className="text-center text-[13px] font-medium text-slate-600 dark:text-slate-300">Where is your music?</p>
-            {sources.map((source) => (
-              <button
-                key={source.key}
-                type="button"
-                disabled={busy}
-                onClick={source.act}
-                className="flex w-full items-start gap-3.5 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-900/5 transition hover:ring-2 hover:ring-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60 dark:bg-slate-900 dark:ring-white/10"
-              >
-                <SourceGlyph kind={source.key} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[14.5px] font-semibold text-slate-900 dark:text-slate-100">{source.title}</span>
-                  <span className="mt-0.5 block text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">{source.hint}</span>
-                </span>
-              </button>
-            ))}
-            {/* ⚠️ Not on Android. The importer copies into `Directory.Documents`,
-                which there is the phone's SHARED Documents folder — not the
-                folder the library reads — so it would copy files somewhere they
-                are never found. */}
-            {(!chosen || own) && (
-              <p className="pt-1 text-center">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => (nativePicker ? void pickNativeFiles() : fileInput.current?.click())}
-                  className="text-[13px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
+          <div id="jb-sources" className="mt-2 w-full max-w-md space-y-2 text-left" role="group" aria-labelledby="jb-where">
+            <p id="jb-where" className="text-center text-[15px] font-semibold text-slate-800 dark:text-slate-100">
+              Where is your music?
+            </p>
+            {answers.map((a) => {
+              const open = answer === a.key && !!a.step
+              return (
+                <div
+                  key={a.key}
+                  className={`rounded-2xl bg-white shadow-sm ring-1 transition dark:bg-slate-900 ${
+                    open ? 'ring-2 ring-orange-400' : 'ring-slate-900/5 dark:ring-white/10'
+                  }`}
                 >
-                  {native ? 'Or add individual songs from this device' : 'Or pick individual files'}
-                </button>
-              </p>
-            )}
+                  <button
+                    type="button"
+                    disabled={!a.step && busy}
+                    onClick={() => (a.step ? setAnswer(open ? null : a.key) : tryExample())}
+                    aria-expanded={a.step ? open : undefined}
+                    aria-controls={a.step ? `jb-answer-${a.key}` : undefined}
+                    className="flex w-full items-center gap-3.5 rounded-2xl p-3.5 text-left transition hover:bg-orange-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60 dark:hover:bg-white/5"
+                  >
+                    <SourceGlyph kind={a.key} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14.5px] font-semibold text-slate-900 dark:text-slate-100">{a.title}</span>
+                      <span className="mt-0.5 block text-[12.5px] leading-snug text-slate-500 dark:text-slate-400">{a.sub}</span>
+                    </span>
+                    {a.step && (
+                      <svg
+                        viewBox="0 0 20 20"
+                        className={`h-4 w-4 shrink-0 text-slate-400 transition-transform dark:text-slate-500 ${open ? 'rotate-180' : ''}`}
+                        fill="currentColor"
+                        aria-hidden
+                      >
+                        <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.58l3.3-3.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.42Z" />
+                      </svg>
+                    )}
+                  </button>
+                  {open && a.step && (
+                    <div id={`jb-answer-${a.key}`} className="px-4 pb-4 pl-[4.25rem]">
+                      <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">{a.step.say}</p>
+                      {a.step.action && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={a.step.action.run}
+                          className="mt-3 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60"
+                        >
+                          {a.step.action.label}
+                        </button>
+                      )}
+                      {a.step.more && a.step.more.length > 0 && (
+                        <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
+                          {a.step.more.map((m) => (
+                            <button
+                              key={m.label}
+                              type="button"
+                              disabled={busy}
+                              onClick={m.run}
+                              className="text-[12.5px] text-slate-600 underline underline-offset-2 hover:text-orange-700 disabled:cursor-default disabled:opacity-60 dark:text-slate-400 dark:hover:text-orange-400"
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -285,18 +494,26 @@ function Turntable() {
   )
 }
 
-type SourceKind = 'files' | 'music' | 'folder' | 'example'
-
 /** The little picture beside each answer to "Where is your music?". */
-function SourceGlyph({ kind }: { kind: SourceKind }) {
-  const paths: Record<SourceKind, React.ReactNode> = {
-    files: <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.2c.4 0 .8.16 1.06.44L9 5.5h7.5A1.5 1.5 0 0 1 18 7v7.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5v-9Z" />,
-    music: <path d="M15.5 3.2v9.3a2.5 2.5 0 1 1-1.5-2.3V6.1L8 7.4v6.6a2.5 2.5 0 1 1-1.5-2.3V5.2a1 1 0 0 1 .78-.98l7-1.55a1 1 0 0 1 1.22.98Z" />,
-    folder: <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.2c.4 0 .8.16 1.06.44L9 5.5h7.5A1.5 1.5 0 0 1 18 7v7.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5v-9Zm8 2.75a.75.75 0 0 0-.75.75v1.25H8a.75.75 0 0 0 0 1.5h1.25V13a.75.75 0 0 0 1.5 0v-1.25H12a.75.75 0 0 0 0-1.5h-1.25V9a.75.75 0 0 0-.75-.75Z" />,
+function SourceGlyph({ kind }: { kind: Answer }) {
+  const paths: Record<Answer, ReactNode> = {
+    device: <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.2c.4 0 .8.16 1.06.44L9 5.5h7.5A1.5 1.5 0 0 1 18 7v7.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5v-9Z" />,
+    apple: <path d="M15.5 3.2v9.3a2.5 2.5 0 1 1-1.5-2.3V6.1L8 7.4v6.6a2.5 2.5 0 1 1-1.5-2.3V5.2a1 1 0 0 1 .78-.98l7-1.55a1 1 0 0 1 1.22.98Z" />,
+    cloud: <path d="M5.5 16a3.5 3.5 0 0 1-.55-6.96 5 5 0 0 1 9.7-1.03A4 4 0 0 1 14.5 16h-9Z" />,
+    streaming: (
+      <>
+        <g fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+          <path d="M6.6 12.4a4.8 4.8 0 0 1 6.8 0" />
+          <path d="M4 9.6a8.5 8.5 0 0 1 12 0" />
+          <path d="M1.6 6.9a12 12 0 0 1 16.8 0" />
+        </g>
+        <circle cx="10" cy="15.4" r="1.6" />
+      </>
+    ),
     example: <path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 1.75a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5Z" />,
   }
   return (
-    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400">
       <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden>
         {paths[kind]}
       </svg>

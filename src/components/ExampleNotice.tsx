@@ -59,8 +59,8 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
     <p className="mb-5 inline-flex max-w-full flex-wrap items-baseline gap-x-2 rounded-2xl border border-dashed border-orange-300 bg-orange-50/70 px-4 py-2 text-[12.5px] leading-relaxed text-orange-950 dark:border-orange-800/70 dark:bg-orange-950/25 dark:text-orange-100">
       <strong className="font-semibold">Example library</strong>
       <span>
-        Four made-up artists, with music and sleeves generated on this device. Add your own music
-        and it steps aside.
+        Four made-up artists, with music and sleeves generated on this device. To play your own
+        music instead, open Actions → Your complete library, and this steps aside.
       </span>
     </p>
   )
