@@ -29,7 +29,8 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "update", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "artist", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "log", returnType: CAPPluginReturnPromise)
     ]
 
     private enum Mode: String { case unknown, merge, own }
@@ -268,6 +269,13 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
             self.apply()
             call.resolve()
         }
+    }
+
+    /// The end of `commands.log`, for "Copy playback log" in Settings
+    /// (`src/lib/playbackLog.ts`) — so a lock-screen report can be pasted from
+    /// the phone instead of waiting for it to be plugged into the Mac.
+    @objc func log(_ call: CAPPluginCall) {
+        call.resolve(["text": CommandLog.tail(bytes: 60_000)])
     }
 
     @objc func clear(_ call: CAPPluginCall) {
@@ -538,6 +546,17 @@ enum CommandLog {
     // Caches, NOT Documents: Documents is the music folder shown in Files.
     private static let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("commands.log")
+
+    /// The last `bytes` of the log, starting at a whole line. Empty if there is none.
+    static func tail(bytes: Int) -> String {
+        guard let data = try? Data(contentsOf: url) else { return "" }
+        let slice = data.count > bytes ? data.suffix(bytes) : data
+        var text = String(decoding: slice, as: UTF8.self)
+        if data.count > bytes, let newline = text.firstIndex(of: "\n") {
+            text = String(text[text.index(after: newline)...])
+        }
+        return text
+    }
 
     static func note(_ line: String) {
         // Kept under half a megabyte: the keeper now writes a line every 30 s.

@@ -73,3 +73,8 @@ export function installLifecycleLog(): void {
     }
   })
 }
+
+/** The saved events, oldest first — for "Copy playback log" (`playbackLog.ts`). */
+export function savedEvents(): BgEvent[] {
+  return read()
+}

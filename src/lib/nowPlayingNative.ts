@@ -41,6 +41,7 @@ interface NowPlayingPlugin {
   update(options: { elapsed: number; duration: number; rate: number }): Promise<void>
   artist(options: { artist: string }): Promise<void>
   clear(): Promise<void>
+  log(): Promise<{ text: string }>
   addListener(event: 'command', fn: (e: { action: string; position?: number }) => void): Promise<unknown>
   addListener(event: 'audio', fn: (e: { kind: string } & Record<string, unknown>) => void): Promise<unknown>
 }
@@ -316,4 +317,19 @@ function base64(blob: Blob): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error('could not read the image'))
     reader.readAsDataURL(blob)
   })
+}
+
+/**
+ * The end of the plugin's `commands.log` — what iOS actually delivered to the
+ * app, and what the keeper saw. Null off the iPhone app, or on a build from
+ * before the plugin could read it back.
+ */
+export async function nativeCommandLog(): Promise<string | null> {
+  if (!nativeNowPlayingAvailable()) return null
+  try {
+    await load()
+    return (await plugin!.log()).text
+  } catch {
+    return null
+  }
 }

@@ -4,7 +4,10 @@ import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGr
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
-import { isNativeShell } from '../lib/nativeFile'
+import { isNativeShell, nativePlatform } from '../lib/nativeFile'
+import { nativeCommandLog } from '../lib/nowPlayingNative'
+import { formatPlaybackLog } from '../lib/playbackLog'
+import { savedEvents } from '../lib/bgLog'
 import { goHome, navigate } from '../lib/route'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId } from '../lib/settingsSection'
@@ -532,6 +535,7 @@ export default function Settings() {
             checked={!s.hideErrors}
             onChange={(v) => s.set('hideErrors', !v)}
           />
+          {isNativeShell() && <CopyPlaybackLog />}
         </Section>
 
         <Section title="Appearance" summary={summaries.appearance}>
@@ -805,6 +809,63 @@ function BackupSection() {
       )}
       <SignInDialog open={signingIn} onClose={() => setSigningIn(false)} />
     </Section>
+  )
+}
+
+/**
+ * "Copy playback log" — both logs on the clipboard, to paste into a report
+ * (`lib/playbackLog.ts`). Phone apps only: the page log is only kept there.
+ *
+ * ⚠️ IF THE CLIPBOARD SAYS NO, THE TEXT IS SHOWN INSTEAD, selected, so it can
+ * still be copied by hand. A button that fails quietly would lose the one log
+ * that mattered.
+ */
+function CopyPlaybackLog() {
+  const [state, setState] = useState<'idle' | 'copied' | 'shown'>('idle')
+  const [text, setText] = useState('')
+  return (
+    <>
+      <Action
+        label="Copy playback log"
+        hint={
+          state === 'copied'
+            ? 'Copied. Paste it into your message about what went wrong.'
+            : 'What happened to the music recently: plays, pauses, skips, the lock screen’s buttons and the song titles it was given. It goes only where you paste it.'
+        }
+        button={state === 'copied' ? 'Copied' : 'Copy'}
+        onClick={() =>
+          void (async () => {
+            const log = formatPlaybackLog({
+              now: Date.now(),
+              platform: nativePlatform(),
+              version: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '?',
+              events: savedEvents(),
+              native: await nativeCommandLog(),
+            })
+            setText(log)
+            try {
+              await navigator.clipboard.writeText(log)
+              setState('copied')
+            } catch {
+              setState('shown')
+            }
+          })()
+        }
+      />
+      {state === 'shown' && (
+        <Row>
+          <p className="text-[12.5px] text-slate-600 dark:text-slate-300">
+            This device wouldn’t let the app copy it. Select it all below and copy it yourself.
+          </p>
+          <textarea
+            readOnly
+            value={text}
+            onFocus={(e) => e.currentTarget.select()}
+            className="mt-2 h-48 w-full rounded-xl border border-slate-300 bg-white p-2 font-mono text-[16px] text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          />
+        </Row>
+      )}
+    </>
   )
 }
 
