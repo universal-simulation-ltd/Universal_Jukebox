@@ -129,6 +129,16 @@ export default function AppMenu() {
 
   return (
     <div ref={menu} className="min-w-[15rem] py-1 text-[13px] text-slate-700 dark:text-slate-200">
+      {/* ⚠️ THE WAY HOME ON A PHONE (James, 2026-10-06: "on now playing I can't
+          access the menu to get back to the library … I don't like the back
+          button … put 'Jukebox Home' in the actions dropdown", then "Jukebox
+          Library"). Phones have no back links (2026-09-11), and the edge swipe
+          is invisible and has nothing to go back to when the app opens on Now
+          Playing. Always here, first, so it is in the same place on every page. */}
+      <Row onClick={goHome}>
+        <span className="block font-medium text-slate-800 dark:text-slate-100">Jukebox Library</span>
+      </Row>
+      <Divider />
       {/* ⚠️ TRYING THE EXAMPLE LIBRARY, THE LIBRARY ROW IS THE WAY BACK
           (`libraryStore.tryExample`). Its folders and "Add…" rows would all be
           about the demo standing in for your library — "Remove" on it, "Rescan"

@@ -10,7 +10,7 @@ PODS:
   - CapacitorHaptics (8.0.2):
     - Capacitor
   - IONFilesystemLib (1.1.2)
-  - UnisimSdk (0.180.5):
+  - UnisimSdk (0.180.6):
     - Capacitor
 
 DEPENDENCIES:
@@ -46,7 +46,7 @@ SPEC CHECKSUMS:
   CapacitorFilesystem: b2bbd84bb91c177906c9dbc252864cb71ab9957b
   CapacitorHaptics: 296f771ecd89c7a1bd92a7b6826a7d268e2e70f5
   IONFilesystemLib: 21a63377696b2d8fab5632ecfb7d2ac67bddb68a
-  UnisimSdk: 60ab69dc419e1916750338d1a01e046abae9ca5f
+  UnisimSdk: 6e6cd4a1d40b93204569434cd8dc90b9a95af991
 
 PODFILE CHECKSUM: b48081cf6646425f87d2ec73c35e17298bfebb5f
 

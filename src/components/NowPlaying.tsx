@@ -488,12 +488,10 @@ function useLeavingAlbum(album: Album | undefined, leaving: boolean): Album | un
  * held in a 2.3-second animation with no visible exit is exactly the feeling
  * the ceremony is supposed to be the opposite of.
  *
- * ⚠️ ON A PHONE TOO (James, 2026-10-06: "on now playing I can't access the
- * menu to get back to the library, same on the album view"). Phones lost this
- * and every other back link on 2026-09-11, when the edge swipe was trusted to
- * do the job alone, but nothing on screen says the swipe is there, and it has
- * nothing to go back to when the app opens straight onto this page. The same
- * day put the links back on the album, artist, Settings, About and Tidy pages.
+ * ⚠️ NOT ON A PHONE. There the way home is "Jukebox Library" in the Actions
+ * menu (James, 2026-10-06: "I don't like the back button … put 'Jukebox Home'
+ * in the actions dropdown", then "Jukebox Library"), beside the edge swipe.
+ * The links were shown on phones for an hour that day and taken off again.
  *
  * ⚠️ It deliberately does NOT `stopPropagation`. `App.tsx` skips the ceremony
  * on any click, and letting this one through is correct: leaving the deck while
@@ -505,7 +503,7 @@ function BackToLibrary({ compact = false }: { compact?: boolean }) {
     <button
       type="button"
       onClick={goHome}
-      className={`${compact ? 'mb-1.5 inline-flex text-[12px]' : 'mb-4 inline-flex text-[13px]'} items-center gap-1.5 text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400`}
+      className={`${compact ? 'mb-1.5 inline-flex text-[12px]' : 'mb-4 hidden text-[13px] sm:inline-flex'} items-center gap-1.5 text-slate-600 hover:text-orange-700 dark:text-slate-400 dark:hover:text-orange-400`}
     >
       <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
         <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
