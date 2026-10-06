@@ -92,8 +92,15 @@ const atEnd = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - AT_END
 
 export default function FoldUp({
-  open, onOpen, onClose, children,
-}: { open: boolean; onOpen(): void; onClose(): void; children: ReactNode }) {
+  open, held = false, onOpen, onClose, children,
+}: {
+  open: boolean
+  /** Open and staying open: the parent will refuse `onClose`, so a swipe down is never ours. */
+  held?: boolean
+  onOpen(): void
+  onClose(): void
+  children: ReactNode
+}) {
   const phone = usePhone()
   const box = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
@@ -232,10 +239,19 @@ export default function FoldUp({
     let startX = 0
     let decided = false
     let popped = false
-    /** Some of the open row is on the screen — the same line the fold-back uses. */
+    /**
+     * Some of the open row is on the screen — the same line the fold-back uses.
+     *
+     * ⚠️ AND NOT SCROLLED OFF THE TOP (James, 2026-10-06: "When scrolling down
+     * to the about I couldn't scroll upwards only keep going down"). A row
+     * above the screen has its top above the line too, so every drag down the
+     * About card below it was taken for a close and swallowed.
+     */
     const showing = () => {
       const el = box.current
-      return el !== null && el.getBoundingClientRect().top <= window.innerHeight - CLOSE_LEFT
+      if (el === null) return false
+      const r = el.getBoundingClientRect()
+      return r.top <= window.innerHeight - CLOSE_LEFT && r.bottom > 0
     }
 
     const start = (e: TouchEvent) => {
@@ -243,7 +259,9 @@ export default function FoldUp({
       // Opening needs the end of the page; closing only needs the row in sight,
       // because the page can grow under an open row (a taller machine from the
       // Player button) and leave it short of the end.
-      const ready = open ? showing() : atEnd()
+      // ⚠️ Never while `held`: the close would be refused, the swipe swallowed
+      // all the same, and the page could not be scrolled back up at all.
+      const ready = open ? !held && showing() : atEnd()
       startY = !onSwiper && e.touches.length === 1 && ready ? e.touches[0].clientY : null
       startX = e.touches[0]?.clientX ?? 0
       decided = false
@@ -295,7 +313,7 @@ export default function FoldUp({
       window.removeEventListener('touchend', end)
       window.removeEventListener('touchcancel', end)
     }
-  }, [phone, open, settle, full, stop])
+  }, [phone, open, held, settle, full, stop])
 
   if (!phone) return <>{children}</>
   return (
