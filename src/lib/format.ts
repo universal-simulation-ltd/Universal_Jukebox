@@ -1,5 +1,6 @@
 // Small formatting helpers, kept pure so they can be reasoned about (and tested)
-// without a browser.
+// without a browser. The words come from `src/i18n` (English under vitest).
+import { getT } from '../i18n/runtime.ts'
 
 /**
  * Seconds → "3:07", or "1:02:44" once an hour is involved.
@@ -32,14 +33,35 @@ export function totalTime(tracks: { durationSec?: number }[]): string {
   if (known.length === 0) return ''
   const seconds = known.reduce((sum, t) => sum + (t.durationSec ?? 0), 0)
   const minutes = Math.round(seconds / 60)
+  const t = getT()
+  const hr = Math.floor(minutes / 60)
+  const min = minutes % 60
   const text = minutes >= 60
-    ? `${Math.floor(minutes / 60)} hr${minutes % 60 > 0 ? ` ${minutes % 60} min` : ''}`
-    : `${minutes} min`
+    ? min > 0 ? t('common.duration_hr_min', { hr: t.num(hr), min: t.num(min) }) : t('common.duration_hr', { hr: t.num(hr) })
+    : t('common.duration_min', { min: t.num(minutes) })
   const missing = tracks.length - known.length
-  return missing > 0 ? `${text}+` : text
+  return missing > 0 ? t('common.duration_unknown_suffix', { time: text }) : text
 }
 
-/** "12 tracks", "1 track". */
+/**
+ * A stored name, as shown. The scanner files an untagged album under the
+ * English "Unknown album" / "Unknown artist" — that is DATA, kept in the
+ * catalogue and in album keys, so it stays English on disk — and this turns
+ * those two placeholders into the reader's language at display time. Any
+ * other name is the tag, shown as it is.
+ */
+export function shownName(name: string): string
+export function shownName(name: string | undefined): string | undefined
+export function shownName(name: string | undefined): string | undefined {
+  if (name === 'Unknown album') return getT()('common.unknown_album')
+  if (name === 'Unknown artist') return getT()('common.unknown_artist')
+  return name
+}
+
+/**
+ * "12 tracks", "1 track" — ENGLISH ONLY. Kept for the tests and any log text;
+ * user-visible counts use `t.plural('common.tracks', n)` from `src/i18n`.
+ */
 export function plural(count: number, one: string, many = `${one}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? one : many}`
 }

@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { UniversalProvider } from '@unisim/sdk'
 import App from './App'
+import { I18nRoot } from './i18n'
 import { startApplyingSettings } from './lib/applySettings'
 import { useLibraryStore } from './stores/libraryStore'
 import { logNativeDiagnostics } from './lib/nativeDiagnostics'
@@ -83,7 +84,9 @@ followThemeWithStatusBar()
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <UniversalProvider config={universalConfig}>
-      <App />
+      <I18nRoot>
+        <App />
+      </I18nRoot>
     </UniversalProvider>
   </React.StrictMode>
 )

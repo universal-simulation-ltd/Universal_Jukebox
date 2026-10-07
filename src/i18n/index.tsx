@@ -1,0 +1,90 @@
+// The app's own translations — the same setup as Universal QR's and Universal
+// PDF's src/i18n.
+//
+// The SDK's language (`useLanguage()`): the suite's GLOBAL language, which it
+// resolves from the saved choice, then the device's language, then English —
+// unless this app has its own, set in Tune this app ▸ Language. `language` is
+// already that effective value, so the navbar, the profile menu and this app
+// always agree. Until 2026-10-07 only the knowledge base was translated.
+//
+// Dictionaries live in `src/i18n/<lang>/<namespace>.ts`. English (en-GB) is
+// the source of truth and defines the shape (`Messages`); every other language
+// is typed against it, so `tsc` fails on a missing or misspelt key, and
+// `i18n.test.ts` fails on a missing placeholder or plural form.
+//
+// Keys are `<namespace>.<key>`. Placeholders are `{name}`. A plural is two
+// (or more) keys sharing a stem — `songs_one`, `songs_other` — read through
+// `t.plural('common.songs', count)`, which picks the form with Intl.PluralRules
+// and passes `{count}` for you. Terms: GLOSSARY.md, beside this file.
+import { Fragment, useEffect, useMemo, type ReactNode } from 'react'
+import { useLanguage, SUPPORTED_LANGUAGES } from '@unisim/sdk'
+import {
+  fill,
+  getT,
+  intlLocale,
+  lookup,
+  makeBasicTranslator,
+  registerLanguages,
+  setActiveLanguage,
+  type BasicTranslator,
+  type MessageKey,
+  type Messages,
+  type PluralKey,
+  type Vars,
+} from './runtime.ts'
+import { TRANSLATIONS } from './languages.ts'
+
+export { getT, intlLocale }
+export type { BasicTranslator, MessageKey, Messages, PluralKey, Vars }
+export type Language = (typeof SUPPORTED_LANGUAGES)[number]
+
+registerLanguages(TRANSLATIONS)
+
+export interface Translator extends BasicTranslator {
+  /**
+   * A sentence with React nodes in it: `t.rich('app.tip_body', { button: <strong…/> })`.
+   * Text around the nodes stays one string, so a translator can move the node
+   * to wherever the sentence needs it.
+   */
+  rich(key: MessageKey, nodes: Record<string, ReactNode>, vars?: Vars): ReactNode
+  lang: Language
+}
+
+export function makeTranslator(lang: Language): Translator {
+  const t = makeBasicTranslator(lang) as Translator
+  t.rich = (key, nodes, vars) => {
+    const parts = fill(lookup(lang, key), vars).split(/(\{\w+\})/)
+    return parts.map((part, i) => {
+      const m = /^\{(\w+)\}$/.exec(part)
+      return <Fragment key={i}>{m && m[1] in nodes ? nodes[m[1]] : part}</Fragment>
+    })
+  }
+  return t
+}
+
+/** The translator for a component. Re-renders when the language changes. */
+export function useT(): Translator {
+  const { language } = useLanguage()
+  return useMemo(() => makeTranslator(language), [language])
+}
+
+/**
+ * Mount once, just inside <UniversalProvider>. Keeps `getT()` and `<html lang>`
+ * on the suite language. Set during render, not in an effect, so the children
+ * rendered in this same pass already see it.
+ */
+export function I18nRoot({ children }: { children: ReactNode }) {
+  // `language` is the EFFECTIVE one: this app's override, else the global.
+  const { language, setAppLanguage } = useLanguage()
+  setActiveLanguage(language)
+  if (typeof document !== 'undefined' && document.documentElement.lang !== language) {
+    document.documentElement.lang = language
+  }
+  // For store screenshots and layout checks: drive the app in English, switch
+  // language just before each capture. Only what a user can already do from
+  // Tune this app: it sets this app's override.
+  useEffect(() => {
+    ;(window as unknown as { __jukeboxSetLanguage?: (l: Language) => void }).__jukeboxSetLanguage = setAppLanguage
+  }, [setAppLanguage])
+  return <>{children}</>
+}
