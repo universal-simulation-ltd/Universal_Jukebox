@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- the translator hooks and helpers belong with I18nRoot; hot reload of this one file is not worth splitting it */
 // The app's own translations — the same setup as Universal QR's and Universal
 // PDF's src/i18n.
 //
