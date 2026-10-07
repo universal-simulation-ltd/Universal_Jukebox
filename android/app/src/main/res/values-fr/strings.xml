@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- The launcher shortcuts (xml/shortcuts.xml) in this language. Everything
+     else in values/strings.xml is a name and is not translated. -->
+<resources>
+    <string name="shortcut_shuffle_songs">Morceaux aléatoires</string>
+    <string name="shortcut_shuffle_albums">Albums aléatoires</string>
+    <string name="shortcut_shuffle_artists">Artistes aléatoires</string>
+</resources>
