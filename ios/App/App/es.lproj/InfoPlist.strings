@@ -1,0 +1,5 @@
+/* The permission prompts in Info.plist, in this language (Info.plist holds the English). */
+"NSAppleMusicUsageDescription" = "Universal Jukebox reproduce las canciones de tu biblioteca de Música guardadas en este iPhone, como las que sincronizas desde tu ordenador. No se sube nada.";
+"NSCameraUsageDescription" = "Universal Jukebox nunca usa la cámara por sí mismo. iOS la ofrece en el selector de archivos; lo que hagas ahí se queda en este dispositivo.";
+"NSMicrophoneUsageDescription" = "Universal Jukebox nunca graba sonido por sí mismo. iOS solo pide el micrófono si grabas un vídeo desde el selector de archivos; se queda en este dispositivo.";
+"NSPhotoLibraryUsageDescription" = "Universal Jukebox no necesita tus fotos. iOS las ofrece en el selector de archivos; lo que elijas ahí se ignora, porque solo se leen archivos de música. No se sube nada.";

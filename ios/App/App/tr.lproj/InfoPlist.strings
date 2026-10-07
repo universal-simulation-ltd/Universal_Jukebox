@@ -1,0 +1,5 @@
+/* The permission prompts in Info.plist, in this language (Info.plist holds the English). */
+"NSAppleMusicUsageDescription" = "Universal Jukebox, bu iPhone’da saklanan Müzik arşivinizdeki şarkıları (örneğin bilgisayarınızdan eşzamanladıklarınızı) çalar. Hiçbir şey yüklenmez.";
+"NSCameraUsageDescription" = "Universal Jukebox kamerayı kendisi hiçbir zaman kullanmaz. iOS onu dosya seçicide sunar; orada çektikleriniz bu cihazda kalır.";
+"NSMicrophoneUsageDescription" = "Universal Jukebox kendisi hiçbir zaman ses kaydetmez. iOS mikrofonu yalnızca dosya seçiciden video çekerseniz ister; video bu cihazda kalır.";
+"NSPhotoLibraryUsageDescription" = "Universal Jukebox’ın fotoğraflarınıza ihtiyacı yoktur. iOS bunları dosya seçicide sunar; orada seçilenler yok sayılır, çünkü yalnızca müzik dosyaları okunur. Hiçbir şey yüklenmez.";
