@@ -542,6 +542,17 @@ That way, a copy of James's profile opened with no banner, learnt lengths
 (2,549 to 2,749 in 5 s) with no interaction, and played a track. Before the
 bridge, the same launch showed the Allow access banner.
 
+⚠️ **Not even briefly** (`2b3481f`; James: "I see the banner and then it
+disappears, can it just not be shown"). The library renders from cache before
+`reattachFolders` / `reattachNative` finish, and the banner is derived from
+tracks with no live file, so it flashed up in that gap. `hydrate` now sets a
+`reattaching` store flag when any root has a handle or a `nativePath`, and
+clears it in a `finally`. `ScanBanner` hides its permission rows while the flag
+is set. A `MutationObserver` installed before first paint saw the banner at about
+536 ms on the previous build and never on this one. Because the flag is cleared
+in the `finally`, a refused reattach should still bring the banner back once it
+gives up (up to the 4 s gesture timeout), but that path has not been driven.
+
 ### The tag tests are the important ones
 
 `src/lib/tags.ts` is the half of this app that fails **silently**. A misread tag
