@@ -527,7 +527,7 @@ So (`2479bfd`): the preload exposes `unisimDesktop.withGesture`, which invokes
 IPC `jukebox:with-gesture`; `main.cjs` runs `window.__jukeboxGesture()` through
 `webContents.executeJavaScript(code, true)`, whose `true` is a user gesture. The
 page queues its `requestPermission` calls behind that (`requestWithGesture` in
-`libraryStore`; after 4 s it falls back to the banner). Then `reattachFolders`
+`libraryStore`; after 20 s, since `52108b3`, it falls back to the banner). Then `reattachFolders`
 walks each folder for its files with `filesUnder` (`scan.ts`): a tree walk, no
 tags read, the desktop twin of the phones' native reattach. In a browser the
 folder comes back on load only if permission is already `granted`. Any refusal
@@ -551,7 +551,26 @@ clears it in a `finally`. `ScanBanner` hides its permission rows while the flag
 is set. A `MutationObserver` installed before first paint saw the banner at about
 536 ms on the previous build and never on this one. Because the flag is cleared
 in the `finally`, a refused reattach should still bring the banner back once it
-gives up (up to the 4 s gesture timeout), but that path has not been driven.
+gives up (up to the 20 s gesture timeout), but that path has not been driven.
+
+⚠️ **`executeJavaScript(code, true)` does not reliably give a user gesture while
+the page is still loading** (`45aaef4`). On a real launch of the no-click build,
+James still saw the Allow access banner. The page now keeps a trace,
+`window.__jukeboxReattach`. Read over a debugging port on his real profile, it
+showed that about one launch in four had `requestPermission` throw "User
+activation is required" even though `main.cjs` ran it with `userGesture = true`.
+It always happened early, at about 0.5 s. (`52108b3`'s commit message guesses
+that Windows was scanning the new `.exe`. That guess was wrong, though the
+20 s timeout stays.) The fix has two parts:
+`main.cjs` waits for `did-stop-loading` (if `isLoading()`) before
+`executeJavaScript`, and the page retries a `SecurityError` up to 5 times,
+400 ms apart. It also waits for the window to be visible, but that is only a
+guard: the failing launch was already visible. Across 8 install-and-launch cycles
+on his profile, all 6 that started opened with no banner, including one that hit
+the race and recovered on retry (trace: "retry after … User activation is
+required", then "granted" at 896 ms). The other 2 never started because the
+previous copy still held the single-instance lock. That was the test harness,
+not the app.
 
 ### The tag tests are the important ones
 
