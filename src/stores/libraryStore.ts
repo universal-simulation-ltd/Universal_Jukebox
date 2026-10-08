@@ -1475,7 +1475,11 @@ function requestWithGesture(handle: FileSystemDirectoryHandle): Promise<Permissi
   const bridge = (window as unknown as { unisimDesktop?: { withGesture?: () => Promise<unknown> } }).unisimDesktop?.withGesture
   if (!bridge) return Promise.resolve('prompt')
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve('prompt'), 4000)
+    // ⚠️ Generous, and only a guard against a shell that never answers: a
+    // refusal comes back at once. 4 s gave up on the FIRST launch after an
+    // install — Windows scanning the new .exe slows everything — and showed
+    // the banner on a launch that would have reconnected (James, 2026-10-08).
+    const timer = setTimeout(() => resolve('prompt'), 20000)
     gestureQueue.push(() => {
       clearTimeout(timer)
       const request = (handle as FileSystemDirectoryHandle & {
