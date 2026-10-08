@@ -161,6 +161,25 @@ component re-renders forever — "Maximum update depth exceeded", on the landing
 page, before there is even a library. Callers subscribe to the pieces and
 `useMemo`.
 
+### ⚠️ A root is written before its tracks, and tracks with no root get one back
+
+A scan used to store tracks batch by batch and its root only at the end, so an
+interrupted first scan (window closed, read failed, superseded, a reinstall
+mid-scan) left every track filed under a prefix no root owned. Nothing then said
+so: with no root, the permission banner had nothing to name, and the player's
+"isn't reachable" error is hidden by default. James's installed app sat like that
+with 2,960 tracks and zero roots (2026-10-08, `46619b7`).
+
+So `runScan` persists the root before the first batch and keeps it if the read
+throws, and `hydrate` repairs libraries already in that state: `orphanRoots`
+(`lib/roots.ts`) rebuilds one root per top-level path segment with no handle,
+which the banner offers as **Choose folder**. Web and desktop only; the phone
+apps hold their own grants. Choose folder uses `showDirectoryPicker` where there
+is one (`chooseFolderAgain`), so the handle is kept and the next launch needs
+only **Allow access**. And `ScanBanner` drops a folder's row for a player error
+covering it **only when errors are shown**: standing down for a message the user
+never sees is how this stayed silent.
+
 ## The example library
 
 **Nothing to hand?** The landing page offers an example library: nine records
