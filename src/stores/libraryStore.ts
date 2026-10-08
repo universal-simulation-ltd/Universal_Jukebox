@@ -128,6 +128,19 @@ interface LibraryState {
    */
   stoppedEarly: string | null
 
+  /**
+   * Folders whose permission has just been given back and whose rescan is
+   * still running — so the permission banner can say "Access allowed" and get
+   * out of the way, rather than asking again for the whole length of the scan.
+   *
+   * ⚠️ The banner is DERIVED from tracks with no file (`needAccessFrom`), and a
+   * scan only hands its files over when it finishes — so without this, the
+   * folder you had just allowed kept asking for permission until the last file
+   * was read (James, 2026-10-08: "when clicking allow access i'd expect the
+   * banner to close"). Not saved: it means nothing after a restart.
+   */
+  reconnecting: string[]
+
   hydrate(): Promise<void>
   /** Stop a running scan, keeping everything found so far. */
   stopScan(): void
@@ -415,6 +428,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   filesByPath: new Map(),
   importProgress: null,
   folderImages: new Map(),
+  reconnecting: [],
   canPersistFolder: hasDirectoryPicker(),
   stoppedEarly: null,
   trying: false,
@@ -597,7 +611,15 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       set({ error: `${root.label} could not be opened. It may have been moved, renamed, or be on a drive that is no longer connected.` })
       return
     }
-    await runScan(set, get, root.handle, root.label, root.handle, root.id)
+    // Allowed: the banner can stand down now, not when the scan ends — see
+    // `reconnecting`. Cleared however the scan ends, so a folder that really
+    // does still need something can ask again.
+    set({ reconnecting: [...get().reconnecting.filter((r) => r !== id), id] })
+    try {
+      await runScan(set, get, root.handle, root.label, root.handle, root.id)
+    } finally {
+      set({ reconnecting: get().reconnecting.filter((r) => r !== id) })
+    }
   },
 
   async rescanFolder(id) {

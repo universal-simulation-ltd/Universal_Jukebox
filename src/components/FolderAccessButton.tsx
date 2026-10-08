@@ -29,6 +29,23 @@ export default function FolderAccessButton({ root }: { root: Root }) {
   const addFiles = useLibraryStore((s) => s.addFiles)
   const folderInput = useRef<HTMLInputElement>(null)
   const kind = folderAccess(root)
+  const allowed = useLibraryStore((s) => s.reconnecting.includes(root.id))
+
+  // Permission given back, the rescan under way: say so where the button was,
+  // for the moment before the banner closes (`ScanBanner`'s `TICK_MS`).
+  if (allowed) {
+    return (
+      <span
+        role="status"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm dark:bg-emerald-500"
+      >
+        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
+          <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.58l7.3-7.3a1 1 0 0 1 1.4 0Z" />
+        </svg>
+        Access allowed
+      </span>
+    )
+  }
 
   return (
     <>

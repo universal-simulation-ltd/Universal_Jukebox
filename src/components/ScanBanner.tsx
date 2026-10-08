@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DropRing } from '@unisim/sdk'
 import FolderAccessButton from './FolderAccessButton'
 import { plural } from '../lib/format'
@@ -13,6 +13,9 @@ import { useSettingsStore } from '../stores/settingsStore'
 // Live scan progress, and the two things a scan has to say afterwards: the
 // formats it had to refuse, and whether the folder needs its permission back.
 
+/** How long "Access allowed" shows before the folder's row leaves the banner. */
+const TICK_MS = 1200
+
 /**
  * "Start a new library" — the secondary action on the permission banner.
  *
@@ -23,16 +26,42 @@ import { useSettingsStore } from '../stores/settingsStore'
  * the list rather than beside any one folder's button — it abandons the whole
  * library, so it belongs to the banner, not to a row.
  *
- * It carries no confirmation, for the same reason the app menu's "Forget this
- * library" doesn't: the library is derived from files on disk and rebuilding it
- * is one folder-pick away. Nothing here can lose anything that isn't already
- * somewhere else.
+ * ⚠️ IT ASKS FIRST (James, 2026-10-08: "there should be a confirmation before
+ * doing it"). It used to go on the first click, on the reasoning that the
+ * library is rebuilt from the files — but a rebuild is a whole rescan, and one
+ * stray click on a banner should not cost that. Asked inline, like the scan
+ * card's "Stop and…", rather than in a dialog over a banner that is already a
+ * warning.
  */
 function StartAgain({ onClick }: { onClick(): void }) {
+  const [asking, setAsking] = useState(false)
+  if (asking) {
+    return (
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Start a new library">
+        <span className="mr-1 text-[13px] font-medium">
+          Forget this library and start again? Your music files aren’t touched.
+        </span>
+        <button
+          type="button"
+          onClick={onClick}
+          className="rounded-full border border-red-300 bg-white px-4 py-1.5 text-[13px] font-medium text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950/40"
+        >
+          Forget it
+        </button>
+        <button
+          type="button"
+          onClick={() => setAsking(false)}
+          className="px-2 py-1.5 text-[12.5px] text-orange-900/80 underline-offset-2 hover:underline dark:text-orange-200/80"
+        >
+          Keep it
+        </button>
+      </div>
+    )
+  }
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => setAsking(true)}
       title="Forget this library and go back to the start"
       className="shrink-0 text-[13px] font-medium text-orange-900/80 underline-offset-2 hover:underline dark:text-orange-200/80"
     >
@@ -68,9 +97,24 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   const missing = useMissingFile()
   const coveredId =
     playerError && missing?.folderLapsed && !missing.reachableNow ? missing.root?.id : undefined
+  // A folder just allowed shows its tick for TICK_MS, then leaves the banner —
+  // see `reconnecting` in the store. `settled` is the ones whose tick has been
+  // seen; it forgets each as its scan ends, by when the files are back and the
+  // folder is no longer unreachable anyway.
+  const reconnecting = useLibraryStore((s) => s.reconnecting)
+  const [settled, setSettled] = useState<string[]>([])
+  useEffect(() => {
+    if (settled.some((id) => !reconnecting.includes(id))) {
+      setSettled((ids) => ids.filter((id) => reconnecting.includes(id)))
+    }
+    const fresh = reconnecting.filter((id) => !settled.includes(id))
+    if (fresh.length === 0) return
+    const timer = setTimeout(() => setSettled((ids) => [...new Set([...ids, ...fresh])]), TICK_MS)
+    return () => clearTimeout(timer)
+  }, [reconnecting, settled])
   const stranded = useMemo(
-    () => (coveredId ? unreachable.filter((r) => r.id !== coveredId) : unreachable),
-    [unreachable, coveredId],
+    () => unreachable.filter((r) => r.id !== coveredId && !settled.includes(r.id)),
+    [unreachable, coveredId, settled],
   )
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const stopScan = useLibraryStore((s) => s.stopScan)
