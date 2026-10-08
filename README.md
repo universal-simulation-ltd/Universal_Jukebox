@@ -180,6 +180,35 @@ only **Allow access**. And `ScanBanner` drops a folder's row for a player error
 covering it **only when errors are shown**: standing down for a message the user
 never sees is how this stayed silent.
 
+⚠️ **A track on screen must also be playable.** The scan published tracks to the
+grid batch by batch, but handed their files to the player only when the walk
+ended: minutes for ~3,000 songs. Anything pressed in that time had no file, was
+skipped, and (errors hidden by default) nothing happened. James hit exactly this
+straight after choosing his folder (`a03c301`). `scan()`'s `onBatch` now
+receives the live `files` map, and every publish hands over the files found so
+far. In the same commit, **Choose folder** (picker and `webkitdirectory` alike)
+stands its banner row down while the folder is read, as **Allow access** already
+did, rather than still asking for a folder that is being scanned.
+
+### Lengths are learnt in the background, and a rescan keeps them
+
+A track's length is not in the tags and `scan.ts` decodes nothing, so a fresh
+library showed "—" in every Length column until each song had been played once
+(James, 2026-10-08: "can we get the duration before having to play the
+tracks?"). `lib/lengths.ts` walks the tracks that have a live file and no
+`durationSec`, **one at a time**, through an unplayed `<audio
+preload="metadata">`, writes each with `db.setDuration`, and republishes the
+store in batches every 2.5 s. One at a time because Chromium caps a page's media
+players and the two decks need theirs. On a copy of James's 3,327-track library
+it went from 1 to 2,116 lengths in 60 s (about 35 a second) while a song played
+uninterrupted (`12fd791`).
+
+⚠️ A rescan rebuilds every track from its file, so it used to drop every length
+already learnt. `addScan` now carries `durationSec` across to a rescanned track
+with the same id (same path, size and mtime), and `runScan`'s snapshot picks up
+lengths learnt while the scan was running. The walk also runs in the phone
+apps; that has not been tried on a phone.
+
 ## The example library
 
 **Nothing to hand?** The landing page offers an example library: nine records
@@ -530,6 +559,7 @@ src/
 │   ├── roots.ts       # several folders: prefixes, merging, removing. Pure, tested
 │   ├── search.ts      # what the search box matches — and so the tab counts too
 │   ├── scan.ts        # the folder walk — header-only reads, streaming results
+│   ├── lengths.ts     # every track's length, learnt in the background, one probe at a time
 │   ├── library.ts     # IndexedDB: tracks / albums / roots / fixes / lyrics
 │   ├── lyrics.ts      # LRC in, timed lines out — + the on-demand read. Pure, tested
 │   ├── lrclib.ts      # ⚠️ ONE OF THREE FILES THAT TOUCH THE NETWORK (aboutTrack.ts, requests.ts). Off by default
