@@ -44,6 +44,7 @@ import {
   walkNativeLibrary,
 } from '../lib/nativeFile'
 import { applyFixes } from '../lib/tidy'
+import { learnLengths } from '../lib/lengths'
 import { holdSession } from '../lib/session'
 import { mergeDiscSets } from '../lib/discs'
 import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
@@ -1113,6 +1114,25 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 }))
 
+// Lengths for every track with a file, in the background — `lib/lengths.ts`.
+// Started whenever the live files change: after a folder is allowed back,
+// chosen, or scanned, and as a scan hands its files over batch by batch.
+const lengthsHost = {
+  tracks: () => useLibraryStore.getState().tracks,
+  fileFor: (track: Track) => useLibraryStore.getState().filesByPath.get(track.path) ?? null,
+  publish: (learnt: Map<string, number>) =>
+    useLibraryStore.setState({
+      tracks: useLibraryStore.getState().tracks.map((t) => {
+        const sec = learnt.get(t.id)
+        return sec !== undefined && !t.durationSec ? { ...t, durationSec: sec } : t
+      }),
+    }),
+  save: (id: string, sec: number) => void db.setDuration(id, sec),
+}
+useLibraryStore.subscribe((state, prev) => {
+  if (state.filesByPath !== prev.filesByPath && state.filesByPath.size > 0) void learnLengths(lengthsHost)
+})
+
 /**
  * One scan, shared by every way of starting one.
  *
@@ -1473,6 +1493,23 @@ async function runScan(
   // batch arriving mid-walk cannot fold itself into a library that already
   // contains the previous batch.
   const before = { tracks: get().tracks, albums: get().albums }
+  // ...plus any length learnt WHILE the walk runs: a song played mid-scan has
+  // its length published to the store (`flushDurations`), and the next publish
+  // below, built from the snapshot, would otherwise take it away again.
+  const beforeNow = () => {
+    const learnt = new Map<string, number>()
+    for (const t of get().tracks) if (t.durationSec) learnt.set(t.id, t.durationSec)
+    if (learnt.size === 0) return before
+    return {
+      ...before,
+      tracks: [
+        ...before.tracks.map((t) => (!t.durationSec && learnt.has(t.id) ? { ...t, durationSec: learnt.get(t.id) } : t)),
+        // A FIRST scan's songs are not in the snapshot at all — carried as
+        // their own, unchanged otherwise, since `addScan` replaces them.
+        ...scanned.filter((t) => learnt.has(t.id)).map((t) => ({ ...t, durationSec: learnt.get(t.id) })),
+      ],
+    }
+  }
   const scanned: Track[] = []
   const scannedAlbums = new Map<string, Album>()
 
@@ -1500,7 +1537,7 @@ async function runScan(
     // ⚠️ The GRID fills in from the merge, not from the batch. Setting the
     // batch alone was right when a scan replaced the library and would now
     // make the other folders vanish for the length of the walk.
-    const merged = addScan(before, prefix, { tracks: scanned, albums: [...scannedAlbums.values()] })
+    const merged = addScan(beforeNow(), prefix, { tracks: scanned, albums: [...scannedAlbums.values()] })
     const joined = mergeDiscSets(merged.tracks, merged.albums)
     // ⚠️ AND THEIR FILES (2026-10-08). The grid filled in from here while the
     // files were handed over only once the walk ended — minutes, for a few
@@ -1573,7 +1610,7 @@ async function runScan(
   // ⚠️ Applied to the WHOLE merged library, not to this scan's tracks: a fix
   // can move a track into an album that lives in a different folder, and
   // `applyFixes` drops any fix whose target album it cannot see.
-  const merged = addScan(before, prefix, {
+  const merged = addScan(beforeNow(), prefix, {
     tracks: result.tracks,
     albums: result.albums,
   })

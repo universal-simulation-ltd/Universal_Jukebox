@@ -137,6 +137,23 @@ describe('adding a folder', () => {
   })
 })
 
+describe('a rescan and the lengths already learnt', () => {
+  // ⚠️ Lengths are learnt by playing, never read from tags — a rescan that
+  // dropped them blanked the Length column for good (2026-10-08).
+  it('keeps the length of an unchanged file', () => {
+    const before = { tracks: [track('Music/a.mp3', { durationSec: 208 }), track('Music/b.mp3')], albums: [album('an album')] }
+    const after = addScan(before, 'Music', { tracks: [track('Music/a.mp3'), track('Music/b.mp3')], albums: [album('an album')] })
+    expect(after.tracks.map((t) => t.durationSec)).toEqual([208, undefined])
+  })
+
+  it('does not carry it to a file that changed', () => {
+    const before = { tracks: [track('Music/a.mp3', { durationSec: 208 })], albums: [album('an album')] }
+    const edited = track('Music/a.mp3', { id: trackKey({ path: 'Music/a.mp3', size: 2000, mtime: 5 }), size: 2000, mtime: 5 })
+    const after = addScan(before, 'Music', { tracks: [edited], albums: [album('an album')] })
+    expect(after.tracks[0].durationSec).toBeUndefined()
+  })
+})
+
 describe('removing a folder', () => {
   const two = {
     tracks: [

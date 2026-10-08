@@ -99,7 +99,17 @@ export interface Library {
  */
 export function addScan(existing: Library, prefix: string, scanned: Library): Library {
   const kept = existing.tracks.filter((t) => !pathUnder(t.path, prefix))
-  const tracks = [...kept, ...scanned.tracks]
+  // ⚠️ A track's LENGTH survives a rescan, as its album's sleeve does below.
+  // It is never in the tags — it is learnt the first time the song plays
+  // (`Track.durationSec`) — so a re-read file comes back without it, and every
+  // rescan used to blank the whole Length column (2026-10-08). Same id means
+  // same path, size and mtime: the same audio.
+  const learnt = new Map<string, number>()
+  for (const t of existing.tracks) if (t.durationSec) learnt.set(t.id, t.durationSec)
+  const rescanned = learnt.size === 0
+    ? scanned.tracks
+    : scanned.tracks.map((t) => (!t.durationSec && learnt.has(t.id) ? { ...t, durationSec: learnt.get(t.id) } : t))
+  const tracks = [...kept, ...rescanned]
 
   const byId = new Map<string, Album>()
   // Existing first, then scanned — so a newly scanned album's artwork wins for
