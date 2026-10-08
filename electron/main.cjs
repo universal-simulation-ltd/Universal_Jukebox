@@ -120,9 +120,17 @@ if (!app.requestSingleInstanceLock()) {
   // `executeJavaScript(code, true)` runs code WITH a user gesture, which is
   // exactly what that rule asks for. The page queues its requests and calls
   // this; nothing here can do more than the button already did.
-  ipcMain.handle('jukebox:with-gesture', (event) =>
-    event.sender.executeJavaScript('window.__jukeboxGesture && window.__jukeboxGesture()', true).then(() => true),
-  )
+  //
+  // ⚠️ NOT WHILE THE PAGE IS STILL LOADING. Asked half a second into a launch,
+  // the gesture sometimes did not take and Chromium refused anyway ("User
+  // activation is required") — one launch in four, caught with the page's own
+  // trace. Run once loading has finished; the page also retries.
+  ipcMain.handle('jukebox:with-gesture', async (event) => {
+    const contents = event.sender
+    if (contents.isLoading()) await new Promise((resolve) => contents.once('did-stop-loading', resolve))
+    await contents.executeJavaScript('window.__jukeboxGesture && window.__jukeboxGesture()', true)
+    return true
+  })
 
   app.whenReady().then(() => {
     // Hub pages (profile, account) open in a window this app owns, signed in

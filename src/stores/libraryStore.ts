@@ -1470,28 +1470,65 @@ async function reattachNative(
  * resolves as 'prompt' and the banner asks instead.
  */
 const gestureQueue: (() => void)[] = []
+const GESTURE_TRIES = 5
 
 function requestWithGesture(handle: FileSystemDirectoryHandle): Promise<PermissionState> {
   const bridge = (window as unknown as { unisimDesktop?: { withGesture?: () => Promise<unknown> } }).unisimDesktop?.withGesture
   if (!bridge) return Promise.resolve('prompt')
   return new Promise((resolve) => {
-    // ⚠️ Generous, and only a guard against a shell that never answers: a
-    // refusal comes back at once. 4 s gave up on the FIRST launch after an
-    // install — Windows scanning the new .exe slows everything — and showed
-    // the banner on a launch that would have reconnected (James, 2026-10-08).
-    const timer = setTimeout(() => resolve('prompt'), 20000)
-    gestureQueue.push(() => {
+    // What happened, kept on the page for a debugger to read — this path only
+    // runs at launch, before anybody could have a console open on it.
+    const trace = ((window as unknown as { __jukeboxReattach?: unknown[] }).__jukeboxReattach ??= [])
+    const done = (state: PermissionState, why: string) => {
+      trace.push({ at: Math.round(performance.now()), why, state, visibility: document.visibilityState })
+      resolve(state)
+    }
+    // Only a guard against a shell that never answers: a refusal comes back
+    // at once.
+    const timer = setTimeout(() => done('prompt', 'timeout'), 20000)
+    let tries = 0
+    const run = () => {
       clearTimeout(timer)
       const request = (handle as FileSystemDirectoryHandle & {
         requestPermission?(d: { mode: 'read' }): Promise<PermissionState>
       }).requestPermission?.({ mode: 'read' })
-      if (!request) resolve('prompt')
-      else request.then(resolve, () => resolve('prompt'))
-    })
+      if (!request) done('prompt', 'no requestPermission')
+      else
+        request.then(
+          (state) => done(state, 'answered'),
+          (err: Error) => {
+            // ⚠️ The gesture did not take — a race at launch (see main.cjs).
+            // Asked again, a few times, before the banner is left to ask.
+            if (err.name === 'SecurityError' && tries < GESTURE_TRIES) {
+              trace.push({ at: Math.round(performance.now()), why: `retry after ${err.message}` })
+              setTimeout(start, 400)
+            } else done('prompt', `threw ${err.name}: ${err.message}`)
+          },
+        )
+    }
     ;(window as unknown as { __jukeboxGesture?: () => void }).__jukeboxGesture = () => {
       for (const run of gestureQueue.splice(0)) run()
     }
-    bridge().catch(() => resolve('prompt'))
+    // Not while the window is still hidden (main.cjs holds it back until first
+    // paint) — a guard only. The launch James saw the banner on (2026-10-08:
+    // "Am I running the fixed version?") was the race the retries answer: the
+    // window was visible and the gesture still did not take.
+    const ask = () => void bridge().catch((err: Error) => done('prompt', `ipc ${err.message}`))
+    const start = () => {
+      tries++
+      gestureQueue.push(run)
+      ask()
+    }
+    if (document.visibilityState === 'visible') start()
+    else {
+      trace.push({ at: Math.round(performance.now()), why: 'waiting for the window', visibility: document.visibilityState })
+      const onShow = () => {
+        if (document.visibilityState !== 'visible') return
+        document.removeEventListener('visibilitychange', onShow)
+        start()
+      }
+      document.addEventListener('visibilitychange', onShow)
+    }
   })
 }
 
