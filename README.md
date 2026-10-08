@@ -499,7 +499,7 @@ npm run dist:win         # the NSIS installer, into release/ — on Windows
 An Electron shell (`electron/main.cjs`) around the `--mode desktop` bundle,
 loaded from disk. The music is read exactly as the browser reads it — through
 Chromium's own folder picker — so the renderer stays sandboxed and the preload
-exposes nothing but the SDK's hub handoff. One copy runs at a time (a second
+exposes only the SDK's hub handoff and Jukebox's `withGesture` (below). One copy runs at a time (a second
 would share the library's IndexedDB), links out open in the system browser, and
 background throttling is off so a change-over keeps time while minimised.
 
@@ -513,6 +513,34 @@ other desktop apps, so SmartScreen asks once: More info → Run anyway.
 ⚠️ **An agent's shell sets `ELECTRON_RUN_AS_NODE`,** and with it set any
 Electron app starts as plain Node and exits at once. Launch with
 `env -u ELECTRON_RUN_AS_NODE`.
+
+#### ⚠️ The music folder comes back on launch with no click
+
+James, 2026-10-08: "Can't we have a permanent permission so the allow access is
+automatic?" A chosen folder's `FileSystemDirectoryHandle` survives a relaunch in
+IndexedDB, but its read permission goes back to `prompt`, and Chromium's
+`requestPermission` throws `SecurityError: User activation is required` without
+a gesture. Electron then grants the request itself with no dialog, so the
+**Allow access** click bought nothing.
+
+So (`2479bfd`): the preload exposes `unisimDesktop.withGesture`, which invokes
+IPC `jukebox:with-gesture`; `main.cjs` runs `window.__jukeboxGesture()` through
+`webContents.executeJavaScript(code, true)`, whose `true` is a user gesture. The
+page queues its `requestPermission` calls behind that (`requestWithGesture` in
+`libraryStore`; after 4 s it falls back to the banner). Then `reattachFolders`
+walks each folder for its files with `filesUnder` (`scan.ts`): a tree walk, no
+tags read, the desktop twin of the phones' native reattach. In a browser the
+folder comes back on load only if permission is already `granted`. Any refusal
+means the banner, as before.
+
+⚠️ **Don't test this with Playwright.** Both `page.evaluate` and a check run from
+`addInitScript` reported `navigator.userActivation.isActive === true`, so they
+showed `requestPermission` succeeding with no click: a false pass. The honest
+test is to launch `electron.exe` directly with `--remote-debugging-port`, attach
+over CDP afterwards, and check with `Runtime.evaluate` (`userGesture: false`).
+That way, a copy of James's profile opened with no banner, learnt lengths
+(2,549 to 2,749 in 5 s) with no interaction, and played a track. Before the
+bridge, the same launch showed the Allow access banner.
 
 ### The tag tests are the important ones
 
