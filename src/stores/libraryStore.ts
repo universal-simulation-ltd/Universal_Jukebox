@@ -18,6 +18,7 @@ import {
   addScan,
   isFolderNamed,
   nativeRoots,
+  orphanRoots,
   pathUnder,
   planNativePick,
   prefixOf,
@@ -146,6 +147,11 @@ interface LibraryState {
   stopScan(): void
   /** Choose a folder and ADD it to the library. */
   pickFolder(): Promise<void>
+  /**
+   * A folder with no stored handle, chosen again through the directory picker
+   * where there is one. Must be called from a click, like `regrantFolder`.
+   */
+  chooseFolderAgain(id: string): Promise<void>
   /**
    * The Firefox/Safari path, and "pick individual files". Also adds — unless
    * `intoRootId` names the folder these files are that folder chosen AGAIN, in
@@ -343,7 +349,13 @@ async function hydrateOnce(
   get: () => LibraryState,
 ): Promise<void> {
   try {
-    const [storedTracks, storedAlbums, roots] = await Promise.all([db.allTracks(), db.allAlbums(), db.allRoots()])
+    const [storedTracks, storedAlbums, storedRoots] = await Promise.all([db.allTracks(), db.allAlbums(), db.allRoots()])
+    // Tracks an interrupted scan left filed under no folder get one back, so
+    // they can ask for it — see `orphanRoots`. Not in the phone apps, whose
+    // folders are found again by path and never chosen through a picker.
+    const orphans = isNativeShell() ? [] : orphanRoots(storedRoots, storedTracks, Date.now())
+    for (const root of orphans) void db.putRoot(root)
+    const roots = [...storedRoots, ...orphans]
     // A disc set stored as separate albums comes back as one — `lib/discs.ts`.
     const joined = mergeDiscSets(storedTracks, storedAlbums)
     const tracks = joined.tracks
@@ -464,6 +476,23 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return
     }
     await runScan(set, get, handle, handle.name, handle)
+  },
+
+  async chooseFolderAgain(id) {
+    const root = get().roots.find((r) => r.id === id)
+    if (!root || !hasDirectoryPicker()) return
+    let handle: FileSystemDirectoryHandle
+    try {
+      handle = await (window as unknown as {
+        showDirectoryPicker(options?: { mode?: 'read' | 'readwrite' }): Promise<FileSystemDirectoryHandle>
+      }).showDirectoryPicker({ mode: 'read' })
+    } catch {
+      return
+    }
+    // INTO this root when it is the folder asked for — the same rule as
+    // `addFiles` — and now with a handle, so the next launch only has to ask
+    // for permission rather than for the folder.
+    await runScan(set, get, handle, handle.name, handle, isFolderNamed(root, handle.name) ? root.id : undefined)
   },
 
   /**
@@ -1396,6 +1425,27 @@ async function runScan(
   const prefix = existing ? prefixOf(existing) : uniqueLabel(label, taken)
   const rootId = existing?.id ?? prefix
 
+  // ⚠️ THE FOLDER IS RECORDED BEFORE ITS FIRST TRACK (2026-10-08). `onBatch`
+  // below writes tracks to IndexedDB as they are found, and the root used to be
+  // written only once the walk finished — so a scan that never finished (the
+  // window closed, the read failed, a newer scan replaced it) left thousands of
+  // tracks stored under no folder at all. After a relaunch none of them had a
+  // file, no folder was there to ask permission for, so the banner had nothing
+  // to say, and with errors hidden by default every press of play did nothing
+  // in silence (James, desktop: "isn't playing anything and doesn't say there's
+  // an issue"). Written first, an interrupted scan leaves a folder that asks
+  // for itself back like any other. The count and time are filled in at the end.
+  await db.putRoot({
+    id: rootId,
+    label: prefix,
+    prefix,
+    handle,
+    nativePath,
+    scannedAt: existing?.scannedAt ?? Date.now(),
+    trackCount: existing?.trackCount ?? 0,
+  })
+  if (!current()) return
+
   // ⚠️ The library that is already loaded, captured BEFORE the scan starts.
   // Everything below merges into this snapshot rather than into `get()`, so a
   // batch arriving mid-walk cannot fold itself into a library that already
@@ -1461,7 +1511,11 @@ async function runScan(
     flushPublish()
     if (scanAbort === abort) scanAbort = null
     if (!current() || wasSuperseded(abort)) return
+    // The folder stays — see "recorded before its first track" above — so the
+    // tracks already shown are filed under something that can be rescanned.
+    const kept: Root = { id: rootId, label: prefix, prefix, handle, nativePath, scannedAt: Date.now(), trackCount: scanned.length }
     set({
+      roots: [...get().roots.filter((r) => r.id !== rootId), kept],
       status: get().tracks.length > 0 ? 'ready' : 'empty',
       progress: null,
       error: 'That folder could not be read all the way through. Anything found before the problem is in the library.',

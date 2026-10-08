@@ -95,8 +95,13 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   // two problems. The row comes back the moment the error is dismissed.
   const playerError = usePlayerStore((s) => s.error)
   const missing = useMissingFile()
+  // ⚠️ Only when that error is actually ON SCREEN. With errors hidden (the
+  // default) it is not, and dropping the row anyway made the one prompt that
+  // explains why nothing plays vanish at the very moment play was pressed.
+  // "Some files were skipped" is a report too, and hidden with the errors.
+  const hideErrors = useSettingsStore((s) => s.hideErrors)
   const coveredId =
-    playerError && missing?.folderLapsed && !missing.reachableNow ? missing.root?.id : undefined
+    playerError && !hideErrors && missing?.folderLapsed && !missing.reachableNow ? missing.root?.id : undefined
   // A folder just allowed shows its tick for TICK_MS, then leaves the banner —
   // see `reconnecting` in the store. `settled` is the ones whose tick has been
   // seen; it forgets each as its scan ends, by when the files are back and the
@@ -123,8 +128,6 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   // there is nothing left to finish.
   const stoppedRoot = stoppedEarly ? roots.find((r) => r.id === stoppedEarly) : undefined
   const clear = useLibraryStore((s) => s.clear)
-  // "Some files were skipped" is a report, and hidden with the other errors.
-  const hideErrors = useSettingsStore((s) => s.hideErrors)
 
   /**
    * The way out of this banner that isn't "find that folder again".

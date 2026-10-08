@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { folderAccess } from '../lib/roots'
+import { hasDirectoryPicker } from '../lib/scan'
 import type { Root } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 
@@ -27,6 +28,7 @@ export default function FolderAccessButton({ root }: { root: Root }) {
   const regrantFolder = useLibraryStore((s) => s.regrantFolder)
   const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
+  const chooseFolderAgain = useLibraryStore((s) => s.chooseFolderAgain)
   const folderInput = useRef<HTMLInputElement>(null)
   const kind = folderAccess(root)
   const allowed = useLibraryStore((s) => s.reconnecting.includes(root.id))
@@ -58,7 +60,12 @@ export default function FolderAccessButton({ root }: { root: Root }) {
             ? () => void scanNativeFolder(root.id)
             : kind === 'reopen'
               ? () => void regrantFolder(root.id)
-              : () => folderInput.current?.click()
+              // The real picker where there is one (Chromium, the desktop
+              // app): it hands back a handle that can be kept, which
+              // `webkitdirectory` never does.
+              : hasDirectoryPicker()
+                ? () => void chooseFolderAgain(root.id)
+                : () => folderInput.current?.click()
         }
         className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
       >

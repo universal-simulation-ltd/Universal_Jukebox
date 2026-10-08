@@ -161,6 +161,35 @@ export function rootsNeedingAccess(
 }
 
 /**
+ * Folders for tracks that no stored root claims — one per top-level name.
+ *
+ * ⚠️ A library from before 2026-10-08 can hold these: a scan stored its tracks
+ * as it went but its folder only at the end, so an interrupted first scan left
+ * every track filed under nothing. With no root, `rootsNeedingAccess` has
+ * nothing to report, and the library looks fine while not one track will play.
+ * Rebuilt here, with no handle, they ask to be CHOSEN again (`folderAccess`) —
+ * and the prefix is the tracks' own first path segment, so choosing that folder
+ * rescans into exactly the paths already stored.
+ */
+export function orphanRoots(roots: Root[], tracks: Track[], now: number): Root[] {
+  const counts = new Map<string, number>()
+  for (const t of tracks) {
+    if (roots.some((r) => pathUnder(t.path, prefixOf(r)))) continue
+    const slash = t.path.indexOf('/')
+    const prefix = slash > 0 ? t.path.slice(0, slash) : LEGACY
+    counts.set(prefix, (counts.get(prefix) ?? 0) + 1)
+  }
+  return [...counts].map(([prefix, trackCount]) => ({
+    id: prefix || 'library',
+    label: prefix || 'Your music',
+    prefix,
+    handle: null,
+    scannedAt: now,
+    trackCount,
+  }))
+}
+
+/**
  * The root a track is filed under.
  *
  * ⚠️ The LONGEST matching prefix, not the first. A legacy root (prefix "")

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { trackKey } from './keys'
 import {
-  addScan, folderAccess, isFolderNamed, nativeRoots, pathUnder, planNativePick, prefixOf, removeRoot, rootOf,
+  addScan, folderAccess, isFolderNamed, nativeRoots, orphanRoots, pathUnder, planNativePick, prefixOf, removeRoot, rootOf,
   rootsNeedingAccess, trackCountFor, uniqueLabel, unusedGrants,
 } from './roots'
 import type { Album, Root, Track } from './types'
@@ -200,6 +200,25 @@ describe('which folders need their permission back', () => {
   it('does not ask for an empty folder', () => {
     const need = rootsNeedingAccess([root('Empty')], tracks, new Map(), generated)
     expect(need).toHaveLength(0)
+  })
+})
+
+// ⚠️ The silent library (2026-10-08): an interrupted first scan stored 2,960
+// tracks and no folder, so nothing asked for access and nothing played.
+describe('tracks stored under no folder', () => {
+  it('get a folder back per top-level name, which asks to be chosen again', () => {
+    const tracks = [track('Music/a.mp3'), track('Music/x/b.mp3'), track('Podcasts/c.mp3')]
+    const found = orphanRoots([], tracks, 5)
+    expect(found.map((r) => [r.id, r.prefix, r.trackCount])).toEqual([['Music', 'Music', 2], ['Podcasts', 'Podcasts', 1]])
+    expect(found.every((r) => folderAccess(r) === 'choose')).toBe(true)
+    // ...and the banner then names them.
+    expect(rootsNeedingAccess(found, tracks, new Map(), () => false).map((r) => r.id)).toEqual(['Music', 'Podcasts'])
+  })
+
+  it('leaves tracks a stored folder already claims alone', () => {
+    const tracks = [track('Music/a.mp3'), track('Backup/b.mp3')]
+    expect(orphanRoots([root('Music')], tracks, 0).map((r) => r.id)).toEqual(['Backup'])
+    expect(orphanRoots([root('old', { prefix: undefined })], tracks, 0)).toEqual([])
   })
 })
 
