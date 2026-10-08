@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, shell } = require('electron')
 const path = require('node:path')
 const { installHubHandoff } = require('@unisim/sdk/electron')
 
@@ -110,6 +110,19 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow.show()
     mainWindow.focus()
   })
+
+  // ⚠️ THE FOLDER COMES BACK WITHOUT A CLICK (James, 2026-10-08: "can't we
+  // have a permanent permission so the allow access is automatic?"). A chosen
+  // folder's handle survives a relaunch in IndexedDB, but its read permission
+  // does not, and Chromium refuses `requestPermission` without a user gesture
+  // ("User activation is required") — so every launch opened on an "Allow
+  // access" banner whose click Electron then granted without a dialog anyway.
+  // `executeJavaScript(code, true)` runs code WITH a user gesture, which is
+  // exactly what that rule asks for. The page queues its requests and calls
+  // this; nothing here can do more than the button already did.
+  ipcMain.handle('jukebox:with-gesture', (event) =>
+    event.sender.executeJavaScript('window.__jukeboxGesture && window.__jukeboxGesture()', true).then(() => true),
+  )
 
   app.whenReady().then(() => {
     // Hub pages (profile, account) open in a window this app owns, signed in

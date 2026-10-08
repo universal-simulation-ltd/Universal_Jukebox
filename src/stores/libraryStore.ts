@@ -28,7 +28,7 @@ import {
   unusedGrants,
   withCounts,
 } from '../lib/roots'
-import { hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
+import { filesUnder, hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
 import {
   NATIVE_ROOT_LABEL,
   NATIVE_ROOT_PATH,
@@ -49,7 +49,7 @@ import { holdSession } from '../lib/session'
 import { mergeDiscSets } from '../lib/discs'
 import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
 import { compareNumeric } from '../lib/collate'
-import { host } from '../lib/host'
+import { host, isDesktopApp } from '../lib/host'
 
 // The library: what was found, and everything about getting it.
 //
@@ -410,6 +410,11 @@ async function hydrateOnce(
       // is simply one of them (see "The phone apps' folders" in `lib/roots.ts`).
       if (nativeRoots(roots).length > 0) await reattachNative(set, get)
     }
+    // ⚠️ And a chosen folder whose permission is still held comes back the
+    // same way, with no banner and no click (James, 2026-10-08: "can't we have
+    // a permanent permission so the allow access is automatic?"). See
+    // `reattachFolders`.
+    else await reattachFolders(set, get)
   } catch (err) {
     console.error('[jukebox] Could not read the stored library:', err)
     // Show the app rather than an empty page: the front door is a working
@@ -1419,6 +1424,86 @@ async function reattachNative(
       }
       if (trial) trial.filesByPath = files
       else set({ filesByPath: files })
+    }),
+  )
+}
+
+/**
+ * Put the live files back for every chosen folder that can be read without
+ * asking — a walk, not a scan, exactly like `reattachNative`.
+ *
+ * ⚠️ IN THE DESKTOP APP IT ALSO ASKS, unprompted. A browser tab cannot: its
+ * `requestPermission` needs a click, and a prompt on page load is one nobody
+ * has context for — which is why `hydrate` otherwise never asks. But the
+ * desktop app's Chromium answers its own permission requests (Electron grants
+ * them; there is no dialog to show), so the click on "Allow access" bought
+ * nothing but the click. If it is ever refused — Electron tightening its
+ * defaults, a user-activation rule — nothing is lost: the folder simply stays
+ * unreachable, and the banner asks as before.
+ *
+ * In a browser, the folder comes back only when the permission is already
+ * GRANTED (Chrome's "Allow on every visit" for an installed app).
+ */
+/**
+ * `requestPermission`, run by the desktop shell WITH a user gesture — the one
+ * thing Chromium insists on, and the one thing a page load does not have. See
+ * 'jukebox:with-gesture' in `electron/main.cjs`.
+ *
+ * ⚠️ The request must be made INSIDE the call main.cjs makes, synchronously,
+ * or the gesture is gone — so the page queues it here and main.cjs drains the
+ * queue. An older shell without the bridge, or one that never calls back,
+ * resolves as 'prompt' and the banner asks instead.
+ */
+const gestureQueue: (() => void)[] = []
+
+function requestWithGesture(handle: FileSystemDirectoryHandle): Promise<PermissionState> {
+  const bridge = (window as unknown as { unisimDesktop?: { withGesture?: () => Promise<unknown> } }).unisimDesktop?.withGesture
+  if (!bridge) return Promise.resolve('prompt')
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve('prompt'), 4000)
+    gestureQueue.push(() => {
+      clearTimeout(timer)
+      const request = (handle as FileSystemDirectoryHandle & {
+        requestPermission?(d: { mode: 'read' }): Promise<PermissionState>
+      }).requestPermission?.({ mode: 'read' })
+      if (!request) resolve('prompt')
+      else request.then(resolve, () => resolve('prompt'))
+    })
+    ;(window as unknown as { __jukeboxGesture?: () => void }).__jukeboxGesture = () => {
+      for (const run of gestureQueue.splice(0)) run()
+    }
+    bridge().catch(() => resolve('prompt'))
+  })
+}
+
+async function reattachFolders(
+  set: (partial: Partial<LibraryState>) => void,
+  get: () => LibraryState,
+): Promise<void> {
+  const desktop = isDesktopApp()
+  await Promise.all(
+    get().roots.map(async (root) => {
+      const handle = root.handle as (FileSystemDirectoryHandle & {
+        queryPermission?(d: { mode: 'read' }): Promise<PermissionState>
+        requestPermission?(d: { mode: 'read' }): Promise<PermissionState>
+      }) | null
+      if (!handle) return
+      try {
+        let state = (await handle.queryPermission?.({ mode: 'read' })) ?? 'prompt'
+        if (state !== 'granted' && desktop) state = await requestWithGesture(handle)
+        if (state !== 'granted') return
+        const found = await filesUnder(handle, prefixOf(root))
+        if (found.size === 0) return
+        // Into the library these belong to — see the same line in `reattachNative`.
+        const into = trial ?? get()
+        const files = new Map<string, SourceFile>(into.filesByPath)
+        for (const [path, file] of found) if (!files.has(path)) files.set(path, file)
+        if (trial) trial.filesByPath = files
+        else set({ filesByPath: files })
+      } catch (err) {
+        // Moved, renamed, or on a drive that is not there: the banner says so.
+        console.warn(`[jukebox] Could not reopen ${root.label} on startup:`, err)
+      }
     }),
   )
 }

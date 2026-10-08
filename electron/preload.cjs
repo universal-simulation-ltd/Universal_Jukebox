@@ -7,4 +7,7 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('unisimDesktop', {
   openHub: (url, session) => ipcRenderer.invoke('unisim:open-hub', { url, session }),
   clearHub: () => ipcRenderer.invoke('unisim:clear-hub'),
+  // Jukebox's own, not the SDK's: asks main.cjs to run the page's pending
+  // folder-permission requests as if clicked — see 'jukebox:with-gesture'.
+  withGesture: () => ipcRenderer.invoke('jukebox:with-gesture'),
 })

@@ -500,6 +500,22 @@ function isDirectoryHandle(source: unknown): source is FileSystemDirectoryHandle
   )
 }
 
+/**
+ * Every playable file under a folder, by path — and NOTHING read from it.
+ *
+ * The desktop's answer to the phones' `walkNativeLibrary` reattach: after a
+ * relaunch the tags and covers are already in IndexedDB, and all that is
+ * missing is the live files. A tree walk of a few thousand files is well under
+ * a second, where a scan re-reads every file's tags.
+ */
+export async function filesUnder(root: FileSystemDirectoryHandle, prefix: string): Promise<Map<string, SourceFile>> {
+  const files = new Map<string, SourceFile>()
+  for await (const found of walkHandle(root, undefined, prefix)) {
+    if (isPlayable(found.path)) files.set(found.path, found.file)
+  }
+  return files
+}
+
 /** Does this browser have the API that lets a chosen folder survive a reload? */
 export function hasDirectoryPicker(): boolean {
   return typeof window !== 'undefined' && 'showDirectoryPicker' in window
