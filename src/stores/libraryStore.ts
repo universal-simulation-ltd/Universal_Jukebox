@@ -142,6 +142,14 @@ interface LibraryState {
    * banner to close"). Not saved: it means nothing after a restart.
    */
   reconnecting: string[]
+  /**
+   * The folders are being found again at launch — `reattachNative` /
+   * `reattachFolders`. The permission banner waits for this: shown from the
+   * moment the library is, it flashed up and vanished on every launch where
+   * the folder came straight back (James, 2026-10-08: "I see the banner and
+   * then it disappears, can it just not be shown").
+   */
+  reattaching: boolean
 
   hydrate(): Promise<void>
   /** Stop a running scan, keeping everything found so far. */
@@ -375,6 +383,8 @@ async function hydrateOnce(
       albums,
       roots,
       status: tracks.length > 0 ? 'ready' : 'empty',
+      // Cleared in the `finally` below, whichever way the reattach goes.
+      reattaching: roots.some((r) => r.handle || r.nativePath != null),
       // ⚠️ NOTHING sets a "needs permission" flag any more. Which folders are
       // unreachable is DERIVED, by `needAccess`, from the live `File` map —
       // which after a reload is empty, so every real folder needs its
@@ -420,6 +430,10 @@ async function hydrateOnce(
     // Show the app rather than an empty page: the front door is a working
     // screen, and every button on it still does what it says.
     if (get().status === 'loading') set({ status: 'empty' })
+  } finally {
+    // ⚠️ ALWAYS, or a reattach that threw would hide the banner for good —
+    // the one thing that says why nothing plays.
+    if (get().reattaching) set({ reattaching: false })
   }
 }
 
@@ -447,6 +461,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   importProgress: null,
   folderImages: new Map(),
   reconnecting: [],
+  reattaching: false,
   canPersistFolder: hasDirectoryPicker(),
   stoppedEarly: null,
   trying: false,

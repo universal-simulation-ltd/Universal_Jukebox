@@ -117,9 +117,12 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
     const timer = setTimeout(() => setSettled((ids) => [...new Set([...ids, ...fresh])]), TICK_MS)
     return () => clearTimeout(timer)
   }, [reconnecting, settled])
+  // Nothing is asked for while the folders are still being found at launch —
+  // see `reattaching` in the store.
+  const reattaching = useLibraryStore((s) => s.reattaching)
   const stranded = useMemo(
-    () => unreachable.filter((r) => r.id !== coveredId && !settled.includes(r.id)),
-    [unreachable, coveredId, settled],
+    () => (reattaching ? [] : unreachable.filter((r) => r.id !== coveredId && !settled.includes(r.id))),
+    [reattaching, unreachable, coveredId, settled],
   )
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const stopScan = useLibraryStore((s) => s.stopScan)
