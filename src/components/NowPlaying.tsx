@@ -178,14 +178,14 @@ export default function NowPlaying() {
             >
               {track.title}
             </h1>
-            <p className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 dark:text-slate-300`}>
+            <p className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 lg:text-slate-700 dark:text-slate-300 lg:dark:text-slate-200`}>
               {track.artist ?? track.albumArtist ?? 'Unknown artist'}
             </p>
             {track.album && (
               <button
                 type="button"
                 onClick={() => navigate({ view: 'album', albumId: track.albumId })}
-                className="mt-1 text-[14px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+                className="mt-1 text-[14px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline lg:text-slate-600 dark:text-slate-400 dark:hover:text-orange-400 lg:dark:text-slate-300"
               >
                 {track.album}
                 {track.year ? ` · ${track.year}` : ''}
@@ -300,7 +300,9 @@ export default function NowPlaying() {
             <div className="mt-2 lg:hidden">
               <StageTransport />
             </div>
-            <p className="mt-4 hidden text-[12px] text-slate-400 lg:block dark:text-slate-500">
+            {/* Desktop only, and over the album art — slate-400 here all but
+                vanished on a grey cover (James, 2026-10-08). */}
+            <p className="mt-4 hidden text-[12px] text-slate-600 lg:block dark:text-slate-400">
               {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
             </p>
           </>
@@ -391,7 +393,7 @@ function LyricsToggle() {
       }}
       id="jb-lyrics-toggle"
       aria-pressed={show}
-      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400"
+      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 lg:border-slate-300 lg:bg-white/70 lg:text-slate-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400 lg:dark:bg-slate-900/60"
     >
       <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
         <path d="M4 3h9a1 1 0 0 1 1 1v11.5a.5.5 0 0 1-.79.4L9 13.6l-4.21 2.3A.5.5 0 0 1 4 15.5V4a1 1 0 0 1 1-1Zm2 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5H6Zm0 3a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Z" />
@@ -630,13 +632,19 @@ function BlurredGround({ albumId, cover }: { albumId: string; cover: Blob }) {
   const url = coverUrl(albumId, cover)
   if (!url) return null
   const fade = 'linear-gradient(to bottom, black 0%, rgba(0,0,0,.35) 38%, rgba(0,0,0,.35) 62%, black 100%)'
+  // ⚠️ FROM `lg` THE BOTTOM STAYS FADED TOO. On a phone the bottom of the
+  // screen is the record; on desktop the whole stage fits one screen, so the
+  // records waiting to go on sit on that bottom edge — where the picture was
+  // strongest, and their names all but vanished (James, 2026-10-08: "looks
+  // amazing on mobile but the text is hard to read on desktop").
+  const fadeDesktop = 'linear-gradient(to bottom, black 0%, rgba(0,0,0,.35) 38%, rgba(0,0,0,.2) 70%, rgba(0,0,0,.2) 100%)'
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
       <img
         src={url}
         alt=""
-        className="h-full w-full scale-110 object-cover opacity-[0.17] blur-[14px] dark:opacity-[0.24]"
-        style={{ maskImage: fade, WebkitMaskImage: fade }}
+        className="h-full w-full scale-110 object-cover opacity-[0.17] blur-[14px] [-webkit-mask-image:var(--jb-fade)] [mask-image:var(--jb-fade)] lg:[-webkit-mask-image:var(--jb-fade-lg)] lg:[mask-image:var(--jb-fade-lg)] dark:opacity-[0.24]"
+        style={{ '--jb-fade': fade, '--jb-fade-lg': fadeDesktop } as React.CSSProperties}
       />
     </div>
   )

@@ -122,7 +122,7 @@ export default function UpNextReel({ onMore }: { onMore?: () => void } = {}) {
     <section className="mt-8" aria-labelledby="jb-reel-heading">
       <p
         id="jb-reel-heading"
-        className="mb-3 text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500"
+        className="mb-3 text-[11px] font-semibold tracking-wide text-slate-400 uppercase lg:text-slate-600 dark:text-slate-500 lg:dark:text-slate-400"
       >
         Waiting to go on
       </p>
@@ -276,7 +276,7 @@ function Waiting({
       <span className="mt-2 block text-[11.5px] leading-snug font-medium break-words text-slate-700 dark:text-slate-200">
         {track.title}
       </span>
-      <span className="mt-0.5 block truncate text-[10.5px] text-slate-400 dark:text-slate-500">
+      <span className="mt-0.5 block truncate text-[10.5px] text-slate-400 lg:text-slate-600 dark:text-slate-500 lg:dark:text-slate-400">
         {track.artist ?? track.albumArtist ?? 'Unknown artist'}
       </span>
     </>
@@ -374,10 +374,10 @@ function MoreRecords({ count, onOpen }: { count: number; onOpen?: () => void }) 
           </span>
         </div>
       </div>
-      <span className="mt-2 block text-[11.5px] leading-snug font-medium text-slate-500 dark:text-slate-400">
+      <span className="mt-2 block text-[11.5px] leading-snug font-medium text-slate-500 lg:text-slate-700 dark:text-slate-400 lg:dark:text-slate-200">
         {plural(count, 'more record')}
       </span>
-      <span className="mt-0.5 block text-[10.5px] text-slate-400 dark:text-slate-500">
+      <span className="mt-0.5 block text-[10.5px] text-slate-400 lg:text-slate-600 dark:text-slate-500 lg:dark:text-slate-400">
         in the queue
       </span>
       </button>
