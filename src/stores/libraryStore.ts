@@ -47,6 +47,7 @@ import { holdSession } from '../lib/session'
 import { mergeDiscSets } from '../lib/discs'
 import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
 import { compareNumeric } from '../lib/collate'
+import { host } from '../lib/host'
 
 // The library: what was found, and everything about getting it.
 //
@@ -634,7 +635,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // No handle means no way back to the folder without the picker. Say so
     // rather than pretending to rescan.
     set({
-      error: `This browser can’t reopen a folder on its own — choose ${root.label} again to rescan it. Your library and covers are kept, so it will be quick.`,
+      error: `${host().This} can’t reopen a folder on its own — choose ${root.label} again to rescan it. Your library and covers are kept, so it will be quick.`,
     })
   },
 
@@ -1117,6 +1118,21 @@ export function musicLibrarySkips(read: Pick<MusicLibraryRead, 'protected' | 'cl
 
 let scanAbort: AbortController | null = null
 
+/**
+ * The abort reason a scan is given when ANOTHER scan replaces it, as opposed to
+ * the person pressing Stop.
+ *
+ * ⚠️ THE TWO MUST NOT LOOK ALIKE. Both abort the walk, and a plain `aborted`
+ * check read a replaced scan as a stopped one: it finished a moment after its
+ * successor had started, wrote "Stopped early" and cleared the progress — so
+ * the card counting the new scan and a banner saying scanning had stopped sat
+ * on screen together (James, 2026-10-08, the Windows app: "it says stopped
+ * early but it's ongoing"). A replaced scan keeps what it read and says
+ * nothing; the scan that replaced it owns the progress and the outcome.
+ */
+const SUPERSEDED = 'superseded'
+const wasSuperseded = (abort: AbortController) => abort.signal.aborted && abort.signal.reason === SUPERSEDED
+
 /** The example library's one root. */
 function exampleRoot(trackCount: number): Root {
   return {
@@ -1328,7 +1344,7 @@ async function runScan(
   leaveFirst(get)
   // A second scan started while one is running aborts the first, or the two
   // walks interleave into one library and the progress count runs backwards.
-  scanAbort?.abort()
+  scanAbort?.abort(SUPERSEDED)
   const abort = new AbortController()
   scanAbort = abort
   // See `generation`: a library cleared while this runs stays cleared.
@@ -1422,7 +1438,7 @@ async function runScan(
   } catch {
     flushPublish()
     if (scanAbort === abort) scanAbort = null
-    if (!current()) return
+    if (!current() || wasSuperseded(abort)) return
     set({
       status: get().tracks.length > 0 ? 'ready' : 'empty',
       progress: null,
@@ -1486,6 +1502,19 @@ async function runScan(
 
   const images = new Map(get().folderImages)
   for (const [dir, found] of result.images) images.set(dir, found)
+
+  // Replaced by a newer scan: keep what was read, but the progress, the
+  // outcome and the banners are the newer scan's to set — see `SUPERSEDED`.
+  if (wasSuperseded(abort)) {
+    set({
+      tracks: fixed.tracks,
+      albums: fixed.albums,
+      roots: [...get().roots.filter((r) => r.id !== rootId), root],
+      filesByPath: files,
+      folderImages: images,
+    })
+    return
+  }
 
   set({
     status: fixed.tracks.length > 0 ? 'ready' : 'empty',

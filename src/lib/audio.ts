@@ -111,6 +111,7 @@ import { canSetElementVolume } from './volumeSupport'
 import type { SourceFile } from './types'
 import { fadeLevel, type FadeCurve } from './fadeCurve'
 import { shouldComeBack, wasOurs } from './interruption'
+import { host } from './host'
 
 /** Where playback is, as far as anything outside this file is concerned. */
 export interface AudioState {
@@ -435,7 +436,7 @@ function element(index: 0 | 1): HTMLAudioElement {
 function describeError(error: MediaError | null): string {
   switch (error?.code) {
     case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-      return "This browser can't decode that file. If it's an .m4a it may be Apple Lossless rather than AAC — Universal Converter can turn it into FLAC."
+      return `${host().This} can't decode that file. If it's an .m4a it may be Apple Lossless rather than AAC — Universal Converter can turn it into FLAC.`
     case MediaError.MEDIA_ERR_DECODE:
       return 'That file looks damaged — the audio stopped partway through decoding.'
     case MediaError.MEDIA_ERR_NETWORK:

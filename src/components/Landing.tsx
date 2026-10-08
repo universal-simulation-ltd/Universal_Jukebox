@@ -4,6 +4,7 @@ import { hasMusicLibrary } from '../lib/appleMusic'
 import { hasNativeImporter } from '../lib/nativeImport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { keepsFolderWhenInstalled } from '../lib/persistence'
+import { isDesktopApp } from '../lib/host'
 
 // The front door, before there is a library.
 //
@@ -47,11 +48,6 @@ type Answer = 'device' | 'apple' | 'cloud' | 'streaming' | 'example'
 // "choose a different folder") is about buttons inside the answer that was
 // open. Coming back with it still open keeps them on screen.
 let lastAnswer: Answer | null = null
-
-/** The Windows/desktop app — Electron's preload exposes this and nothing else does. */
-function isDesktopApp(): boolean {
-  return typeof window !== 'undefined' && 'unisimDesktop' in window
-}
 
 /** A phone or tablet's browser: "this device", not "this computer". */
 function isTouchOnly(): boolean {

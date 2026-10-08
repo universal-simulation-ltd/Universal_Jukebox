@@ -192,6 +192,30 @@ describe('"Delete" during a folder scan', () => {
   })
 })
 
+describe('a folder scan replaced by another', () => {
+  // James, 2026-10-08, the Windows app: "it says stopped early but it's
+  // ongoing". The replaced scan finished after its successor started and read
+  // its own abort as the person pressing Stop.
+  it('is never reported as "stopped early", and leaves the new scan its progress', async () => {
+    const said: (string | null)[] = []
+    const unsubscribe = useLibraryStore.subscribe((s) => said.push(s.stoppedEarly))
+    const first = store().addFiles([new File(['x'], '01.mp3')], 'Music')
+    const second = store().addFiles([new File(['x'], '02.mp3')], 'Music')
+    await Promise.all([first, second])
+    unsubscribe()
+
+    expect(said.filter(Boolean)).toEqual([])
+    expect(store()).toMatchObject({ stoppedEarly: null, progress: null })
+  })
+
+  it('still says "stopped early" when the person pressed Stop', async () => {
+    const adding = store().addFiles([new File(['x'], '01.mp3')], 'Music')
+    store().stopScan()
+    await adding
+    expect(store().stoppedEarly).not.toBeNull()
+  })
+})
+
 describe('rescanFolder on the Music library', () => {
   it('refreshes it, rather than asking for a folder that does not exist', async () => {
     const musicRoot: Root = {

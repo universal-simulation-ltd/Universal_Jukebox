@@ -4,6 +4,7 @@ import FolderAccessButton from './FolderAccessButton'
 import { plural } from '../lib/format'
 import { folderAccess } from '../lib/roots'
 import { goHome } from '../lib/route'
+import { host } from '../lib/host'
 import { useMissingFile } from '../lib/useMissingFile'
 import { needAccessFrom, refusalLabel, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -113,7 +114,9 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
           }}
         />
       )}
-      {stoppedRoot && (
+      {/* ⚠️ Never beside a scan that is running: "Stopped early" over a card
+          still counting reads as the app contradicting itself (2026-10-08). */}
+      {stoppedRoot && !(progress && !progress.done) && (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
           {/* ⚠️ A stopped Music-library import is a different thing kept: it
               has every song (iOS lists them all up front) and is short only of
@@ -202,10 +205,10 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
                         // on every row is the noise that made the stacked
                         // banners unreadable in the first place.
                         ? ''
-                        : ' is here, but the browser needs your permission again before it can be read.'
+                        : ` is here, but ${host().the} needs your permission again before it can be read.`
                       : grouped
-                        ? ' — this browser can’t reopen a folder on its own, so choose it again. Nothing has to be read twice.'
-                        : ' and its artwork are still here, but this browser can’t reopen a folder on its own — choose it again to play anything from it. It will be quick: nothing has to be read twice.'}
+                        ? ` — ${host().this} can’t reopen a folder on its own, so choose it again. Nothing has to be read twice.`
+                        : ` and its artwork are still here, but ${host().this} can’t reopen a folder on its own — choose it again to play anything from it. It will be quick: nothing has to be read twice.`}
                   </p>
                   {/* This folder's own button — shared with the missing-file
                       error, and one per folder for the reason in its header. */}

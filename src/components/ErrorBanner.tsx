@@ -5,6 +5,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import FolderAccessButton from './FolderAccessButton'
+import { host } from '../lib/host'
 
 // The one error slot at the top of every page — and, when a track would not
 // play because its file could not be found, the way back.
@@ -109,12 +110,12 @@ function explain(
     switch (folderAccess(root)) {
       case 'reopen':
         return {
-          text: `${name} is in ${folder}, and the browser needs your permission again before anything in that folder can play. Nothing was lost.`,
+          text: `${name} is in ${folder}, and ${host().the} needs your permission again before anything in that folder can play. Nothing was lost.`,
           action: 'folder',
         }
       case 'choose':
         return {
-          text: `${name} is in ${folder}, which this browser can’t reopen on its own — choose the folder again and it will play. Nothing has to be read twice.`,
+          text: `${name} is in ${folder}, which ${host().this} can’t reopen on its own — choose the folder again and it will play. Nothing has to be read twice.`,
           action: 'folder',
         }
       case 'rescan':

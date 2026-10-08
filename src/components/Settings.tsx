@@ -43,6 +43,7 @@ import {
   type LyricsAroundStyle,
 } from '../stores/settingsStore'
 import { useThemeStore, type ThemePref } from '../stores/themeStore'
+import { isDesktopApp } from '../lib/host'
 
 // The settings page.
 //
@@ -385,7 +386,7 @@ export default function Settings() {
             max={MAX_LEVEL_DB}
             step={5}
             disabled={quietBroken}
-            disabledHint="This browser wouldn’t give the app the audio graph this needs. Everything else still works."
+            disabledHint={`${isDesktopApp() ? 'The app couldn’t get' : 'This browser wouldn’t give the app'} the audio graph this needs. Everything else still works.`}
             format={formatLevel}
             onChange={(v) => s.set('levelDb', v)}
           />
@@ -399,7 +400,7 @@ export default function Settings() {
             disabled={boostBroken}
             disabledHint={
               graphAllowed()
-                ? 'This browser wouldn’t give the app the audio graph a boost needs. Everything else still works.'
+                ? `${isDesktopApp() ? 'The app couldn’t get' : 'This browser wouldn’t give the app'} the audio graph a boost needs. Everything else still works.`
                 : 'Not in the iPhone app — the boost would stop your music playing when the app is in the background.'
             }
             format={formatBoost}
@@ -1016,7 +1017,9 @@ function NotifyToggle() {
           ? 'This browser won’t let a web page show notifications. On an iPhone or iPad, add Jukebox to your Home Screen (Share, then Add to Home Screen) and turn this on from there.'
           : support === 'native'
             ? 'Notifications are off for Jukebox. Turn them on in your phone’s Settings, under Notifications, then come back here.'
-            : 'Notifications are blocked for this site. Allow them in your browser’s site settings, then come back here.'
+            : isDesktopApp()
+              ? 'Notifications are off for Universal Jukebox. Turn them on in Windows Settings, under System › Notifications, then come back here.'
+              : 'Notifications are blocked for this site. Allow them in your browser’s site settings, then come back here.'
       }
       onChange={(v) => {
         if (!v) {
