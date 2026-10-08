@@ -492,7 +492,19 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // INTO this root when it is the folder asked for — the same rule as
     // `addFiles` — and now with a handle, so the next launch only has to ask
     // for permission rather than for the folder.
-    await runScan(set, get, handle, handle.name, handle, isFolderNamed(root, handle.name) ? root.id : undefined)
+    if (!isFolderNamed(root, handle.name)) {
+      await runScan(set, get, handle, handle.name, handle)
+      return
+    }
+    // The folder asked for: the banner stands down now, with its tick, rather
+    // than going on asking for a folder that is already being read — the same
+    // as `regrantFolder` (James, 2026-10-08: the prompt sat above the scan).
+    set({ reconnecting: [...get().reconnecting.filter((r) => r !== id), id] })
+    try {
+      await runScan(set, get, handle, handle.name, handle, root.id)
+    } finally {
+      set({ reconnecting: get().reconnecting.filter((r) => r !== id) })
+    }
   },
 
   /**
@@ -605,7 +617,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // same. Only when the name matches, though: somebody asked for Music who
     // picks Podcasts has added Podcasts.
     const into = intoRootId ? get().roots.find((r) => r.id === intoRootId) : undefined
-    await runScan(set, get, list, name, null, into && isFolderNamed(into, name) ? into.id : undefined)
+    if (!into || !isFolderNamed(into, name)) {
+      await runScan(set, get, list, name, null)
+      return
+    }
+    // Its banner row stands down while it is read — see `chooseFolderAgain`.
+    set({ reconnecting: [...get().reconnecting.filter((r) => r !== into.id), into.id] })
+    try {
+      await runScan(set, get, list, name, null, into.id)
+    } finally {
+      set({ reconnecting: get().reconnecting.filter((r) => r !== into.id) })
+    }
   },
 
   /**
@@ -1468,6 +1490,7 @@ async function runScan(
   // that ~125 times over an ever-growing library. The first batch still shows
   // at once, and whatever is pending is published before the scan's outcome
   // is handled below, so nothing found is ever left out.
+  let liveFiles: ReadonlyMap<string, SourceFile> | null = null
   let publishTimer: ReturnType<typeof setTimeout> | null = null
   let lastPublish = 0
   const publish = () => {
@@ -1479,7 +1502,18 @@ async function runScan(
     // make the other folders vanish for the length of the walk.
     const merged = addScan(before, prefix, { tracks: scanned, albums: [...scannedAlbums.values()] })
     const joined = mergeDiscSets(merged.tracks, merged.albums)
-    set({ tracks: joined.tracks, albums: joined.albums })
+    // ⚠️ AND THEIR FILES (2026-10-08). The grid filled in from here while the
+    // files were handed over only once the walk ended — minutes, for a few
+    // thousand songs — so every track pressed during a scan had "no file",
+    // was skipped, and with errors hidden by default nothing happened at all
+    // (James: "track name imported but same play issue"). What is on screen
+    // can now be played.
+    const playable = new Map(get().filesByPath)
+    for (const t of scanned) {
+      const file = liveFiles?.get(t.path)
+      if (file) playable.set(t.path, file)
+    }
+    set({ tracks: joined.tracks, albums: joined.albums, filesByPath: playable })
   }
   const flushPublish = () => {
     if (publishTimer === null) return
@@ -1491,8 +1525,9 @@ async function runScan(
   try {
     result = await scan(source, {
       prefix,
-      onBatch: (newTracks, newAlbums) => {
+      onBatch: (newTracks, newAlbums, files) => {
         if (!current()) return
+        liveFiles = files
         for (const t of newTracks) scanned.push(t)
         for (const a of newAlbums) scannedAlbums.set(a.id, a)
         void db.putTracks(newTracks)

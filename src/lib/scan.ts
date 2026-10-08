@@ -130,8 +130,12 @@ export interface ScanResult {
 }
 
 export interface ScanOptions {
-  /** Called as tracks arrive, so the UI can fill in while the walk continues. */
-  onBatch?: (tracks: Track[], albums: Album[]) => void
+  /**
+   * Called as tracks arrive, so the UI can fill in while the walk continues.
+   * `files` is every file found so far, keyed by path — what lets a track that
+   * is already on screen also PLAY before the walk ends.
+   */
+  onBatch?: (tracks: Track[], albums: Album[], files: ReadonlyMap<string, SourceFile>) => void
   onProgress?: (progress: ScanProgress) => void
   /** Aborts the walk between files. */
   signal?: AbortSignal
@@ -345,7 +349,7 @@ export async function scan(
 
   const flush = () => {
     if (batchTracks.length === 0 && batchAlbums.length === 0) return
-    onBatch?.(batchTracks, batchAlbums)
+    onBatch?.(batchTracks, batchAlbums, files)
     batchTracks = []
     batchAlbums = []
   }
