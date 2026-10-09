@@ -63,7 +63,7 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label="Crossfade settings"
+      aria-label="Tune crossfade"
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >

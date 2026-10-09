@@ -29,7 +29,7 @@ A aplicação não tem descodificadores próprios: recorre ao suporte de áudio 
 
 ## Saber o motivo
 
-Por predefinição, as músicas que não podem ser reproduzidas são ignoradas sem aviso. Se preferir saber porquê, assinale **Show error messages** em Settings, na secção Messages, e a aplicação indicará cada ficheiro que não conseguiu reproduzir e o que se passava com ele.`,
+Por predefinição, as músicas que não podem ser reproduzidas são ignoradas sem aviso. Se preferir saber porquê, assinale **Show error messages** em Tune this app, na secção Messages, e a aplicação indicará cada ficheiro que não conseguiu reproduzir e o que se passava com ele.`,
   },
   {
     id: 'tags-and-artwork',
@@ -52,7 +52,7 @@ A aplicação lê os tipos de etiqueta mais comuns usados pelos ficheiros MP3, M
 
 ## Arrumar a biblioteca
 
-**Tidy up library**, em Settings, na secção Your library, procura duas coisas: capas que já estão no seu dispositivo mas não foram usadas (uma imagem com nome de capa, como cover.jpg, junto às faixas, ou uma imagem guardada numa faixa posterior) e álbuns que etiquetas inconsistentes dividiram em dois. Mostra-lhe cada sugestão, com a imagem que usaria, e nada muda até carregar no botão.
+**Tidy up library**, em Tune this app, na secção Your library, procura duas coisas: capas que já estão no seu dispositivo mas não foram usadas (uma imagem com nome de capa, como cover.jpg, junto às faixas, ou uma imagem guardada numa faixa posterior) e álbuns que etiquetas inconsistentes dividiram em dois. Mostra-lhe cada sugestão, com a imagem que usaria, e nada muda até carregar no botão.
 
 Recusa propositadamente tudo aquilo de que não pode ter certeza. Dois álbuns com o mesmo nome em pastas diferentes, ou uma pasta com dois álbuns diferentes, ficam como estão.
 
@@ -106,9 +106,9 @@ A aplicação guarda no seu dispositivo um catálogo da sua biblioteca — títu
 
 **As músicas do mesmo álbum** encadeiam-se diretamente com uma transição cruzada curta e suave. A música que chega só sobe à medida que a que sai vai baixando, por isso a passagem é fluida, sem duas músicas a tocar alto ao mesmo tempo.
 
-**Quando a música seguinte está noutro disco**, as duas também se cruzam por predefinição, enquanto na imagem um leitor desliza para fora e o seguinte entra. Se preferir um corte limpo, assinale **No crossfade between records** em Settings: a agulha levanta, há um momento de silêncio e pousa no disco seguinte.
+**Quando a música seguinte está noutro disco**, as duas também se cruzam por predefinição, enquanto na imagem um leitor desliza para fora e o seguinte entra. Se preferir um corte limpo, assinale **No crossfade between records** em Tune this app: a agulha levanta, há um momento de silêncio e pousa no disco seguinte.
 
-**Fade in** e **Fade out**, em Settings, na secção Sound, acrescentam um desvanecimento de até oito segundos no início ou no fim de cada faixa, incluindo a última música de um álbum. Ambos estão desligados até os definir. Num dispositivo que não permite à aplicação controlar o volume, os desvanecimentos não estão disponíveis, e Settings indica-o.
+**Fade in** e **Fade out**, em Tune this app, na secção Sound, acrescentam um desvanecimento de até oito segundos no início ou no fim de cada faixa, incluindo a última música de um álbum. Ambos estão desligados até os definir. Num dispositivo que não permite à aplicação controlar o volume, os desvanecimentos não estão disponíveis, e Tune this app indica-o.
 
 ## A animação é independente
 
@@ -129,9 +129,9 @@ A aplicação lê as letras guardadas dentro do ficheiro de música. Ficheiros d
 
 ## 2. Uma pesquisa online, só se a ativar
 
-Se uma música não tiver letra própria, a aplicação pode consultar o lrclib.net, uma coleção de letras gratuita mantida por uma comunidade. Esta opção está **desligada** até assinalar **Look up missing lyrics online** em Settings, na secção Lyrics.
+Se uma música não tiver letra própria, a aplicação pode consultar o lrclib.net, uma coleção de letras gratuita mantida por uma comunidade. Esta opção está **desligada** até assinalar **Look up missing lyrics online** em Tune this app, na secção Lyrics.
 
-Quando está ligada, a pesquisa de uma música envia apenas o artista, o título, o álbum e a duração, diretamente do seu dispositivo para o lrclib.net. Não é enviado mais nada sobre si, o seu dispositivo ou a sua biblioteca, e o pedido não passa pela UNI·SIM. A resposta fica guardada no seu dispositivo, pelo que cada música só é consultada uma vez. Se não tiver sido encontrada nenhuma letra, a aplicação pode voltar a tentar passados alguns dias. Settings mostra quantas músicas já foram consultadas, com um botão para as esquecer todas.
+Quando está ligada, a pesquisa de uma música envia apenas o artista, o título, o álbum e a duração, diretamente do seu dispositivo para o lrclib.net. Não é enviado mais nada sobre si, o seu dispositivo ou a sua biblioteca, e o pedido não passa pela UNI·SIM. A resposta fica guardada no seu dispositivo, pelo que cada música só é consultada uma vez. Se não tiver sido encontrada nenhuma letra, a aplicação pode voltar a tentar passados alguns dias. Tune this app mostra quantas músicas já foram consultadas, com um botão para as esquecer todas.
 
 Como a coleção é escrita por voluntários, uma ou outra letra pode estar imprecisa ou ligeiramente dessincronizada.
 
@@ -139,7 +139,7 @@ Como a coleção é escrita por voluntários, uma ou outra letra pode estar impr
 
 Algumas letras têm uma marca de tempo no início de cada linha. Chamam-se letras sincronizadas e estão muitas vezes num formato conhecido como LRC. Com elas, o painel de letras acompanha a música enquanto toca, e tocar numa linha salta para esse momento da música. As letras sem marcas de tempo aparecem como texto simples.
 
-As letras sincronizadas permitem ainda dois extras opcionais, ambos em Settings, na secção Lyrics: **Lyrics around the record**, que escreve as palavras à volta do disco a girar à medida que são cantadas, e **Lyrics on the lock screen**, que mostra a linha que está a ser cantada nos controlos de música do telemóvel.`,
+As letras sincronizadas permitem ainda dois extras opcionais, ambos em Tune this app, na secção Lyrics: **Lyrics around the record**, que escreve as palavras à volta do disco a girar à medida que são cantadas, e **Lyrics on the lock screen**, que mostra a linha que está a ser cantada nos controlos de música do telemóvel.`,
   },
   {
     id: 'playing-in-the-background',
@@ -175,7 +175,7 @@ Se gosta de ver o disco a girar, **Keep awake** impede que o ecrã escureça ou 
 
 ## Uma notificação por música
 
-**Notify me of each new song**, em Settings, mostra a música, o artista e a capa quando começa cada nova música, enquanto a aplicação não está no ecrã. Só aparece uma de cada vez, substituída pela seguinte, e não emite qualquer som. Está desligada até a ativar, e é nesse momento que o seu dispositivo pede autorização.`,
+**Notify me of each new song**, em Tune this app, mostra a música, o artista e a capa quando começa cada nova música, enquanto a aplicação não está no ecrã. Só aparece uma de cada vez, substituída pela seguinte, e não emite qualquer som. Está desligada até a ativar, e é nesse momento que o seu dispositivo pede autorização.`,
   },
   {
     id: 'privacy',
@@ -196,11 +196,11 @@ A aplicação não faz cópias de segurança nem sincroniza nada disto. Se utili
 
 Só três funcionalidades enviam alguma coisa sobre a sua música, e nenhuma faz nada até o pedir. Cada uma vai diretamente do seu dispositivo para o serviço indicado, sem passar pela UNI·SIM, e envia apenas o que está indicado.
 
-- **Pesquisa de letras** (desligada até a ativar em Settings): envia o artista, o título, o álbum e a duração de uma música para o lrclib.net, para as músicas sem letra própria.
-- **About this track** (desligada até a ativar, em Settings ou no próprio painel): envia o título da música e o nome do artista para a Wikipedia, para mostrar o que a Wikipedia diz sobre eles. As respostas ficam guardadas no dispositivo durante 90 dias, e uma música sem artigo volta a ser consultada passados alguns dias.
+- **Pesquisa de letras** (desligada até a ativar em Tune this app): envia o artista, o título, o álbum e a duração de uma música para o lrclib.net, para as músicas sem letra própria.
+- **About this track** (desligada até a ativar, em Tune this app ou no próprio painel): envia o título da música e o nome do artista para a Wikipedia, para mostrar o que a Wikipedia diz sobre eles. As respostas ficam guardadas no dispositivo durante 90 dias, e uma música sem artigo volta a ser consultada passados alguns dias.
 - **Find a picture**, num pedido: envia as palavras que escreveu para a pesquisa do iTunes, da Apple, apenas quando toca nele. A imagem que escolher fica guardada com o pedido.
 
-As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cada música só é consultada uma vez. Settings mostra quantas existem e permite esquecê-las. Nenhum áudio sai alguma vez do seu dispositivo.
+As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cada música só é consultada uma vez. Tune this app mostra quantas existem e permite esquecê-las. Nenhum áudio sai alguma vez do seu dispositivo.
 
 ## Universal ID
 

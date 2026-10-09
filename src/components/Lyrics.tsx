@@ -374,7 +374,7 @@ function Nothing() {
           onClick={() => navigate({ view: 'settings' })}
           className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
         >
-          More about this in Settings
+          More about this in Tune this app
         </button>
       </div>
       <AddLyricsFile />

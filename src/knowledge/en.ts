@@ -29,7 +29,7 @@ The app has no decoders of its own: it relies on the audio support built into yo
 
 ## Seeing the reason
 
-By default, songs that can’t be played are skipped quietly. If you would rather know why, tick **Show error messages** in Settings, under Messages, and the app will name each file it couldn’t play and say what was wrong with it.`,
+By default, songs that can’t be played are skipped quietly. If you would rather know why, tick **Show error messages** in Tune this app, under Messages, and the app will name each file it couldn’t play and say what was wrong with it.`,
   },
   {
     id: 'tags-and-artwork',
@@ -52,7 +52,7 @@ The app reads the common kinds of tag used by MP3, M4A, FLAC and Ogg files. Scan
 
 ## Tidying up
 
-**Tidy up library**, in Settings under Your library, looks for two things: covers that are already on your device but weren’t used (an image named like a cover, such as cover.jpg, beside the tracks, or art stored in a later track), and albums that inconsistent tags have split in two. It shows you each suggestion, with the picture it would use, and nothing changes until you press the button.
+**Tidy up library**, in Tune this app under Your library, looks for two things: covers that are already on your device but weren’t used (an image named like a cover, such as cover.jpg, beside the tracks, or art stored in a later track), and albums that inconsistent tags have split in two. It shows you each suggestion, with the picture it would use, and nothing changes until you press the button.
 
 It deliberately refuses anything it can’t be sure of. Two albums with the same name in different folders, or a folder holding two different albums, are left alone.
 
@@ -136,9 +136,9 @@ Songs are found again by their title, artist and album, so a shelf comes back ev
 
 **Songs from the same album** run straight into one another with a short, gentle crossfade. The arriving song comes up only as the leaving one goes down, so the join is smooth rather than two songs playing loudly at once.
 
-**When the next song is on a different record**, the two also crossfade by default, while the picture shows one player sliding out and the next sliding in. If you would rather have a clean break, tick **No crossfade between records** in Settings: the needle lifts, there is a moment’s silence, and it drops on the next record.
+**When the next song is on a different record**, the two also crossfade by default, while the picture shows one player sliding out and the next sliding in. If you would rather have a clean break, tick **No crossfade between records** in Tune this app: the needle lifts, there is a moment’s silence, and it drops on the next record.
 
-**Fade in** and **Fade out**, under Sound in Settings, add a fade of up to eight seconds at the start or end of every track, including the last song of an album. Both are off until you set them. On a device that doesn’t let the app control the volume, fades aren’t available, and Settings says so.
+**Fade in** and **Fade out**, under Sound in Tune this app, add a fade of up to eight seconds at the start or end of every track, including the last song of an album. Both are off until you set them. On a device that doesn’t let the app control the volume, fades aren’t available, and Tune this app says so.
 
 ## The animation is separate
 
@@ -159,9 +159,9 @@ The app reads lyrics stored inside the music file. Separate lyric files saved ne
 
 ## 2. An online lookup, only if you turn it on
 
-If a song has no lyrics of its own, the app can ask lrclib.net, a free, community-run collection of lyrics. This is **off** until you tick **Look up missing lyrics online** in Settings, under Lyrics.
+If a song has no lyrics of its own, the app can ask lrclib.net, a free, community-run collection of lyrics. This is **off** until you tick **Look up missing lyrics online** in Tune this app, under Lyrics.
 
-When it is on, looking a song up sends only its artist, title, album and length, straight from your device to lrclib.net. Nothing else about you, your device or your library is sent, and the request doesn’t pass through UNI·SIM. The answer is kept on your device, so each song is asked about only once. If no lyrics were found, the app may try again after a few days. Settings shows how many songs have been looked up, with a button to forget them all.
+When it is on, looking a song up sends only its artist, title, album and length, straight from your device to lrclib.net. Nothing else about you, your device or your library is sent, and the request doesn’t pass through UNI·SIM. The answer is kept on your device, so each song is asked about only once. If no lyrics were found, the app may try again after a few days. Tune this app shows how many songs have been looked up, with a button to forget them all.
 
 Because the collection is written by volunteers, an occasional sheet may be inaccurate or slightly out of time.
 
@@ -169,7 +169,7 @@ Because the collection is written by volunteers, an occasional sheet may be inac
 
 Some lyrics include a timestamp at the start of every line. These are called synced lyrics, often in a format known as LRC. With them, the lyrics panel follows the song as it plays, and tapping a line jumps to that point in the song. Lyrics without timestamps are shown as plain text.
 
-Synced lyrics also make two optional extras possible, both in Settings under Lyrics: **Lyrics around the record**, which writes the words around the spinning record as they are sung, and **Lyrics on the lock screen**, which shows the line being sung in your phone’s music controls.`,
+Synced lyrics also make two optional extras possible, both in Tune this app under Lyrics: **Lyrics around the record**, which writes the words around the spinning record as they are sung, and **Lyrics on the lock screen**, which shows the line being sung in your phone’s music controls.`,
   },
   {
     id: 'playing-in-the-background',
@@ -205,7 +205,7 @@ If you like to watch the record turn, **Keep awake** stops the screen dimming or
 
 ## A notification for each song
 
-**Notify me of each new song**, in Settings, shows the song, artist and cover as each new song starts while the app isn’t on screen. Only one is ever shown, replaced by the next, and it makes no sound. It is off until you turn it on, and turning it on is when your device asks for permission.`,
+**Notify me of each new song**, in Tune this app, shows the song, artist and cover as each new song starts while the app isn’t on screen. Only one is ever shown, replaced by the next, and it makes no sound. It is off until you turn it on, and turning it on is when your device asks for permission.`,
   },
   {
     id: 'privacy',
@@ -226,11 +226,11 @@ None of this leaves your device unless you make a backup. A backup file goes whe
 
 Only three features ever send anything about your music, and none of them does anything until you ask. Each goes straight from your device to the service named, without passing through UNI·SIM, and each sends only what is listed.
 
-- **Lyrics lookup** (off until you turn it on in Settings): sends a song’s artist, title, album and length to lrclib.net, for songs that have no lyrics of their own.
-- **About this track** (off until you turn it on, in Settings or in the panel itself): sends the song’s title and the artist’s name to Wikipedia, to show what Wikipedia says about them. Answers are kept on the device for 90 days, and a song with no article is asked about again after a few days.
+- **Lyrics lookup** (off until you turn it on in Tune this app): sends a song’s artist, title, album and length to lrclib.net, for songs that have no lyrics of their own.
+- **About this track** (off until you turn it on, in Tune this app or in the panel itself): sends the song’s title and the artist’s name to Wikipedia, to show what Wikipedia says about them. Answers are kept on the device for 90 days, and a song with no article is asked about again after a few days.
 - **Find a picture**, on a request: sends the words you typed to Apple’s iTunes search, only when you tap it. The picture you choose is saved with the request.
 
-Answers from the first two are kept on your device, so a song is looked up only once. Settings shows how many there are and lets you forget them. No audio ever leaves your device.
+Answers from the first two are kept on your device, so a song is looked up only once. Tune this app shows how many there are and lets you forget them. No audio ever leaves your device.
 
 ## Universal ID
 

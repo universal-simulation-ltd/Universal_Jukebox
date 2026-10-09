@@ -29,7 +29,7 @@ L’application n’a pas de décodeurs à elle : elle s’appuie sur la lecture
 
 ## Connaître la raison
 
-Par défaut, les morceaux illisibles sont ignorés sans message. Si vous préférez savoir pourquoi, cochez **Show error messages** dans Settings, rubrique Messages : l’application indiquera alors chaque fichier qu’elle n’a pas pu lire et ce qui n’allait pas.`,
+Par défaut, les morceaux illisibles sont ignorés sans message. Si vous préférez savoir pourquoi, cochez **Show error messages** dans Tune this app, rubrique Messages : l’application indiquera alors chaque fichier qu’elle n’a pas pu lire et ce qui n’allait pas.`,
   },
   {
     id: 'tags-and-artwork',
@@ -52,7 +52,7 @@ L’application lit les types de tags courants utilisés par les fichiers MP3, M
 
 ## Faire le ménage
 
-**Tidy up library**, dans Settings, rubrique Your library, recherche deux choses : des pochettes déjà présentes sur votre appareil mais inutilisées (une image nommée comme une pochette, par exemple cover.jpg, à côté des pistes, ou une image enregistrée dans une piste ultérieure), et des albums que des tags incohérents ont coupés en deux. Chaque suggestion vous est présentée avec l’image qui serait utilisée, et rien ne change tant que vous n’appuyez pas sur le bouton.
+**Tidy up library**, dans Tune this app, rubrique Your library, recherche deux choses : des pochettes déjà présentes sur votre appareil mais inutilisées (une image nommée comme une pochette, par exemple cover.jpg, à côté des pistes, ou une image enregistrée dans une piste ultérieure), et des albums que des tags incohérents ont coupés en deux. Chaque suggestion vous est présentée avec l’image qui serait utilisée, et rien ne change tant que vous n’appuyez pas sur le bouton.
 
 L’outil refuse volontairement tout ce dont il ne peut pas être sûr. Deux albums du même nom dans des dossiers différents, ou un dossier contenant deux albums différents, restent tels quels.
 
@@ -106,9 +106,9 @@ L’application conserve sur votre appareil un catalogue de votre bibliothèque 
 
 **Les morceaux d’un même album** s’enchaînent directement avec un fondu enchaîné court et doux. Le morceau qui arrive ne monte qu’à mesure que celui qui part descend : la transition est fluide, sans deux morceaux joués fort en même temps.
 
-**Lorsque le morceau suivant est sur un autre disque**, les deux s’enchaînent aussi en fondu par défaut, pendant qu’à l’écran un lecteur glisse vers la sortie et le suivant fait son entrée. Si vous préférez une vraie coupure, cochez **No crossfade between records** dans Settings : le bras se lève, un court silence s’installe, puis il se pose sur le disque suivant.
+**Lorsque le morceau suivant est sur un autre disque**, les deux s’enchaînent aussi en fondu par défaut, pendant qu’à l’écran un lecteur glisse vers la sortie et le suivant fait son entrée. Si vous préférez une vraie coupure, cochez **No crossfade between records** dans Tune this app : le bras se lève, un court silence s’installe, puis il se pose sur le disque suivant.
 
-**Fade in** et **Fade out**, dans Settings, rubrique Sound, ajoutent un fondu pouvant aller jusqu’à huit secondes au début ou à la fin de chaque piste, y compris le dernier morceau d’un album. Tous deux sont désactivés tant que vous ne les réglez pas. Sur un appareil qui ne permet pas à l’application de régler le volume, les fondus ne sont pas disponibles, et Settings l’indique.
+**Fade in** et **Fade out**, dans Tune this app, rubrique Sound, ajoutent un fondu pouvant aller jusqu’à huit secondes au début ou à la fin de chaque piste, y compris le dernier morceau d’un album. Tous deux sont désactivés tant que vous ne les réglez pas. Sur un appareil qui ne permet pas à l’application de régler le volume, les fondus ne sont pas disponibles, et Tune this app l’indique.
 
 ## L’animation est indépendante
 
@@ -129,9 +129,9 @@ L’application lit les paroles enregistrées à l’intérieur du fichier music
 
 ## 2. Une recherche en ligne, seulement si vous l’activez
 
-Si un morceau n’a pas de paroles à lui, l’application peut interroger lrclib.net, une collection de paroles gratuite et gérée par une communauté. Cette option est **désactivée** tant que vous ne cochez pas **Look up missing lyrics online** dans Settings, rubrique Lyrics.
+Si un morceau n’a pas de paroles à lui, l’application peut interroger lrclib.net, une collection de paroles gratuite et gérée par une communauté. Cette option est **désactivée** tant que vous ne cochez pas **Look up missing lyrics online** dans Tune this app, rubrique Lyrics.
 
-Lorsqu’elle est activée, la recherche d’un morceau n’envoie que son artiste, son titre, son album et sa durée, directement de votre appareil vers lrclib.net. Rien d’autre sur vous, votre appareil ou votre bibliothèque n’est envoyé, et la demande ne passe pas par UNI·SIM. La réponse est conservée sur votre appareil, si bien que chaque morceau n’est demandé qu’une fois. Si aucune parole n’a été trouvée, l’application peut réessayer quelques jours plus tard. Settings indique combien de morceaux ont été recherchés, avec un bouton pour tout oublier.
+Lorsqu’elle est activée, la recherche d’un morceau n’envoie que son artiste, son titre, son album et sa durée, directement de votre appareil vers lrclib.net. Rien d’autre sur vous, votre appareil ou votre bibliothèque n’est envoyé, et la demande ne passe pas par UNI·SIM. La réponse est conservée sur votre appareil, si bien que chaque morceau n’est demandé qu’une fois. Si aucune parole n’a été trouvée, l’application peut réessayer quelques jours plus tard. Tune this app indique combien de morceaux ont été recherchés, avec un bouton pour tout oublier.
 
 Comme la collection est rédigée par des bénévoles, il arrive qu’un texte soit inexact ou légèrement décalé.
 
@@ -139,7 +139,7 @@ Comme la collection est rédigée par des bénévoles, il arrive qu’un texte s
 
 Certaines paroles comportent un repère temporel au début de chaque ligne. On parle de paroles synchronisées, souvent dans un format appelé LRC. Avec elles, le panneau des paroles suit le morceau pendant la lecture, et toucher une ligne fait sauter à ce moment du morceau. Les paroles sans repères s’affichent comme du texte simple.
 
-Les paroles synchronisées permettent aussi deux options, toutes deux dans Settings, rubrique Lyrics : **Lyrics around the record**, qui écrit les mots autour du disque qui tourne à mesure qu’ils sont chantés, et **Lyrics on the lock screen**, qui affiche la ligne chantée dans les commandes de musique de votre téléphone.`,
+Les paroles synchronisées permettent aussi deux options, toutes deux dans Tune this app, rubrique Lyrics : **Lyrics around the record**, qui écrit les mots autour du disque qui tourne à mesure qu’ils sont chantés, et **Lyrics on the lock screen**, qui affiche la ligne chantée dans les commandes de musique de votre téléphone.`,
   },
   {
     id: 'playing-in-the-background',
@@ -175,7 +175,7 @@ Si vous aimez regarder le disque tourner, **Keep awake** empêche l’écran de 
 
 ## Une notification pour chaque morceau
 
-**Notify me of each new song**, dans Settings, affiche le morceau, l’artiste et la pochette au début de chaque nouveau morceau lorsque l’application n’est pas à l’écran. Une seule notification est affichée à la fois, remplacée par la suivante, et elle n’émet aucun son. L’option est désactivée tant que vous ne l’activez pas, et c’est à ce moment-là que votre appareil vous demande l’autorisation.`,
+**Notify me of each new song**, dans Tune this app, affiche le morceau, l’artiste et la pochette au début de chaque nouveau morceau lorsque l’application n’est pas à l’écran. Une seule notification est affichée à la fois, remplacée par la suivante, et elle n’émet aucun son. L’option est désactivée tant que vous ne l’activez pas, et c’est à ce moment-là que votre appareil vous demande l’autorisation.`,
   },
   {
     id: 'privacy',
@@ -196,11 +196,11 @@ Rien de tout cela n’est sauvegardé ni synchronisé par l’application. Si vo
 
 Seules trois fonctions envoient quoi que ce soit au sujet de votre musique, et aucune ne fait rien tant que vous ne le demandez pas. Chacune va directement de votre appareil au service indiqué, sans passer par UNI·SIM, et n’envoie que ce qui est précisé.
 
-- **Recherche de paroles** (désactivée tant que vous ne l’activez pas dans Settings) : envoie l’artiste, le titre, l’album et la durée d’un morceau à lrclib.net, pour les morceaux qui n’ont pas de paroles à eux.
-- **About this track** (désactivée tant que vous ne l’activez pas, dans Settings ou dans le panneau lui-même) : envoie le titre du morceau et le nom de l’artiste à Wikipedia, pour afficher ce que Wikipedia en dit. Les réponses sont conservées sur l’appareil pendant 90 jours, et un morceau sans article est redemandé quelques jours plus tard.
+- **Recherche de paroles** (désactivée tant que vous ne l’activez pas dans Tune this app) : envoie l’artiste, le titre, l’album et la durée d’un morceau à lrclib.net, pour les morceaux qui n’ont pas de paroles à eux.
+- **About this track** (désactivée tant que vous ne l’activez pas, dans Tune this app ou dans le panneau lui-même) : envoie le titre du morceau et le nom de l’artiste à Wikipedia, pour afficher ce que Wikipedia en dit. Les réponses sont conservées sur l’appareil pendant 90 jours, et un morceau sans article est redemandé quelques jours plus tard.
 - **Find a picture**, pour une demande : envoie les mots que vous avez saisis à la recherche iTunes d’Apple, uniquement lorsque vous appuyez dessus. L’image que vous choisissez est enregistrée avec la demande.
 
-Les réponses des deux premières sont conservées sur votre appareil, si bien qu’un morceau n’est recherché qu’une fois. Settings indique combien il y en a et vous permet de les oublier. Aucun son ne quitte jamais votre appareil.
+Les réponses des deux premières sont conservées sur votre appareil, si bien qu’un morceau n’est recherché qu’une fois. Tune this app indique combien il y en a et vous permet de les oublier. Aucun son ne quitte jamais votre appareil.
 
 ## Universal ID
 

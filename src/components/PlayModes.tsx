@@ -108,7 +108,7 @@ export default function PlayModes() {
       {!customiseSeen && (
         <ModeButton
           label="Customise"
-          ariaLabel="Choose which buttons show here, in Settings"
+          ariaLabel="Choose which buttons show here, in Tune this app"
           onClick={() => {
             setSetting('customiseSeen', true)
             openSettingsAt('buttons')

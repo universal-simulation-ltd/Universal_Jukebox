@@ -29,7 +29,7 @@ L’app non ha decoder propri: si affida al supporto audio integrato nel tuo dis
 
 ## Vedere il motivo
 
-Per impostazione predefinita, i brani che non si possono riprodurre vengono saltati senza avvisi. Se preferisci sapere perché, spunta **Show error messages** in Settings, nella sezione Messages: l’app indicherà ogni file che non è riuscita a riprodurre e cosa non andava.`,
+Per impostazione predefinita, i brani che non si possono riprodurre vengono saltati senza avvisi. Se preferisci sapere perché, spunta **Show error messages** in Tune this app, nella sezione Messages: l’app indicherà ogni file che non è riuscita a riprodurre e cosa non andava.`,
   },
   {
     id: 'tags-and-artwork',
@@ -52,7 +52,7 @@ L’app legge i tipi di tag più comuni usati dai file MP3, M4A, FLAC e Ogg. La 
 
 ## Fare ordine
 
-**Tidy up library**, in Settings, nella sezione Your library, cerca due cose: copertine già presenti sul tuo dispositivo ma non usate (un’immagine con un nome da copertina, come cover.jpg, accanto alle tracce, o un’immagine salvata in una traccia successiva) e album che tag incoerenti hanno diviso in due. Ti mostra ogni suggerimento, con l’immagine che userebbe, e non cambia nulla finché non premi il pulsante.
+**Tidy up library**, in Tune this app, nella sezione Your library, cerca due cose: copertine già presenti sul tuo dispositivo ma non usate (un’immagine con un nome da copertina, come cover.jpg, accanto alle tracce, o un’immagine salvata in una traccia successiva) e album che tag incoerenti hanno diviso in due. Ti mostra ogni suggerimento, con l’immagine che userebbe, e non cambia nulla finché non premi il pulsante.
 
 Rifiuta di proposito tutto ciò di cui non può essere sicura. Due album con lo stesso nome in cartelle diverse, o una cartella con due album diversi, vengono lasciati così come sono.
 
@@ -106,9 +106,9 @@ L’app conserva sul tuo dispositivo un catalogo della libreria (titoli, artisti
 
 **I brani dello stesso album** si susseguono direttamente con una dissolvenza incrociata breve e delicata. Il brano che arriva sale solo man mano che quello che se ne va si abbassa, così il passaggio è fluido e non si sentono due brani ad alto volume insieme.
 
-**Quando il brano successivo è su un altro disco**, per impostazione predefinita anche i due si sovrappongono in dissolvenza, mentre sullo schermo un lettore esce scorrendo e il successivo entra. Se preferisci uno stacco netto, spunta **No crossfade between records** in Settings: la puntina si solleva, c’è un attimo di silenzio e si posa sul disco successivo.
+**Quando il brano successivo è su un altro disco**, per impostazione predefinita anche i due si sovrappongono in dissolvenza, mentre sullo schermo un lettore esce scorrendo e il successivo entra. Se preferisci uno stacco netto, spunta **No crossfade between records** in Tune this app: la puntina si solleva, c’è un attimo di silenzio e si posa sul disco successivo.
 
-**Fade in** e **Fade out**, in Settings, nella sezione Sound, aggiungono una dissolvenza fino a otto secondi all’inizio o alla fine di ogni traccia, compreso l’ultimo brano di un album. Sono entrambe disattivate finché non le imposti. Su un dispositivo che non permette all’app di controllare il volume, le dissolvenze non sono disponibili, e Settings lo segnala.
+**Fade in** e **Fade out**, in Tune this app, nella sezione Sound, aggiungono una dissolvenza fino a otto secondi all’inizio o alla fine di ogni traccia, compreso l’ultimo brano di un album. Sono entrambe disattivate finché non le imposti. Su un dispositivo che non permette all’app di controllare il volume, le dissolvenze non sono disponibili, e Tune this app lo segnala.
 
 ## L’animazione è separata
 
@@ -129,9 +129,9 @@ L’app legge i testi salvati all’interno del file musicale. I file di testo s
 
 ## 2. Una ricerca online, solo se la attivi
 
-Se un brano non ha un testo proprio, l’app può chiederlo a lrclib.net, una raccolta di testi gratuita gestita da una comunità. Questa opzione è **disattivata** finché non spunti **Look up missing lyrics online** in Settings, nella sezione Lyrics.
+Se un brano non ha un testo proprio, l’app può chiederlo a lrclib.net, una raccolta di testi gratuita gestita da una comunità. Questa opzione è **disattivata** finché non spunti **Look up missing lyrics online** in Tune this app, nella sezione Lyrics.
 
-Quando è attiva, la ricerca di un brano invia solo artista, titolo, album e durata, direttamente dal tuo dispositivo a lrclib.net. Non viene inviato nient’altro su di te, sul tuo dispositivo o sulla tua libreria, e la richiesta non passa da UNI·SIM. La risposta viene conservata sul tuo dispositivo, così ogni brano viene cercato una sola volta. Se non è stato trovato alcun testo, l’app può riprovare dopo qualche giorno. Settings mostra quanti brani sono stati cercati, con un pulsante per dimenticarli tutti.
+Quando è attiva, la ricerca di un brano invia solo artista, titolo, album e durata, direttamente dal tuo dispositivo a lrclib.net. Non viene inviato nient’altro su di te, sul tuo dispositivo o sulla tua libreria, e la richiesta non passa da UNI·SIM. La risposta viene conservata sul tuo dispositivo, così ogni brano viene cercato una sola volta. Se non è stato trovato alcun testo, l’app può riprovare dopo qualche giorno. Tune this app mostra quanti brani sono stati cercati, con un pulsante per dimenticarli tutti.
 
 Poiché la raccolta è scritta da volontari, può capitare che un testo sia impreciso o leggermente fuori tempo.
 
@@ -139,7 +139,7 @@ Poiché la raccolta è scritta da volontari, può capitare che un testo sia impr
 
 Alcuni testi hanno un’indicazione di tempo all’inizio di ogni riga. Si chiamano testi sincronizzati, spesso in un formato noto come LRC. Con questi, il pannello dei testi segue il brano durante la riproduzione, e toccando una riga si salta a quel punto del brano. I testi senza indicazioni di tempo vengono mostrati come testo semplice.
 
-I testi sincronizzati rendono possibili anche due opzioni, entrambe in Settings, nella sezione Lyrics: **Lyrics around the record**, che scrive le parole intorno al disco che gira mentre vengono cantate, e **Lyrics on the lock screen**, che mostra la riga cantata nei controlli musicali del telefono.`,
+I testi sincronizzati rendono possibili anche due opzioni, entrambe in Tune this app, nella sezione Lyrics: **Lyrics around the record**, che scrive le parole intorno al disco che gira mentre vengono cantate, e **Lyrics on the lock screen**, che mostra la riga cantata nei controlli musicali del telefono.`,
   },
   {
     id: 'playing-in-the-background',
@@ -175,7 +175,7 @@ Se ti piace guardare il disco che gira, **Keep awake** impedisce allo schermo di
 
 ## Una notifica per ogni brano
 
-**Notify me of each new song**, in Settings, mostra brano, artista e copertina all’inizio di ogni nuovo brano mentre l’app non è sullo schermo. Ne compare sempre una sola, sostituita dalla successiva, e non emette alcun suono. È disattivata finché non la attivi, ed è in quel momento che il dispositivo ti chiede il permesso.`,
+**Notify me of each new song**, in Tune this app, mostra brano, artista e copertina all’inizio di ogni nuovo brano mentre l’app non è sullo schermo. Ne compare sempre una sola, sostituita dalla successiva, e non emette alcun suono. È disattivata finché non la attivi, ed è in quel momento che il dispositivo ti chiede il permesso.`,
   },
   {
     id: 'privacy',
@@ -196,11 +196,11 @@ L’app non esegue backup né sincronizza nulla di tutto questo. Se usi Jukebox 
 
 Solo tre funzioni inviano qualcosa sulla tua musica, e nessuna fa nulla finché non lo chiedi tu. Ognuna va direttamente dal tuo dispositivo al servizio indicato, senza passare da UNI·SIM, e invia solo quanto elencato.
 
-- **Ricerca dei testi** (disattivata finché non la attivi in Settings): invia artista, titolo, album e durata di un brano a lrclib.net, per i brani che non hanno un testo proprio.
-- **About this track** (disattivata finché non la attivi, in Settings o nel pannello stesso): invia il titolo del brano e il nome dell’artista a Wikipedia, per mostrare cosa dice Wikipedia al riguardo. Le risposte vengono conservate sul dispositivo per 90 giorni, e un brano senza voce viene cercato di nuovo dopo qualche giorno.
+- **Ricerca dei testi** (disattivata finché non la attivi in Tune this app): invia artista, titolo, album e durata di un brano a lrclib.net, per i brani che non hanno un testo proprio.
+- **About this track** (disattivata finché non la attivi, in Tune this app o nel pannello stesso): invia il titolo del brano e il nome dell’artista a Wikipedia, per mostrare cosa dice Wikipedia al riguardo. Le risposte vengono conservate sul dispositivo per 90 giorni, e un brano senza voce viene cercato di nuovo dopo qualche giorno.
 - **Find a picture**, in una richiesta: invia le parole che hai digitato alla ricerca iTunes di Apple, solo quando lo tocchi. L’immagine che scegli viene salvata con la richiesta.
 
-Le risposte delle prime due vengono conservate sul tuo dispositivo, così un brano viene cercato una sola volta. Settings mostra quante sono e ti permette di dimenticarle. Nessun audio lascia mai il tuo dispositivo.
+Le risposte delle prime due vengono conservate sul tuo dispositivo, così un brano viene cercato una sola volta. Tune this app mostra quante sono e ti permette di dimenticarle. Nessun audio lascia mai il tuo dispositivo.
 
 ## Universal ID
 

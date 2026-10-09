@@ -29,7 +29,7 @@ Uygulamanın kendi kod çözücüleri yoktur: cihazınıza yerleşik ses desteğ
 
 ## Nedenini görmek
 
-Varsayılan olarak, çalınamayan şarkılar sessizce atlanır. Nedenini bilmek isterseniz Settings’te Messages bölümündeki **Show error messages** seçeneğini işaretleyin; uygulama çalamadığı her dosyayı ve sorunun ne olduğunu belirtir.`,
+Varsayılan olarak, çalınamayan şarkılar sessizce atlanır. Nedenini bilmek isterseniz Tune this app’te Messages bölümündeki **Show error messages** seçeneğini işaretleyin; uygulama çalamadığı her dosyayı ve sorunun ne olduğunu belirtir.`,
   },
   {
     id: 'tags-and-artwork',
@@ -52,7 +52,7 @@ Uygulama; MP3, M4A, FLAC ve Ogg dosyalarında kullanılan yaygın etiket türler
 
 ## Düzenleme
 
-Settings’te Your library bölümündeki **Tidy up library** iki şey arar: cihazınızda zaten bulunan ama kullanılmamış kapaklar (parçaların yanında cover.jpg gibi kapak adı taşıyan bir görsel ya da sonraki bir parçada saklanan görsel) ve tutarsız etiketler yüzünden ikiye bölünmüş albümler. Her öneriyi, kullanacağı görselle birlikte size gösterir ve siz düğmeye basana kadar hiçbir şey değişmez.
+Tune this app’te Your library bölümündeki **Tidy up library** iki şey arar: cihazınızda zaten bulunan ama kullanılmamış kapaklar (parçaların yanında cover.jpg gibi kapak adı taşıyan bir görsel ya da sonraki bir parçada saklanan görsel) ve tutarsız etiketler yüzünden ikiye bölünmüş albümler. Her öneriyi, kullanacağı görselle birlikte size gösterir ve siz düğmeye basana kadar hiçbir şey değişmez.
 
 Emin olamadığı her şeyi bilerek reddeder. Farklı klasörlerde aynı adı taşıyan iki albüm ya da iki farklı albüm içeren bir klasör olduğu gibi bırakılır.
 
@@ -106,9 +106,9 @@ Uygulama, bir sonraki açılışta hızlı başlamak için kitaplığınızın b
 
 **Aynı albümdeki şarkılar** kısa ve yumuşak bir çapraz geçişle doğrudan birbirine bağlanır. Gelen şarkı ancak giden şarkı kısıldıkça yükselir; böylece geçiş akıcı olur ve iki şarkı aynı anda yüksek sesle çalmaz.
 
-**Sonraki şarkı başka bir plaktaysa**, ikisi varsayılan olarak yine çapraz geçişle birleşir; bu sırada ekranda bir oynatıcı kayarak çıkar, sonraki kayarak girer. Net bir geçiş tercih ederseniz Settings’te **No crossfade between records** seçeneğini işaretleyin: iğne kalkar, kısa bir sessizlik olur ve sonraki plağa iner.
+**Sonraki şarkı başka bir plaktaysa**, ikisi varsayılan olarak yine çapraz geçişle birleşir; bu sırada ekranda bir oynatıcı kayarak çıkar, sonraki kayarak girer. Net bir geçiş tercih ederseniz Tune this app’te **No crossfade between records** seçeneğini işaretleyin: iğne kalkar, kısa bir sessizlik olur ve sonraki plağa iner.
 
-Settings’te Sound bölümündeki **Fade in** ve **Fade out**, bir albümün son şarkısı dahil her parçanın başına ya da sonuna sekiz saniyeye kadar yavaş açılma veya kapanma ekler. İkisi de siz ayarlayana kadar kapalıdır. Uygulamanın sesi denetlemesine izin vermeyen bir cihazda bu geçişler kullanılamaz ve Settings bunu belirtir.
+Tune this app’te Sound bölümündeki **Fade in** ve **Fade out**, bir albümün son şarkısı dahil her parçanın başına ya da sonuna sekiz saniyeye kadar yavaş açılma veya kapanma ekler. İkisi de siz ayarlayana kadar kapalıdır. Uygulamanın sesi denetlemesine izin vermeyen bir cihazda bu geçişler kullanılamaz ve Tune this app bunu belirtir.
 
 ## Animasyon ayrıdır
 
@@ -129,9 +129,9 @@ Uygulama, müzik dosyasının içinde saklanan sözleri okur. Bir şarkının ya
 
 ## 2. Çevrimiçi arama, yalnızca siz açarsanız
 
-Bir şarkının kendi sözleri yoksa uygulama, topluluk tarafından yürütülen ücretsiz bir söz koleksiyonu olan lrclib.net’e sorabilir. Bu özellik, Settings’te Lyrics bölümündeki **Look up missing lyrics online** seçeneğini işaretleyene kadar **kapalıdır**.
+Bir şarkının kendi sözleri yoksa uygulama, topluluk tarafından yürütülen ücretsiz bir söz koleksiyonu olan lrclib.net’e sorabilir. Bu özellik, Tune this app’te Lyrics bölümündeki **Look up missing lyrics online** seçeneğini işaretleyene kadar **kapalıdır**.
 
-Açık olduğunda, bir şarkıyı aramak yalnızca şarkının sanatçısını, adını, albümünü ve süresini doğrudan cihazınızdan lrclib.net’e gönderir. Sizinle, cihazınızla ya da kitaplığınızla ilgili başka hiçbir şey gönderilmez ve istek UNI·SIM üzerinden geçmez. Yanıt cihazınızda saklanır, böylece her şarkı yalnızca bir kez sorulur. Söz bulunamadıysa uygulama birkaç gün sonra yeniden deneyebilir. Settings, kaç şarkının arandığını gösterir ve hepsini unutmak için bir düğme sunar.
+Açık olduğunda, bir şarkıyı aramak yalnızca şarkının sanatçısını, adını, albümünü ve süresini doğrudan cihazınızdan lrclib.net’e gönderir. Sizinle, cihazınızla ya da kitaplığınızla ilgili başka hiçbir şey gönderilmez ve istek UNI·SIM üzerinden geçmez. Yanıt cihazınızda saklanır, böylece her şarkı yalnızca bir kez sorulur. Söz bulunamadıysa uygulama birkaç gün sonra yeniden deneyebilir. Tune this app, kaç şarkının arandığını gösterir ve hepsini unutmak için bir düğme sunar.
 
 Koleksiyon gönüllüler tarafından yazıldığı için ara sıra bir söz metni hatalı ya da biraz zamanlaması kaymış olabilir.
 
@@ -139,7 +139,7 @@ Koleksiyon gönüllüler tarafından yazıldığı için ara sıra bir söz metn
 
 Bazı sözlerde her satırın başında bir zaman damgası bulunur. Bunlara eşzamanlı sözler denir ve genellikle LRC adlı bir biçimdedir. Bu sözlerle, sözler paneli şarkıyı çalarken takip eder ve bir satıra dokunmak şarkının o noktasına atlar. Zaman damgası olmayan sözler düz metin olarak gösterilir.
 
-Eşzamanlı sözler, ikisi de Settings’te Lyrics bölümünde bulunan iki isteğe bağlı özelliği de mümkün kılar: sözleri söylendikçe dönen plağın çevresine yazan **Lyrics around the record** ve söylenen satırı telefonunuzun müzik denetimlerinde gösteren **Lyrics on the lock screen**.`,
+Eşzamanlı sözler, ikisi de Tune this app’te Lyrics bölümünde bulunan iki isteğe bağlı özelliği de mümkün kılar: sözleri söylendikçe dönen plağın çevresine yazan **Lyrics around the record** ve söylenen satırı telefonunuzun müzik denetimlerinde gösteren **Lyrics on the lock screen**.`,
   },
   {
     id: 'playing-in-the-background',
@@ -175,7 +175,7 @@ Plağın dönüşünü izlemeyi seviyorsanız **Keep awake**, Now Playing açık
 
 ## Her şarkı için bir bildirim
 
-Settings’teki **Notify me of each new song**, uygulama ekranda değilken her yeni şarkı başladığında şarkıyı, sanatçıyı ve kapağı gösterir. Her zaman yalnızca bir bildirim görünür, bir sonrakiyle değiştirilir ve hiç ses çıkarmaz. Siz açana kadar kapalıdır ve cihazınız izni tam da açtığınızda sorar.`,
+Tune this app’teki **Notify me of each new song**, uygulama ekranda değilken her yeni şarkı başladığında şarkıyı, sanatçıyı ve kapağı gösterir. Her zaman yalnızca bir bildirim görünür, bir sonrakiyle değiştirilir ve hiç ses çıkarmaz. Siz açana kadar kapalıdır ve cihazınız izni tam da açtığınızda sorar.`,
   },
   {
     id: 'privacy',
@@ -196,11 +196,11 @@ Uygulama bunların hiçbirini yedeklemez ya da eşzamanlamaz. Jukebox’ı iki c
 
 Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçbiri siz istemeden bir şey yapmaz. Her biri, UNI·SIM üzerinden geçmeden doğrudan cihazınızdan belirtilen hizmete gider ve yalnızca listelenenleri gönderir.
 
-- **Şarkı sözü arama** (Settings’te açana kadar kapalı): kendi sözleri olmayan şarkılar için şarkının sanatçısını, adını, albümünü ve süresini lrclib.net’e gönderir.
-- **About this track** (Settings’te ya da panelin kendisinde açana kadar kapalı): Wikipedia’nın onlar hakkında söylediklerini göstermek için şarkının adını ve sanatçının adını Wikipedia’ya gönderir. Yanıtlar cihazda 90 gün saklanır; makalesi olmayan bir şarkı birkaç gün sonra yeniden sorulur.
+- **Şarkı sözü arama** (Tune this app’te açana kadar kapalı): kendi sözleri olmayan şarkılar için şarkının sanatçısını, adını, albümünü ve süresini lrclib.net’e gönderir.
+- **About this track** (Tune this app’te ya da panelin kendisinde açana kadar kapalı): Wikipedia’nın onlar hakkında söylediklerini göstermek için şarkının adını ve sanatçının adını Wikipedia’ya gönderir. Yanıtlar cihazda 90 gün saklanır; makalesi olmayan bir şarkı birkaç gün sonra yeniden sorulur.
 - **Find a picture**, bir istekte: yazdığınız sözcükleri yalnızca siz dokunduğunuzda Apple’ın iTunes aramasına gönderir. Seçtiğiniz görsel istekle birlikte kaydedilir.
 
-İlk ikisinin yanıtları cihazınızda saklanır, böylece bir şarkı yalnızca bir kez sorgulanır. Settings kaç tane olduğunu gösterir ve bunları unutmanızı sağlar. Hiçbir ses cihazınızdan asla çıkmaz.
+İlk ikisinin yanıtları cihazınızda saklanır, böylece bir şarkı yalnızca bir kez sorgulanır. Tune this app kaç tane olduğunu gösterir ve bunları unutmanızı sağlar. Hiçbir ses cihazınızdan asla çıkmaz.
 
 ## Universal ID
 

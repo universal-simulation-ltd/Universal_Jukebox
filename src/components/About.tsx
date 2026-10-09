@@ -117,7 +117,7 @@ export default function About() {
           onClick={() => navigate({ view: 'settings' })}
           className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
         >
-          Settings
+          Tune this app
         </button>
         , along with fades and a volume boost for quietly-mastered albums.
       </p>
