@@ -266,7 +266,7 @@ export interface Settings {
    */
   recordCrossfade: boolean
   /**
-   * The crossfade's own numbers, Settings ▸ Advanced… beside "No crossfade
+   * The crossfade's own numbers, Settings ▸ Fine-tune… beside "No crossfade
    * between records" (James, 2026-09-28: "these are the controls I want the
    * user to be able to customise"). Defaults are the values that were
    * constants in `playerStore.ts` until then; see `CROSSFADE_LIMITS`.

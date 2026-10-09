@@ -8,7 +8,8 @@ import {
 } from '../stores/settingsStore'
 import { useDialogFocus } from '../lib/useDialogFocus'
 
-// Settings ▸ the crossfade's Advanced… sheet (James, 2026-09-28: "these are
+// Settings ▸ the crossfade's Fine-tune… sheet (the opener was "Advanced…" until
+// 2026-10-10; James, 2026-09-28: "these are
 // the controls I want the user to be able to customise. Maybe we could have an
 // 'Advanced' button next to the crossfade option and popup with these
 // controls"). "These" are the numbers on the crossfade explainer page: the

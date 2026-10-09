@@ -323,13 +323,15 @@ export default function Settings() {
             checked={!s.recordCrossfade}
             onChange={(v) => s.set('recordCrossfade', !v)}
           />
-          {/* James, 2026-09-28: "an 'Advanced' button next to the crossfade
+          {/* Button renamed Advanced… → Fine-tune… (James, 2026-10-10: the suite's
+              "Fine-tune" = adjusting one thing; the dialog was already
+              "Fine-tune crossfade"). James, 2026-09-28: "an 'Advanced' button next to the crossfade
               option and popup with these controls" — the lengths, the
               quiet-opening hold, the silent-ending skip and the shape. */}
           <Action
             label="Crossfade timing"
             hint={`${s.xfTrackSec.toFixed(1)} s within a record, ${s.xfRecordSec.toFixed(1)} s between records, ${s.xfSkipSec.toFixed(1)} s when you press Next.`}
-            button="Advanced…"
+            button="Fine-tune…"
             onClick={() => setCrossfadeOpen(true)}
           />
           {crossfadeOpen && <CrossfadeDialog onClose={() => setCrossfadeOpen(false)} />}

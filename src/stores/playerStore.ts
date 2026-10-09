@@ -720,7 +720,7 @@ const BEATS = { one: 780, land: 1050, start: 1560 }
  * once it is on.
  */
 /**
- * The crossfade's numbers, read from Settings ▸ Advanced… each time (James,
+ * The crossfade's numbers, read from Settings ▸ Fine-tune… each time (James,
  * 2026-09-28: "these are the controls I want the user to be able to
  * customise"). Until then these were constants — 1.8, 1.2, 4.5, 1.5 — and those
  * are still the defaults. A skip across records stays 1.25× a skip within one.
