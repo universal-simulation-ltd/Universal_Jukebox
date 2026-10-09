@@ -30,6 +30,9 @@ const PUBLISH_MS = 2500
 
 /** The length of one file in seconds, or null if the browser can't say. */
 export function probeLength(file: SourceFile): Promise<number | null> {
+  // No media element (the unit tests' Node, a worker): no length, as when
+  // the browser can't say. Unguarded, a scan under test threw from here.
+  if (typeof Audio === 'undefined') return Promise.resolve(null)
   return new Promise((resolve) => {
     const el = new Audio()
     el.preload = 'metadata'
