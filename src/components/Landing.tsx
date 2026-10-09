@@ -1,10 +1,11 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { hasNativeImporter } from '../lib/nativeImport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { keepsFolderWhenInstalled } from '../lib/persistence'
 import { isDesktopApp } from '../lib/host'
+import { forgetOpenSources, wantsOpenSources } from '../lib/landingIntent'
 
 // The front door, before there is a library.
 //
@@ -122,7 +123,8 @@ export default function Landing() {
   // The button reads "Find my music" since 2026-10-05: "Scan my music folder"
   // was wrong for two of the answers behind it (the Music library is not a
   // folder, and a streaming service cannot be scanned at all).
-  const [choosing, setChoosing] = useState(lastAnswer !== null)
+  const [choosing, setChoosing] = useState(() => wantsOpenSources() || lastAnswer !== null)
+  useEffect(forgetOpenSources, [])
   const [answer, setAnswerState] = useState<Answer | null>(lastAnswer)
   const setAnswer = (next: Answer | null) => {
     lastAnswer = next

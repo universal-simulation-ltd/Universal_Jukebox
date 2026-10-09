@@ -1,6 +1,7 @@
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import { goHome } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
+import { openSourcesOnLanding } from '../lib/landingIntent'
 
 // "This is the demo" — said once you are INSIDE it, where the landing page that
 // explained it is no longer on screen.
@@ -15,7 +16,12 @@ import { useLibraryStore } from '../stores/libraryStore'
 //   • Loaded from the landing page, the example IS the library — there was
 //     nothing before it to go back to. This is then a label: it names the demo
 //     and says how it ends (your own music takes its place — `runScan` removes
-//     it), and offers nothing to press.
+//     it), and offers one quiet link, "Use my own music" (James, 2026-10-09:
+//     a label with nothing to press left a first-timer hunting through the
+//     menu). It clears the example and opens the landing page's "Where is
+//     your music?" — the same add-your-music flow a first visit starts with.
+//     Clearing first is safe: the example is the WHOLE library here, nothing
+//     real is lost, and "I just want to try it" is right there to come back.
 //   • TRIED from Tune this app (`libraryStore.tryExample`), it stands in for a
 //     real library that is set aside, untouched, until you come back. Then this
 //     is the way back, and it says so with a button — on every page, not only
@@ -28,6 +34,7 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
   const isExample = useLibraryStore((s) => s.roots.some((r) => r.id === EXAMPLE_ROOT_ID))
   const trying = useLibraryStore((s) => s.trying)
   const leaveExample = useLibraryStore((s) => s.leaveExample)
+  const clear = useLibraryStore((s) => s.clear)
 
   if (trying) {
     return (
@@ -60,8 +67,19 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
       <strong className="font-semibold">Example library</strong>
       <span>
         Four made-up artists, with music and sleeves generated on this device. To play your own
-        music instead, open Actions → Your complete library, and this steps aside.
+        music instead, add it and this steps aside.
       </span>
+      <button
+        type="button"
+        onClick={() => {
+          openSourcesOnLanding()
+          goHome()
+          void clear()
+        }}
+        className="font-semibold text-orange-800 underline decoration-orange-300 underline-offset-2 transition hover:text-orange-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:text-orange-200 dark:decoration-orange-700 dark:hover:text-orange-50"
+      >
+        Use my own music
+      </button>
     </p>
   )
 }

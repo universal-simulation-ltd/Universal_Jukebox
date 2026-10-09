@@ -178,7 +178,7 @@ function JukeboxShelfRow({
               aria-pressed={editing}
               className={pill}
             >
-              {editing ? 'Done' : 'Tune'}
+              {editing ? 'Done' : 'Fine-tune'}
             </button>
           </div>
         )}
