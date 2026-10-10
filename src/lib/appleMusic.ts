@@ -29,10 +29,14 @@ import { pluginRegistered } from './nativePlugins'
 import { rootOf } from './roots'
 import type { Album, Root, ScanProgress, Track } from './types'
 import { compareBaseNumeric } from './collate'
+import { getT } from '../i18n/runtime.ts'
 
 export const MUSIC_LIBRARY_PLUGIN = 'JukeboxAppleMusic'
 export const MUSIC_LIBRARY_ROOT_ID = 'music-library'
-/** What the root is called in the library — and so the prefix of its paths. */
+/**
+ * What the root is called in the library — and so the prefix of its paths.
+ * DATA, so it stays English; `shownRootLabel` (lib/roots) translates it on screen.
+ */
 export const MUSIC_LIBRARY_LABEL = 'Music library'
 
 export type AccessStatus = 'authorized' | 'denied' | 'restricted' | 'notDetermined'
@@ -245,7 +249,7 @@ export async function readMusicLibrary(
   const ready: Album[] = []
   let showAt = FIRST_SHOWN
 
-  report('Reading the album art…')
+  report(getT()('landing.reading_art'))
   let fetched = 0
   await inLanes(order, 4, signal, async (album) => {
     const libraryAlbumId = artworkFor.get(album.id)
@@ -260,7 +264,7 @@ export async function readMusicLibrary(
       }
     }
     fetched++
-    if (fetched % 10 === 0) report(`Reading the album art — ${fetched} of ${albums.length}`)
+    if (fetched % 10 === 0) report(getT()('landing.reading_art_count', { done: fetched, total: albums.length }))
     if (onReady && !signal?.aborted) {
       ready.push(album)
       // Not once it is all in — the caller puts the whole library up then.

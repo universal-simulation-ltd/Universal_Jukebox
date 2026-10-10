@@ -18,6 +18,7 @@
 import { readTags, type Picture } from './tags'
 import { albumKey, trackKey } from './keys'
 import { makeCoverBlob } from './art'
+import { getT } from '../i18n/runtime.ts'
 import type { Album, ScanProgress, SourceFile, Track } from './types'
 import { NativeFile, type NativeEntry } from './nativeFile'
 
@@ -64,15 +65,20 @@ const PLAYABLE = new Set(['mp3', 'm4a', 'mp4', 'aac', 'flac', 'wav', 'wave', 'ai
  * folder of WMA that scans to "0 tracks" tells someone their music is broken,
  * when the truth is that no browser has ever decoded WMA and Universal
  * Converter will happily turn it into something that plays.
+ *
+ * ⚠️ GETTERS, so each sentence is read in the language of the moment it is
+ * shown — a plain object of strings would be frozen in whatever language was
+ * active when this module loaded. `REFUSED[ext]` and `Object.entries` still
+ * work as before.
  */
 export const REFUSED: Record<string, string> = {
-  wma: 'Windows Media audio — no browser decodes it. Universal Converter can turn it into MP3.',
-  m4p: 'This track is protected by DRM and no browser can play it.',
-  m4b: 'An audiobook container — no browser decodes it.',
-  ape: "Monkey's Audio — no browser decodes it. Universal Converter can turn it into FLAC.",
-  wv: 'WavPack — no browser decodes it.',
-  mid: 'MIDI is a score, not a recording — there is no audio in the file to play.',
-  midi: 'MIDI is a score, not a recording — there is no audio in the file to play.',
+  get wma() { return getT()('landing.refused_wma') },
+  get m4p() { return getT()('landing.refused_m4p') },
+  get m4b() { return getT()('landing.refused_m4b') },
+  get ape() { return getT()('landing.refused_ape') },
+  get wv() { return getT()('landing.refused_wv') },
+  get mid() { return getT()('landing.refused_midi') },
+  get midi() { return getT()('landing.refused_midi') },
 }
 
 export function extensionOf(name: string): string {

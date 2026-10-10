@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DropRing } from '@unisim/sdk'
 import FolderAccessButton from './FolderAccessButton'
-import { plural } from '../lib/format'
-import { folderAccess } from '../lib/roots'
+import { folderAccess, shownRootLabel } from '../lib/roots'
 import { goHome } from '../lib/route'
-import { host } from '../lib/host'
+import { isDesktopApp } from '../lib/host'
 import { useMissingFile } from '../lib/useMissingFile'
-import { needAccessFrom, refusalLabel, useLibraryStore } from '../stores/libraryStore'
+import { useT } from '../i18n'
+import { needAccessFrom, refusalLabel, refusalWhy, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -34,26 +34,27 @@ const TICK_MS = 1200
  * warning.
  */
 function StartAgain({ onClick }: { onClick(): void }) {
+  const t = useT()
   const [asking, setAsking] = useState(false)
   if (asking) {
     return (
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Start a new library">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('landing.start_new_library')}>
         <span className="mr-1 text-[13px] font-medium">
-          Forget this library and start again? Your music files aren’t touched.
+          {t('landing.forget_library_ask')}
         </span>
         <button
           type="button"
           onClick={onClick}
           className="rounded-full border border-red-300 bg-white px-4 py-1.5 text-[13px] font-medium text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950/40"
         >
-          Forget it
+          {t('landing.forget_it')}
         </button>
         <button
           type="button"
           onClick={() => setAsking(false)}
           className="px-2 py-1.5 text-[12.5px] text-orange-900/80 underline-offset-2 hover:underline dark:text-orange-200/80"
         >
-          Keep it
+          {t('landing.keep_it')}
         </button>
       </div>
     )
@@ -62,15 +63,16 @@ function StartAgain({ onClick }: { onClick(): void }) {
     <button
       type="button"
       onClick={() => setAsking(true)}
-      title="Forget this library and go back to the start"
+      title={t('landing.start_new_library_title')}
       className="shrink-0 text-[13px] font-medium text-orange-900/80 underline-offset-2 hover:underline dark:text-orange-200/80"
     >
-      Start a new library
+      {t('landing.start_new_library')}
     </button>
   )
 }
 
 export default function ScanBanner({ showRefusals = true }: { showRefusals?: boolean }) {
+  const t = useT()
   const progress = useLibraryStore((s) => s.progress)
   const refusals = useLibraryStore((s) => s.refusals)
   // ⚠️ Which folders are unreachable is DERIVED, not stored — see
@@ -150,6 +152,8 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
   const startAgain = () => {
     void clear().then(goHome)
   }
+  // The Windows app is not a browser: its sentences say "the app" instead.
+  const desktop = isDesktopApp()
 
 
   return (
@@ -173,15 +177,15 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               sleeves — see `readMusicLibrary`. */}
           <p className="min-w-0 flex-1">
             {stoppedRoot.source === 'music-library'
-              ? 'Stopped early — every song is in your library and plays normally, but some records have no sleeve yet. Refreshing fetches the rest.'
-              : 'Stopped early — everything found up to that point is in your library and plays normally. Scanning again reads the whole folder from the start.'}
+              ? t('landing.stopped_early_music_library')
+              : t('landing.stopped_early_folder')}
           </p>
           <button
             type="button"
             onClick={() => void rescanFolder(stoppedRoot.id)}
             className="shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
           >
-            {stoppedRoot.source === 'music-library' ? 'Fetch the sleeves' : 'Scan the rest'}
+            {stoppedRoot.source === 'music-library' ? t('landing.fetch_sleeves') : t('landing.scan_rest')}
           </button>
         </div>
       )}
@@ -210,8 +214,7 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               says the same thing twice. */}
           {stranded.length > 1 && (
             <p className="mb-3 font-semibold">
-              {plural(stranded.length, 'folder')} are still here, but each one has to be
-              reconnected before it can be played.
+              {t.plural('landing.stranded_heading', stranded.length)}
             </p>
           )}
 
@@ -240,25 +243,30 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
               // Grouped, the shared half of each sentence is already in the
               // heading, so a row says only what is true of THIS folder.
               const grouped = stranded.length > 1
+              const name = <strong className="font-semibold">{shownRootLabel(root.label)}</strong>
               return (
                 <li key={root.id} className="flex flex-wrap items-center gap-3">
                   <p className="min-w-0 flex-1">
-                    <strong className="font-semibold">{root.label}</strong>
-                    {isChosen
-                      ? ' can’t be read right now — it may have been moved or renamed, or access to it withdrawn. Rescanning reads it again, and asks you to choose it if it can’t be found.'
-                      : isNative
-                      ? ' lists tracks that aren’t in the music folder any more. Rescanning will bring the library back in line with what’s actually there.'
-                      : canReopen
-                      ? grouped
-                        // Nothing: the heading has said why, and the button says
-                        // what happens. Repeating "needs your permission again"
-                        // on every row is the noise that made the stacked
-                        // banners unreadable in the first place.
-                        ? ''
-                        : ` is here, but ${host().the} needs your permission again before it can be read.`
-                      : grouped
-                        ? ` — ${host().this} can’t reopen a folder on its own, so choose it again. Nothing has to be read twice.`
-                        : ` and its artwork are still here, but ${host().this} can’t reopen a folder on its own — choose it again to play anything from it. It will be quick: nothing has to be read twice.`}
+                    {canReopen && grouped ? (
+                      // Nothing but the name: the heading has said why, and the
+                      // button says what happens. Repeating "needs your
+                      // permission again" on every row is the noise that made
+                      // the stacked banners unreadable in the first place.
+                      name
+                    ) : (
+                      t.rich(
+                        isChosen
+                          ? 'landing.stranded_chosen'
+                          : isNative
+                          ? 'landing.stranded_native'
+                          : canReopen
+                          ? desktop ? 'landing.stranded_reopen_app' : 'landing.stranded_reopen_browser'
+                          : grouped
+                          ? desktop ? 'landing.stranded_choose_grouped_app' : 'landing.stranded_choose_grouped_browser'
+                          : desktop ? 'landing.stranded_choose_app' : 'landing.stranded_choose_browser',
+                        { folder: name },
+                      )
+                    )}
                   </p>
                   {/* This folder's own button — shared with the missing-file
                       error, and one per folder for the reason in its header. */}
@@ -281,15 +289,18 @@ export default function ScanBanner({ showRefusals = true }: { showRefusals?: boo
       {showRefusals && !hideErrors && refusals.length > 0 && (
         <div className="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-[13px] font-medium text-slate-900 dark:text-slate-100">
-            Some files were skipped
+            {t('landing.skipped_heading')}
           </p>
           <ul className="mt-2 space-y-1.5">
             {refusals.map((r) => (
               <li key={r.ext} className="text-[12.5px] leading-relaxed text-slate-600 dark:text-slate-300">
                 {/* In words where there are some — the Music library's skips
                     are kinds of song, not formats (`musicLibrarySkips`). */}
-                <span className="font-medium text-slate-800 dark:text-slate-200">{refusalLabel(r)}</span>
-                {' '}({r.count}) — {r.why}
+                {t.rich(
+                  'landing.skipped_line',
+                  { label: <span className="font-medium text-slate-800 dark:text-slate-200">{refusalLabel(r)}</span> },
+                  { count: r.count, why: refusalWhy(r) },
+                )}
               </li>
             ))}
           </ul>
@@ -320,6 +331,7 @@ function ScanningCard({
   onKeep(): void
   onDelete(): void
 }) {
+  const t = useT()
   const [asking, setAsking] = useState(false)
   return (
     <div className="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
@@ -327,44 +339,44 @@ function ScanningCard({
         <DropRing size={34} motion="busy" aria-hidden />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-slate-900 tabular-nums dark:text-slate-100" aria-live="polite">
-            {progress.added.toLocaleString()} / {progress.seen.toLocaleString()} tracks
+            {t.plural('landing.scan_progress', progress.seen, { added: t.num(progress.added) })}
           </p>
           {/* The folder currently being walked — honest and specific. */}
-          <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">{progress.where || 'Starting…'}</p>
+          <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">{progress.where || t('landing.scan_starting')}</p>
           {!asking && (
             <button
               type="button"
               onClick={() => setAsking(true)}
               className="mt-1 text-[12.5px] font-medium text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-300 dark:hover:text-orange-400"
             >
-              Stop
+              {t('landing.scan_stop')}
             </button>
           )}
         </div>
       </div>
       {asking && (
-        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Stop reading your folder">
-          <span className="mr-1 text-[13px] font-medium text-slate-800 dark:text-slate-100">Stop and…</span>
+        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label={t('landing.scan_stop_label')}>
+          <span className="mr-1 text-[13px] font-medium text-slate-800 dark:text-slate-100">{t('landing.scan_stop_and')}</span>
           <button
             type="button"
             onClick={onKeep}
             className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
           >
-            {progress.added > 0 ? `Keep ${plural(progress.added, 'track')}` : 'Keep what’s read'}
+            {progress.added > 0 ? t.plural('landing.scan_keep', progress.added) : t('landing.scan_keep_read')}
           </button>
           <button
             type="button"
             onClick={onDelete}
             className="rounded-full border border-red-300 px-4 py-1.5 text-[13px] font-medium text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
           >
-            Delete
+            {t('common.delete')}
           </button>
           <button
             type="button"
             onClick={() => setAsking(false)}
             className="px-2 py-1.5 text-[12.5px] text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
           >
-            Carry on
+            {t('landing.scan_carry_on')}
           </button>
         </div>
       )}

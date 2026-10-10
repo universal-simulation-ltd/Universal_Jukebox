@@ -24,6 +24,7 @@ import {
   prefixOf,
   removeRoot,
   rootsNeedingAccess,
+  shownRootLabel,
   uniqueLabel,
   unusedGrants,
   withCounts,
@@ -50,7 +51,8 @@ import { holdSession } from '../lib/session'
 import { mergeDiscSets } from '../lib/discs'
 import type { Album, Root, ScanProgress, SourceFile, Track } from '../lib/types'
 import { compareNumeric } from '../lib/collate'
-import { host, isDesktopApp } from '../lib/host'
+import { isDesktopApp } from '../lib/host'
+import { getT } from '../i18n/runtime.ts'
 
 // The library: what was found, and everything about getting it.
 //
@@ -318,7 +320,22 @@ export interface Refusal {
 
 /** How a refusal is named in the skipped-files report: its label, else `.EXT`. */
 export function refusalLabel(refusal: Refusal): string {
+  // The Music library's two kinds, read again in the language of the moment —
+  // the stored label is in whatever language the import ran in.
+  if (refusal.label !== undefined && refusal.ext === 'protected') return getT()('landing.skip_protected_label')
+  if (refusal.label !== undefined && refusal.ext === 'icloud') return getT()('landing.skip_icloud_label')
   return refusal.label ?? `.${refusal.ext.toUpperCase()}`
+}
+
+/**
+ * Why it was refused, as the skipped-files report says it — in the language of
+ * the moment, not the one the scan ran in, where the reason is one this app
+ * knows; else as stored.
+ */
+export function refusalWhy(refusal: Refusal): string {
+  if (refusal.label !== undefined && refusal.ext === 'protected') return getT()('landing.skip_protected_why')
+  if (refusal.label !== undefined && refusal.ext === 'icloud') return getT()('landing.skip_icloud_why')
+  return (refusal.label === undefined ? REFUSED[refusal.ext] : undefined) ?? refusal.why
 }
 
 /** The example library's records are made on demand — no folder, ever. */
@@ -677,11 +694,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       let state = (await handle.queryPermission?.({ mode: 'read' })) ?? 'granted'
       if (state !== 'granted') state = (await handle.requestPermission?.({ mode: 'read' })) ?? 'denied'
       if (state !== 'granted') {
-        set({ error: `Without access to ${root.label} its tracks cannot be played. Nothing was lost — the library is still here.` })
+        set({ error: getT()('landing.error_no_access', { folder: shownRootLabel(root.label) }) })
         return
       }
     } catch {
-      set({ error: `${root.label} could not be opened. It may have been moved, renamed, or be on a drive that is no longer connected.` })
+      set({ error: getT()('landing.error_cannot_open', { folder: shownRootLabel(root.label) }) })
       return
     }
     // Allowed: the banner can stand down now, not when the scan ends — see
@@ -730,7 +747,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     // No handle means no way back to the folder without the picker. Say so
     // rather than pretending to rescan.
     set({
-      error: `${host().This} can’t reopen a folder on its own — choose ${root.label} again to rescan it. Your library and covers are kept, so it will be quick.`,
+      error: getT()(isDesktopApp() ? 'landing.error_choose_again_app' : 'landing.error_choose_again_browser', {
+        folder: shownRootLabel(root.label),
+      }),
     })
   },
 
@@ -872,7 +891,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       })
     } catch (err) {
       console.error('[jukebox] The folder picker failed:', err)
-      set({ error: 'That folder could not be used — the phone would not let the app keep access to it. Try again, or choose a different folder.' })
+      set({ error: getT()('landing.error_picker_failed') })
       return
     }
     if (!picked) return // Backed out of the picker: not an error, nothing to say.
@@ -927,7 +946,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       set({ importProgress: null })
     }
     if (copied === 0) {
-      set({ error: 'None of those files could be copied into the music folder.' })
+      set({ error: getT()('landing.error_none_copied') })
       return
     }
     await get().scanNativeFolder()
@@ -954,14 +973,12 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       access = await requestMusicLibraryAccess()
     } catch (err) {
       console.error('[jukebox] Could not ask for the Music library:', err)
-      set({ error: 'The Music library could not be opened.' })
+      set({ error: getT()('landing.error_music_library_open') })
       return
     }
     if (access !== 'authorized') {
       set({
-        error: access === 'restricted'
-          ? 'Access to the Music library is restricted on this iPhone (Screen Time or a device profile), so Universal Jukebox can’t read it.'
-          : 'Universal Jukebox isn’t allowed to read your Music library. Turn it on in Settings → Apps → Universal Jukebox → Media & Apple Music, then try again.',
+        error: getT()(access === 'restricted' ? 'landing.error_music_library_restricted' : 'landing.error_music_library_denied'),
       })
       return
     }
@@ -1025,7 +1042,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       status: 'scanning',
       error: null,
       stoppedEarly: null,
-      progress: { seen: 0, added: 0, skipped: 0, where: MUSIC_LIBRARY_LABEL, done: false },
+      progress: { seen: 0, added: 0, skipped: 0, where: getT()('landing.root_music_library'), done: false },
     })
     let read: MusicLibraryRead
     try {
@@ -1051,7 +1068,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       set({
         status: get().tracks.length > 0 ? 'ready' : 'empty',
         progress: null,
-        error: 'The Music library could not be read.',
+        error: getT()('landing.error_music_library_read'),
       })
       return
     }
@@ -1105,12 +1122,12 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       copied = await importWithNativePicker()
     } catch (err) {
       console.error('[jukebox] The file picker failed:', err)
-      set({ error: 'Those files could not be copied into the music folder.' })
+      set({ error: getT()('landing.error_copy_failed') })
       return
     }
     if (copied === null) return // Backed out of the picker: nothing to say.
     if (copied === 0) {
-      set({ error: 'None of those files could be copied into the music folder.' })
+      set({ error: getT()('landing.error_none_copied') })
       return
     }
     await get().scanNativeFolder()
@@ -1178,27 +1195,25 @@ useLibraryStore.subscribe((state, prev) => {
  * which is the whole reason the first version of this read as a dead end.
  */
 function emptyFolderMessage(folder: string): string {
+  const t = getT()
   // Keyed on the folder that was READ, not on whether a picker exists: on iOS
   // both kinds of folder are possible and they need different directions.
-  if (folder) {
-    return 'No music in that folder. Copy albums into it from a computer or with the Files app — Artist/Album/track.mp3 is exactly right — then scan again, or choose a different folder.'
-  }
-  const where =
-    nativePlatform() === 'ios'
-      ? 'Open the Files app, go to On My iPhone \u2192 Universal Jukebox, and copy an album in.'
-      : 'Copy an album into the Universal Jukebox folder in your Files app.'
-  return `No music in your folder yet. ${where} Folders are kept, so Artist/Album/track.mp3 is exactly right \u2014 then scan again. Or tap \u201cAdd songs one at a time\u201d to pick files here.`
+  if (folder) return t('landing.empty_chosen_folder')
+  // The button it names is the landing page's own, so the two always agree.
+  const button = t('landing.add_songs_one_at_a_time')
+  return t(nativePlatform() === 'ios' ? 'landing.empty_own_folder_ios' : 'landing.empty_own_folder', { button })
 }
 
 /** Why a Music library came back with nothing this app can play. */
 function emptyMusicLibraryMessage(read: MusicLibraryRead): string {
-  if (read.total === 0) {
-    return 'There are no songs in the Music library on this iPhone. Sync them from your Mac (Finder → your iPhone → Music), then try again.'
-  }
-  const parts: string[] = []
-  if (read.protected > 0) parts.push(`${read.protected} are Apple Music downloads, which are protected and can’t be played by other apps`)
-  if (read.cloudOnly > 0) parts.push(`${read.cloudOnly} are in iCloud but not downloaded to this iPhone`)
-  return `None of the ${read.total} songs in your Music library can be played here: ${parts.join(', and ')}. Songs synced from your Mac play fine.`
+  const t = getT()
+  if (read.total === 0) return t('landing.music_library_empty')
+  // One whole sentence per combination, never two halves joined: the reasons'
+  // order and the "and" between them are the language's, not ours.
+  const counts = { total: read.total, protected: read.protected, cloud: read.cloudOnly }
+  if (read.protected > 0 && read.cloudOnly > 0) return t('landing.music_library_unplayable_both', counts)
+  if (read.protected > 0) return t('landing.music_library_unplayable_protected', counts)
+  return t('landing.music_library_unplayable_cloud', counts)
 }
 
 /**
@@ -1214,17 +1229,17 @@ export function musicLibrarySkips(read: Pick<MusicLibraryRead, 'protected' | 'cl
   if (read.protected > 0) {
     skips.push({
       ext: 'protected',
-      label: 'Apple Music downloads',
+      label: getT()('landing.skip_protected_label'),
       count: read.protected,
-      why: 'protected, and iOS doesn’t let other apps play them. Songs synced from your Mac aren’t affected.',
+      why: getT()('landing.skip_protected_why'),
     })
   }
   if (read.cloudOnly > 0) {
     skips.push({
       ext: 'icloud',
-      label: 'iCloud-only songs',
+      label: getT()('landing.skip_icloud_label'),
       count: read.cloudOnly,
-      why: 'not downloaded to this iPhone. Download them in the Music app, then refresh the Music library.',
+      why: getT()('landing.skip_icloud_why'),
     })
   }
   return skips
@@ -1349,8 +1364,8 @@ async function scanNative(
       progress: null,
       // Named, because with several folders "that folder" could be any of them.
       error: folder
-        ? `${label} could not be opened — it may have been moved or renamed, or access to it was withdrawn. Choose it again.`
-        : 'The music folder could not be read. If the app was just installed, try opening it again.',
+        ? getT()('landing.error_native_folder_lost', { folder: shownRootLabel(label) })
+        : getT()('landing.error_native_folder_unreadable'),
     })
     return 'unreadable'
   }
@@ -1732,7 +1747,7 @@ async function runScan(
       roots: [...get().roots.filter((r) => r.id !== rootId), kept],
       status: get().tracks.length > 0 ? 'ready' : 'empty',
       progress: null,
-      error: 'That folder could not be read all the way through. Anything found before the problem is in the library.',
+      error: getT()('landing.error_scan_incomplete'),
     })
     return
   }
@@ -1825,6 +1840,8 @@ async function runScan(
     // their music is broken when what actually happened is that they asked.
     error: stopped || result.tracks.length > 0
       ? null
-      : `Nothing playable in ${prefix} — checked ${result.refused.size > 0 ? 'every file' : 'the whole folder'}.`,
+      : getT()(result.refused.size > 0 ? 'landing.error_nothing_playable_refused' : 'landing.error_nothing_playable', {
+          folder: shownRootLabel(prefix),
+        }),
   })
 }

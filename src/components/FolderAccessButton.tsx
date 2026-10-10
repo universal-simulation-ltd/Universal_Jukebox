@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { folderAccess } from '../lib/roots'
 import { hasDirectoryPicker } from '../lib/scan'
 import type { Root } from '../lib/types'
+import { useT, type MessageKey } from '../i18n'
 import { useLibraryStore } from '../stores/libraryStore'
 
 // The button that gets ONE folder back — permission, a re-pick, or a rescan,
@@ -22,9 +23,10 @@ import { useLibraryStore } from '../stores/libraryStore'
 // it is dropped silently, which presents as a button that does nothing — so
 // nothing here can move into an effect.
 
-const LABELS = { reopen: 'Allow access', choose: 'Choose folder', rescan: 'Rescan' } as const
+const LABELS = { reopen: 'landing.allow_access', choose: 'landing.choose_folder', rescan: 'landing.rescan' } as const satisfies Record<string, MessageKey>
 
 export default function FolderAccessButton({ root }: { root: Root }) {
+  const t = useT()
   const regrantFolder = useLibraryStore((s) => s.regrantFolder)
   const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
@@ -44,7 +46,7 @@ export default function FolderAccessButton({ root }: { root: Root }) {
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.58l7.3-7.3a1 1 0 0 1 1.4 0Z" />
         </svg>
-        Access allowed
+        {t('landing.access_allowed')}
       </span>
     )
   }
@@ -69,7 +71,7 @@ export default function FolderAccessButton({ root }: { root: Root }) {
         }
         className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
       >
-        {LABELS[kind]}
+        {t(LABELS[kind])}
       </button>
       {/* Rendered with the button it serves, in the same branch: a ref to an
           input that is not in the page is a click that silently does nothing. */}

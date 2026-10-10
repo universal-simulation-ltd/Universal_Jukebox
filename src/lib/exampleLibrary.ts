@@ -35,6 +35,7 @@ import type { Album, Track } from './types'
 
 /** The root id, so the library store can tell this apart from a real folder. */
 export const EXAMPLE_ROOT_ID = 'example'
+/** The root's name and prefix — DATA, so English; `shownRootLabel` (lib/roots) translates it on screen. */
 export const EXAMPLE_LABEL = 'Example library'
 
 /**

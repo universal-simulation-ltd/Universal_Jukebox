@@ -1,4 +1,5 @@
 import type { Album, Root, SourceFile, Track } from './types'
+import { getT } from '../i18n/runtime.ts'
 
 // More than one music folder, and the arithmetic that makes it safe.
 //
@@ -43,6 +44,23 @@ const LEGACY = ''
  */
 export function prefixOf(root: Root): string {
   return root.prefix ?? LEGACY
+}
+
+/**
+ * A folder's name, as shown. The few names the app gives a root itself —
+ * "Example library", "Music library", "Chosen files", "Your music" — are DATA:
+ * the label is also the prefix every one of its tracks is filed under, so it
+ * stays English in the saved library. This turns those into the reader's
+ * language at display time; a folder the person chose keeps its own name.
+ * Anything with a " (2)" after it (`uniqueLabel`) is shown as it is.
+ */
+export function shownRootLabel(label: string): string {
+  const t = getT()
+  if (label === 'Example library') return t('landing.root_example_library')
+  if (label === 'Music library') return t('landing.root_music_library')
+  if (label === 'Chosen files') return t('landing.root_chosen_files')
+  if (label === 'Your music') return t('landing.root_your_music')
+  return label
 }
 
 /** Is this track filed under this prefix? */

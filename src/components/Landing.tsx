@@ -6,6 +6,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { keepsFolderWhenInstalled } from '../lib/persistence'
 import { isDesktopApp } from '../lib/host'
 import { forgetOpenSources, wantsOpenSources } from '../lib/landingIntent'
+import { useT } from '../i18n'
 
 // The front door, before there is a library.
 //
@@ -76,6 +77,7 @@ interface Step {
 }
 
 export default function Landing() {
+  const t = useT()
   const pickFolder = useLibraryStore((s) => s.pickFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
@@ -153,15 +155,20 @@ export default function Landing() {
   const canPickSongs = !chosen || own
   const pickSongs = () => (nativePicker ? void pickNativeFiles() : fileInput.current?.click())
 
-  const here = native ? `this ${deviceWord()}` : isTouchOnly() ? 'this device' : 'this computer'
+  // One sentence per device rather than the device's name dropped into one: the
+  // words around it change with it in other languages.
+  const iPad = deviceWord() === 'iPad'
+  const deviceTitle = native
+    ? iPad ? t('landing.device_title_ipad') : t('landing.device_title_phone')
+    : isTouchOnly() ? t('landing.device_title_device') : t('landing.device_title_computer')
   // Said only where it is true — see the ⚠️ at the top of this file.
   const remembers = desktopApp
-    ? 'The app remembers it, so your library will still be here next time.'
+    ? t('landing.remembers_desktop')
     : canPersist
-    ? `This browser can remember the folder, so your library will still be here next time — you’ll just be asked to confirm access once.${
-        keepsFolderWhenInstalled() ? ' Install it as an app from Chrome’s address bar and it won’t ask even that.' : ''
-      }`
-    : 'This browser can’t remember a folder, so you’ll choose it again each visit. Your library and its artwork are kept, so it comes back instantly.'
+    ? keepsFolderWhenInstalled() ? t('landing.remembers_browser_install') : t('landing.remembers_browser')
+    : t('landing.remembers_never')
+  const chooseTheFolder = t('landing.choose_the_folder')
+  const cutting = t('landing.cutting_records')
 
   type Entry = { key: Answer; title: string; sub: string; step?: Step }
   const answers: Entry[] = []
@@ -176,32 +183,25 @@ export default function Landing() {
   if (musicLibrary) {
     apple = {
       key: 'apple',
-      title: 'In my Apple Music library',
-      sub: `Songs synced to this ${deviceWord()} from a computer`,
+      title: t('landing.apple_ios_title'),
+      sub: iPad ? t('landing.apple_ios_sub_ipad') : t('landing.apple_ios_sub_phone'),
       step: {
-        say: (
-          <>
-            The songs synced to this {deviceWord()}, as they are in the Music app. Apple Music subscription
-            downloads are protected, and iOS doesn’t let other apps play them.
-          </>
-        ),
-        action: { label: 'Use my Music library', run: () => void importMusicLibrary() },
+        say: iPad ? t('landing.apple_ios_say_ipad') : t('landing.apple_ios_say_phone'),
+        action: { label: t('landing.use_music_library'), run: () => void importMusicLibrary() },
       },
     }
   } else if (!native && !isTouchOnly()) {
     apple = {
       key: 'apple',
-      title: 'In my Apple Music or iTunes library',
-      sub: 'The Music or iTunes app on this computer',
+      title: t('landing.apple_computer_title'),
+      sub: t('landing.apple_computer_sub'),
       step: {
-        say: (
-          <>
-            Those songs are files in a folder. Choose your <strong>Music</strong> folder, then{' '}
-            <strong>Music → Media</strong> (or <strong>iTunes → iTunes Media</strong>). Songs you’ve bought or
-            added yourself will play; Apple Music subscription downloads are protected and can’t.
-          </>
-        ),
-        action: { label: 'Choose the folder', run: chooseFolder },
+        say: t.rich('landing.apple_computer_say', {
+          music: <strong>{t('landing.apple_folder_music')}</strong>,
+          media: <strong>{t('landing.apple_folder_media')}</strong>,
+          itunes: <strong>{t('landing.apple_folder_itunes')}</strong>,
+        }),
+        action: { label: chooseTheFolder, run: chooseFolder },
       },
     }
   }
@@ -209,30 +209,30 @@ export default function Landing() {
 
   answers.push({
     key: 'device',
-    title: `On ${here}`,
-    sub: native ? 'Music files you’ve copied or downloaded' : 'A folder of music files',
+    title: deviceTitle,
+    sub: native ? t('landing.device_sub_native') : t('landing.device_sub_web'),
     step: ownFolder
       ? {
           say: own
-            ? `Put it in the Files app, under On My ${deviceWord() === 'iPad' ? 'iPad' : 'iPhone'} → Universal Jukebox — AirDrop it, or drag it across from a computer. Folders are fine.`
-            : 'Put it in the Universal Jukebox folder in the Files app — folders are fine.',
-          action: { label: 'Scan the Jukebox folder', run: () => void scanNativeFolder() },
+            ? iPad ? t('landing.device_say_own_ipad') : t('landing.device_say_own_iphone')
+            : t('landing.device_say_jukebox_folder'),
+          action: { label: t('landing.scan_jukebox_folder'), run: () => void scanNativeFolder() },
           more: [
-            ...(chosen ? [{ label: 'Choose a different folder', run: () => void addNativeFolder() }] : []),
-            ...(canPickSongs ? [{ label: 'Add songs one at a time', run: pickSongs }] : []),
+            ...(chosen ? [{ label: t('landing.choose_different_folder'), run: () => void addNativeFolder() }] : []),
+            ...(canPickSongs ? [{ label: t('landing.add_songs_one_at_a_time'), run: pickSongs }] : []),
           ],
         }
       : {
           say: native
-            ? 'Choose the folder your music is in — usually Music. Folders inside it are fine, and the app keeps permission to read it.'
+            ? t('landing.device_say_native')
             : (
               <>
-                Choose the folder your music is in — usually Music. Folders inside it are fine.{' '}
+                {t('landing.device_say_web')}{' '}
                 <span className="text-slate-500 dark:text-slate-400">{remembers}</span>
               </>
             ),
-          action: { label: 'Choose the folder', run: chooseFolder },
-          more: canPickSongs ? [{ label: 'Or pick individual files', run: pickSongs }] : [],
+          action: { label: chooseTheFolder, run: chooseFolder },
+          more: canPickSongs ? [{ label: t('landing.pick_individual_files'), run: pickSongs }] : [],
         },
   })
 
@@ -240,56 +240,55 @@ export default function Landing() {
 
   answers.push({
     key: 'cloud',
-    title: 'In the cloud',
-    sub: 'iCloud Drive, Google Drive, Dropbox, OneDrive…',
+    title: t('landing.cloud_title'),
+    sub: t('landing.cloud_sub'),
     step: native
       ? own && chosen
         ? {
-            say: `If your cloud shows up in the Files app — iCloud Drive always does — choose your music folder there. If it doesn’t, download the music to this ${deviceWord()} first.`,
-            action: { label: 'Choose the folder', run: () => void addNativeFolder() },
+            say: iPad ? t('landing.cloud_say_ios_ipad') : t('landing.cloud_say_ios_phone'),
+            action: { label: chooseTheFolder, run: () => void addNativeFolder() },
           }
         : chosen
         ? {
-            say: 'Cloud apps on Android usually can’t share a whole folder, so download the music to this phone first — into Music or Downloads — then choose that folder.',
-            action: { label: 'Choose the folder', run: () => void addNativeFolder() },
+            say: t('landing.cloud_say_android'),
+            action: { label: chooseTheFolder, run: () => void addNativeFolder() },
           }
         : {
-            say: 'Download the music to this phone first, then put it in the Universal Jukebox folder in the Files app.',
-            action: { label: 'Scan the Jukebox folder', run: () => void scanNativeFolder() },
+            say: t('landing.cloud_say_own_folder'),
+            action: { label: t('landing.scan_jukebox_folder'), run: () => void scanNativeFolder() },
           }
       : isTouchOnly()
       ? {
-          say: 'Download the music to this device first, then choose the folder it’s in.',
-          action: { label: 'Choose the folder', run: chooseFolder },
+          say: t('landing.cloud_say_touch'),
+          action: { label: chooseTheFolder, run: chooseFolder },
         }
       : {
-          say: 'If your cloud’s app is installed on this computer, it keeps a folder here — choose your music inside it. If not, download the music first.',
-          action: { label: 'Choose the folder', run: chooseFolder },
+          say: t('landing.cloud_say_computer'),
+          action: { label: chooseTheFolder, run: chooseFolder },
         },
   })
 
   // The honest dead end — and still a way to see what the app does.
   answers.push({
     key: 'streaming',
-    title: 'On a streaming service',
-    sub: 'Spotify, Apple Music, YouTube Music, Amazon Music…',
+    title: t('landing.streaming_title'),
+    sub: t('landing.streaming_sub'),
     step: {
       say: (
         <>
-          <strong className="font-semibold text-slate-900 dark:text-slate-100">Sorry, we can’t help with this one.</strong>{' '}
-          Streaming services lock their songs inside their own apps — even downloaded ones — so no other player
-          can open them. Jukebox plays music files you own: CDs you’ve copied, or albums bought as downloads.
+          <strong className="font-semibold text-slate-900 dark:text-slate-100">{t('landing.streaming_sorry')}</strong>{' '}
+          {t('landing.streaming_say')}
         </>
       ),
-      action: { label: building ? 'Cutting the records…' : 'Try the example library', run: tryExample },
+      action: { label: building ? cutting : t('landing.try_example'), run: tryExample },
     },
   })
 
   // Visibly the side door: last in the list, and it acts at once.
   answers.push({
     key: 'example',
-    title: building ? 'Cutting the records…' : 'I just want to try it',
-    sub: 'Nine made-up records, made on this device — nothing is downloaded',
+    title: building ? cutting : t('landing.example_title'),
+    sub: t('landing.example_sub'),
   })
 
   return (
@@ -298,14 +297,13 @@ export default function Landing() {
 
       <h1 className="mt-6 text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
         {native
-          ? `Plays the music on your ${deviceWord()}`
+          ? iPad ? t('landing.title_native_ipad') : t('landing.title_native_phone')
           : desktopApp
-          ? 'Plays the music on your computer'
-          : 'Plays your whole music library, in your browser'}
+          ? t('landing.title_desktop')
+          : t('landing.title_web')}
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
-        It reads the tags and the real album art out of your own music files and plays them — MP3, M4A, FLAC and
-        WAV. Nothing is uploaded, and you don’t need an account.
+        {t('landing.intro')}
       </p>
 
       <div className="mt-7 flex flex-col items-center gap-3">
@@ -317,13 +315,13 @@ export default function Landing() {
           className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
           <FolderGlyph />
-          Find my music
+          {t('landing.find_my_music')}
         </button>
 
         {choosing && (
           <div id="jb-sources" className="mt-2 w-full max-w-md space-y-2 text-left" role="group" aria-labelledby="jb-where">
             <p id="jb-where" className="text-center text-[15px] font-semibold text-slate-800 dark:text-slate-100">
-              Where is your music?
+              {t('landing.where_is_your_music')}
             </p>
             {answers.map((a) => {
               const open = answer === a.key && !!a.step
@@ -398,8 +396,9 @@ export default function Landing() {
             genuinely slow — and a silent slow thing reads as a crash. */}
         {importProgress !== null && (
           <p className="text-[12.5px] text-slate-600 dark:text-slate-300" aria-live="polite">
-            Copying {importProgress.done + 1} of {importProgress.total}
-            {importProgress.name ? ` — ${importProgress.name}` : ''}…
+            {importProgress.name
+              ? t('landing.copying_progress_named', { done: importProgress.done + 1, total: importProgress.total, name: importProgress.name })
+              : t('landing.copying_progress', { done: importProgress.done + 1, total: importProgress.total })}
           </p>
         )}
       </div>
@@ -435,6 +434,7 @@ export default function Landing() {
         onChange={(e) => {
           if (e.target.files) {
             if (native) void importNativeFiles(e.target.files)
+            // A folder name, so DATA and English — `shownRootLabel` shows it.
             else void addFiles(e.target.files, 'Chosen files')
           }
           e.target.value = ''
@@ -442,7 +442,7 @@ export default function Landing() {
       />
 
       <p className="mt-10 text-[12px] text-slate-400 dark:text-slate-500">
-        Not a streaming service. It plays files you already have.
+        {t('landing.not_streaming')}
       </p>
     </div>
   )
@@ -464,12 +464,13 @@ function FolderGlyph() {
  * where it is simply a record.
  */
 function Turntable() {
+  const t = useT()
   return (
     <svg
       viewBox="0 0 200 200"
       className="mx-auto h-36 w-36 sm:h-44 sm:w-44"
       role="img"
-      aria-label="A record on a turntable"
+      aria-label={t('landing.turntable_alt')}
     >
       <defs>
         <linearGradient id="jb-landing-tile" x1="0" y1="0" x2="1" y2="1">

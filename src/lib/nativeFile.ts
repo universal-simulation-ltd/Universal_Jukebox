@@ -32,6 +32,7 @@
 // past the range it claims — see `readWindow`.
 
 import type { SourceFile } from './types'
+import { getT } from '../i18n/runtime.ts'
 
 /** What a walk of the native music folder found. */
 export interface NativeEntry {
@@ -608,24 +609,24 @@ function base64Of(file: File): Promise<string> {
  * ⚠️ `.txt`, so the scanner ignores it — `isPlayable` says no and it is not in
  * `REFUSED`, so it is skipped silently rather than reported as a snubbed format.
  */
+// ⚠️ The NAME stays English in every language: a fixed name is one file, whatever
+// language the app was in when the folder was last empty, and anything that
+// ever needs to find or skip it can match it exactly.
 const README_NAME = 'Put your music in here.txt'
 
-const README_BODY = [
-  'Universal Jukebox — your music goes in this folder.',
-  '',
-  'Copy albums in here, AirDrop them, unzip them here, or drag them across',
-  'from a computer. Folders are fine and are kept — Artist/Album/track.mp3 is',
-  'exactly right.',
-  '',
-  'It plays MP3, M4A, FLAC and WAV.',
-  '',
-  'Then open Universal Jukebox, tap "Find my music", then "On this iPhone" and',
-  '"Scan the Jukebox folder". Anything you add later needs another scan: the',
-  'app cannot tell that a file appeared while it was closed.',
-  '',
-  'This note is not needed for anything and can be deleted.',
-  '',
-].join('\n')
+// The text is in the language of the moment it is written — a function, not a
+// constant, so it is read then and not when this module loads.
+
+const readmeBody = () => {
+  const t = getT()
+  return [
+    t('landing.readme_title'),
+    t('landing.readme_how'),
+    t('landing.readme_formats'),
+    t('landing.readme_then'),
+    t('landing.readme_delete'),
+  ].join('\n\n') + '\n'
+}
 
 /**
  * Make sure the music folder exists and is visible in the Files app.
@@ -656,7 +657,7 @@ export async function ensureNativeMusicFolder(): Promise<void> {
     await Filesystem.writeFile({
       path: README_NAME,
       directory: Directory.Documents,
-      data: README_BODY,
+      data: readmeBody(),
       encoding: Encoding.UTF8,
     })
   } catch (err) {
