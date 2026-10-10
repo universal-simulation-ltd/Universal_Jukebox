@@ -11,7 +11,6 @@
     "raw": [
       "now-vinyl",
       "now-cassette",
-      "now-cd",
       "now-jukebox"
     ],
     "spin": {
@@ -22,72 +21,55 @@
           136
         ],
         "rpm": 33
-      },
-      "now-cd": {
-        "at": [
-          540,
-          1168,
-          116
-        ],
-        "rpm": 60
       }
     }
   },
   "screens": [
     {
-      "id": "01-hero",
-      "layout": "hero-open",
-      "raw": [
-        "now-vinyl",
-        "now-cassette"
-      ]
+      "id": "01-turntable",
+      "layout": "sleeve-open",
+      "raw": "now-vinyl"
     },
     {
-      "id": "02-hero",
-      "layout": "hero-close",
-      "raw": "now-cassette"
+      "id": "02-shelf",
+      "layout": "sleeve-close",
+      "raw": "albums"
     },
     {
-      "id": "03-lyrics",
-      "layout": "feature",
-      "raw": "lyrics",
-      "hot": 0
+      "id": "03-machines",
+      "layout": "sleeve-dark",
+      "raw": "now-cassette",
+      "hot": 2
     },
     {
-      "id": "04-decks",
-      "layout": "feature",
+      "id": "04-lyrics",
+      "layout": "sleeve-paper",
       "raw": "now-jukebox",
-      "hot": 3
-    },
-    {
-      "id": "05-cd",
-      "layout": "feature",
-      "raw": "now-cd",
       "hot": 0
     },
     {
-      "id": "06-library",
-      "layout": "feature",
-      "raw": "albums",
+      "id": "05-artists",
+      "layout": "sleeve-dark",
+      "raw": "artists",
       "hot": 0
     },
     {
-      "id": "07-tracks",
-      "layout": "feature",
-      "raw": "tracks",
+      "id": "06-album",
+      "layout": "sleeve-paper",
+      "raw": "album",
+      "hot": 2
+    },
+    {
+      "id": "07-drawer",
+      "layout": "sleeve-dark",
+      "raw": "tracks-drawer",
       "hot": 0
     },
     {
-      "id": "08-shelves",
-      "layout": "feature",
-      "raw": "shelf",
-      "hot": 0
-    },
-    {
-      "id": "09-tune",
-      "layout": "feature",
+      "id": "08-tune",
+      "layout": "sleeve-paper",
       "raw": "tune",
-      "hot": 0
+      "hot": 1
     }
   ]
 }

@@ -16,9 +16,19 @@ import { isNativeShell } from '../lib/nativeFile'
 
 const DEV_KEY = 'jukebox:dev-phone-screens'
 
+/** Set by `store-assets/generate.mjs` before the app loads, to capture the phone screens. */
+const CAPTURE_KEY = 'jukebox:store-capture'
+
 export function phoneScreens(): boolean {
   if (isNativeShell()) return true
-  if (!import.meta.env.DEV || typeof window === 'undefined') return false
+  if (typeof window === 'undefined') return false
+  // The store screenshots are the phone screens, captured from the built
+  // bundle in a browser. A session flag only a script sets before load —
+  // never the address — so nobody on the website lands here by accident.
+  try {
+    if (sessionStorage.getItem(CAPTURE_KEY) === '1') return true
+  } catch { /* no storage: not a capture */ }
+  if (!import.meta.env.DEV) return false
   try {
     const q = new URLSearchParams(window.location.search).get('app')
     if (q !== null) sessionStorage.setItem(DEV_KEY, q === '0' ? '0' : '1')

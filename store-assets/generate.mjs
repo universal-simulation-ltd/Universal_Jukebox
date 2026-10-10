@@ -17,7 +17,7 @@
 // Anything that is not the app itself is refused.
 //
 // ⚠️ EVERYTHING ON SCREEN IS THE EXAMPLE LIBRARY. Its "Example library"
-// banner is hidden in the captures only (James, 2026-09-27), by `hideBanner`
+// banner is hidden in the captures only (James, 2026-09-27), by `captureMode`
 // below; the app itself always shows it. Its four artists, nine
 // records, sleeves, music and lyrics are all made up and made by the app
 // (`src/lib/exampleLibrary.ts`), so no real artist, cover or lyric appears in a
@@ -54,25 +54,41 @@ const TYPES = {
 }
 
 // ── Driving the app ────────────────────────────────────────────────────────
+// ⚠️ THE PHONE SCREENS (2026-10-11). The store shows the iPhone / Android app,
+// which has screens of its own (`src/native/`); the website's layout is not in
+// any capture. `phoneScreens()` turns them on from a session flag set below,
+// before the app loads. Everything is found by structure (the tab bar's
+// position, the welcome screen's button), never by English words, so the same
+// steps capture every language.
+
+/** The tab bar, left to right: Artists · Albums · Tracks · Shelves · Tune. */
+const TAB = { artists: 0, albums: 1, tracks: 2, shelves: 3, tune: 4 }
+
 async function exampleLibrary(page) {
-  await page.getByText('Scan my music folder').click()
-  await page.getByText('The example library').click()
-  // Nine sleeves drawn and the index built.
-  await page.getByRole('button', { name: 'Albums', exact: true }).first().waitFor()
+  await page.locator('.jx-welcome .jx-btn.primary').click()
+  await page.locator('.jx-tab').first().waitFor()
   await page.waitForTimeout(1500)
 }
 async function tab(page, name) {
-  await page.getByRole('button', { name, exact: true }).first().click()
+  await page.locator('.jx-tab').nth(TAB[name]).click()
   await page.waitForTimeout(700)
 }
-/** Open a record from the Albums tab and play one of its songs. */
-async function play(page, album, song) {
-  await tab(page, 'Albums')
-  await page.getByText(album, { exact: true }).first().click()
-  await page.waitForTimeout(800)
-  await page.getByText(song, { exact: true }).first().click()
+/** Play a song from the Tracks list (its title is the example library's, the same in every language). */
+async function play(page, song) {
+  await tab(page, 'tracks')
+  await page.locator('.jx-song .jx-row', { hasText: song }).first().click()
 }
 const top = (page) => page.evaluate(() => window.scrollTo(0, 0))
+
+/** Pull down from the top of a list, as a finger would, to open its drawer (`PullDrawer`). */
+async function pullDown(page, ctx) {
+  const cdp = await ctx.newCDPSession(page)
+  const x = 180, from = 300
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: from }] })
+  for (let y = from; y <= from + 240; y += 15) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] })
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await page.waitForTimeout(700)
+}
 
 /**
  * Settings the capture starts with, written before the app loads. Everything
@@ -80,41 +96,54 @@ const top = (page) => page.evaluate(() => window.scrollTo(0, 0))
  * a "Tap here" bubble belongs to somebody's first minute, not to a screenshot.
  */
 function settings(extra = {}) {
-  return { tipsSeen: ['record', 'cover'], lyricsAround: true, lyricsAroundStyle: 'orbit', ...extra }
+  return { tipsSeen: ['record', 'cover', 'hold', 'shelfPlay'], lyricsAround: true, lyricsAroundStyle: 'orbit', ...extra }
 }
 
-/** Runs in the page before the app: keeps the example-library banner out of the captures. */
-function hideBanner() {
-  const hide = () => {
-    for (const strong of document.querySelectorAll('p > strong')) {
-      if (strong.textContent === 'Example library') strong.parentElement.style.display = 'none'
-    }
-  }
-  new MutationObserver(hide).observe(document, { childList: true, subtree: true })
+/**
+ * Runs in the page before the app: the phone screens on, and the banners above
+ * a screen (the example library's notice, scan progress) out of the picture.
+ * The app itself always shows them.
+ */
+function captureMode() {
+  try { sessionStorage.setItem('jukebox:store-capture', '1') } catch { /* captures fail loudly below */ }
+  // Init scripts run before <html> exists: add the rule once the page has a head.
+  document.addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style')
+    style.textContent = 'html.jx-phone .jx-main > :not(.jx-page):not(.jx-playing){display:none!important}'
+    document.head.append(style)
+  })
 }
 
 const CAPTURES = {
-  // Now Playing on the turntable, the words turning round the record.
+  // 01: the record on the turntable, the words going round it.
   'now-vinyl': {
     settings: settings({ deck: 'vinyl' }),
     async run(page) {
-      await play(page, 'Second Pressing', 'Forty-five')
+      await play(page, 'Forty-five')
       await page.waitForTimeout(14000)
+      await top(page)
+    },
+  },
+  // 02: the Albums shelf (the shared default layout).
+  albums: {
+    settings: settings(),
+    async run(page) {
+      await tab(page, 'albums')
+      await top(page)
+      await page.waitForTimeout(800)
+    },
+  },
+  artists: {
+    settings: settings(),
+    async run(page) {
+      await tab(page, 'artists')
       await top(page)
     },
   },
   'now-cassette': {
     settings: settings({ deck: 'cassette' }),
     async run(page) {
-      await play(page, 'Surface Noise', 'Crackle')
-      await page.waitForTimeout(15000)
-      await top(page)
-    },
-  },
-  'now-cd': {
-    settings: settings({ deck: 'cd' }),
-    async run(page) {
-      await play(page, 'Sides A and B', 'The Long Way Round')
+      await play(page, 'Crackle')
       await page.waitForTimeout(15000)
       await top(page)
     },
@@ -122,67 +151,51 @@ const CAPTURES = {
   'now-jukebox': {
     settings: settings({ deck: 'jukebox' }),
     async run(page) {
-      await play(page, 'Cutting Head', 'Acetate')
+      await play(page, 'Acetate')
       await page.waitForTimeout(15000)
       await top(page)
     },
   },
-  // The lyrics panel, following along, with what is waiting to go on under it.
-  lyrics: {
-    settings: settings({ deck: 'vinyl' }),
-    async run(page) {
-      await play(page, 'Sides A and B', 'The Long Way Round')
-      await page.waitForTimeout(16000)
-      await page.getByText('Show lyrics').first().click()
-      await page.waitForTimeout(1200)
-    },
-  },
-  albums: {
+  // One record's page: Play, Shuffle, the songs with their preview and ⋯.
+  album: {
     settings: settings(),
     async run(page) {
-      await tab(page, 'Albums')
-      await top(page)
-    },
-  },
-  tracks: {
-    settings: settings(),
-    async run(page) {
-      await tab(page, 'Tracks')
-      await top(page)
+      // Through the artist, as a person would: the example library's names
+      // are the same in every language.
+      await tab(page, 'artists')
+      await page.locator('.jx-tile', { hasText: 'The Tone Arms' }).first().click()
       await page.waitForTimeout(800)
-    },
-  },
-  // A shelf of the Jukebox tab with records on it.
-  shelf: {
-    settings: settings(),
-    async run(page) {
-      await tab(page, 'Jukebox')
-      await page.locator('button[aria-label*="shelf" i]').first().click()
-      await page.waitForTimeout(600)
-      for (const song of ['Forty-five', 'Crackle', 'Acetate', 'The Blue Hour', 'Counterweight']) {
-        const row = page.getByRole('dialog').getByText(song, { exact: true }).first()
-        await row.locator('xpath=ancestor::*[.//button][1]').locator('button').last().click()
-        await page.waitForTimeout(250)
-      }
-      await page.getByRole('button', { name: 'Done', exact: true }).first().click()
+      await page.locator('.jx-tile', { hasText: 'Second Pressing' }).first().click()
       await page.waitForTimeout(900)
       await top(page)
     },
   },
-  // Tune this app, with the deck chooser open.
+  // The drawer pulled down: search, Shuffle and the list options.
+  'tracks-drawer': {
+    settings: settings(),
+    async run(page, ctx) {
+      await tab(page, 'tracks')
+      await top(page)
+      await pullDown(page, ctx)
+      await page.evaluate(() => document.activeElement?.blur())
+    },
+  },
+  // Tune this app, the machines open (its third card, in every language).
   tune: {
     settings: settings({ deck: 'vinyl' }),
     async run(page) {
-      await page.goto(`${ORIGIN}/index.html#/settings`)
-      await page.waitForTimeout(1200)
-      await page.getByText('What you’re playing on', { exact: false }).first().click()
+      await tab(page, 'tune')
+      await page.evaluate(() => {
+        const machines = document.querySelectorAll('.jx-tune-settings details')[2]
+        if (!machines) throw new Error('no machines section in Tune')
+        machines.open = true
+        window.scrollTo(0, machines.getBoundingClientRect().top + window.scrollY - 70)
+      })
       await page.waitForTimeout(800)
-      await top(page)
     },
   },
 }
 
-// ── Running them ───────────────────────────────────────────────────────────
 function pngInfo(buf) {
   return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20), colourType: buf[25] }
 }
@@ -218,7 +231,7 @@ for (const dev of devices) {
     await ctx.addInitScript((blob) => {
       localStorage.setItem('unisim-jukebox-settings', JSON.stringify(blob))
     }, capture.settings)
-    await ctx.addInitScript(hideBanner)
+    await ctx.addInitScript(captureMode)
     const page = await ctx.newPage()
     const errors = []
     page.on('pageerror', (e) => errors.push(String(e)))
@@ -226,7 +239,7 @@ for (const dev of devices) {
     await page.waitForTimeout(1200)
     try {
       await exampleLibrary(page)
-      await capture.run(page)
+      await capture.run(page, ctx)
     } catch (err) {
       console.error(`FAIL ${dev.dir}/${name}: ${err.message.split('\n')[0]}`)
       bad++
