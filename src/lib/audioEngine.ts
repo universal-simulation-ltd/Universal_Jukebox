@@ -45,6 +45,7 @@ import { pluginRegistered } from './nativePlugins'
 import { noteEvent } from './bgLog'
 import { dispatchAction } from './mediaSession'
 import { clipUrl, setClipSink } from './crackle'
+import { getT } from '../i18n/runtime.ts'
 
 export const ENGINE_PLUGIN = 'JukeboxEngine'
 
@@ -326,7 +327,8 @@ function createBackend(hooks: EngineHooks): EngineBackend {
         currentKey = key
         lastDuration = 0
       }
-      if (songChanged || s.skipped?.length || s.queueEnded || s.sleepEnded) store?.adopt(s, songChanged)
+      const skipped = s.skipped?.map((k) => ({ ...k, reason: errorText(k.reason) }))
+      if (songChanged || skipped?.length || s.queueEnded || s.sleepEnded) store?.adopt({ ...s, skipped }, songChanged)
       if (key === currentKey) apply(s)
     })
   }
@@ -345,10 +347,10 @@ function createBackend(hooks: EngineHooks): EngineBackend {
       hooks.ended()
     })
     await p.addListener('error', (e) => {
-      const s = e as unknown as EngineSnapshot & { message?: string }
+      const s = e as unknown as EngineSnapshot & { code?: string }
       if ((s.key ?? null) !== currentKey) return
       hooks.set({ playing: false, loading: false })
-      hooks.error(String(s.message ?? 'That file wouldn’t play.'))
+      hooks.error(errorText(s.code))
     })
     await p.addListener('changed', () => requestSync())
     // The lock screen and headphones with the app open: the page's own handlers,
@@ -573,6 +575,27 @@ function createBackend(hooks: EngineHooks): EngineBackend {
     mediaElements() {
       return elements()
     },
+  }
+}
+
+/**
+ * The engine's error codes in the page's words — the same sentences the web's
+ * `describeError` uses (`player.error_*`), so the iPhone app says them in
+ * every suite language.
+ */
+export function errorText(code: string | null | undefined): string {
+  const t = getT()
+  switch (code) {
+    case 'decode':
+      return t('player.error_cant_decode_app')
+    case 'damaged':
+      return t('player.error_damaged')
+    case 'unreadable':
+      return t('player.error_unreadable')
+    case 'unreachable':
+      return t('player.error_unreachable')
+    default:
+      return t('player.error_wont_play')
   }
 }
 

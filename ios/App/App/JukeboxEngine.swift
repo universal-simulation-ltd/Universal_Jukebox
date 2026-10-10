@@ -358,7 +358,7 @@ final class JukeboxEngine: NSObject {
         endedAt = nil
         queueEnded = false
         guard put(e, on: i, startAt: startAt) else {
-            failed(e, message: "That file isn’t reachable any more.")
+            failed(e, code: "unreachable")
             return
         }
         beginTrack(i, fadeInOverride.map { max($0, fadeIn) })
@@ -388,7 +388,7 @@ final class JukeboxEngine: NSObject {
         endedAt = nil
         queueEnded = false
         guard put(e, on: to) else {
-            failed(e, message: "That file isn’t reachable any more.")
+            failed(e, code: "unreachable")
             return
         }
         active = to
@@ -670,23 +670,24 @@ final class JukeboxEngine: NSObject {
             return
         }
         guard i == active else { return }
-        failed(e, message: Self.describe(error))
+        failed(e, code: Self.describe(error))
     }
 
-    /// A song that cannot play. The page decides what happens while it drives
+    /// A song that cannot play. `code` is a key the page translates
+    /// (`errorText` in `lib/audioEngine.ts`) — the words are in `src/i18n`. The page decides what happens while it drives
     /// (`onError` → `skipPast`); while it is away the engine skips on its own,
     /// the same eight-in-a-row limit, and keeps a list for the banner.
-    private func failed(_ e: Entry, message: String) {
-        CommandLog.note("engine: \(e.title) failed — \(message)")
+    private func failed(_ e: Entry, code: String) {
+        CommandLog.note("engine: \(e.title) failed — \(code)")
         if appActive {
             wantsPlaying = false
             var data = snapshot()
             data["key"] = e.key
-            data["message"] = message
+            data["code"] = code
             emit?("error", data)
             return
         }
-        skippedLog.append(["trackId": e.trackId, "title": e.title, "artist": e.artist, "reason": message])
+        skippedLog.append(["trackId": e.trackId, "title": e.title, "artist": e.artist, "reason": code])
         consecutiveSkips += 1
         if consecutiveSkips <= min(8, upcoming.count), !upcoming.isEmpty {
             let next = upcoming.removeFirst()
@@ -703,25 +704,19 @@ final class JukeboxEngine: NSObject {
         }
     }
 
-    /// `describeError` in `audio.ts`, for what AVFoundation says.
+    /// `describeError` in `audio.ts`, for what AVFoundation says — as a code.
     static func describe(_ error: Error?) -> String {
         if let error = error as NSError? {
             if error.domain == AVFoundationErrorDomain {
                 switch AVError.Code(rawValue: error.code) {
-                case .fileFormatNotRecognized, .decoderNotFound, .formatUnsupported:
-                    return "The iPhone can’t decode that file."
-                case .decodeFailed:
-                    return "That file looks damaged — the audio stopped partway through decoding."
-                case .fileFailedToParse:
-                    return "That file looks damaged."
+                case .fileFormatNotRecognized, .decoderNotFound, .formatUnsupported: return "decode"
+                case .decodeFailed, .fileFailedToParse: return "damaged"
                 default: break
                 }
             }
-            if error.domain == NSCocoaErrorDomain || error.domain == NSURLErrorDomain {
-                return "The file could not be read."
-            }
+            if error.domain == NSCocoaErrorDomain || error.domain == NSURLErrorDomain { return "unreadable" }
         }
-        return "That file wouldn’t play."
+        return "wont_play"
     }
 
     /// Everything a new song on the active deck needs said.
