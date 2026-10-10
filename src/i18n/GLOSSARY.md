@@ -5,7 +5,26 @@ in the knowledge base (`src/knowledge/<lang>.ts`) and later in the store text,
 so all three say the same thing.
 
 English (en-GB) is the source. If a term is missing, add it here first, then use
-it. UI labels are in sentence case in every language (only the first word and
+it.
+
+## Translating the app (the workflow)
+
+- One folder per language, `src/i18n/<lang>/`, with the same files as `en/` —
+  one per namespace. A translator edits only their own language's folder.
+- Each file is typed `Draft['<namespace>']`: any subset of the English keys. A
+  key left out shows in English, so the app builds and runs while a language is
+  part done; a misspelt or stale key is a `tsc` error.
+- Copy each key from `en/<namespace>.ts` and translate the value. Keep every
+  `{placeholder}` exactly (the test checks), keep each plural's forms
+  (`_one`/`_other`, plus `_many` where `Intl.PluralRules` picks it — French,
+  Spanish, Italian and Portuguese do for round millions; `_other` covers it if
+  left out), and read the English comment for where it shows and length limits.
+- `npm test` checks placeholders, extra keys and empty strings in every
+  language. `npm run i18n:check -- <lang>` also fails on any missing key: the
+  gate before a release (`npm run i18n:check` for all of them).
+- See a screen's keys at a glance: `npm run dev`, then open the app with
+  `?pseudo` (`?app&pseudo` for the phone screens) — every translated string
+  shows in ⟦brackets⟧, so anything without them is still hard-coded. UI labels are in sentence case in every language (only the first word and
 proper nouns get a capital; German nouns keep theirs).
 
 **Universal PDF's glossary** (`Universal_Apps/Universal_PDF/src/i18n/GLOSSARY.md`)
@@ -18,7 +37,10 @@ words (table below), because the navbar and profile menu around this app use it.
 ## Never translated
 
 UNI·SIM, UNISIM.co.uk, Universal ID, Universal Jukebox, Universal Converter,
-Universal Apps, Jukebox (as the app's short name — "open Jukebox"), Wikipedia,
+Universal Apps, Jukebox (as the app's short name — "open Jukebox" — AND as the
+name of the library tab and the shelf layout: `app.tab_jukebox`, `*.layout_jukebox`,
+`settings.home_jukebox` and the sentences that name that tab), MENU (printed on
+the pocket player's click wheel, `decks.pocket_menu`), Wikipedia,
 LRCLIB / lrclib.net, iTunes, Apple Music and Apple's Music app ("Musique",
 "Música", "Musica", "Musik", "Müzik" are Apple's own names for the app in
 those languages — use Apple's localised name when it means the app on the
