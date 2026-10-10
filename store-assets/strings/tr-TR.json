@@ -1,0 +1,98 @@
+{
+ "01-turntable": {
+  "headline": [
+   "Müziğiniz",
+   "*pikapta*"
+  ],
+  "label": "Universal Jukebox · 33⅓ · A Yüzü ·"
+ },
+ "02-shelf": {
+  "headline": [
+   "Her albüm",
+   "kendi rafında"
+  ],
+  "sub": "James Markey MBE ve UNI·SIM\ntarafından Birleşik Krallık’ta yapıldı"
+ },
+ "03-machines": {
+  "headline": [
+   "Çalarınızı",
+   "*seçin*"
+  ],
+  "caption": "Plak, CD, kaset, makaralı teyp, jukebox ya da cep müzik çalar",
+  "chips": [
+   "Pikap",
+   "CD",
+   "Kaset",
+   "Makaralı teyp",
+   "Jukebox",
+   "Cep müzik çalar"
+  ]
+ },
+ "04-lyrics": {
+  "headline": [
+   "Sözler plağın",
+   "*çevresinde döner*"
+  ],
+  "caption": "Kendi dosyalarınızdan zamanlamalı sözler, plak dönerken söylenir",
+  "chips": [
+   "Plağın çevresinde",
+   "Kilit ekranında",
+   ".lrc dosyalarınız"
+  ]
+ },
+ "05-artists": {
+  "headline": [
+   "Her sanatçı,",
+   "*bir bakışta*"
+  ],
+  "caption": "Sanatçılar, albümler ve parçalar; sırada birkaç tane ya da rafta",
+  "chips": [
+   "Sırada 3",
+   "A–Z",
+   "Rastgele",
+   "Tür"
+  ]
+ },
+ "06-album": {
+  "headline": [
+   "Her albüm,",
+   "*kendi kapağıyla*"
+  ],
+  "caption": "Çalın, karıştırın ya da önce herhangi bir şarkının on saniyesini dinleyin",
+  "chips": [
+   "Çal",
+   "Karıştır",
+   "Ön dinleme",
+   "Rafa ekle"
+  ]
+ },
+ "07-drawer": {
+  "headline": [
+   "Aşağı çekin,",
+   "*dahası gelsin*"
+  ],
+  "caption": "Arama, karıştırma ve liste seçenekleri; istediğiniz ana kadar gözden uzak",
+  "chips": [
+   "Ara",
+   "Karıştır",
+   "A–Z ya da rastgele",
+   "Jukebox rafı"
+  ]
+ },
+ "08-tune": {
+  "headline": [
+   "İstediğiniz gibi",
+   "*ayarlayın*"
+  ],
+  "caption": "Çapraz geçiş, yavaş açılma ve kapanma, sabit ses düzeyi ve müziği yavaşça kısan uyku zamanlayıcısı",
+  "chips": [
+   "Çapraz geçiş",
+   "Sabit ses düzeyi",
+   "Uyku zamanlayıcısı",
+   "Yavaş açılma/kapanma"
+  ]
+ },
+ "feature-graphic": {
+  "tagline": "Müziğiniz pikapta"
+ }
+}

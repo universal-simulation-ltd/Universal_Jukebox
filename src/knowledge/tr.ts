@@ -29,7 +29,7 @@ Uygulamanın kendi kod çözücüleri yoktur: cihazınıza yerleşik ses desteğ
 
 ## Nedenini görmek
 
-Varsayılan olarak, çalınamayan şarkılar sessizce atlanır. Nedenini bilmek isterseniz Tune this app’te Messages bölümündeki **Show error messages** seçeneğini işaretleyin; uygulama çalamadığı her dosyayı ve sorunun ne olduğunu belirtir.`,
+Varsayılan olarak, çalınamayan şarkılar sessizce atlanır. Nedenini bilmek isterseniz **Bu uygulamayı ayarla** sayfasında Mesajlar bölümündeki **Hata mesajlarını göster** seçeneğini işaretleyin; uygulama çalamadığı her dosyayı ve sorunun ne olduğunu belirtir.`,
   },
   {
     id: 'tags-and-artwork',
@@ -52,7 +52,7 @@ Uygulama; MP3, M4A, FLAC ve Ogg dosyalarında kullanılan yaygın etiket türler
 
 ## Düzenleme
 
-Tune this app’te Your library bölümündeki **Tidy up library** iki şey arar: cihazınızda zaten bulunan ama kullanılmamış kapaklar (parçaların yanında cover.jpg gibi kapak adı taşıyan bir görsel ya da sonraki bir parçada saklanan görsel) ve tutarsız etiketler yüzünden ikiye bölünmüş albümler. Her öneriyi, kullanacağı görselle birlikte size gösterir ve siz düğmeye basana kadar hiçbir şey değişmez.
+**Bu uygulamayı ayarla** sayfasında Kitaplığınız bölümündeki **Kitaplığı düzenle** iki şey arar: cihazınızda zaten bulunan ama kullanılmamış kapaklar (parçaların yanında cover.jpg gibi kapak adı taşıyan bir görsel ya da sonraki bir parçada saklanan görsel) ve tutarsız etiketler yüzünden ikiye bölünmüş plaklar. Her öneriyi, kullanacağı görselle birlikte size gösterir ve siz düğmeye basana kadar hiçbir şey değişmez.
 
 Emin olamadığı her şeyi bilerek reddeder. Farklı klasörlerde aynı adı taşıyan iki albüm ya da iki farklı albüm içeren bir klasör olduğu gibi bırakılır.
 
@@ -69,7 +69,7 @@ Düzenleme yalnızca uygulamanın içindeki kitaplığı düzeltir. Etiketleri y
 
 ## Müzik eklemek
 
-Menüyü açın ve **Your complete library** seçeneğini seçin. Buradan bir klasör ekleyebilir, yeniden tarama yapabilir ya da bir klasörü kaldırabilirsiniz. Klasör eklemek kitaplığınızın yerine geçmez, ona ekleme yapar; bir klasörü kaldırmak yalnızca o klasördeki şarkıları kaldırır. Klasörlerin nasıl çalıştığı uygulamayı nerede kullandığınıza bağlıdır:
+Menüyü açın ve **Tüm kitaplığınız** seçeneğini seçin. Buradan bir klasör ekleyebilir, yeniden tarama yapabilir ya da bir klasörü kaldırabilirsiniz. Klasör eklemek kitaplığınızın yerine geçmez, ona ekleme yapar; bir klasörü kaldırmak yalnızca o klasördeki şarkıları kaldırır. Klasörlerin nasıl çalıştığı uygulamayı nerede kullandığınıza bağlıdır:
 
 - **Chrome ve Edge** seçtiğiniz klasörü hatırlayabilir. Geri döndüğünüzde erişimi bir kez, tek dokunuşla onaylamanız istenebilir.
 - **Firefox ve Safari** bir klasörü okuma iznini ziyaretler arasında saklayamaz; bu nedenle klasörü her seferinde yeniden seçersiniz. Kitaplığınız, kapaklarınız ve ayarlarınız yine hatırlanır, böylece hiçbir şeyin yeniden okunması gerekmez.
@@ -78,7 +78,7 @@ Menüyü açın ve **Your complete library** seçeneğini seçin. Buradan bir kl
 
 ## Yeniden tarama
 
-Uygulama, dosyaların eklendiğini ya da kaybolduğunu kendiliğinden fark etmez. Uygulamanın dışında müzik ekledikten ya da sildikten sonra **Rescan** seçeneğini seçin. Yeniden tarama yeni şarkıları ekler, artık olmayanları çıkarır ve yaptığınız düzenleme düzeltmelerini korur.
+Uygulama, dosyaların eklendiğini ya da kaybolduğunu kendiliğinden fark etmez. Uygulamanın dışında müzik ekledikten ya da sildikten sonra **Yeniden tara** seçeneğini seçin. Yeniden tarama yeni şarkıları ekler, artık olmayanları çıkarır ve yaptığınız düzenleme düzeltmelerini korur.
 
 ## iPhone’un Müzik arşivindeki şarkılar
 
@@ -86,7 +86,37 @@ Bir bilgisayardan iPhone’a eşzamanladığınız şarkılar çalınabilir. Bun
 
 ## Uygulamanın sakladıkları
 
-Uygulama, bir sonraki açılışta hızlı başlamak için kitaplığınızın bir kataloğunu (şarkı adları, sanatçılar, albümler ve kapakların küçük kopyaları) cihazınızda saklar. Bu katalog yedeklenmez ve cihazlar arasında paylaşılmaz: her cihaz kendi kataloğunu oluşturur. Bir tarayıcıda bu sitenin verilerini temizlemek kataloğu siler, ama müziğinizi asla silmez.`,
+Uygulama, bir sonraki açılışta hızlı başlamak için kitaplığınızın bir kataloğunu (şarkı adları, sanatçılar, albümler ve kapakların küçük kopyaları) cihazınızda saklar. Bu katalog cihazlar arasında paylaşılmaz: her cihaz kendi kataloğunu oluşturur. Bir tarayıcıda bu sitenin verilerini temizlemek kataloğu siler, ama müziğinizi asla silmez. Raflarınız, istekleriniz ve ayarlarınız yedeklenebilir: “Müziğinizi güvende tutmak” makalesine bakın.`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Müziğinizi güvende tutmak',
+    summary: 'Müziğiniz kendi bulutunuzda, raflarınızın da bir yedeği.',
+    group: 'Nasıl çalışır',
+    body: `Universal Jukebox müziğinizi asla yüklemez, bu yüzden onu kaybedemez de. Müziğiniz ancak onu sakladığınız yer kadar güvendedir. Kaybolan ya da bozulan bir telefon koleksiyonunuzu da beraberinde götürmemeli; bu yüzden bir kopyasını başka bir yerde saklayın.
+
+## Müziğinizi kendi bulutunuzda saklayın
+
+Zaten kullandığınız herhangi bir bulut depolama işinizi görür: Proton Drive, iCloud Drive, Google Drive, OneDrive ya da yedeklediğiniz bir bilgisayar. Telefonunuzda:
+
+1. Müzik klasörünüzü bulut depolamanıza koyun.
+2. O hizmetin uygulamasında klasörü çevrimdışı kullanılabilir yapın; böylece şarkılar telefonda saklanır ve bağlantı olmadan çalar. Yalnızca çevrimiçi olan şarkılar çalınamaz.
+3. Jukebox’ta menüyü açın, **Tüm kitaplığınız** seçeneğini seçin ve klasörü ekleyin. iPhone’da bulut hizmetinin Dosyalar uygulamasında, Android’de ise klasör seçicide görünmesi gerekir.
+
+Bulutta şarkı ekledikten ya da sildikten sonra **Yeniden tara** seçeneğini seçin.
+
+## Jukebox’ta oluşturduklarınızı yedekleyin
+
+Raflarınız, istekleriniz, ayarlarınız ve eklediğiniz söz dosyaları yalnızca uygulamanın içinde bulunur. Bunları korumak için **Bu uygulamayı ayarla** sayfasını, ardından **Yedekleme** bölümünü açın:
+
+- **Yedek dosyası kaydet**, Proton Drive dahil istediğiniz yerde saklayabileceğiniz tek bir küçük dosya oluşturur. Hesap gerekmez. Telefon uygulamalarında dosya, uygulamanın Belgeler klasörüne kaydedilir ve onu Dosyalar uygulamasından taşıyabilirsiniz.
+- **Universal ID’nize yedekleyin**, oturumunuz açıksa aynı yedeği hesabınızla birlikte saklar. Her yedeklemede yenisiyle değiştirilir ve onu silebilirsiniz. Uçtan uca şifreli değildir. Hesabınız için fazla büyükse uygulama neyi dışarıda bıraktığını söyler; bir yedek dosyası ise her şeyi saklar.
+
+## Yeni bir telefonda
+
+Müziğinizi kopyalayın ya da çevrimdışı kullanılabilir yapın, klasörü ekleyin ve kitaplığın yüklenmesini bekleyin. Ardından yedeğinizi geri yükleyin. Ayarlarınızın yerini yedekteki ayarlar alır. Yedekteki raflar ve istekler sizdekilere eklenir ve hiçbir şey kaldırılmaz.
+
+Şarkılar başlıkları, sanatçıları ve albümleriyle yeniden bulunur; böylece dosyalar yeni kopyalar olsa bile bir raf geri gelir. Henüz kitaplığınızda olmayan bir şarkı dışarıda kalır. Onu geri getirmek için daha fazla müzik ekledikten sonra yeniden geri yükleyin.`,
   },
   {
     id: 'between-songs',
@@ -106,9 +136,9 @@ Uygulama, bir sonraki açılışta hızlı başlamak için kitaplığınızın b
 
 **Aynı albümdeki şarkılar** kısa ve yumuşak bir çapraz geçişle doğrudan birbirine bağlanır. Gelen şarkı ancak giden şarkı kısıldıkça yükselir; böylece geçiş akıcı olur ve iki şarkı aynı anda yüksek sesle çalmaz.
 
-**Sonraki şarkı başka bir plaktaysa**, ikisi varsayılan olarak yine çapraz geçişle birleşir; bu sırada ekranda bir oynatıcı kayarak çıkar, sonraki kayarak girer. Net bir geçiş tercih ederseniz Tune this app’te **No crossfade between records** seçeneğini işaretleyin: iğne kalkar, kısa bir sessizlik olur ve sonraki plağa iner.
+**Sonraki şarkı başka bir plaktaysa**, ikisi varsayılan olarak yine çapraz geçişle birleşir; bu sırada ekranda bir oynatıcı kayarak çıkar, sonraki kayarak girer. Net bir geçiş tercih ederseniz **Bu uygulamayı ayarla** sayfasında **Plaklar arasında çapraz geçiş yok** seçeneğini işaretleyin: iğne kalkar, kısa bir sessizlik olur ve sonraki plağa iner.
 
-Tune this app’te Sound bölümündeki **Fade in** ve **Fade out**, bir albümün son şarkısı dahil her parçanın başına ya da sonuna sekiz saniyeye kadar yavaş açılma veya kapanma ekler. İkisi de siz ayarlayana kadar kapalıdır. Uygulamanın sesi denetlemesine izin vermeyen bir cihazda bu geçişler kullanılamaz ve Tune this app bunu belirtir.
+**Bu uygulamayı ayarla** sayfasında Ses bölümündeki **Yavaş açılma** ve **Yavaş kapanma**, bir albümün son şarkısı dahil her parçanın başına ya da sonuna sekiz saniyeye kadar yavaş açılma veya kapanma ekler. İkisi de siz ayarlayana kadar kapalıdır. Uygulamanın sesi denetlemesine izin vermeyen bir cihazda bu geçişler kullanılamaz ve **Bu uygulamayı ayarla** sayfası bunu belirtir.
 
 ## Animasyon ayrıdır
 
@@ -119,7 +149,7 @@ Plak değiştirme animasyonu ve ne sıklıkta göründüğü müzikle değil, g�
     title: 'Şarkı sözleri: sözler nereden gelir',
     summary: 'Önce dosyalarınızdaki ya da yanlarına kaydedilmiş sözler, isteğe bağlı olarak da çevrimiçi arama.',
     group: 'Nasıl çalışır',
-    body: `Çalan şarkının sözlerini görmek için Now Playing ekranında **Lyrics** düğmesine dokunun. Sözler iki yerden gelebilir ve sıra hep aynıdır.
+    body: `Çalan şarkının sözlerini görmek için **Şimdi çalıyor** ekranında **Şarkı sözleri** düğmesine dokunun. Sözler iki yerden gelebilir ve sıra hep aynıdır.
 
 ## 1. Kendi dosyanız
 
@@ -133,9 +163,9 @@ Dosyalarınızda söz yoksa, bilgisayarlar için ücretsiz bir program olan **LR
 
 ## 2. Çevrimiçi arama, yalnızca siz açarsanız
 
-iPhone ve iPad’de çevrimiçi arama yoktur; bunun yerine yukarıda anlatıldığı gibi söz dosyaları ekleyin. Diğer cihazlarda, bir şarkının kendi sözleri yoksa uygulama, topluluk tarafından yürütülen ücretsiz bir söz koleksiyonu olan lrclib.net’e sorabilir. Bu özellik, Tune this app’te Lyrics bölümündeki **Look up missing lyrics online** seçeneğini işaretleyene kadar **kapalıdır**.
+iPhone ve iPad’de çevrimiçi arama yoktur; bunun yerine yukarıda anlatıldığı gibi söz dosyaları ekleyin. Diğer cihazlarda, bir şarkının kendi sözleri yoksa uygulama, topluluk tarafından yürütülen ücretsiz bir söz koleksiyonu olan lrclib.net’e sorabilir. Bu özellik, **Bu uygulamayı ayarla** sayfasında Şarkı sözleri bölümündeki **Eksik şarkı sözlerini çevrimiçi ara** seçeneğini işaretleyene kadar **kapalıdır**.
 
-Açık olduğunda, bir şarkıyı aramak yalnızca şarkının sanatçısını, adını, albümünü ve süresini doğrudan cihazınızdan lrclib.net’e gönderir. Sizinle, cihazınızla ya da kitaplığınızla ilgili başka hiçbir şey gönderilmez ve istek UNI·SIM üzerinden geçmez. Yanıt cihazınızda saklanır, böylece her şarkı yalnızca bir kez sorulur. Söz bulunamadıysa uygulama birkaç gün sonra yeniden deneyebilir. Tune this app, kaç şarkının arandığını gösterir ve hepsini unutmak için bir düğme sunar.
+Açık olduğunda, bir şarkıyı aramak yalnızca şarkının sanatçısını, adını, albümünü ve süresini doğrudan cihazınızdan lrclib.net’e gönderir. Sizinle, cihazınızla ya da kitaplığınızla ilgili başka hiçbir şey gönderilmez ve istek UNI·SIM üzerinden geçmez. Yanıt cihazınızda saklanır, böylece her şarkı yalnızca bir kez sorulur. Söz bulunamadıysa uygulama birkaç gün sonra yeniden deneyebilir. **Bu uygulamayı ayarla** sayfası, kaç şarkının arandığını gösterir ve hepsini unutmak için bir düğme sunar.
 
 Koleksiyon gönüllüler tarafından yazıldığı için ara sıra bir söz metni hatalı ya da biraz zamanlaması kaymış olabilir.
 
@@ -143,7 +173,7 @@ Koleksiyon gönüllüler tarafından yazıldığı için ara sıra bir söz metn
 
 Bazı sözlerde her satırın başında bir zaman damgası bulunur. Bunlara eşzamanlı sözler denir ve genellikle LRC adlı bir biçimdedir. Bu sözlerle, sözler paneli şarkıyı çalarken takip eder ve bir satıra dokunmak şarkının o noktasına atlar. Zaman damgası olmayan sözler düz metin olarak gösterilir.
 
-Eşzamanlı sözler, ikisi de Tune this app’te Lyrics bölümünde bulunan iki isteğe bağlı özelliği de mümkün kılar: sözleri söylendikçe dönen plağın çevresine yazan **Lyrics around the record** ve söylenen satırı telefonunuzun müzik denetimlerinde gösteren **Lyrics on the lock screen**.`,
+Eşzamanlı sözler, ikisi de **Bu uygulamayı ayarla** sayfasında Şarkı sözleri bölümünde bulunan iki isteğe bağlı özelliği de mümkün kılar: sözleri söylendikçe dönen plağın çevresine yazan **Plağın çevresinde şarkı sözleri** ve söylenen satırı telefonunuzun müzik denetimlerinde gösteren **Kilit ekranında şarkı sözleri**.`,
   },
   {
     id: 'playing-in-the-background',
@@ -165,7 +195,7 @@ Tarayıcıda şarkı genellikle bilgisayarınızın ya da telefonunuzun medya de
 
 ## Uyku zamanlayıcısı
 
-Now Playing ekranındaki yuvarlak düğmeler arasında bulunan **Sleep**, müziği sizin yerinize durdurur:
+**Şimdi çalıyor** ekranındaki yuvarlak düğmeler arasında bulunan **Uyku**, müziği sizin yerinize durdurur:
 
 1. Sırasıyla 15, 30, 45 ve 60 dakika arasında geçmek ve ardından kapatmak için dokunun.
 2. Ya da 12 saate kadar istediğiniz bir süreyi seçmek için basılı tutun.
@@ -175,11 +205,11 @@ Zamanlayıcı, telefon kilitliyken de çalışmaya devam eder.
 
 ## Ekranı açık tutmak
 
-Plağın dönüşünü izlemeyi seviyorsanız **Keep awake**, Now Playing açık olduğu sürece ekranın kararmasını ya da kilitlenmesini önler.
+Plağın dönüşünü izlemeyi seviyorsanız **Ekran açık**, **Şimdi çalıyor** ekranı açık olduğu sürece ekranın kararmasını ya da kilitlenmesini önler.
 
 ## Her şarkı için bir bildirim
 
-Tune this app’teki **Notify me of each new song**, uygulama ekranda değilken her yeni şarkı başladığında şarkıyı, sanatçıyı ve kapağı gösterir. Her zaman yalnızca bir bildirim görünür, bir sonrakiyle değiştirilir ve hiç ses çıkarmaz. Siz açana kadar kapalıdır ve cihazınız izni tam da açtığınızda sorar.`,
+**Bu uygulamayı ayarla** sayfasındaki **Her yeni şarkıda bildirim gönder**, uygulama ekranda değilken her yeni şarkı başladığında şarkıyı, sanatçıyı ve kapağı gösterir. Her zaman yalnızca bir bildirim görünür, bir sonrakiyle değiştirilir ve hiç ses çıkarmaz. Siz açana kadar kapalıdır ve cihazınız izni tam da açtığınızda sorar.`,
   },
   {
     id: 'privacy',
@@ -194,21 +224,21 @@ Tune this app’teki **Notify me of each new song**, uygulama ekranda değilken 
 - **Kitaplık kataloğunuz**: şarkı adları, sanatçılar, albümler, kapakların küçük kopyaları ve varsa düzenleme düzeltmeleriniz.
 - **Ayarlarınız, istekleriniz ve kaldığınız yer.** Bu cihazda, uygulamanın içinde kalır.
 
-Uygulama bunların hiçbirini yedeklemez ya da eşzamanlamaz. Jukebox’ı iki cihazda kullanıyorsanız her biri kendi kitaplığını tutar.
+Siz bir yedek oluşturmadıkça bunların hiçbiri cihazınızdan çıkmaz. Yedek dosyası, onu nereye kaydederseniz oraya gider. Universal ID’nize yapılan bir yedek ayarlarınızı, raflarınızı, isteklerinizi ve eklediğiniz şarkı sözlerini başlık, sanatçı ve albüm adlarıyla birlikte tutar; müziğinizi asla tutmaz. Jukebox’ı iki cihazda kullanıyorsanız her biri kendi kitaplığını tutar.
 
 ## Üç sorgu
 
 Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçbiri siz istemeden bir şey yapmaz. Her biri, UNI·SIM üzerinden geçmeden doğrudan cihazınızdan belirtilen hizmete gider ve yalnızca listelenenleri gönderir.
 
-- **Şarkı sözü arama** (iPhone ve iPad’de yok; diğerlerinde Tune this app’te açana kadar kapalı): kendi sözleri olmayan şarkılar için şarkının sanatçısını, adını, albümünü ve süresini lrclib.net’e gönderir.
-- **About this track** (Tune this app’te ya da panelin kendisinde açana kadar kapalı): Wikipedia’nın onlar hakkında söylediklerini göstermek için şarkının adını ve sanatçının adını Wikipedia’ya gönderir. Yanıtlar cihazda 90 gün saklanır; makalesi olmayan bir şarkı birkaç gün sonra yeniden sorulur.
-- **Find a picture**, bir istekte: yazdığınız sözcükleri yalnızca siz dokunduğunuzda Apple’ın iTunes aramasına gönderir. Seçtiğiniz görsel istekle birlikte kaydedilir.
+- **Şarkı sözü arama** (iPhone ve iPad’de yok; diğerlerinde **Bu uygulamayı ayarla** sayfasında açana kadar kapalı): kendi sözleri olmayan şarkılar için şarkının sanatçısını, adını, albümünü ve süresini lrclib.net’e gönderir.
+- **Bu şarkı hakkında** (**Bu uygulamayı ayarla** sayfasında ya da panelin kendisinde açana kadar kapalı): Wikipedia’nın onlar hakkında söylediklerini göstermek için şarkının adını ve sanatçının adını Wikipedia’ya gönderir. Yanıtlar cihazda 90 gün saklanır; makalesi olmayan bir şarkı birkaç gün sonra yeniden sorulur.
+- **Görsel bul**, bir istekte: yazdığınız sözcükleri yalnızca siz dokunduğunuzda Apple’ın iTunes aramasına gönderir. Seçtiğiniz görsel istekle birlikte kaydedilir.
 
-İlk ikisinin yanıtları cihazınızda saklanır, böylece bir şarkı yalnızca bir kez sorgulanır. Tune this app kaç tane olduğunu gösterir ve bunları unutmanızı sağlar. Hiçbir ses cihazınızdan asla çıkmaz.
+İlk ikisinin yanıtları cihazınızda saklanır, böylece bir şarkı yalnızca bir kez sorgulanır. **Bu uygulamayı ayarla** sayfası kaç tane olduğunu gösterir ve bunları unutmanızı sağlar. Hiçbir ses cihazınızdan asla çıkmaz.
 
 ## Universal ID
 
-Universal ID ile oturum açmak isteğe bağlıdır. Tüm UNI·SIM uygulamalarında oturumunuzun açık kalmasını sağlar. Oturumunuz açıkken uygulama, her başladığında hesabınıza bir “açıldı” olayı kaydeder. Bu olay müziğiniz hakkında hiçbir şey söylemez.
+Universal ID ile oturum açmak isteğe bağlıdır. Tüm UNI·SIM uygulamalarında oturumunuzun açık kalmasını sağlar ve isterseniz hesabınızla birlikte bir yedek tutmanıza olanak tanır. Oturumunuz açıkken uygulama, her başladığında hesabınıza bir “açıldı” olayı kaydeder. Bu olay müziğiniz hakkında hiçbir şey söylemez.
 
 ## İzinler
 

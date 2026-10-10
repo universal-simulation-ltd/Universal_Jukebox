@@ -1,0 +1,51 @@
+{
+  "language": "tr-TR",
+  "details": {
+    "defaultLanguage": "en-GB",
+    "contactEmail": "inbox@unisim.co.uk",
+    "contactWebsite": "https://www.unisim.co.uk"
+  },
+  "listing": {
+    "title": "Universal Jukebox: Pikap",
+    "shortDescription": "Kendi müziğiniz pikapta, Walkman’de ya da jukebox’ta; sözler çevresinde döner.",
+    "fullDescription": [
+      "Plaklarınız zaten telefonunuzda. Universal Jukebox onları bir pikaba koyar.",
+      "",
+      "Telefonunuzda MP3, M4A, FLAC ya da WAV dosyalarından oluşan bir klasör seçin; Jukebox içlerindeki etiketleri, kapakları ve şarkı sözlerini okur ve her albümü rafına dizer. Birine dokunun, iğne iner.",
+      "",
+      "Ne üzerinde çalacağını seçin: pikap, taşınabilir CD çalar, kasetli Walkman, makaralı teyp, jukebox ya da cep müzik çalar. Ya da her albüm kendi yılının çalarında çalsın: 1979 tarihli bir plak pikapta döner, 2003 tarihli bir albüm CD çalara girer.",
+      "",
+      "Sözler plağın çevresinde döner",
+      "Şarkılarınızda zamanlamalı sözler varsa satırlar, söylendikçe dönen plağın çevresinde döner, sözler panelinde şarkıyı takip eder ve kilit ekranınızda görünebilir. Bir şarkının yanına kaydedilmiş söz dosyası da okunur (Şarkı.mp3 ile yan yana Şarkı.lrc) ve istediğiniz şarkıya kendiniz de bir tane ekleyebilirsiniz. Sözü olmayan şarkılar için çevrimiçi aramayı açabilirsiniz; siz açana kadar kapalıdır.",
+      "",
+      "Dinlemek için yapıldı",
+      "• Şarkılar arasında çapraz geçiş ve yavaş açılıp kapanma; yüksek bir parçayı diğerlerinin düzeyine indiren Sabit ses düzeyi.",
+      "• Karıştırma, tekrarlama, sonra çal ve görebildiğiniz bir kuyruk.",
+      "• Müziği yavaşça kısan bir uyku zamanlayıcısı.",
+      "• Kilit ekranı denetimleri; hoparlör ya da kulaklık seçimi.",
+      "• Sanatçılar, albümler ya da parçalar; A–Z, rastgele ya da türe göre; ızgara, liste ya da jukebox rafı olarak.",
+      "• Çalma listesi gibi çalan raflar ve hâlâ edinmek istediğiniz müziklerin listesi.",
+      "",
+      "Sizin, yalnızca sizin",
+      "Hiçbir şey yüklenmez ve hesap açmanız gerekmez. Reklam yok, izleme yok, üçüncü taraf analitiği yok. Kendi müziğinizi eklemeden önce görmek için örnek kitaplığı deneyin: telefonunuzda üretilen dokuz uydurma plak.",
+      "",
+      "Universal Jukebox açık kaynaktır (AGPL-3.0). Kod GitHub’da: github.com/universal-simulation-ltd/Universal_Jukebox",
+      "",
+      "James Markey MBE ve UNI·SIM tarafından Birleşik Krallık’ta yapıldı."
+    ]
+  },
+  "images": {
+    "icon": "out/play/icon-512.png",
+    "featureGraphic": "out/tr-TR/play/feature-graphic.png",
+    "phoneScreenshots": [
+      "out/tr-TR/android/01-turntable.png",
+      "out/tr-TR/android/02-shelf.png",
+      "out/tr-TR/android/03-machines.png",
+      "out/tr-TR/android/04-lyrics.png",
+      "out/tr-TR/android/05-artists.png",
+      "out/tr-TR/android/06-album.png",
+      "out/tr-TR/android/07-drawer.png",
+      "out/tr-TR/android/08-tune.png"
+    ]
+  }
+}
