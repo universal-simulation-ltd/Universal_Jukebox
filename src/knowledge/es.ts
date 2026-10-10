@@ -86,7 +86,37 @@ Se pueden reproducir las canciones sincronizadas con el iPhone desde un ordenado
 
 ## Qué guarda la aplicación
 
-La aplicación guarda en su dispositivo un catálogo de su biblioteca —títulos, artistas, álbumes y copias pequeñas de las carátulas— para abrirse rápido la próxima vez. Ese catálogo no se copia en ningún sitio ni se comparte entre dispositivos: cada dispositivo crea el suyo. Borrar los datos de este sitio en un navegador borra el catálogo, pero nunca su música.`,
+La aplicación guarda en su dispositivo un catálogo de su biblioteca —títulos, artistas, álbumes y copias pequeñas de las carátulas— para abrirse rápido la próxima vez. Ese catálogo no se comparte entre dispositivos: cada dispositivo crea el suyo. Borrar los datos de este sitio en un navegador borra el catálogo, pero nunca su música. Puede hacer una copia de seguridad de sus estantes, peticiones y ajustes: consulte «Mantener su música a salvo».`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Mantener su música a salvo',
+    summary: 'Su música en su propia nube, y una copia de seguridad de sus estantes.',
+    group: 'Cómo funciona',
+    body: `Universal Jukebox nunca sube su música, así que tampoco puede perderla. Su música está tan segura como el lugar donde la guarde. Un teléfono perdido o averiado no debería llevarse su colección consigo, así que guarde una copia en otro sitio.
+
+## Guarde su música en su propia nube
+
+Sirve cualquier almacenamiento en la nube que ya use: Proton Drive, iCloud Drive, Google Drive, OneDrive o un ordenador del que haga copias de seguridad. En el teléfono:
+
+1. Ponga su carpeta de música en su almacenamiento en la nube.
+2. En la aplicación de ese servicio, haga que la carpeta esté disponible sin conexión, para que las canciones se guarden en el teléfono y suenen sin conexión. Las canciones que solo están en línea no se pueden reproducir.
+3. En Jukebox, abra el menú, elija **Tu biblioteca completa** y añada la carpeta. En un iPhone, el servicio en la nube tiene que aparecer en la app Archivos; en Android, en el selector de carpetas.
+
+Después de añadir o quitar canciones en la nube, elija **Volver a escanear**.
+
+## Haga una copia de seguridad de lo que ha creado en Jukebox
+
+Sus estantes, sus peticiones, sus ajustes y los archivos de letras que haya añadido solo existen en la aplicación. Para conservarlos, abra **Ajustar esta app** y luego **Copia de seguridad**:
+
+- **Guardar un archivo de copia de seguridad** crea un único archivo pequeño que puede guardar donde quiera, también en Proton Drive. No hace falta ninguna cuenta. En las aplicaciones para teléfono se guarda en la carpeta Documentos de la aplicación, y puede moverlo desde la app Archivos.
+- **Hacer una copia en tu Universal ID** guarda la misma copia de seguridad con su cuenta, si tiene la sesión iniciada. Se sustituye cada vez que hace una copia, y puede eliminarla. No tiene cifrado de extremo a extremo. Si es demasiado grande para su cuenta, la aplicación le indica qué ha dejado fuera, y un archivo de copia de seguridad lo guarda todo.
+
+## En un teléfono nuevo
+
+Copie su música o haga que esté disponible sin conexión, añada la carpeta y espere a que se cargue la biblioteca. Después, restaure su copia de seguridad. Sus ajustes se sustituyen por los de la copia. Sus estantes y peticiones se suman a lo que ya tiene, y no se quita nada.
+
+Las canciones se vuelven a encontrar por su título, artista y álbum, así que un estante vuelve aunque los archivos sean copias nuevas. Una canción que aún no esté en su biblioteca se queda fuera. Restaure otra vez después de añadir más música para recuperarla.`,
   },
   {
     id: 'between-songs',
@@ -194,7 +224,7 @@ Si le gusta ver girar el disco, **No apagar** impide que la pantalla se atenúe 
 - **El catálogo de su biblioteca**: títulos, artistas, álbumes, copias pequeñas de las carátulas y las correcciones que haya hecho al poner orden.
 - **Sus ajustes, sus peticiones y el punto en que lo dejó.** Se quedan en la aplicación, en este dispositivo.
 
-La aplicación no hace copia de seguridad ni sincroniza nada de esto. Si usa Jukebox en dos dispositivos, cada uno conserva su propia biblioteca.
+Nada de esto sale de su dispositivo a menos que haga una copia de seguridad. Un archivo de copia de seguridad va adonde usted lo guarde. Una copia en su Universal ID contiene sus ajustes, estantes, peticiones y las letras que haya añadido, identificados por título, artista y álbum; nunca contiene su música. Si usa Jukebox en dos dispositivos, cada uno conserva su propia biblioteca.
 
 ## Las tres búsquedas
 
@@ -208,7 +238,7 @@ Las respuestas de las dos primeras se guardan en su dispositivo, así que cada c
 
 ## Universal ID
 
-Iniciar sesión con un Universal ID es opcional. Le mantiene con la sesión iniciada en todas las aplicaciones de UNI·SIM. Mientras tenga la sesión iniciada, la aplicación registra un evento de «apertura» en su cuenta cada vez que se inicia. Ese evento no dice nada sobre su música.
+Iniciar sesión con un Universal ID es opcional. Le mantiene con la sesión iniciada en todas las aplicaciones de UNI·SIM y le permite guardar una copia de seguridad con su cuenta, si lo desea. Mientras tenga la sesión iniciada, la aplicación registra un evento de «apertura» en su cuenta cada vez que se inicia. Ese evento no dice nada sobre su música.
 
 ## Permisos
 

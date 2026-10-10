@@ -47,7 +47,7 @@ The app reads the common kinds of tag used by MP3, M4A, FLAC and Ogg files. Scan
 ## When tags are missing or wrong
 
 - **A file with no tags** is shown by its file name, with any track number at the front taken off. The app won’t guess an artist from a file name, because a wrong guess is worse than a blank.
-- **An album split in two** usually means its tracks were tagged inconsistently — for example, the artist spelt two different ways.
+- **A record split in two** usually means its tracks were tagged inconsistently — for example, the artist spelt two different ways.
 - **A missing cover** can mean the picture was never stored in the files, or that it was stored in a later track rather than the first.
 
 ## Tidying up
@@ -149,7 +149,7 @@ The record-changing animation, and how often it appears, is about the picture an
     title: 'Lyrics: where the words come from',
     summary: 'Lyrics in your files, or saved beside them, first; an optional online lookup after.',
     group: 'How it works',
-    body: `Press **Lyrics** on Now Playing to see the words to the song that is playing. They can come from two places, always in this order.
+    body: `Press **Show lyrics** on Now playing to see the words to the song that is playing. They can come from two places, always in this order.
 
 ## 1. Your own file
 

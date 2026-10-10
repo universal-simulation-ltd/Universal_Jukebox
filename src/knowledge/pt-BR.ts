@@ -72,7 +72,7 @@ Arrumar corrige só a biblioteca dentro do app. Não reescreve tags, não renome
 Abra o menu e escolha **Sua biblioteca completa**. Ali você pode adicionar uma pasta, fazer uma nova análise ou remover uma pasta. Adicionar uma pasta amplia a sua biblioteca em vez de substituí-la, e remover uma tira só as músicas daquela pasta. O funcionamento das pastas depende de onde você usa o app:
 
 - **Chrome e Edge** conseguem lembrar a pasta que você escolheu. Quando você voltar, talvez precise confirmar o acesso uma vez, com um toque.
-- **Firefox e Safari** não conseguem manter a permissão de ler uma pasta entre as visitas, então você escolhe a pasta a cada vez. A sua biblioteca, as capas e as configurações continuam guardadas, então nada precisa ser lido de novo.
+- **Firefox e Safari** não conseguem manter a permissão de ler uma pasta entre as visitas, então você escolhe a pasta a cada vez. A sua biblioteca, as capas e os ajustes continuam guardadas, então nada precisa ser lido de novo.
 - **O app para iPhone** tem uma pasta própria, chamada Universal Jukebox, no app Arquivos. Tudo o que você copiar, enviar por AirDrop ou salvar nela passa a fazer parte da sua biblioteca. Você também pode adicionar outras pastas e tocar as músicas da biblioteca do app Música do iPhone que estão guardadas no aparelho, como as sincronizadas de um computador.
 - **O app para Android** pede que você escolha cada pasta uma vez no seletor do sistema, e o Android lembra a permissão.
 
@@ -86,7 +86,37 @@ As músicas sincronizadas com o iPhone a partir de um computador podem ser tocad
 
 ## O que o app guarda
 
-O app guarda no seu dispositivo um catálogo da sua biblioteca — títulos, artistas, álbuns e cópias pequenas das capas — para abrir rápido da próxima vez. Esse catálogo não tem backup nem é compartilhado entre dispositivos: cada dispositivo monta o seu. Apagar os dados deste site em um navegador apaga o catálogo, mas nunca a sua música.`,
+O app guarda no seu dispositivo um catálogo da sua biblioteca — títulos, artistas, álbuns e cópias pequenas das capas — para abrir rápido da próxima vez. Esse catálogo não é compartilhado entre dispositivos: cada dispositivo monta o seu. Apagar os dados deste site em um navegador apaga o catálogo, mas nunca a sua música. Suas estantes, pedidos e ajustes podem ter backup: veja Mantendo a sua música segura.`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Mantendo a sua música segura',
+    summary: 'Sua música na sua própria nuvem, e um backup das suas estantes.',
+    group: 'Como funciona',
+    body: `O Universal Jukebox nunca envia a sua música, então também não tem como perdê-la. A sua música está tão segura quanto o lugar onde você a guarda. Um celular perdido ou quebrado não deveria levar a sua coleção junto, então guarde uma cópia em outro lugar.
+
+## Guarde a sua música na sua própria nuvem
+
+Qualquer armazenamento na nuvem que você já usa serve: Proton Drive, iCloud Drive, Google Drive, OneDrive ou um computador de que você faz backup. No celular:
+
+1. Coloque a sua pasta de música no armazenamento na nuvem.
+2. No app desse serviço, deixe a pasta disponível off-line, para que as músicas fiquem guardadas no celular e toquem sem conexão. Músicas que estão só on-line não podem ser tocadas.
+3. No Jukebox, abra o menu, escolha **Sua biblioteca completa** e adicione a pasta. No iPhone, o serviço de nuvem precisa aparecer no app Arquivos; no Android, no seletor de pastas.
+
+Depois de adicionar ou remover músicas na nuvem, escolha **Escanear de novo**.
+
+## Faça backup do que você criou no Jukebox
+
+Suas estantes, seus pedidos, seus ajustes e os arquivos de letra que você adicionou só existem no app. Para guardá-los, abra **Ajustar este app** e depois **Backup**:
+
+- **Salvar um arquivo de backup** cria um único arquivo pequeno que você pode guardar onde quiser, inclusive no Proton Drive. Não precisa de conta. Nos apps para celular, ele é salvo na pasta Documentos do app, e você pode movê-lo pelo app Arquivos.
+- **Fazer backup no seu Universal ID** guarda o mesmo backup com a sua conta, se você estiver conectado. Ele é substituído a cada novo backup, e você pode excluí-lo. Não tem criptografia de ponta a ponta. Se for grande demais para a sua conta, o app diz o que ficou de fora, e um arquivo de backup guarda tudo.
+
+## Num celular novo
+
+Copie as suas músicas ou deixe-as disponíveis off-line, adicione a pasta e espere a biblioteca carregar. Depois, restaure o seu backup. Os seus ajustes são substituídos pelos do backup. As estantes e os pedidos do backup são somados aos que você já tem, e nada é removido.
+
+As músicas são encontradas de novo pelo título, pelo artista e pelo álbum, então uma estante volta mesmo que os arquivos sejam cópias novas. Uma música que ainda não está na sua biblioteca fica de fora. Restaure de novo depois de adicionar mais músicas para trazê-la de volta.`,
   },
   {
     id: 'between-songs',
@@ -119,7 +149,7 @@ A animação de troca de disco, e a frequência com que ela aparece, tem a ver c
     title: 'Letras: de onde vêm as palavras',
     summary: 'Primeiro as letras nos seus arquivos ou salvas ao lado deles, e uma busca on-line opcional.',
     group: 'Como funciona',
-    body: `Toque em **Letra** em Tocando agora para ver a letra da música que está tocando. Ela pode vir de dois lugares, sempre nesta ordem.
+    body: `Toque em **Mostrar a letra** em Tocando agora para ver a letra da música que está tocando. Ela pode vir de dois lugares, sempre nesta ordem.
 
 ## 1. O seu próprio arquivo
 
@@ -192,9 +222,9 @@ Se você gosta de ver o disco girando, **Tela ligada** impede que a tela escure�
 
 - **Os seus arquivos de música.** Eles são lidos onde estão e nunca são copiados para um servidor.
 - **O catálogo da sua biblioteca**: títulos, artistas, álbuns, cópias pequenas das capas e as correções que você fez ao arrumar.
-- **As suas configurações, os seus pedidos e o ponto em que você parou.** Eles ficam no app, neste dispositivo.
+- **Os seus ajustes, os seus pedidos e o ponto em que você parou.** Eles ficam no app, neste dispositivo.
 
-O app não faz backup nem sincroniza nada disso. Se você usar o Jukebox em dois dispositivos, cada um mantém a própria biblioteca.
+Nada disso sai do seu dispositivo, a menos que você faça um backup. Um arquivo de backup vai para onde você o salvar. Um backup no seu Universal ID contém seus ajustes, estantes, pedidos e as letras que você adicionou, identificados pelo título, pelo artista e pelo álbum; ele nunca contém a sua música. Se você usar o Jukebox em dois dispositivos, cada um mantém a própria biblioteca.
 
 ## As três buscas
 
@@ -208,7 +238,7 @@ As respostas das duas primeiras ficam guardadas no seu dispositivo, então cada 
 
 ## Universal ID
 
-Entrar com um Universal ID é opcional. Isso mantém você conectado em todos os apps da UNI·SIM. Enquanto você estiver conectado, o app registra um evento de "aberto" na sua conta sempre que é iniciado. Esse evento não diz nada sobre a sua música.
+Entrar com um Universal ID é opcional. Isso mantém você conectado em todos os apps da UNI·SIM e permite guardar um backup com a sua conta, se você quiser. Enquanto você estiver conectado, o app registra um evento de "aberto" na sua conta sempre que é iniciado. Esse evento não diz nada sobre a sua música.
 
 ## Permissões
 
