@@ -1,0 +1,98 @@
+{
+ "01-turntable": {
+  "headline": [
+   "Suas músicas,",
+   "*no toca-discos*"
+  ],
+  "label": "Universal Jukebox · 33⅓ · Lado A ·"
+ },
+ "02-shelf": {
+  "headline": [
+   "Cada álbum",
+   "na sua estante"
+  ],
+  "sub": "Feito no Reino Unido por\nJames Markey MBE e UNI·SIM"
+ },
+ "03-machines": {
+  "headline": [
+   "Escolha o seu",
+   "*aparelho*"
+  ],
+  "caption": "Vinil, CD, fita cassete, gravador de rolo, jukebox ou player de bolso",
+  "chips": [
+   "Toca-discos",
+   "CD",
+   "Fita cassete",
+   "Gravador de rolo",
+   "Jukebox",
+   "Player de bolso"
+  ]
+ },
+ "04-lyrics": {
+  "headline": [
+   "A letra gira",
+   "*com o disco*"
+  ],
+  "caption": "Letras sincronizadas dos seus próprios arquivos, cantadas enquanto o disco gira",
+  "chips": [
+   "Em volta do disco",
+   "Na tela de bloqueio",
+   "Seus arquivos .lrc"
+  ]
+ },
+ "05-artists": {
+  "headline": [
+   "Cada artista,",
+   "*de relance*"
+  ],
+  "caption": "Artistas, álbuns e faixas, alguns por linha ou na estante",
+  "chips": [
+   "3 por linha",
+   "A–Z",
+   "Aleatório",
+   "Gênero"
+  ]
+ },
+ "06-album": {
+  "headline": [
+   "Cada álbum,",
+   "*com sua capa*"
+  ],
+  "caption": "Toque, embaralhe ou ouça antes dez segundos de qualquer música",
+  "chips": [
+   "Tocar",
+   "Aleatório",
+   "Prévia",
+   "Pôr na estante"
+  ]
+ },
+ "07-drawer": {
+  "headline": [
+   "Puxe para baixo",
+   "*e veja mais*"
+  ],
+  "caption": "Busca, aleatório e as opções da lista, escondidos até você precisar",
+  "chips": [
+   "Buscar",
+   "Aleatório",
+   "A–Z ou aleatório",
+   "Estante Jukebox"
+  ]
+ },
+ "08-tune": {
+  "headline": [
+   "Ajuste",
+   "*do seu jeito*"
+  ],
+  "caption": "Crossfade, fades, Volume estável e um timer que vai baixando a música",
+  "chips": [
+   "Crossfade",
+   "Volume estável",
+   "Timer para dormir",
+   "Fades"
+  ]
+ },
+ "feature-graphic": {
+  "tagline": "Suas músicas, no toca-discos"
+ }
+}
