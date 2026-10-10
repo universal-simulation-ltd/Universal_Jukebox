@@ -29,6 +29,7 @@ import {
   withCounts,
 } from '../lib/roots'
 import { filesUnder, hasDirectoryPicker, isPlayable, scan, REFUSED, type FoundImage, type ScanSource } from '../lib/scan'
+import { adoptFolderLyrics } from '../lib/folderLyrics'
 import {
   NATIVE_ROOT_LABEL,
   NATIVE_ROOT_PATH,
@@ -1775,6 +1776,9 @@ async function runScan(
   // is a rewrite rather than a diff.
   await Promise.all([db.replaceLibrary(fixed.tracks, fixed.albums), db.putRoot(root)])
   if (!current()) return
+  // The `.lrc` files beside the songs become their lyrics — in the background:
+  // the library is ready now, and lyrics are only read when a song is played.
+  void adoptFolderLyrics(result.tracks, result.lyrics)
 
   const refusals: Refusal[] = [...result.refused.entries()]
     .map(([ext, count]) => ({ ext, count, why: REFUSED[ext] ?? '' }))

@@ -99,6 +99,12 @@ export interface FoundImage {
 }
 
 export interface ScanResult {
+  /**
+   * `.lrc` files, by their path without the extension — so `Album/Song.lrc`
+   * is found for `Album/Song.mp3`. The lyrics a tool like LRCGET saves beside
+   * each song; `lib/folderLyrics.ts` reads them in.
+   */
+  lyrics: Map<string, SourceFile>
   tracks: Track[]
   albums: Album[]
   /** Extensions refused, and how many of each — so the UI can name them once. */
@@ -336,6 +342,7 @@ export async function scan(
   const refused = new Map<string, number>()
   const files = new Map<string, SourceFile>()
   const images = new Map<string, FoundImage[]>()
+  const lyrics = new Map<string, SourceFile>()
   /** Album ids we have already tried to get a cover for. */
   const artTried = new Set<string>()
 
@@ -377,6 +384,7 @@ export async function scan(
         if (list) list.push(image)
         else images.set(dir, [image])
       }
+      if (ext === 'lrc') lyrics.set(withoutExtension(found.path), found.file)
       if (REFUSED[ext]) refused.set(ext, (refused.get(ext) ?? 0) + 1)
       skipped++
       // Reporting on every single file makes the scan slower than the disk.
@@ -469,7 +477,14 @@ export async function scan(
   flush()
   report(true)
 
-  return { tracks, albums: [...albums.values()], refused, files, images }
+  return { tracks, albums: [...albums.values()], refused, files, images, lyrics }
+}
+
+/** `Album/Song.mp3` → `Album/Song`: how a song and its `.lrc` are paired. */
+export function withoutExtension(path: string): string {
+  const slash = path.lastIndexOf('/')
+  const dot = path.lastIndexOf('.')
+  return dot > slash ? path.slice(0, dot) : path
 }
 
 /** The folder a path sits in — '' for a file at the root of the chosen folder. */

@@ -316,9 +316,11 @@ export interface LyricRecord {
   at: number
   /**
    * `'upload'` for a lyrics file the person added themselves — which wins over
-   * the file's own tags and over lrclib from then on. Absent for lrclib's.
+   * the file's own tags and over lrclib from then on. `'folder'` for a `.lrc`
+   * found beside the song when its folder was scanned (`lib/folderLyrics.ts`):
+   * second only to an upload. Absent for lrclib's.
    */
-  source?: 'upload'
+  source?: 'upload' | 'folder'
   /**
    * The cache's shape. Records from before 2026-09-10 have none, and a "not
    * found" among them is asked again — see `cacheUsable` in `lrclib.ts`.
@@ -332,6 +334,10 @@ export async function getLyricRecord(trackId: string): Promise<LyricRecord | nul
 
 export async function putLyricRecord(record: LyricRecord): Promise<void> {
   await tx(STORE_LYRICS, 'readwrite', (s) => s.put(record))
+}
+
+export async function deleteLyricRecord(trackId: string): Promise<void> {
+  await tx(STORE_LYRICS, 'readwrite', (s) => s.delete(trackId))
 }
 
 /** The lyrics files the person added themselves — what a backup carries (`lib/backup.ts`). */

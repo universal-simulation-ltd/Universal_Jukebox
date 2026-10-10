@@ -117,7 +117,7 @@ L’animazione del cambio di disco, e la frequenza con cui compare, riguarda l�
   {
     id: 'lyrics',
     title: 'Testi: da dove vengono le parole',
-    summary: 'Prima i testi salvati nei tuoi file, poi una ricerca online facoltativa.',
+    summary: 'Prima i testi nei tuoi file o salvati accanto, poi una ricerca online facoltativa.',
     group: 'Come funziona',
     body: `Premi **Lyrics** in Now Playing per vedere il testo del brano in riproduzione. Può arrivare da due fonti, sempre in quest’ordine.
 
@@ -125,11 +125,15 @@ L’animazione del cambio di disco, e la frequenza con cui compare, riguarda l�
 
 Molti file musicali contengono il testo nei tag, inserito dal negozio, da un programma di estrazione o da un editor di tag. L’app guarda prima lì. Funziona senza connessione a Internet e, dato che si tratta del tuo file, ha sempre la precedenza su qualunque cosa trovata online.
 
-L’app legge i testi salvati all’interno del file musicale. I file di testo separati salvati accanto a un brano non vengono letti.
+Viene letto anche un file di testo salvato accanto a un brano, purché abbia il nome del brano e finisca in **.lrc**: *Brano.mp3* e *Brano.lrc*. Viene letto durante la scansione della cartella, quindi dopo aver aggiunto file di testo ripeti la scansione della tua musica. Un file di testo che aggiungi a un singolo brano dal pannello dei testi ha la precedenza su entrambi.
+
+## Testi per tutta la libreria
+
+Se i tuoi file non hanno testi, un programma gratuito per computer chiamato **LRCGET** può scaricarli per un’intera cartella in una volta. Scegli la cartella della musica e poi **Download all lyrics**: salva un file .lrc accanto a ogni brano di cui trova il testo e lascia invariati i file musicali. Poi ripeti la scansione della cartella in Universal Jukebox. LRCGET è realizzato da chi gestisce lrclib.net, la raccolta descritta più sotto, non da UNI·SIM.
 
 ## 2. Una ricerca online, solo se la attivi
 
-Se un brano non ha un testo proprio, l’app può chiederlo a lrclib.net, una raccolta di testi gratuita gestita da una comunità. Questa opzione è **disattivata** finché non spunti **Look up missing lyrics online** in Tune this app, nella sezione Lyrics.
+Su iPhone e iPad non c’è la ricerca online: aggiungi invece file di testo come spiegato sopra. Altrove, se un brano non ha un testo proprio, l’app può chiederlo a lrclib.net, una raccolta di testi gratuita gestita da una comunità. Questa opzione è **disattivata** finché non spunti **Look up missing lyrics online** in Tune this app, nella sezione Lyrics.
 
 Quando è attiva, la ricerca di un brano invia solo artista, titolo, album e durata, direttamente dal tuo dispositivo a lrclib.net. Non viene inviato nient’altro su di te, sul tuo dispositivo o sulla tua libreria, e la richiesta non passa da UNI·SIM. La risposta viene conservata sul tuo dispositivo, così ogni brano viene cercato una sola volta. Se non è stato trovato alcun testo, l’app può riprovare dopo qualche giorno. Tune this app mostra quanti brani sono stati cercati, con un pulsante per dimenticarli tutti.
 
@@ -196,7 +200,7 @@ L’app non esegue backup né sincronizza nulla di tutto questo. Se usi Jukebox 
 
 Solo tre funzioni inviano qualcosa sulla tua musica, e nessuna fa nulla finché non lo chiedi tu. Ognuna va direttamente dal tuo dispositivo al servizio indicato, senza passare da UNI·SIM, e invia solo quanto elencato.
 
-- **Ricerca dei testi** (disattivata finché non la attivi in Tune this app): invia artista, titolo, album e durata di un brano a lrclib.net, per i brani che non hanno un testo proprio.
+- **Ricerca dei testi** (assente su iPhone e iPad; altrove disattivata finché non la attivi in Tune this app): invia artista, titolo, album e durata di un brano a lrclib.net, per i brani che non hanno un testo proprio.
 - **About this track** (disattivata finché non la attivi, in Tune this app o nel pannello stesso): invia il titolo del brano e il nome dell’artista a Wikipedia, per mostrare cosa dice Wikipedia al riguardo. Le risposte vengono conservate sul dispositivo per 90 giorni, e un brano senza voce viene cercato di nuovo dopo qualche giorno.
 - **Find a picture**, in una richiesta: invia le parole che hai digitato alla ricerca iTunes di Apple, solo quando lo tocchi. L’immagine che scegli viene salvata con la richiesta.
 

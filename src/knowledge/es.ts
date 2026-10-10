@@ -117,7 +117,7 @@ La animación de cambio de disco, y la frecuencia con que aparece, afecta a la i
   {
     id: 'lyrics',
     title: 'Letras: de dónde salen las palabras',
-    summary: 'Primero las letras guardadas en sus archivos, y una búsqueda en línea opcional.',
+    summary: 'Primero las letras de sus archivos o guardadas junto a ellos, y una búsqueda en línea opcional.',
     group: 'Cómo funciona',
     body: `Pulse **Lyrics** en Now Playing para ver la letra de la canción que está sonando. Puede venir de dos sitios, siempre en este orden.
 
@@ -125,11 +125,15 @@ La animación de cambio de disco, y la frecuencia con que aparece, afecta a la i
 
 Muchos archivos de música llevan la letra dentro de sus etiquetas, puesta ahí por la tienda, un programa de extracción o un editor de etiquetas. La aplicación mira ahí primero. Esto funciona sin conexión a Internet y, como se trata de su propio archivo, siempre tiene preferencia sobre lo que se encuentre en línea.
 
-La aplicación lee las letras guardadas dentro del archivo de música. No lee archivos de letras independientes guardados junto a una canción.
+También lee un archivo de letra guardado junto a una canción, siempre que tenga el nombre de la canción y termine en **.lrc**: *Cancion.mp3* y *Cancion.lrc*. Se lee al explorar la carpeta, así que, después de añadir archivos de letras, vuelva a explorar su música. Un archivo de letra que añada a una canción desde el panel de letras tiene prioridad sobre ambos.
+
+## Letras para toda su biblioteca
+
+Si sus archivos no tienen letras, un programa gratuito para ordenador llamado **LRCGET** puede descargarlas para una carpeta entera de una vez. Elija su carpeta de música y pulse **Download all lyrics**: guarda un archivo .lrc junto a cada canción para la que encuentra letra y deja los archivos de música como están. Después, vuelva a explorar la carpeta en Universal Jukebox. LRCGET lo hacen los responsables de lrclib.net, la colección que se describe más abajo, no UNI·SIM.
 
 ## 2. Una búsqueda en línea, solo si la activa
 
-Si una canción no tiene letra propia, la aplicación puede consultar lrclib.net, una colección de letras gratuita mantenida por una comunidad. Esta opción está **desactivada** hasta que marque **Look up missing lyrics online** en Tune this app, apartado Lyrics.
+En iPhone y iPad no hay búsqueda en línea: añada archivos de letras como se explica arriba. En los demás casos, si una canción no tiene letra propia, la aplicación puede consultar lrclib.net, una colección de letras gratuita mantenida por una comunidad. Esta opción está **desactivada** hasta que marque **Look up missing lyrics online** en Tune this app, apartado Lyrics.
 
 Cuando está activada, buscar una canción envía solo su artista, título, álbum y duración, directamente desde su dispositivo a lrclib.net. No se envía nada más sobre usted, su dispositivo o su biblioteca, y la solicitud no pasa por UNI·SIM. La respuesta se guarda en su dispositivo, de modo que cada canción se consulta una sola vez. Si no se encontró letra, la aplicación puede volver a intentarlo al cabo de unos días. Tune this app muestra cuántas canciones se han consultado, con un botón para olvidarlas todas.
 
@@ -196,7 +200,7 @@ La aplicación no hace copia de seguridad ni sincroniza nada de esto. Si usa Juk
 
 Solo tres funciones envían algo sobre su música, y ninguna hace nada hasta que usted lo pide. Cada una va directamente de su dispositivo al servicio indicado, sin pasar por UNI·SIM, y envía solo lo que se detalla.
 
-- **Búsqueda de letras** (desactivada hasta que la active en Tune this app): envía el artista, el título, el álbum y la duración de una canción a lrclib.net, para las canciones que no tienen letra propia.
+- **Búsqueda de letras** (no disponible en iPhone ni iPad; en los demás, desactivada hasta que la active en Tune this app): envía el artista, el título, el álbum y la duración de una canción a lrclib.net, para las canciones que no tienen letra propia.
 - **About this track** (desactivada hasta que la active, en Tune this app o en el propio panel): envía el título de la canción y el nombre del artista a Wikipedia, para mostrar lo que Wikipedia dice de ellos. Las respuestas se guardan en el dispositivo durante 90 días, y una canción sin artículo se vuelve a consultar al cabo de unos días.
 - **Find a picture**, en una petición: envía las palabras que escribió a la búsqueda de iTunes de Apple, solo cuando lo toca. La imagen que elija se guarda con la petición.
 

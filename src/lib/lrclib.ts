@@ -93,7 +93,7 @@ export async function onlineLyrics(
   if (cached && cacheUsable(cached, Date.now())) {
     if (cached.instrumental) return { kind: 'instrumental' }
     if (cached.raw === null) return { kind: 'none' }
-    const sheet = parseLyrics(cached.raw, cached.source === 'upload' ? 'upload' : 'online')
+    const sheet = parseLyrics(cached.raw, cached.source ? 'upload' : 'online')
     if (sheet) return { kind: 'found', sheet }
     return { kind: 'none' }
   }
@@ -201,7 +201,7 @@ function readResponse(body: unknown): { raw: string | null; instrumental: boolea
  * version of the cache and is less than `NONE_TTL_MS` old.
  */
 export function cacheUsable(record: LyricRecord, now: number): boolean {
-  if (record.source === 'upload' || record.instrumental || record.raw !== null) return true
+  if (record.source === 'upload' || record.source === 'folder' || record.instrumental || record.raw !== null) return true
   return record.v === CACHE_VERSION && now - record.at < NONE_TTL_MS
 }
 

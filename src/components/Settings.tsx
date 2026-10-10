@@ -486,7 +486,7 @@ export default function Settings() {
 
         <Section
           title="Lyrics"
-          note="Jukebox reads the lyrics your files were tagged with. Most files have none."
+          note="Jukebox reads the lyrics your files were tagged with, and a .lrc file saved beside a song under the same name (rescan after adding them). Most files have neither."
           summary={summaries.lyrics}
         >
           {/* Not on iPhone or iPad — `barsOnlineLyrics` says why. */}

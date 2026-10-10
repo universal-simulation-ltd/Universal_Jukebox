@@ -117,7 +117,7 @@ Plak değiştirme animasyonu ve ne sıklıkta göründüğü müzikle değil, g�
   {
     id: 'lyrics',
     title: 'Şarkı sözleri: sözler nereden gelir',
-    summary: 'Önce dosyalarınızda saklanan sözler, isteğe bağlı olarak da çevrimiçi arama.',
+    summary: 'Önce dosyalarınızdaki ya da yanlarına kaydedilmiş sözler, isteğe bağlı olarak da çevrimiçi arama.',
     group: 'Nasıl çalışır',
     body: `Çalan şarkının sözlerini görmek için Now Playing ekranında **Lyrics** düğmesine dokunun. Sözler iki yerden gelebilir ve sıra hep aynıdır.
 
@@ -125,11 +125,15 @@ Plak değiştirme animasyonu ve ne sıklıkta göründüğü müzikle değil, g�
 
 Birçok müzik dosyası, mağaza, bir aktarma programı ya da bir etiket düzenleyici tarafından etiketlerine eklenmiş sözleri taşır. Uygulama önce oraya bakar. Bu, internet bağlantısı olmadan çalışır ve sizin kendi dosyanız olduğu için çevrimiçi bulunabilecek her şeye her zaman tercih edilir.
 
-Uygulama, müzik dosyasının içinde saklanan sözleri okur. Bir şarkının yanına kaydedilmiş ayrı söz dosyaları okunmaz.
+Bir şarkının yanına kaydedilmiş söz dosyası da okunur; yeter ki şarkıyla aynı adı taşısın ve **.lrc** ile bitsin: *Sarki.mp3* ve *Sarki.lrc*. Dosya, klasör taranırken okunur; bu yüzden söz dosyası ekledikten sonra müziğinizi yeniden taratın. Söz panelinden tek bir şarkıya eklediğiniz söz dosyası ikisinden de önce gelir.
+
+## Tüm kitaplığınız için sözler
+
+Dosyalarınızda söz yoksa, bilgisayarlar için ücretsiz bir program olan **LRCGET** bütün bir klasörün sözlerini tek seferde indirebilir. Müzik klasörünüzü seçip **Download all lyrics** düğmesine basın: sözünü bulduğu her şarkının yanına bir .lrc dosyası kaydeder ve müzik dosyalarına dokunmaz. Ardından klasörü Universal Jukebox’ta yeniden taratın. LRCGET’i UNI·SIM değil, aşağıda anlatılan lrclib.net koleksiyonunun ekibi yapar.
 
 ## 2. Çevrimiçi arama, yalnızca siz açarsanız
 
-Bir şarkının kendi sözleri yoksa uygulama, topluluk tarafından yürütülen ücretsiz bir söz koleksiyonu olan lrclib.net’e sorabilir. Bu özellik, Tune this app’te Lyrics bölümündeki **Look up missing lyrics online** seçeneğini işaretleyene kadar **kapalıdır**.
+iPhone ve iPad’de çevrimiçi arama yoktur; bunun yerine yukarıda anlatıldığı gibi söz dosyaları ekleyin. Diğer cihazlarda, bir şarkının kendi sözleri yoksa uygulama, topluluk tarafından yürütülen ücretsiz bir söz koleksiyonu olan lrclib.net’e sorabilir. Bu özellik, Tune this app’te Lyrics bölümündeki **Look up missing lyrics online** seçeneğini işaretleyene kadar **kapalıdır**.
 
 Açık olduğunda, bir şarkıyı aramak yalnızca şarkının sanatçısını, adını, albümünü ve süresini doğrudan cihazınızdan lrclib.net’e gönderir. Sizinle, cihazınızla ya da kitaplığınızla ilgili başka hiçbir şey gönderilmez ve istek UNI·SIM üzerinden geçmez. Yanıt cihazınızda saklanır, böylece her şarkı yalnızca bir kez sorulur. Söz bulunamadıysa uygulama birkaç gün sonra yeniden deneyebilir. Tune this app, kaç şarkının arandığını gösterir ve hepsini unutmak için bir düğme sunar.
 
@@ -196,7 +200,7 @@ Uygulama bunların hiçbirini yedeklemez ya da eşzamanlamaz. Jukebox’ı iki c
 
 Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçbiri siz istemeden bir şey yapmaz. Her biri, UNI·SIM üzerinden geçmeden doğrudan cihazınızdan belirtilen hizmete gider ve yalnızca listelenenleri gönderir.
 
-- **Şarkı sözü arama** (Tune this app’te açana kadar kapalı): kendi sözleri olmayan şarkılar için şarkının sanatçısını, adını, albümünü ve süresini lrclib.net’e gönderir.
+- **Şarkı sözü arama** (iPhone ve iPad’de yok; diğerlerinde Tune this app’te açana kadar kapalı): kendi sözleri olmayan şarkılar için şarkının sanatçısını, adını, albümünü ve süresini lrclib.net’e gönderir.
 - **About this track** (Tune this app’te ya da panelin kendisinde açana kadar kapalı): Wikipedia’nın onlar hakkında söylediklerini göstermek için şarkının adını ve sanatçının adını Wikipedia’ya gönderir. Yanıtlar cihazda 90 gün saklanır; makalesi olmayan bir şarkı birkaç gün sonra yeniden sorulur.
 - **Find a picture**, bir istekte: yazdığınız sözcükleri yalnızca siz dokunduğunuzda Apple’ın iTunes aramasına gönderir. Seçtiğiniz görsel istekle birlikte kaydedilir.
 

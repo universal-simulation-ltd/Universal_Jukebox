@@ -143,10 +143,12 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
   set({ trackId: track.id, status: 'loading', sheet: null, message: null, askedOnline: false })
 
   // ⚠️ The person's OWN lyrics file wins over everything — they added it
-  // because the others were missing or wrong (see `adoptLyrics`).
+  // because the others were missing or wrong (see `adoptLyrics`). Next, a
+  // `.lrc` that sat beside the song in its folder (`lib/folderLyrics.ts`):
+  // also theirs, put there on purpose, so ahead of the tags and lrclib too.
   const own = await getLyricRecord(track.id).catch(() => null)
   if (mine !== token) return
-  if (own?.source === 'upload' && own.raw) {
+  if ((own?.source === 'upload' || own?.source === 'folder') && own.raw) {
     const sheet = parseLyrics(own.raw, 'upload')
     if (sheet) return set({ status: 'ready', sheet, message: null })
   }

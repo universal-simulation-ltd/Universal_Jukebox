@@ -147,7 +147,7 @@ The record-changing animation, and how often it appears, is about the picture an
   {
     id: 'lyrics',
     title: 'Lyrics: where the words come from',
-    summary: 'Lyrics stored in your files first, and an optional online lookup.',
+    summary: 'Lyrics in your files, or saved beside them, first; an optional online lookup after.',
     group: 'How it works',
     body: `Press **Lyrics** on Now Playing to see the words to the song that is playing. They can come from two places, always in this order.
 
@@ -155,11 +155,15 @@ The record-changing animation, and how often it appears, is about the picture an
 
 Many music files carry the lyrics inside their tags, put there by the shop, a ripping program or a tag editor. The app looks there first. This works with no internet connection, and because it is your own file, it is always preferred over anything found online.
 
-The app reads lyrics stored inside the music file. Separate lyric files saved next to a song are not read.
+A lyrics file saved next to a song is read too, as long as it has the song's name and ends in **.lrc**: *Song.mp3* and *Song.lrc*. It is read when the folder is scanned, so after adding lyrics files, rescan your music. A lyrics file you add to one song from the lyrics panel comes before both.
+
+## Getting lyrics for your whole library
+
+If your files have no lyrics, a free program for computers called **LRCGET** can fetch them for a whole folder at once. Point it at your music folder and choose **Download all lyrics**: it saves a .lrc file next to each song it finds words for, and leaves the music files as they are. Then rescan the folder in Universal Jukebox. LRCGET is made by the people behind lrclib.net, the collection described below, not by UNI·SIM.
 
 ## 2. An online lookup, only if you turn it on
 
-If a song has no lyrics of its own, the app can ask lrclib.net, a free, community-run collection of lyrics. This is **off** until you tick **Look up missing lyrics online** in Tune this app, under Lyrics.
+On iPhone and iPad there is no online lookup: add lyrics files as above instead. Elsewhere, if a song has no lyrics of its own, the app can ask lrclib.net, a free, community-run collection of lyrics. This is **off** until you tick **Look up missing lyrics online** in Tune this app, under Lyrics.
 
 When it is on, looking a song up sends only its artist, title, album and length, straight from your device to lrclib.net. Nothing else about you, your device or your library is sent, and the request doesn’t pass through UNI·SIM. The answer is kept on your device, so each song is asked about only once. If no lyrics were found, the app may try again after a few days. Tune this app shows how many songs have been looked up, with a button to forget them all.
 
@@ -226,7 +230,7 @@ None of this leaves your device unless you make a backup. A backup file goes whe
 
 Only three features ever send anything about your music, and none of them does anything until you ask. Each goes straight from your device to the service named, without passing through UNI·SIM, and each sends only what is listed.
 
-- **Lyrics lookup** (off until you turn it on in Tune this app): sends a song’s artist, title, album and length to lrclib.net, for songs that have no lyrics of their own.
+- **Lyrics lookup** (not on iPhone or iPad; elsewhere off until you turn it on in Tune this app): sends a song’s artist, title, album and length to lrclib.net, for songs that have no lyrics of their own.
 - **About this track** (off until you turn it on, in Tune this app or in the panel itself): sends the song’s title and the artist’s name to Wikipedia, to show what Wikipedia says about them. Answers are kept on the device for 90 days, and a song with no article is asked about again after a few days.
 - **Find a picture**, on a request: sends the words you typed to Apple’s iTunes search, only when you tap it. The picture you choose is saved with the request.
 

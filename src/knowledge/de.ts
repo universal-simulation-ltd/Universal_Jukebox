@@ -117,7 +117,7 @@ Die Plattenwechsel-Animation und wie oft sie erscheint, betrifft das Bild und se
   {
     id: 'lyrics',
     title: 'Songtexte: woher die Worte kommen',
-    summary: 'Zuerst die Texte in Ihren Dateien, dazu eine optionale Online-Suche.',
+    summary: 'Zuerst die Texte in Ihren Dateien oder daneben, dazu eine optionale Online-Suche.',
     group: 'So funktioniert es',
     body: `Tippen Sie in Now Playing auf **Lyrics**, um den Text des laufenden Songs zu sehen. Er kann aus zwei Quellen stammen, immer in dieser Reihenfolge.
 
@@ -125,11 +125,15 @@ Die Plattenwechsel-Animation und wie oft sie erscheint, betrifft das Bild und se
 
 Viele Musikdateien enthalten den Songtext in ihren Tags, eingetragen vom Shop, einem Ripping-Programm oder einem Tag-Editor. Die App sieht zuerst dort nach. Das funktioniert ohne Internetverbindung, und weil es Ihre eigene Datei ist, hat es immer Vorrang vor allem, was online gefunden wird.
 
-Die App liest Songtexte, die in der Musikdatei selbst gespeichert sind. Separate Textdateien, die neben einem Song liegen, werden nicht gelesen.
+Eine Textdatei neben einem Song wird ebenfalls gelesen, wenn sie den Namen des Songs trägt und auf **.lrc** endet: *Song.mp3* und *Song.lrc*. Sie wird beim Durchsuchen des Ordners eingelesen. Durchsuchen Sie Ihre Musik also erneut, nachdem Sie Textdateien hinzugefügt haben. Eine Textdatei, die Sie im Lyrics-Bereich zu einem einzelnen Song hinzufügen, hat Vorrang vor beiden.
+
+## Songtexte für die ganze Mediathek
+
+Haben Ihre Dateien keine Texte, kann ein kostenloses Programm für Computer namens **LRCGET** sie für einen ganzen Ordner auf einmal holen. Wählen Sie Ihren Musikordner und dann **Download all lyrics**: Es speichert neben jedem Song, für den es einen Text findet, eine .lrc-Datei und lässt die Musikdateien unverändert. Durchsuchen Sie den Ordner danach in Universal Jukebox erneut. LRCGET stammt von den Machern von lrclib.net, der unten beschriebenen Sammlung, nicht von UNI·SIM.
 
 ## 2. Eine Online-Suche, nur wenn Sie sie einschalten
 
-Hat ein Song keinen eigenen Text, kann die App bei lrclib.net nachfragen, einer kostenlosen, von einer Community gepflegten Sammlung von Songtexten. Diese Funktion ist **aus**, bis Sie in Tune this app unter Lyrics ein Häkchen bei **Look up missing lyrics online** setzen.
+Auf iPhone und iPad gibt es keine Online-Suche: Fügen Sie stattdessen Textdateien wie oben beschrieben hinzu. Anderswo gilt: Hat ein Song keinen eigenen Text, kann die App bei lrclib.net nachfragen, einer kostenlosen, von einer Community gepflegten Sammlung von Songtexten. Diese Funktion ist **aus**, bis Sie in Tune this app unter Lyrics ein Häkchen bei **Look up missing lyrics online** setzen.
 
 Ist sie eingeschaltet, sendet die Suche nach einem Song nur Interpret, Titel, Album und Länge, direkt von Ihrem Gerät an lrclib.net. Nichts weiter über Sie, Ihr Gerät oder Ihre Mediathek wird gesendet, und die Anfrage läuft nicht über UNI·SIM. Die Antwort wird auf Ihrem Gerät gespeichert, sodass jeder Song nur einmal abgefragt wird. Wurde kein Text gefunden, versucht es die App eventuell nach einigen Tagen erneut. Tune this app zeigt, wie viele Songs abgefragt wurden, und bietet eine Schaltfläche, um alle zu vergessen.
 
@@ -196,7 +200,7 @@ Nichts davon wird von der App gesichert oder synchronisiert. Wenn Sie Jukebox au
 
 Nur drei Funktionen senden überhaupt etwas über Ihre Musik, und keine davon tut etwas, bevor Sie es möchten. Jede geht direkt von Ihrem Gerät an den genannten Dienst, ohne Umweg über UNI·SIM, und sendet nur das Aufgeführte.
 
-- **Songtext-Suche** (aus, bis Sie sie in Tune this app einschalten): sendet Interpret, Titel, Album und Länge eines Songs an lrclib.net, für Songs ohne eigenen Text.
+- **Songtext-Suche** (nicht auf iPhone oder iPad; sonst aus, bis Sie sie in Tune this app einschalten): sendet Interpret, Titel, Album und Länge eines Songs an lrclib.net, für Songs ohne eigenen Text.
 - **About this track** (aus, bis Sie es einschalten – in Tune this app oder direkt im Bereich selbst): sendet den Songtitel und den Namen des Interpreten an Wikipedia, um anzuzeigen, was Wikipedia darüber schreibt. Antworten werden 90 Tage auf dem Gerät gespeichert, und nach einem Song ohne Artikel wird nach einigen Tagen erneut gefragt.
 - **Find a picture** bei einem Wunsch: sendet die von Ihnen eingegebenen Wörter an Apples iTunes-Suche, und zwar nur, wenn Sie darauf tippen. Das gewählte Bild wird mit dem Wunsch gespeichert.
 

@@ -117,7 +117,7 @@ L’animation de changement de disque, et la fréquence à laquelle elle appara�
   {
     id: 'lyrics',
     title: 'Paroles : d’où viennent les mots',
-    summary: 'D’abord les paroles enregistrées dans vos fichiers, puis une recherche en ligne facultative.',
+    summary: 'D’abord les paroles de vos fichiers ou enregistrées à côté, puis une recherche en ligne facultative.',
     group: 'Fonctionnement',
     body: `Appuyez sur **Lyrics** dans l’écran Now Playing pour voir les paroles du morceau en cours. Elles peuvent venir de deux sources, toujours dans cet ordre.
 
@@ -125,11 +125,15 @@ L’animation de changement de disque, et la fréquence à laquelle elle appara�
 
 De nombreux fichiers musicaux contiennent les paroles dans leurs tags, placées là par la boutique, un logiciel d’extraction ou un éditeur de tags. L’application regarde d’abord à cet endroit. Cela fonctionne sans connexion Internet et, puisqu’il s’agit de votre propre fichier, c’est toujours préféré à ce qui pourrait être trouvé en ligne.
 
-L’application lit les paroles enregistrées à l’intérieur du fichier musical. Les fichiers de paroles séparés, placés à côté d’un morceau, ne sont pas lus.
+Un fichier de paroles enregistré à côté d’un morceau est lu lui aussi, à condition de porter le nom du morceau et de se terminer par **.lrc** : *Morceau.mp3* et *Morceau.lrc*. Il est lu lors de l’analyse du dossier : après avoir ajouté des fichiers de paroles, relancez donc l’analyse de votre musique. Un fichier de paroles que vous ajoutez à un morceau depuis le panneau des paroles passe avant les deux.
+
+## Des paroles pour toute votre bibliothèque
+
+Si vos fichiers n’ont pas de paroles, un programme gratuit pour ordinateur appelé **LRCGET** peut les récupérer pour tout un dossier d’un coup. Choisissez votre dossier de musique, puis **Download all lyrics** : il enregistre un fichier .lrc à côté de chaque morceau dont il trouve les paroles, sans modifier les fichiers musicaux. Relancez ensuite l’analyse du dossier dans Universal Jukebox. LRCGET est conçu par l’équipe de lrclib.net, la collection décrite ci-dessous, et non par UNI·SIM.
 
 ## 2. Une recherche en ligne, seulement si vous l’activez
 
-Si un morceau n’a pas de paroles à lui, l’application peut interroger lrclib.net, une collection de paroles gratuite et gérée par une communauté. Cette option est **désactivée** tant que vous ne cochez pas **Look up missing lyrics online** dans Tune this app, rubrique Lyrics.
+Sur iPhone et iPad, il n’y a pas de recherche en ligne : ajoutez plutôt des fichiers de paroles comme expliqué ci-dessus. Ailleurs, si un morceau n’a pas de paroles à lui, l’application peut interroger lrclib.net, une collection de paroles gratuite et gérée par une communauté. Cette option est **désactivée** tant que vous ne cochez pas **Look up missing lyrics online** dans Tune this app, rubrique Lyrics.
 
 Lorsqu’elle est activée, la recherche d’un morceau n’envoie que son artiste, son titre, son album et sa durée, directement de votre appareil vers lrclib.net. Rien d’autre sur vous, votre appareil ou votre bibliothèque n’est envoyé, et la demande ne passe pas par UNI·SIM. La réponse est conservée sur votre appareil, si bien que chaque morceau n’est demandé qu’une fois. Si aucune parole n’a été trouvée, l’application peut réessayer quelques jours plus tard. Tune this app indique combien de morceaux ont été recherchés, avec un bouton pour tout oublier.
 
@@ -196,7 +200,7 @@ Rien de tout cela n’est sauvegardé ni synchronisé par l’application. Si vo
 
 Seules trois fonctions envoient quoi que ce soit au sujet de votre musique, et aucune ne fait rien tant que vous ne le demandez pas. Chacune va directement de votre appareil au service indiqué, sans passer par UNI·SIM, et n’envoie que ce qui est précisé.
 
-- **Recherche de paroles** (désactivée tant que vous ne l’activez pas dans Tune this app) : envoie l’artiste, le titre, l’album et la durée d’un morceau à lrclib.net, pour les morceaux qui n’ont pas de paroles à eux.
+- **Recherche de paroles** (absente sur iPhone et iPad ; ailleurs, désactivée tant que vous ne l’activez pas dans Tune this app) : envoie l’artiste, le titre, l’album et la durée d’un morceau à lrclib.net, pour les morceaux qui n’ont pas de paroles à eux.
 - **About this track** (désactivée tant que vous ne l’activez pas, dans Tune this app ou dans le panneau lui-même) : envoie le titre du morceau et le nom de l’artiste à Wikipedia, pour afficher ce que Wikipedia en dit. Les réponses sont conservées sur l’appareil pendant 90 jours, et un morceau sans article est redemandé quelques jours plus tard.
 - **Find a picture**, pour une demande : envoie les mots que vous avez saisis à la recherche iTunes d’Apple, uniquement lorsque vous appuyez dessus. L’image que vous choisissez est enregistrée avec la demande.
 
