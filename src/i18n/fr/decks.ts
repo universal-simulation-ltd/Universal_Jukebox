@@ -119,7 +119,7 @@ const decks: Draft['decks'] = {
   'automatic_start_title': 'Lancer la lecture',
   'automatic_start_note': 'L’animation de chargement, le compte à rebours et le son de la machine à laquelle appartient l’album.',
   'automatic_sound_label': 'Son de démarrage',
-  'automatic_sound_hint': `La machine qui démarre : une pince de juke-box, une aiguille qui se pose, une touche lecture, un disque qui prend de la vitesse ou une molette cliquable, selon l’année de l’album. ${RIDES}`,
+  'automatic_sound_hint': `La machine qui démarre\u202F: une pince de juke-box, une aiguille qui se pose, une touche lecture, un disque qui prend de la vitesse ou une molette cliquable, selon l’année de l’album. ${RIDES}`,
   'automatic_every_track_hint': 'Toute lecture — une piste, un album, un résultat de recherche — passe par la platine et démarre la machine de l’époque de l’album, et chaque changement de piste remet la tête de lecture en place.',
   'automatic_album_change_hint': 'Seulement quand un autre disque est posé. Les pistes d’un même album s’enchaînent en douceur.',
   'automatic_animation_label': 'Afficher l’animation de changement de disque',

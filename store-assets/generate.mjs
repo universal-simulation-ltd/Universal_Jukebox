@@ -41,6 +41,15 @@ const { chromium } = await import(
 // Each device's screen less the status bar and home indicator the store kit
 // draws (its layouts.mjs, CLASSES[…].insets): iPhone 17 Pro Max 956 pt less
 // 62 + 34, iPad 13" 1376 pt less 24 + 20, an Android phone 780 dp less 32 + 24.
+// LOCALE=de-DE (etc.) captures the app in that language — the app's own
+// language set before it loads, as Tune this app ▸ Language would — into
+// raw/<locale>/<class>/, which the store kit frames for that locale. en-GB is
+// the shared raw/<class>/.
+const LOCALE = process.env.LOCALE || 'en-GB'
+const APP_LANGUAGE = { 'en-GB': 'en', 'de-DE': 'de', 'fr-FR': 'fr', 'es-ES': 'es', 'it-IT': 'it', 'pt-BR': 'pt-BR', 'pt-PT': 'pt-PT', 'tr-TR': 'tr' }[LOCALE]
+if (!APP_LANGUAGE) throw new Error(`LOCALE ${LOCALE}: not one of the app's languages`)
+const rawDir = (dir) => (LOCALE === 'en-GB' ? dir : dir.replace(/^raw\//, `raw/${LOCALE}/`))
+
 const DEVICES = [
   { key: 'iphone', dir: 'raw/iphone', width: 440, height: 860, dpr: 3 },
   { key: 'ipad', dir: 'raw/ipad', width: 1032, height: 1332, dpr: 2 },
@@ -220,18 +229,21 @@ const devices = DEVICES.filter((d) => !process.env.DEVICE || process.env.DEVICE.
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] })
 let bad = 0
 for (const dev of devices) {
-  await mkdir(path.join(here, dev.dir), { recursive: true })
+  await mkdir(path.join(here, rawDir(dev.dir)), { recursive: true })
   for (const [name, capture] of Object.entries(CAPTURES)) {
     if (only.length && !only.some((p) => name.startsWith(p))) continue
     const ctx = await browser.newContext({
       viewport: { width: dev.width, height: dev.height }, deviceScaleFactor: dev.dpr,
-      isMobile: true, hasTouch: true, colorScheme: 'light', locale: 'en-GB',
+      isMobile: true, hasTouch: true, colorScheme: 'light', locale: LOCALE,
     })
     await serve(ctx)
     await ctx.addInitScript((blob) => {
       localStorage.setItem('unisim-jukebox-settings', JSON.stringify(blob))
     }, capture.settings)
     await ctx.addInitScript(captureMode)
+    await ctx.addInitScript((lang) => {
+      try { localStorage.setItem('universal:language:jukebox', lang) } catch { /* captured in English, and the check below says so */ }
+    }, APP_LANGUAGE)
     const page = await ctx.newPage()
     const errors = []
     page.on('pageerror', (e) => errors.push(String(e)))
@@ -241,16 +253,16 @@ for (const dev of devices) {
       await exampleLibrary(page)
       await capture.run(page, ctx)
     } catch (err) {
-      console.error(`FAIL ${dev.dir}/${name}: ${err.message.split('\n')[0]}`)
+      console.error(`FAIL ${rawDir(dev.dir)}/${name}: ${err.message.split('\n')[0]}`)
       bad++
     }
-    const out = path.join(here, dev.dir, `${name}.png`)
+    const out = path.join(here, rawDir(dev.dir), `${name}.png`)
     const buf = await page.screenshot()
     await writeFile(out, buf)
     const { w, h, colourType } = pngInfo(buf)
     const ok = w === dev.width * dev.dpr && h === dev.height * dev.dpr && colourType === 2
     if (!ok) bad++
-    console.log(`${ok ? 'OK ' : 'BAD'} ${dev.dir}/${name}.png ${w}x${h}${colourType === 2 ? '' : ' has alpha'}${errors.length ? ` (page errors: ${errors.length}: ${errors[0].slice(0, 120)})` : ''}`)
+    console.log(`${ok ? 'OK ' : 'BAD'} ${rawDir(dev.dir)}/${name}.png ${w}x${h}${colourType === 2 ? '' : ' has alpha'}${errors.length ? ` (page errors: ${errors.length}: ${errors[0].slice(0, 120)})` : ''}`)
     await ctx.close()
   }
 }
