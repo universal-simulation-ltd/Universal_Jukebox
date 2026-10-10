@@ -36,6 +36,15 @@
 // of the suite already uses for a capability gap (see the header of
 // `components/Landing.tsx`).
 
+// ⚠️ …AND THE EAR SAID NO, ON THE IPHONE (2026-09-27): the property round-trips
+// there and the music plays no quieter. Since 2026-10-11 the iPhone app does not
+// play through `<audio>` at all — the native engine (`lib/audioEngine.ts`,
+// `ios/App/App/JukeboxEngine.swift`) does, and its gain is real — so there the
+// answer is the engine's, and it is yes: the fades, the crossfade, Stable
+// volume, the slider and the sleep fade are all heard.
+
+import { engineWanted } from './audioEngine'
+
 /** Memoised: the probe is cheap but it is the same answer every time. */
 let cached: boolean | null = null
 
@@ -49,7 +58,7 @@ let cached: boolean | null = null
  */
 export function canSetElementVolume(): boolean {
   if (cached !== null) return cached
-  cached = probe()
+  cached = engineWanted() || probe()
   return cached
 }
 

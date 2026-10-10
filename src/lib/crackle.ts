@@ -511,10 +511,45 @@ export function wav(buffer: { sampleRate: number; getChannelData(channel: number
 const players: HTMLAudioElement[] = []
 let turn = 0
 
+/**
+ * Where a clip goes instead of an `<audio>` element — the iPhone's native
+ * engine (`lib/audioEngine.ts`), which owns the sound there.
+ *
+ * ⚠️ WITH THE ENGINE ON, NOTHING IN THE PAGE MAY PLAY, a cue included: a WebKit
+ * player starting takes WebKit's own audio session, and two sessions in one
+ * app interrupt each other (`ios/App/App/AppDelegate.swift`). The clip is still
+ * rendered here, by the same `tone` and `noise`; only the playing moves.
+ */
+let clipSink: ((key: string, url: string, volume: number) => void) | null = null
+
+export function setClipSink(fn: ((key: string, url: string, volume: number) => void) | null): void {
+  clipSink = fn
+}
+
+/** A rendered clip by key (`cue:vinyl`, `tick:up`…), for the engine to keep. */
+export function clipUrl(key: string): Promise<string | null> {
+  if (key === 'tick:up' || key === 'tick:down') return clipFor(key, tickParts(key === 'tick:down'))
+  const style = key.startsWith('cue:') ? (key.slice(4) as DeckStyle) : null
+  return style ? clipFor(key, CUES[style] ?? CUES.vinyl) : Promise.resolve(null)
+}
+
+/**
+ * The start-up cue's level as a clip plays it — the user's cue level (allowed
+ * above 1) over the headroom the clips are rendered with. The app volume
+ * multiplies it at the moment it plays.
+ */
+export function clipLevel(level: number): number {
+  return Math.max(0, Math.min(MAX_LEVEL, level)) / CLIP_HEADROOM
+}
+
 function playClip(key: string, parts: CuePart[], gain: number): void {
   if (gain <= 0) return
   void clipFor(key, parts).then((url) => {
     if (!url) return
+    if (clipSink) {
+      clipSink(key, url, Math.max(0, Math.min(1, gain / CLIP_HEADROOM)))
+      return
+    }
     if (players.length === 0) {
       for (let i = 0; i < 3; i++) {
         const player = new Audio()

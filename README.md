@@ -397,6 +397,52 @@ shipping.** Hard-coding the assumption — `if (isIOS) noFades()` — would have
 left this app refusing to fade on a device perfectly willing to, with a confident
 comment explaining why and nothing anywhere to contradict it.
 
+⚠️ **And then the ear said no (2026-09-27).** On iPhone the property
+round-trips and the music plays no quieter, so every fade, the crossfade,
+Stable volume and the sleep fade were silent features there, and a crossfade
+was two songs at full level. That is why the iPhone app no longer plays through
+`<audio>` at all; see the next section.
+
+### The iPhone plays through a native engine
+
+Since 2026-10-11 the iPhone app's sound comes from `JukeboxEngine`
+(`ios/App/App/JukeboxEngine.swift`). It uses two `AVPlayer`s for the two
+decks, and they have a gain iOS actually applies. `lib/audio.ts` keeps its
+interface, and in the iOS app every export hands over to `lib/audioEngine.ts`,
+so the player store, the deck animation, the lyrics timing and the UI do not
+know the difference. The web and Android keep the `<audio>` decks, untouched.
+
+- **The engine runs the queue while the phone is locked.** Probe 3
+  (2026-10-07) found that a native player keeps playing and keeps the app
+  alive, but the page's JavaScript stops within a second of the lock. So the
+  store keeps sending the engine the next stretch of the queue, with every
+  change-over already decided (`setUpcoming`, built from `lib/enginePlan.ts`).
+  That covers the crossfade or record change into each song, its Stable-volume
+  level, its quiet intro and dead-air ending, and the start-up cue for its
+  machine. While the app is not active, the engine does what the store would
+  have done: the early crossfade, the next song, the fades, the sleep fade and
+  the lock-screen buttons. It also measures songs the page never reached.
+  When the app is active the page drives exactly as before, and the engine
+  only plays what it is told.
+- **Waking up.** Every change of song the engine makes by itself bumps its
+  `seq`. The page then fetches the engine's state and moves its cursor to the
+  song the engine reached, with no animation. Page commands from an older
+  `seq` are refused, so a timer firing on waking cannot drag the music back.
+- **It owns the audio session, so nothing in the page may play.** Two sessions
+  in one app interrupt each other. The 10-second preview and the start-up cues
+  go to the engine too, and the Web Audio graph is never built (Quiet is a gain
+  in the engine). `AppDelegate.swift` explains why the old rule was the
+  reverse.
+- **The lock screen is the engine's.** `NowPlayingPlugin` still draws the
+  turning record, but hands it to the engine instead of writing the entry. The
+  remote commands go to the page while the app is active and are handled
+  natively while it is not.
+- **Limits.** Gain above 1 is clamped: the Loud half of "Quiet or loud" can
+  only bring a lowered slider back up to full, and the 2× boost stays off on
+  iPhone. The example library's songs are synthesised in the page, so only the
+  next two are written out for the engine, and a locked phone runs out of demo
+  after them.
+
 ### ⚠️ Two safe-area rules, and what happens without the top one
 
 The native shell runs `viewport-fit=cover` with `contentInset: 'never'`, so the

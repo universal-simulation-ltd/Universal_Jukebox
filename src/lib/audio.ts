@@ -41,6 +41,8 @@
 import { captureElement, ensureRunning, graphExists, releaseElement } from './audioGraph'
 import { releaseTrackUrl, trackUrl } from './trackSource'
 import { noteEvent } from './bgLog'
+import { startEngine, type EngineStoreHooks } from './audioEngine'
+import type { EnginePlanDraft } from './enginePlan'
 
 /**
  * When OUR code last paused an element — so a pause that did not come from here
@@ -196,6 +198,62 @@ function emit() {
 function set(patch: Partial<AudioState>) {
   state = { ...state, ...patch }
   emit()
+}
+
+/**
+ * The iPhone app's native engine, or null everywhere else.
+ *
+ * ⚠️ ON THE IPHONE NOTHING BELOW THIS LINE MAKES A SOUND. Every export checks
+ * `native` first and hands over to `lib/audioEngine.ts`, which sends it to
+ * `JukeboxEngine.swift` — two AVPlayers with a gain iOS actually applies, and a
+ * queue that keeps running while the phone is locked and the page is not. The
+ * `<audio>` decks, their ramps, the renewal and rescue code and the Web Audio
+ * graph are the web's and Android's, untouched. The state and the callbacks
+ * stay here, shared, so `playerStore` cannot tell which it is talking to.
+ */
+const native = startEngine({
+  set,
+  ended: () => onEnded?.(),
+  duration: (seconds) => onDuration?.(seconds),
+  error: (message) => onError?.(message),
+  approaching: (remaining) => onApproachingEnd?.(remaining),
+  previewStopped: () => previewStopped?.(),
+})
+
+/** True in the iPhone app, where the native engine plays the music. */
+export function engineActive(): boolean {
+  return native !== null
+}
+
+/**
+ * The next stretch of the queue, for the engine to run while the page is away
+ * (`lib/enginePlan.ts`). A no-op off the iPhone app — there the page is never
+ * away while music plays.
+ */
+export function setUpcoming(plan: EnginePlanDraft): void {
+  native?.setUpcoming(plan)
+}
+
+/** What the engine needs from the player store — see `EngineStoreHooks`. */
+export function setEngineHandlers(hooks: EngineStoreHooks): void {
+  native?.setStoreHooks(hooks)
+}
+
+/**
+ * The sleep timer's end, epoch ms, for the engine to fade and stop by itself
+ * (a locked phone's page cannot). Off the iPhone app the page's own clock does
+ * it through `setSleepGain`.
+ */
+export function setSleepEnd(endsAt: number | null, fadeSec: number): void {
+  native?.setSleepEnd(endsAt, fadeSec)
+}
+
+/**
+ * "Quiet or loud" on the iPhone app — a real gain in the engine, where the web
+ * needs a Web Audio graph for it (`lib/applySettings.ts`). No-op elsewhere.
+ */
+export function setOutputGain(gain: number): void {
+  native?.setOutputGain(gain)
 }
 
 /** The active deck's element, built on first use. */
@@ -480,6 +538,7 @@ export function setCallbacks(callbacks: {
  * spurious "that file wouldn't play" on a track that plays fine.
  */
 export async function load(file: SourceFile, autoplay: boolean, fadeInOverrideSec?: number): Promise<void> {
+  if (native) return native.load(file, autoplay, fadeInOverrideSec)
   // A load is a decision to play THIS, now. Anything still fading out under it
   // is from a change-over the user has just overtaken — and any interruption
   // waiting to put the PREVIOUS track back has been overtaken too.
@@ -582,6 +641,8 @@ export async function crossfade(
    */
   curve: FadeCurve = 'staggered',
 ): Promise<void> {
+  // The engine's gain is real, so its crossfade is always a crossfade.
+  if (native) return native.crossfade(file, seconds, holdSec, curve)
   // ⚠️ A CROSSFADE WITHOUT WORKING GAIN IS NOT A CROSSFADE, IT IS TWO TRACKS AT
   // ONCE. Every ramp below writes to `element.volume`; where that does nothing,
   // the overlap this function creates ON PURPOSE plays both records at full
@@ -657,6 +718,7 @@ export async function crossfade(
 
 /** True while two tracks are genuinely overlapping. */
 export function crossfading(): boolean {
+  if (native) return native.crossfading()
   return retiring !== null
 }
 
@@ -708,6 +770,7 @@ function finishRetirement(): void {
 }
 
 export async function play(): Promise<void> {
+  if (native) return native.play()
   // ⚠️ A person pressing play during an interruption must not get a faint
   // track. The duck belongs to the interruption; asking for the music back by
   // hand ends it, and the envelope goes with it. See the interruption section.
@@ -728,6 +791,11 @@ export async function play(): Promise<void> {
 }
 
 export function pause(reason = 'app'): void {
+  if (native) {
+    noteEvent('pause-call', { reason })
+    native.pause()
+    return
+  }
   // ⚠️ A pause DURING an interruption is a decision, and it outranks the
   // interruption's promise to put the music back: somebody who paused while
   // Siri was talking does not want it starting again when Siri stops.
@@ -766,6 +834,7 @@ if (typeof document !== 'undefined') {
 }
 
 export function seek(seconds: number): void {
+  if (native) return native.seek(seconds)
   const audio = el()
   if (!Number.isFinite(audio.duration) || audio.duration <= 0) return
   audio.currentTime = Math.max(0, Math.min(seconds, audio.duration))
@@ -799,6 +868,8 @@ let userVolume = 1
 let sleepFactor = 1
 
 export function setSleepGain(gain: number): void {
+  // The engine runs the sleep fade itself (`setSleepEnd`).
+  if (native) return
   const next = Math.max(0, Math.min(1, gain))
   if (next === sleepFactor) return
   sleepFactor = next
@@ -832,25 +903,30 @@ let pendingLevel = 1
 let pendingStart = 0
 
 export function setStartAt(seconds: number): void {
+  if (native) return native.setStartAt(seconds)
   pendingStart = Math.max(0, seconds)
 }
 
 export function setNextLevel(level: number): void {
+  if (native) return native.setNextLevel(level)
   pendingLevel = Math.max(0, Math.min(1, level))
 }
 
 export function setLevel(level: number): void {
+  if (native) return native.setLevel(level)
   decks[active].level = Math.max(0, Math.min(1, level))
   applyVolume(active)
 }
 
 export function setVolume(volume: number): void {
+  if (native) return native.setVolume(Math.max(0, Math.min(1, volume)))
   userVolume = Math.max(0, Math.min(1, volume))
   applyVolume(0)
   applyVolume(1)
 }
 
 export function setMuted(muted: boolean): void {
+  if (native) return native.setMuted(muted)
   // Both, or a crossfade started before the mute leaks the outgoing track.
   for (const index of [0, 1] as const) {
     if (decks[index].el) decks[index].el.muted = muted
@@ -879,6 +955,7 @@ let fadeInSec = 0
 let fadeOutSec = 0
 
 export function setFades(inSec: number, outSec: number): void {
+  if (native) return native.setFades(Math.max(0, inSec), Math.max(0, outSec))
   fadeInSec = Math.max(0, inSec)
   fadeOutSec = Math.max(0, outSec)
   // Turning fades off mid-track must not leave the envelope wherever it was.
@@ -1117,6 +1194,8 @@ function clearInterruptionDuck(): void {
 
 /** Something else has the audio. Go faint if we can, and remember it was ours. */
 export function interruptionBegan(): void {
+  // The engine owns the session, so it hears iOS directly and acts itself.
+  if (native) return
   clearInterruptionDuck()
   // Playing right now, OR paused by something outside a moment ago: WebKit's
   // pause and this notice race, and whichever lands first this has to be true.
@@ -1158,6 +1237,7 @@ function armDuckRelease(): void {
  * comes back quiet later, for a reason nobody could ever find.
  */
 export async function interruptionEnded(resume: boolean | null | undefined, fadeSec = 0.6): Promise<boolean> {
+  if (native) return false
   // ⚠️ Only put back an envelope this file took down. A blanket `endFade` here
   // would stamp on a fade-in that had nothing to do with the interruption.
   const ducked = duckTimer !== null
@@ -1197,6 +1277,8 @@ export async function interruptionEnded(resume: boolean | null | undefined, fade
 
 /** The Output button was tapped: a pause in the next while is the sound moving. See `routeGraceUntil`. */
 export function expectRouteChange(): void {
+  // AVPlayer carries on across a route change by itself.
+  if (native) return
   if (state.playing) routeGraceUntil = Date.now() + ROUTE_PICK_MS
 }
 
@@ -1205,6 +1287,7 @@ export function expectRouteChange(): void {
  * WebKit's pause may already have landed, or may be about to.
  */
 export function routeChanged(reason: string): void {
+  if (native) return native.routeChanged()
   if (reason === 'device out') {
     // Headphones out: the pause is meant. Close any window the button opened too.
     routeGraceUntil = 0
@@ -1247,6 +1330,7 @@ function resumeAfterRoute(audio: HTMLAudioElement, why: string, attempt = 0): vo
  * genuinely overlap instead — see `crossfade`.
  */
 export function duck(seconds: number): void {
+  if (native) return native.duck(seconds)
   rampTo(active, 0, seconds)
 }
 
@@ -1258,6 +1342,7 @@ export function duck(seconds: number): void {
  * element already has.
  */
 export async function restart(fadeInOverrideSec?: number): Promise<void> {
+  if (native) return native.restart(fadeInOverrideSec)
   const audio = el()
   try { audio.currentTime = 0 } catch { /* not seekable yet */ }
   set({ currentSec: 0 })
@@ -1273,6 +1358,7 @@ export async function restart(fadeInOverrideSec?: number): Promise<void> {
  * `mediaElements()` exists and the graph captures both at once.
  */
 export function mediaElement(): HTMLAudioElement {
+  if (native) return native.mediaElement()
   return el()
 }
 
@@ -1284,11 +1370,13 @@ export function mediaElement(): HTMLAudioElement {
  * crossfade made the other one active — see `audioGraph.ts`.
  */
 export function mediaElements(): [HTMLAudioElement, HTMLAudioElement] {
+  if (native) return native.mediaElements()
   return [element(0), element(1)]
 }
 
 /** Stop, release both files, and forget everything — a preview included. */
 export function stop(): void {
+  if (native) return native.stop()
   finishRetirement()
   const audio = el()
   stopPreview()
@@ -1359,6 +1447,7 @@ function previewElement(): HTMLAudioElement {
  * nothing anywhere would say why.
  */
 export function startPreview(file: SourceFile, volume: number): void {
+  if (native) return native.startPreview(file, volume)
   stopPreview()
   const audio = previewElement()
   const url = trackUrl(file)
@@ -1389,6 +1478,7 @@ export function startPreview(file: SourceFile, volume: number): void {
 
 /** Stop a preview and let go of the file. Safe to call when none is running. */
 export function stopPreview(): void {
+  if (native) return native.stopPreview()
   if (previewTimer !== null) {
     clearTimeout(previewTimer)
     previewTimer = null
@@ -1407,6 +1497,7 @@ export function stopPreview(): void {
 
 /** Follow the volume slider while a preview is running. */
 export function setPreviewVolume(volume: number): void {
+  if (native) return native.setPreviewVolume(volume)
   if (previewEl) previewEl.volume = Math.max(0, Math.min(1, volume))
 }
 

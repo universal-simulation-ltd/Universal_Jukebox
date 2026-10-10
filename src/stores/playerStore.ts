@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { isMiniMode } from '../lib/miniMode'
 import type { SourceFile } from '../lib/types'
 import { coverUrl, fallbackHue } from '../lib/art'
-import { followMusic, playCountTick, playTransportCue, setCueOutput } from '../lib/crackle'
+import { clipLevel, followMusic, playCountTick, playTransportCue, setCueOutput } from '../lib/crackle'
 import { isNativeShell } from '../lib/nativeFile'
 import { resolveDeck } from '../lib/decks'
 import * as audio from '../lib/audio'
@@ -28,11 +28,22 @@ import { CROSSFADE_LIMITS, settings, useSettingsStore } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
 import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
-import { cachedIntro, introHold, measureIntro } from '../lib/intro'
-import { cachedOutro, measureOutro, outroLead } from '../lib/outro'
+import { cachedIntro, introHold, INTRO_HOLD_MAX, INTRO_MIN, measureIntro } from '../lib/intro'
+import { cachedOutro, measureOutro, OUTRO_LEAD_MAX, OUTRO_MIN, outroLead } from '../lib/outro'
 import { noteEvent } from '../lib/bgLog'
 import { followLockLyrics } from '../lib/lockLyrics'
 import { getT } from '../i18n/runtime.ts'
+import { isMusicLibraryTrack, songIdOf } from '../lib/appleMusic'
+import { isExampleTrack } from '../lib/exampleLibrary'
+import {
+  ENGINE_LOOKAHEAD,
+  transitionFor,
+  upcomingCursors,
+  type ChangeoverTimes,
+  type EngineEntryDraft,
+  type EnginePlanDraft,
+} from '../lib/enginePlan'
+import type { EngineSnapshot } from '../lib/audioEngine'
 
 // Playback: the queue, what is on, and the transport.
 //
@@ -1185,7 +1196,7 @@ function prefetchNext(get: Get): void {
   const playing = currentTrack(get())
   if (playing && cachedOutro(playing.id) === null) {
     const file = useLibraryStore.getState().fileFor(playing)
-    if (file) void measureOutro(playing.id, file)
+    if (file) void measureOutro(playing.id, file).then(scheduleEnginePlan)
   }
   if (order.length < 2) return
   let next = cursor + 1
@@ -1198,14 +1209,18 @@ function prefetchNext(get: Get): void {
   const library = useLibraryStore.getState()
   // Measured ahead too, so "Stable volume" has its level before it starts.
   const measure = (file: SourceFile | null) => {
-    if (file && settings().stableVolume && cachedGain(track.id) === null) void measureGain(track.id, file)
+    const work: Promise<unknown>[] = []
+    if (file && settings().stableVolume && cachedGain(track.id) === null) work.push(measureGain(track.id, file))
     // How quiet its opening is, for the crossfade into it (`lib/intro.ts`).
-    if (file && cachedIntro(track.id) === null) void measureIntro(track.id, file)
+    if (file && cachedIntro(track.id) === null) work.push(measureIntro(track.id, file))
     // ...and how much dead air is on its END, for the crossfade OUT of it a
     // song later (`lib/outro.ts`). Measured HERE, a whole song early, rather
     // than when it starts: the answer is wanted a couple of seconds before this
     // song ends, and a measurement begun then would not be back in time.
-    if (file && cachedOutro(track.id) === null) void measureOutro(track.id, file)
+    if (file && cachedOutro(track.id) === null) work.push(measureOutro(track.id, file))
+    // The iPhone's engine runs this change-over itself if the phone locks
+    // first, so it is told the numbers once they are in.
+    if (work.length > 0) void Promise.all(work).then(scheduleEnginePlan)
   }
   if (library.needsPreparing(track)) void library.prepare(track).then(measure)
   else measure(library.fileFor(track))
@@ -1773,6 +1788,206 @@ useSettingsStore.subscribe((next, prev) => {
   if (cached !== null) audio.setLevel(cached)
   else levelLater(track)
 })
+
+// ── The iPhone's native engine ───────────────────────────────────────────────
+//
+// ⚠️ ON A LOCKED iPHONE NOTHING ABOVE RUNS (probe 3, 2026-10-07): the page's
+// JavaScript stops within a second of the lock, while the native engine
+// (`ios/App/App/JukeboxEngine.swift`) plays on. So the engine is kept told what
+// comes next — every song after this one, each with the change-over this file
+// WOULD run into it (`handoverFor`, `crossfadeTimes`, `HANDOVER`), the numbers
+// `maybeStartEarlyCrossfade` would use, and the cue for its machine — and runs
+// that plan by itself until the page comes back. With the app open nothing
+// here changes how the queue runs: the page still drives, and the engine only
+// plays what it is told.
+//
+// ⚠️ AND ON WAKING THE PAGE IS BEHIND. `adoptEngine` moves the cursor to the
+// song the engine reached — no animation, no ceremony, no cue: the record is
+// simply on the deck, as it would be if you had watched it change.
+//
+// All of it is a no-op off the iPhone app (`audio.engineActive()`).
+
+function engineTimes(): ChangeoverTimes {
+  const c = crossfadeTimes()
+  return {
+    SEC: c.SEC,
+    MANUAL_SEC: c.MANUAL_SEC,
+    RECORD_SEC: c.RECORD_SEC,
+    RECORD_MANUAL_SEC: c.RECORD_MANUAL_SEC,
+    SHAPE: c.SHAPE,
+    LIFT_MS: HANDOVER.LIFT_MS,
+    FADE_OUT_SEC: HANDOVER.FADE_OUT_SEC,
+    FADE_IN_SEC: HANDOVER.FADE_IN_SEC,
+    NEEDLE_RETURN_MS,
+  }
+}
+
+/**
+ * The example library's songs are synthesised when first asked for, and the
+ * page keeps only four (`CACHE_MAX` in `lib/exampleLibrary.ts`); so only the
+ * next two are made for the engine, or every plan would render the whole demo
+ * and throw it away again. A locked phone runs out of demo after those and
+ * stops — the example is for looking at. Everything else is a file or a
+ * Music-library song the engine opens itself.
+ */
+const ENGINE_MADE_AHEAD = 3
+
+/** One song as the engine needs it; `from` is the song before it in play order. */
+function engineEntry(cursor: number, track: Track, from: Track | null, ahead: number): EngineEntryDraft {
+  const library = useLibraryStore.getState()
+  const s = settings()
+  const plan = handoverFor(from, track)
+  const times = engineTimes()
+  const album = library.albums.find((a) => a.id === track.albumId)
+  const made = !isExampleTrack(track) || ahead < ENGINE_MADE_AHEAD
+  return {
+    key: `${cursor}:${track.id}`,
+    cursor,
+    trackId: track.id,
+    albumId: track.albumId,
+    file: made && !library.needsPreparing(track) ? library.fileFor(track) : null,
+    mediaId: isMusicLibraryTrack(library.roots, track) ? songIdOf(track.path) : null,
+    title: track.title,
+    artist: track.artist ?? track.albumArtist ?? '',
+    album: track.album ?? '',
+    gain: cachedGain(track.id),
+    introSec: cachedIntro(track.id),
+    outroSec: cachedOutro(track.id),
+    auto: transitionFor(plan, times, 'auto'),
+    skip: transitionFor(plan, times, 'skip'),
+    cueKey: s.needleDrop ? `cue:${resolveDeck(s.deck, album ?? track, s.deckEras)}` : null,
+  }
+}
+
+/** The position before `cursor` in play order — wrapping when the queue repeats — or -1. */
+function cursorBefore(state: PlayerState, cursor: number): number {
+  const n = state.order.length
+  if (state.repeat === 'off') return cursor > 0 ? cursor - 1 : -1
+  const before = (cursor - 1 + n) % n
+  return before === cursor ? -1 : before
+}
+
+function trackAt(state: PlayerState, cursor: number): Track | null {
+  return cursor >= 0 ? state.queue[state.order[cursor]] ?? null : null
+}
+
+/** The song the cursor is on, described for the engine — what `load` and `crossfade` are about. */
+function currentEngineEntry(): EngineEntryDraft | null {
+  const state = usePlayerStore.getState()
+  const track = currentTrack(state)
+  return track ? engineEntry(state.cursor, track, trackAt(state, cursorBefore(state, state.cursor)), 0) : null
+}
+
+function enginePlan(): EnginePlanDraft {
+  const state = usePlayerStore.getState()
+  const s = settings()
+  const base = {
+    wrap: state.repeat !== 'off',
+    limits: {
+      introMin: INTRO_MIN,
+      introHoldMax: INTRO_HOLD_MAX,
+      introMax: s.xfIntroMax,
+      outroMin: OUTRO_MIN,
+      outroLeadMax: OUTRO_LEAD_MAX,
+      outroMax: s.xfOutroMax,
+    },
+    stableVolume: s.stableVolume,
+    cueLevel: clipLevel(s.needleDropLevel),
+  }
+  const track = currentTrack(state)
+  if (!track) return { ...base, current: null, upcoming: [], previous: null, repeatOne: null }
+  let from = track
+  const upcoming: EngineEntryDraft[] = []
+  for (const cursor of upcomingCursors(state.order.length, state.cursor, state.repeat, ENGINE_LOOKAHEAD)) {
+    const next = trackAt(state, cursor)
+    if (!next) continue
+    upcoming.push(engineEntry(cursor, next, from, upcoming.length + 1))
+    from = next
+  }
+  const before = cursorBefore(state, state.cursor)
+  const back = trackAt(state, before)
+  return {
+    ...base,
+    current: currentEngineEntry(),
+    upcoming,
+    // Previous's change-over is FROM this song back to that one.
+    previous: back ? engineEntry(before, back, track, ENGINE_MADE_AHEAD) : null,
+    // `onEnded`'s repeat-one: the same record, the needle back to the start, never a blend.
+    repeatOne: state.repeat === 'one' ? transitionFor({ ...handoverFor(track, track), crossfade: false }, engineTimes(), 'auto') : null,
+  }
+}
+
+let enginePlanQueued = false
+
+/** Send the plan once the current change has settled (a microtask — before any lock can land). */
+function scheduleEnginePlan(): void {
+  if (!audio.engineActive() || enginePlanQueued) return
+  enginePlanQueued = true
+  queueMicrotask(() => {
+    enginePlanQueued = false
+    audio.setUpcoming(enginePlan())
+  })
+}
+
+/**
+ * The engine went on without the page — songs changed, songs skipped, the
+ * queue ended or the sleep timer stopped it — and the page has just woken up.
+ */
+function adoptEngine(snapshot: EngineSnapshot, songChanged: boolean): void {
+  const get = usePlayerStore.getState
+  const set = usePlayerStore.setState
+  if (snapshot.skipped?.length) {
+    set({
+      skipped: [
+        ...get().skipped,
+        ...snapshot.skipped.map((k) => ({ id: k.trackId, title: k.title, artist: k.artist, reason: k.reason })),
+      ],
+    })
+  }
+  if (!songChanged) return
+  const state = get()
+  // The position it was sent with — unless the queue has changed under it, in
+  // which case the same song wherever it now is.
+  let cursor = typeof snapshot.cursor === 'number' ? snapshot.cursor : -1
+  if (trackAt(state, cursor)?.id !== snapshot.trackId) {
+    cursor = state.order.findIndex((i) => state.queue[i]?.id === snapshot.trackId)
+  }
+  noteEvent('engine-adopt', { from: state.cursor, to: cursor, playing: snapshot.playing })
+  if (cursor < 0) return
+  clearCeremony()
+  clearHandover()
+  clearBlend()
+  crossfadeArmed = false
+  set({
+    cursor,
+    ceremony: false,
+    ceremonyDone: true,
+    ceremonyCount: null,
+    handover: false,
+    deckPhase: 'idle',
+    armDown: snapshot.playing,
+    error: null,
+    missingTrack: null,
+  })
+  const track = currentTrack(get())
+  if (track) {
+    publishNowPlaying(track)
+    prefetchNext(get)
+  }
+}
+
+if (audio.engineActive()) {
+  audio.setEngineHandlers({ describeCurrent: currentEngineEntry, adopt: adoptEngine })
+  usePlayerStore.subscribe((next, prev) => {
+    if (next.queue !== prev.queue || next.order !== prev.order || next.cursor !== prev.cursor || next.repeat !== prev.repeat) {
+      scheduleEnginePlan()
+    }
+  })
+  // Any setting: the crossfade lengths, the animation ladder, the cue and its
+  // level, Stable volume, the machine — all of them shape the plan, and none
+  // of them change often.
+  useSettingsStore.subscribe(() => scheduleEnginePlan())
+}
 
 // Trying the example library (`libraryStore.tryExample`) — and coming back.
 //

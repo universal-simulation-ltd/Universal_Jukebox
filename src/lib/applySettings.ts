@@ -1,5 +1,5 @@
 import { ensureGraph, graphExists, setBoost } from './audioGraph'
-import { mediaElements, setFades } from './audio'
+import { engineActive, mediaElements, setFades, setOutputGain } from './audio'
 import { useSettingsStore } from '../stores/settingsStore'
 
 // The one place settings become audible.
@@ -24,6 +24,16 @@ function apply(): void {
   const { volumeBoost, levelDb, fadeInSec, fadeOutSec } = useSettingsStore.getState()
 
   setFades(fadeInSec, fadeOutSec)
+
+  // ⚠️ THE iPHONE APP BUILDS NO GRAPH AT ALL. Its sound is the native engine's,
+  // which has a real gain of its own, so Quiet is just a number sent there —
+  // and a Web Audio context here would take WebKit's audio session and fight
+  // the engine for the speaker (`lib/audioEngine.ts`). Above 0 dB the engine
+  // can only take the product up to full: AVPlayer's volume stops at 1.
+  if (engineActive()) {
+    setOutputGain(Math.abs(levelDb) > 0.001 ? 10 ** (levelDb / 20) : 1)
+    return
+  }
 
   const wantsBoost = volumeBoost > 1.001
   const wantsLevel = Math.abs(levelDb) > 0.001

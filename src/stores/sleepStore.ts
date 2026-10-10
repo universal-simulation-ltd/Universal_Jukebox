@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import * as audio from '../lib/audio'
-import { SLEEP_MAX_MIN, sleepGain } from '../lib/sleep'
+import { SLEEP_FADE_SEC, SLEEP_MAX_MIN, sleepGain } from '../lib/sleep'
 
 // The sleep timer's clock — the rules are `lib/sleep.ts`. It ends the music
 // when it runs out, fading it over the last minute, and then switches itself
@@ -12,6 +12,12 @@ import { SLEEP_MAX_MIN, sleepGain } from '../lib/sleep'
 // So it is checked on a one-second interval AND on every report from the
 // player, which `timeupdate` keeps coming for as long as music plays. Nothing
 // needs checking while nothing plays.
+//
+// ⚠️ …AND IN THE iPHONE APP, A THIRD: THE ENGINE'S. There the page's clocks both
+// stop when the phone locks (probe 3), so the native engine is told when the
+// timer ends and runs the fade and the stop itself (`audio.setSleepEnd`;
+// `setSleepGain` does nothing there). This store's clock still runs for the
+// word under the button, and its own stop at the end is a harmless second one.
 
 interface SleepState {
   /** When the music stops, epoch ms — or null, off. */
@@ -55,11 +61,14 @@ export const useSleepStore = create<SleepState>((set) => ({
     stopClock()
     audio.setSleepGain(1)
     if (minutes === null || minutes <= 0) {
+      audio.setSleepEnd(null, SLEEP_FADE_SEC)
       set({ endsAt: null, minutes: null, leftSec: 0 })
       return
     }
     const clamped = Math.min(SLEEP_MAX_MIN, Math.round(minutes))
-    set({ endsAt: Date.now() + clamped * 60_000, minutes: clamped, leftSec: clamped * 60 })
+    const endsAt = Date.now() + clamped * 60_000
+    audio.setSleepEnd(endsAt, SLEEP_FADE_SEC)
+    set({ endsAt, minutes: clamped, leftSec: clamped * 60 })
     interval = window.setInterval(check, 1000)
   },
 }))

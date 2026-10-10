@@ -101,6 +101,12 @@ export async function showOnLockScreen(
     // What the entry says now — `setLockArtist` puts a lyric line back over it.
     artistSent = track.artist ?? track.albumArtist ?? ''
     report = `mode=${result.mode} animated=${result.animated} keys=${result.supportedKeys.join(',') || 'none'}`
+    // ⚠️ `engine`: the iPhone's native engine owns the entry, its clock and its
+    // buttons (`JukeboxEngine.swift`); the picture is all this sends.
+    if (mode === 'engine') {
+      noteEvent('lock-art', { report })
+      return
+    }
     if (mode === 'own') await listenForCommands()
     // Where playback is NOW, not when `show` set off.
     const latest = now()
@@ -197,7 +203,8 @@ let artistSent: string | null = null
  * the Media Session's metadata — already changed by `setArtistLine`.
  */
 export function setLockArtist(track: Track, line: string | null): void {
-  if (mode !== 'own' || !plugin) return
+  // `engine` too: the plugin hands the line to the engine's entry.
+  if ((mode !== 'own' && mode !== 'engine') || !plugin) return
   const wanted = line ?? track.artist ?? track.albumArtist ?? ''
   if (wanted === artistSent) return
   artistSent = wanted
@@ -293,7 +300,8 @@ export function followProgress(playing: boolean, sec: number, duration: number):
   // across a change-over and there was no second writer anywhere to disagree.
   // The plugin decides what a merge-mode update may touch: the play/pause
   // state and nothing else, so the scrub bar stays WebKit's alone.
-  if (mode === 'unknown' || !plugin) return
+  // The engine's entry runs on the engine's own clock — nothing to keep honest.
+  if (mode === 'unknown' || mode === 'engine' || !plugin) return
   const now = performance.now()
   const expected = sent.playing ? sent.sec + (now - sent.at) / 1000 : sent.sec
   const jumped = Math.abs(sec - expected) > 2
