@@ -36,6 +36,7 @@
 import { parseLyrics, type LyricSheet } from './lyrics'
 import { getLyricRecord, putLyricRecord, type LyricRecord } from './library'
 import type { Track } from './types'
+import { getT } from '../i18n/runtime.ts'
 
 const ENDPOINT = 'https://lrclib.net/api/get'
 /** The fuzzy half — see `searchLrclib`. */
@@ -127,14 +128,14 @@ export async function onlineLyrics(
     } else if (response.status === 404 || response.status >= 500) {
       found = await searchLrclib(artist, track.title, track.durationSec, signal)
       if (!found && response.status >= 500) {
-        return { kind: 'error', message: `lrclib.net returned ${response.status}.` }
+        return { kind: 'error', message: getT()('lyrics.error_status', { status: response.status }) }
       }
       if (!found) {
         await remember({ id: track.id, raw: null, at: Date.now(), v: CACHE_VERSION })
         return { kind: 'none' }
       }
     } else {
-      return { kind: 'error', message: `lrclib.net returned ${response.status}.` }
+      return { kind: 'error', message: getT()('lyrics.error_status', { status: response.status }) }
     }
     if (found.instrumental) {
       await remember({ id: track.id, raw: null, instrumental: true, at: Date.now(), v: CACHE_VERSION })
@@ -152,9 +153,10 @@ export async function onlineLyrics(
     // ⚠️ Offline is the ordinary case for this app, not an exception — it is a
     // local-file player and it is expected to work on a train. Say so plainly
     // rather than showing a stack trace's worth of nothing.
+    const t = getT()
     const message = typeof navigator !== 'undefined' && navigator.onLine === false
-      ? 'No connection, so nothing could be looked up.'
-      : `Couldn’t reach lrclib.net${error instanceof Error && error.name === 'TimeoutError' ? ' in time' : ''}.`
+      ? t('lyrics.error_offline')
+      : t(error instanceof Error && error.name === 'TimeoutError' ? 'lyrics.error_timeout' : 'lyrics.error_unreachable')
     return { kind: 'error', message }
   }
 }

@@ -34,6 +34,7 @@
 import { getAboutRecord, putAboutRecord, type AboutRecord, type WikiPage } from './library'
 import { searchTitle } from './lrclib'
 import type { Track } from './types'
+import { getT } from '../i18n/runtime.ts'
 
 export type { WikiPage }
 
@@ -93,10 +94,10 @@ export async function aboutTrack(track: Track, allowNetwork: boolean, signal?: A
     // Offline is the ordinary case for a local-file player, not a fault.
     const message =
       typeof navigator !== 'undefined' && navigator.onLine === false
-        ? 'No connection, so nothing could be looked up.'
+        ? getT()('about.error_offline')
         : error instanceof HttpError
           ? error.message
-          : 'Couldn’t reach Wikipedia.'
+          : getT()('about.error_unreachable')
     return { kind: 'error', message }
   }
 }
@@ -361,7 +362,7 @@ async function ask(params: Record<string, string>, signal?: AbortSignal): Promis
     signal: signal ?? AbortSignal.timeout(TIMEOUT_MS),
     referrerPolicy: 'no-referrer',
   })
-  if (!response.ok) throw new HttpError(`Wikipedia returned ${response.status}.`)
+  if (!response.ok) throw new HttpError(getT()('about.error_status', { status: response.status }))
   return response.json()
 }
 

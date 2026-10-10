@@ -8,8 +8,10 @@
 // one line.
 
 import { goHome, navigate } from '../lib/route'
+import { useT } from '../i18n'
 
 export default function About() {
+  const t = useT()
   return (
     <div className="mx-auto max-w-2xl">
       {/* ⚠️ The way back, and it is not optional. This page is reached from a
@@ -25,107 +27,88 @@ export default function About() {
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
         </svg>
-        Back to your library
+        {t('about.app_back')}
       </button>
 
       <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-        A player for the music you already have
+        {t('about.app_title')}
       </h1>
 
       <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
+        <p>{t('about.app_intro')}</p>
         <p>
-          Universal Jukebox is a music player, and nothing more than that. You point it at
-          a folder on your own device; it reads the tags and the album art out of the files
-          themselves, builds a library you can browse, and plays it.
+          {t.rich('about.app_privacy', {
+            nothing_uploaded: (
+              <strong className="font-semibold text-slate-900 dark:text-slate-100">{t('about.app_nothing_uploaded')}</strong>
+            ),
+          })}
         </p>
         <p>
-          <strong className="font-semibold text-slate-900 dark:text-slate-100">
-            Nothing is uploaded.
-          </strong>{' '}
-          Not a track, not a cover, not a filename. The reading happens on your own device.
-          Three lookups are the only exceptions, and each waits until you turn it on or tap
-          it: lyrics, About this track and Find a picture send a song’s artist and title,
-          never the music. There is nothing to sign up for. Signing in with a Universal ID is
-          optional: it keeps you signed in across the UNI·SIM apps and tells us the app was
-          opened, and it never sees your music.
-        </p>
-        <p>
-          It is <strong className="font-semibold text-slate-900 dark:text-slate-100">not</strong>{' '}
-          a streaming service and has no catalogue of its own. It cannot find you music you
-          do not already have, and it is not connected to any record label, shop or
-          subscription. If your files are somewhere else, this app cannot reach them.
+          {t.rich('about.app_not', {
+            not: <strong className="font-semibold text-slate-900 dark:text-slate-100">{t('about.app_not_word')}</strong>,
+          })}
         </p>
       </div>
 
       <h2 className="mt-10 text-lg font-semibold text-slate-900 dark:text-slate-100">
-        What it plays
+        {t('about.app_plays_heading')}
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
-        MP3, M4A/AAC, FLAC, WAV and AIFF — everything a current browser decodes on its own.
-        Ogg and Opus play where the browser supports them, which most do and Safari mostly
-        doesn’t.
+        {t('about.app_plays')}
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
-        What it can’t play, and why
+        {t('about.app_cant_heading')}
       </h2>
       <ul className="mt-2 space-y-2 text-[14px] leading-relaxed text-slate-700 dark:text-slate-300">
         <li>
-          <strong className="font-medium">DRM-protected tracks</strong> — older iTunes
-          purchases and anything else with a licence attached. No browser can decode these,
-          and no local player can either.
+          {t.rich('about.app_drm', { name: <strong className="font-medium">{t('about.app_drm_name')}</strong> })}
         </li>
         <li>
-          <strong className="font-medium">WMA, Monkey’s Audio, WavPack</strong> — no browser
-          ships a decoder.{' '}
-          <a
-            href="https://opensource.unisim.co.uk/converter"
-            className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
-          >
-            Universal Converter
-          </a>{' '}
-          will turn them into something this can play, also without uploading anything.
+          {/* The format names and the other app's name are names, the same in
+              every language — only the sentence round them is translated. */}
+          {t.rich('about.app_codecs', {
+            formats: <strong className="font-medium">WMA, Monkey’s Audio, WavPack</strong>,
+            converter: (
+              <a
+                href="https://opensource.unisim.co.uk/converter"
+                className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+              >
+                Universal Converter
+              </a>
+            ),
+          })}
         </li>
         <li>
-          <strong className="font-medium">MIDI</strong> — a MIDI file is a score, not a
-          recording. There is no audio in it to play.
+          {t.rich('about.app_midi', { midi: <strong className="font-medium">MIDI</strong> })}
         </li>
       </ul>
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
-        About the folder
+        {t('about.app_folder_heading')}
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
-        Chrome and Edge can remember which folder you chose, so the library is still there
-        next time behind one confirmation. Firefox and Safari have no way to do that — the
-        permission itself is the thing that cannot be saved — so you pick the folder again
-        each visit. Either way the library and its artwork are kept, so it comes back
-        immediately rather than being rebuilt.
+        {t('about.app_folder')}
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
-        The turntable
+        {t('about.app_turntable_heading')}
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
-        Press play on anything — a track, an album, a search result — and you land on the
-        deck: it spins up, the arm comes down, and the music starts. The needle then works
-        its way in as the track plays, and comes off and back to the outside edge for the
-        next one. Any click or key skips the intro, and you can have it only on a new
-        album, only once a visit, or never at all in{' '}
-        <button
-          type="button"
-          onClick={() => navigate({ view: 'settings' })}
-          className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
-        >
-          Tune this app
-        </button>
-        , along with fades and a volume boost for quietly-mastered albums.
+        {t.rich('about.app_turntable', {
+          settings: (
+            <button
+              type="button"
+              onClick={() => navigate({ view: 'settings' })}
+              className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+            >
+              {t('about.app_tune_this_app')}
+            </button>
+          ),
+        })}
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
-        The exception is the small headphones button beside every track in your library.
-        That plays ten seconds, taken ten seconds in — enough to know whether it is the
-        one you meant — without moving you off the page or disturbing whatever you already
-        had playing.
+        {t('about.app_preview')}
       </p>
 
       <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">
@@ -134,22 +117,25 @@ export default function About() {
           onClick={goHome}
           className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
-          Back to your library
+          {t('about.app_back')}
         </button>
         {/* Repeated at the foot because this is a long page, and somebody who
             has read to the bottom should not have to scroll back up to leave. */}
         <p className="mt-6 text-[13px] text-slate-500 dark:text-slate-400">
-          Free and open source, like every Universal App. Built by{' '}
           {/* The two links the page footer carries on the web. The phone apps
               have no footer (`App.tsx`), so this is where they live there. */}
-          <a href="https://www.unisim.co.uk" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
-            UNI·SIM
-          </a>
-          {' · '}
-          <a href="https://github.com/universal-simulation-ltd/Universal_Jukebox" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
-            the source on GitHub
-          </a>
-          .
+          {t.rich('about.app_footer', {
+            unisim: (
+              <a href="https://www.unisim.co.uk" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
+                UNI·SIM
+              </a>
+            ),
+            source: (
+              <a href="https://github.com/universal-simulation-ltd/Universal_Jukebox" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
+                {t('about.app_footer_source')}
+              </a>
+            ),
+          })}
         </p>
       </div>
     </div>

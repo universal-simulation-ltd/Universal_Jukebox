@@ -13,6 +13,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { navigate } from '../lib/route'
 import { barsOnlineLyrics } from '../lib/nativeFile'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
+import { useT, type MessageKey } from '../i18n'
 
 // The words, under the deck.
 //
@@ -26,6 +27,7 @@ import { scrollBelowBar } from '../lib/scrollBelowBar'
 // "Show lyrics" button — see `shownFor` in `stores/lyricsStore.ts`.
 
 export default function Lyrics() {
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const shownFor = useLyricsStore((s) => s.shownFor)
   // Open for this VISIT to Now Playing — see `shownFor`.
@@ -88,7 +90,7 @@ export default function Lyrics() {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            Lyrics
+            {t('lyrics.heading')}
           </h2>
           <Provenance />
         </div>
@@ -102,7 +104,7 @@ export default function Lyrics() {
               <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4" />
               </svg>
-              Sing along
+              {t('lyrics.sing_along')}
             </button>
           )}
           {status === 'ready' && (
@@ -110,8 +112,8 @@ export default function Lyrics() {
               type="button"
               onClick={() => setMore((m) => !m)}
               aria-expanded={more}
-              aria-label={more ? 'Fewer lyrics options' : 'More lyrics options'}
-              title="Replace lyrics, around the record, following"
+              aria-label={more ? t('lyrics.fewer_options') : t('lyrics.more_options')}
+              title={t('lyrics.more_options_title')}
               className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${
                 more
                   ? 'border-orange-400 text-orange-700 dark:border-orange-600 dark:text-orange-400'
@@ -142,39 +144,37 @@ export default function Lyrics() {
 
 /** Where these words came from, said plainly, whenever there are any. */
 function Provenance() {
+  const t = useT()
   const status = useLyricsStore((s) => s.status)
   const sheet = useLyricsStore((s) => s.sheet)
   if (status !== 'ready' || !sheet) return null
   return (
     <p className="text-[12px] text-slate-400 dark:text-slate-500">
-      {sheet.source === 'file' ? 'From this file’s own tags' : sheet.source === 'upload' ? 'From your lyrics file' : 'From lrclib.net'}
-      {sheet.synced ? ' · following along' : ''}
+      {t(sheet.source === 'file' ? 'lyrics.source_file' : sheet.source === 'upload' ? 'lyrics.source_upload' : 'lyrics.source_online')}
+      {/* Two items in a list, joined with the suite's middle dot — not a sentence. */}
+      {sheet.synced ? ` · ${t('lyrics.following_along')}` : ''}
     </p>
   )
 }
 
 function Body({ options }: { options: boolean }) {
+  const t = useT()
   const status = useLyricsStore((s) => s.status)
   const sheet = useLyricsStore((s) => s.sheet)
   const message = useLyricsStore((s) => s.message)
   const trackId = useLyricsStore((s) => s.trackId)
 
-  if (status === 'loading') return <Note>Looking…</Note>
+  if (status === 'loading') return <Note>{t('lyrics.looking')}</Note>
   // Keyed by track, so every song's sheet starts LOCKED and following — the
   // default James asked for — rather than inheriting the last song's unlock.
   if (status === 'ready' && sheet) return sheet.synced ? <Synced key={trackId ?? ''} options={options} /> : <Plain />
   if (status === 'instrumental') {
-    return <Note>lrclib.net has this one down as an instrumental — there are no words to show.</Note>
+    return <Note>{t('lyrics.instrumental')}</Note>
   }
   if (status === 'untagged') {
-    return (
-      <Note>
-        This track has no artist or title in its tags, so there is nothing to look it up by. Naming
-        it in the tidy-up would fix that.
-      </Note>
-    )
+    return <Note>{t('lyrics.untagged')}</Note>
   }
-  if (status === 'error') return <Retry message={message ?? 'That didn’t work.'} />
+  if (status === 'error') return <Retry message={message ?? t('lyrics.error_fallback')} />
   if (status === 'none') return <Nothing />
   return null
 }
@@ -205,6 +205,7 @@ function Body({ options }: { options: boolean }) {
 const COUNT_IN_SEC = 5
 
 function Synced({ options }: { options: boolean }) {
+  const t = useT()
   const sheet = useLyricsStore((s) => s.sheet)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const playing = usePlayerStore((s) => s.playing)
@@ -249,10 +250,10 @@ function Synced({ options }: { options: boolean }) {
           <ChipToggle
             selected={locked}
             onClick={() => setLocked((was) => !was)}
-            title={locked ? 'Following the song — unlock to scroll the lyrics yourself' : 'Scrolling freely — lock to follow the song again'}
+            title={locked ? t('lyrics.following_title') : t('lyrics.free_scroll_title')}
             icon={<LockGlyph locked={locked} />}
           >
-            {locked ? 'Following' : 'Free scroll'}
+            {locked ? t('lyrics.following') : t('lyrics.free_scroll')}
           </ChipToggle>
         </div>
         )}
@@ -335,6 +336,7 @@ function Plain() {
  * page the person has never opened.
  */
 function Nothing() {
+  const t = useT()
   const online = useSettingsStore((s) => s.lyricsOnline)
   const setSetting = useSettingsStore((s) => s.set)
   const track = usePlayerStore(currentTrack)
@@ -346,7 +348,7 @@ function Nothing() {
     return (
       <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
         <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
-          There are no lyrics saved in this file.
+          {t('lyrics.none_in_file')}
         </p>
         <AddLyricsFile />
       </div>
@@ -356,7 +358,7 @@ function Nothing() {
     return (
       <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
         <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
-          No lyrics in this file, and lrclib.net doesn’t have this one either.
+          {t('lyrics.none_anywhere')}
         </p>
         <AddLyricsFile />
       </div>
@@ -365,11 +367,10 @@ function Nothing() {
   return (
     <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
       <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
-        There are no lyrics saved in this file.
+        {t('lyrics.none_in_file')}
       </p>
       <p className="mt-2 text-[12.5px] text-slate-500 dark:text-slate-400">
-        Jukebox can look them up on lrclib.net instead. That sends the track’s artist, title, album
-        and length — nothing else, and nothing at all unless you turn it on.
+        {t('lyrics.offer_online')}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <button
@@ -380,14 +381,14 @@ function Nothing() {
           }}
           className="rounded-md bg-orange-700 px-3 py-1.5 text-[13px] font-medium text-white hover:bg-orange-800"
         >
-          Look them up online
+          {t('lyrics.look_up_online')}
         </button>
         <button
           type="button"
           onClick={() => navigate({ view: 'settings' })}
           className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
         >
-          More about this in Tune this app
+          {t('lyrics.more_in_settings')}
         </button>
       </div>
       <AddLyricsFile />
@@ -396,6 +397,7 @@ function Nothing() {
 }
 
 function Retry({ message }: { message: string }) {
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const reload = useLyricsStore((s) => s.reload)
   return (
@@ -406,7 +408,7 @@ function Retry({ message }: { message: string }) {
         onClick={() => track && reload(track)}
         className="mt-3 text-[12.5px] text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
       >
-        Try again
+        {t('common.try_again')}
       </button>
       <AddLyricsFile />
     </div>
@@ -424,15 +426,18 @@ function Retry({ message }: { message: string }) {
  * input's first menu there offers the camera — and an `<input>` everywhere else.
  */
 function AddLyricsFile({ compact = false }: { compact?: boolean }) {
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const adopt = useLyricsStore((s) => s.adoptLyrics)
   const input = useRef<HTMLInputElement>(null)
-  const [problem, setProblem] = useState<string | null>(null)
+  // The KEY, not the text, so a problem already on screen follows a change of language.
+  const [problemKey, setProblem] = useState<MessageKey | null>(null)
+  const problem = problemKey && t(problemKey)
 
   const take = async (text: string) => {
     if (!track) return
     const ok = await adopt(track, text)
-    setProblem(ok ? null : 'That doesn’t look like lyrics. A plain text file or an .lrc file is what’s needed.')
+    setProblem(ok ? null : 'lyrics.not_lyrics')
   }
   const pick = async () => {
     if (!hasNativeImporter()) {
@@ -443,7 +448,7 @@ function AddLyricsFile({ compact = false }: { compact?: boolean }) {
       const file = await pickTextWithNativePicker()
       if (file) await take(file.text)
     } catch {
-      setProblem('That file could not be read as text.')
+      setProblem('lyrics.unreadable')
     }
   }
 
@@ -471,7 +476,7 @@ function AddLyricsFile({ compact = false }: { compact?: boolean }) {
           onClick={() => void pick()}
           className="text-[12px] font-medium text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
         >
-          Replace lyrics
+          {t('lyrics.replace')}
         </button>
         {fileInput}
         {problem && <span className="mt-1 text-[12px] text-red-700 dark:text-red-300">{problem}</span>}
@@ -482,15 +487,14 @@ function AddLyricsFile({ compact = false }: { compact?: boolean }) {
   return (
     <div className="mt-4 border-t border-slate-200 pt-3 dark:border-slate-800">
       <p className="text-[12.5px] text-slate-500 dark:text-slate-400">
-        Got the words yourself? A timed .lrc file follows along with the song; plain text
-        shows as the words.
+        {t('lyrics.add_file_hint')}
       </p>
       <button
         type="button"
         onClick={() => void pick()}
         className="mt-2 rounded-md border border-slate-300 px-3 py-1.5 text-[13px] font-medium text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:text-orange-400"
       >
-        Add a lyrics file
+        {t('lyrics.add_file')}
       </button>
       {fileInput}
       {problem && <p className="mt-2 text-[12.5px] text-red-700 dark:text-red-300">{problem}</p>}
@@ -509,16 +513,17 @@ function AddLyricsFile({ compact = false }: { compact?: boolean }) {
  * whatever Settings says.
  */
 function AroundTheRecord() {
+  const t = useT()
   const on = useSettingsStore((s) => s.lyricsAround)
   const set = useSettingsStore((s) => s.set)
   return (
     <ChipToggle
       selected={on}
       onClick={() => set('lyricsAround', !on)}
-      title={on ? 'The words are around the record — tap to take them off' : 'Show the words around the record as they are sung'}
+      title={on ? t('lyrics.around_on_title') : t('lyrics.around_off_title')}
       icon={<RingGlyph />}
     >
-      Around the record
+      {t('lyrics.around')}
     </ChipToggle>
   )
 }

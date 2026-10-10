@@ -10,6 +10,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import { useT } from '../i18n'
 
 // Sing along: the line being sung, big, on the sleeve's own colour, and
 // nothing else (James, 2026-09-28, from the UX review). The lyrics panel is
@@ -29,6 +30,7 @@ import { useDialogFocus } from '../lib/useDialogFocus'
 const COUNT_IN_SEC = 5
 
 export default function SingAlong({ onClose }: { onClose(): void }) {
+  const t = useT()
   const dialogRef = useDialogFocus()
   const track = usePlayerStore(currentTrack)
   const currentSec = usePlayerStore((s) => s.currentSec)
@@ -75,7 +77,7 @@ export default function SingAlong({ onClose }: { onClose(): void }) {
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label={`Sing along${track ? ` — ${track.title}` : ''}`}
+      aria-label={track ? t('lyrics.sing_along_dialog', { title: track.title }) : t('lyrics.sing_along')}
       // ⚠️ Not the document's click: `App.tsx` skips the ceremony on one.
       onClick={(e) => e.stopPropagation()}
       className="outline-none fixed inset-0 z-[1100] flex flex-col text-white"
@@ -94,7 +96,7 @@ export default function SingAlong({ onClose }: { onClose(): void }) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close sing along"
+          aria-label={t('lyrics.close_sing_along')}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
         >
           <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -125,7 +127,7 @@ export default function SingAlong({ onClose }: { onClose(): void }) {
         <button
           type="button"
           onClick={toggle}
-          aria-label={playing ? 'Pause' : 'Play'}
+          aria-label={playing ? t('common.pause') : t('common.play')}
           className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
         >
           {playing ? (

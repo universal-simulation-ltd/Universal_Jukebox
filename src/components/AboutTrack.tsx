@@ -8,6 +8,7 @@ import type { WikiPage } from '../lib/aboutTrack'
 import { useAboutStore } from '../stores/aboutStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useT } from '../i18n'
 
 // "About this track": what Wikipedia says about the song on the deck and about
 // whoever is singing it (James, 2026-09-13). The asking is `lib/aboutTrack.ts`;
@@ -17,6 +18,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 // lookup is off — the effect below is the gate, exactly as for the lyrics.
 
 export default function AboutTrack() {
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const open = useAboutStore((s) => s.open)
   const load = useAboutStore((s) => s.load)
@@ -31,9 +33,9 @@ export default function AboutTrack() {
     <section className="mt-4 text-left">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-          About this track
+          {t('about.track_heading')}
         </h2>
-        {status === 'ready' && <p className="text-[12px] text-slate-400 dark:text-slate-500">From Wikipedia</p>}
+        {status === 'ready' && <p className="text-[12px] text-slate-400 dark:text-slate-500">{t('about.from_wikipedia')}</p>}
       </div>
       <Body />
     </section>
@@ -57,6 +59,7 @@ export default function AboutTrack() {
  * copy that was tapped.
  */
 export function AboutToggle() {
+  const t = useT()
   const open = useAboutStore((s) => s.open)
   const setOpen = useAboutStore((s) => s.setOpen)
   const status = useAboutStore((s) => s.status)
@@ -78,9 +81,9 @@ export function AboutToggle() {
   return (
     <ModeButton
       ref={button}
-      label="About"
+      label={t('about.toggle_label')}
       on={open}
-      ariaLabel={open ? 'Hide track info' : 'About this track'}
+      ariaLabel={open ? t('about.toggle_hide') : t('about.track_heading')}
       onClick={(e) => {
         // The ceremony is skipped by any click on the page (App.tsx); a button
         // on the deck's screen is not that click.
@@ -102,6 +105,7 @@ export function AboutToggle() {
 }
 
 function Body() {
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const status = useAboutStore((s) => s.status)
   const song = useAboutStore((s) => s.song)
@@ -111,10 +115,10 @@ function Body() {
   const reload = useAboutStore((s) => s.reload)
   if (!track) return null
 
-  if (status === 'idle' || status === 'loading') return <Note>Looking this song up…</Note>
+  if (status === 'idle' || status === 'loading') return <Note>{t('about.looking')}</Note>
   if (status === 'off') return <Offer />
   if (status === 'untagged') {
-    return <Note>This track has no artist in its tags, so there’s nothing to look it up by.</Note>
+    return <Note>{t('about.untagged')}</Note>
   }
   if (status === 'error') {
     return (
@@ -125,39 +129,38 @@ function Body() {
           onClick={() => reload(track)}
           className="mt-3 text-[13px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
         >
-          Try again
+          {t('common.try_again')}
         </button>
       </Card>
     )
   }
   if (status === 'none' || (!song && !artist)) {
-    return (
-      <Note>
-        Wikipedia doesn’t seem to have an article about this song, or about{' '}
-        {track.artist ?? track.albumArtist ?? 'this artist'}.
-      </Note>
-    )
+    const name = track.artist ?? track.albumArtist
+    return <Note>{name !== undefined ? t('about.none_artist', { artist: name }) : t('about.none_unnamed')}</Note>
   }
   return (
     <div className="space-y-4">
       {/* No article about the song: nothing is said about it, the artist is
           simply shown (James, 2026-09-13: "just hide that part don't say it
           doesn't have one"). */}
-      {song && <Article key={`${trackId}:song`} label="The song" page={song} />}
-      {artist && <Article key={`${trackId}:artist`} label="The artist" page={artist} brief />}
+      {song && <Article key={`${trackId}:song`} label={t('about.song_label')} page={song} />}
+      {artist && <Article key={`${trackId}:artist`} label={t('about.artist_label')} page={artist} brief />}
       {/* Wikipedia's text is CC BY-SA: reusing it means saying where it came
           from and under what licence, next to it. Each article links above. */}
       <p className="text-[11.5px] leading-relaxed text-slate-400 dark:text-slate-500">
-        Text from Wikipedia, under{' '}
-        <a
-          href="https://creativecommons.org/licenses/by-sa/4.0/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-2 hover:text-orange-700 dark:hover:text-orange-400"
-        >
-          CC BY-SA 4.0
-        </a>
-        . Found by the song’s title and artist, so now and then it may be about a different song of the same name.
+        {t.rich('about.licence', {
+          // The licence's name, which is the same in every language.
+          licence: (
+            <a
+              href="https://creativecommons.org/licenses/by-sa/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-orange-700 dark:hover:text-orange-400"
+            >
+              CC BY-SA 4.0
+            </a>
+          ),
+        })}
       </p>
     </div>
   )
@@ -168,6 +171,7 @@ function Body() {
  * and "More" for the rest of its opening section.
  */
 function Article({ label, page, brief = false }: { label: string; page: WikiPage; brief?: boolean }) {
+  const t = useT()
   const first = brief ? 1 : 2
   const [all, setAll] = useState(false)
   const shown = all ? page.paragraphs : page.paragraphs.slice(0, first)
@@ -198,7 +202,7 @@ function Article({ label, page, brief = false }: { label: string; page: WikiPage
             onClick={() => setAll(!all)}
             className="text-[12.5px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
           >
-            {all ? 'Less' : 'More'}
+            {all ? t('about.article_less') : t('about.article_more')}
           </button>
         )}
         <a
@@ -207,7 +211,7 @@ function Article({ label, page, brief = false }: { label: string; page: WikiPage
           rel="noopener noreferrer"
           className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
         >
-          Read it on Wikipedia
+          {t('about.read_on_wikipedia')}
         </a>
       </div>
     </article>
@@ -220,18 +224,17 @@ function Article({ label, page, brief = false }: { label: string; page: WikiPage
  * page (the lyrics panel's rule).
  */
 function Offer() {
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const setSetting = useSettingsStore((s) => s.set)
   const reload = useAboutStore((s) => s.reload)
   return (
     <Card>
       <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
-        Jukebox can look this song up on Wikipedia: who wrote it, whose song it was first, how it did in the charts,
-        and who’s singing it.
+        {t('about.offer_what')}
       </p>
       <p className="mt-2 text-[12.5px] text-slate-500 dark:text-slate-400">
-        That sends the song’s title and the artist’s name to Wikipedia — nothing else, and nothing at all unless you
-        turn it on. Each song is only looked up once.
+        {t('about.offer_sends')}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <button
@@ -242,14 +245,14 @@ function Offer() {
           }}
           className="rounded-md bg-orange-700 px-3 py-1.5 text-[13px] font-medium text-white hover:bg-orange-800"
         >
-          Look it up on Wikipedia
+          {t('about.look_up')}
         </button>
         <button
           type="button"
           onClick={() => navigate({ view: 'settings' })}
           className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
         >
-          More about this in Tune this app
+          {t('about.more_in_settings')}
         </button>
       </div>
     </Card>
