@@ -3,7 +3,7 @@ import Record45 from './Record45'
 import Requests from './Requests'
 import { ShelfRow } from './Shelf'
 import { ShuffleGlyph } from './AlbumView'
-import { plural } from '../lib/format'
+import { useT } from '../i18n'
 import { grooveRings } from '../lib/grooves'
 import { matchTracks } from '../lib/search'
 import { NAME_MAX, NEW_SHELF, shelfName, shelvesToShow } from '../lib/shelves'
@@ -31,26 +31,29 @@ const isPlus = (slot: Slot): slot is typeof PLUS => slot === PLUS
 const PICKER_CAP = 300
 
 export default function JukeboxShelves() {
+  const t = useT()
   const shelves = useShelvesStore((s) => s.shelves)
   const tracks = useLibraryStore((s) => s.tracks)
   const albums = useLibraryStore((s) => s.albums)
-  const byId = useMemo(() => new Map(tracks.map((t) => [t.id, t])), [tracks])
+  const byId = useMemo(() => new Map(tracks.map((track) => [track.id, track])), [tracks])
   const albumOf = useMemo(() => {
     const map = new Map(albums.map((a) => [a.id, a]))
-    return (t: Track) => map.get(t.albumId)
+    return (track: Track) => map.get(track.albumId)
   }, [albums])
-  const [picking, setPicking] = useState<{ shelfId: string; name: string } | null>(null)
+  // The shelf's place, not its name: an unnamed shelf's "Shelf N" is written
+  // at display time, so the picker's heading follows a language switch.
+  const [picking, setPicking] = useState<{ shelfId: string; index: number } | null>(null)
 
   return (
     <div className="space-y-12">
       {shelves.length === 0 && (
         <p className="text-center text-[13px] text-slate-500 dark:text-slate-400">
-          Your jukebox. Tap + to put a song on the shelf — each shelf plays as a playlist.
+          {t('shelves.jukebox_intro')}
         </p>
       )}
       {shelvesToShow(shelves)
         // A song no longer in the library is left off, not shown as a blank.
-        .map((shelf) => ({ shelf, songs: shelf.trackIds.map((id) => byId.get(id)).filter((t): t is Track => t !== undefined) }))
+        .map((shelf) => ({ shelf, songs: shelf.trackIds.map((id) => byId.get(id)).filter((track): track is Track => track !== undefined) }))
         // ⚠️ And a shelf left with NONE of its songs is not drawn, so there is
         // only ever the one empty shelf at the end (James, 2026-09-27: "If
         // there's two empty shelves then delete and only show one shelf"). Its
@@ -69,13 +72,13 @@ export default function JukeboxShelves() {
             <button
               key={shelf.id}
               type="button"
-              onClick={() => setPicking({ shelfId: shelf.id, name })}
+              onClick={() => setPicking({ shelfId: shelf.id, index: i })}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 py-3.5 text-[14px] font-medium text-slate-600 transition hover:border-orange-400 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-600 dark:hover:text-orange-400"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              Start another shelf
+              {t('shelves.start_another_shelf')}
             </button>
           )
         }
@@ -87,13 +90,19 @@ export default function JukeboxShelves() {
             named={shelf.id !== NEW_SHELF}
             songs={songs}
             albumOf={albumOf}
-            onAdd={() => setPicking({ shelfId: shelf.id, name })}
+            onAdd={() => setPicking({ shelfId: shelf.id, index: i })}
           />
         )
       })}
       {/* Music to get, ticked off when the library has it (James, 2026-09-26). */}
       <Requests />
-      {picking && <SongPicker shelfId={picking.shelfId} name={picking.name} onClose={() => setPicking(null)} />}
+      {picking && (
+        <SongPicker
+          shelfId={picking.shelfId}
+          name={shelfName(shelves.find((s) => s.id === picking.shelfId) ?? { id: picking.shelfId, trackIds: [] }, picking.index)}
+          onClose={() => setPicking(null)}
+        />
+      )}
     </div>
   )
 }
@@ -101,6 +110,7 @@ export default function JukeboxShelves() {
 function JukeboxShelfRow({
   shelfId, name, named, songs, albumOf, onAdd,
 }: { shelfId: string; name: string; named: boolean; songs: Track[]; albumOf(t: Track): Album | undefined; onAdd(): void }) {
+  const t = useT()
   const toggle = useShelvesStore((s) => s.toggle)
   const rename = useShelvesStore((s) => s.rename)
   const move = useShelvesStore((s) => s.move)
@@ -135,13 +145,13 @@ function JukeboxShelfRow({
               if (e.key === 'Enter') e.currentTarget.blur()
               if (e.key === 'Escape') setDraft(null)
             }}
-            aria-label={`Name for ${name}`}
+            aria-label={t('shelves.name_for_shelf', { name })}
             className="min-w-0 flex-1 rounded-lg border border-orange-400 bg-white px-2.5 py-1 text-[14px] font-semibold text-slate-900 focus:outline-none dark:bg-slate-900 dark:text-slate-100"
           />
         ) : (
           <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
             {named ? (
-              <button type="button" onClick={() => setDraft(name)} title="Tap to rename" className="inline-flex items-center gap-1.5 hover:text-orange-700 dark:hover:text-orange-400">
+              <button type="button" onClick={() => setDraft(name)} title={t('shelves.tap_to_rename')} className="inline-flex items-center gap-1.5 hover:text-orange-700 dark:hover:text-orange-400">
                 {name}
                 <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M12.5 4.5l3 3L7 16H4v-3z" />
@@ -150,13 +160,13 @@ function JukeboxShelfRow({
             ) : (
               name
             )}
-            <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">{songs.length > 0 ? plural(songs.length, 'song') : 'empty'}</span>
+            <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">{songs.length > 0 ? t.plural('common.songs', songs.length) : t('shelves.shelf_empty')}</span>
           </p>
         )}
         {songs.length > 0 && (
           <div className="flex items-center gap-1.5">
             <button type="button" onClick={() => playTracks(songs, 0)} className={pill}>
-              ▶ Play
+              ▶ {t('common.play')}
             </button>
             <button
               type="button"
@@ -167,7 +177,7 @@ function JukeboxShelfRow({
               className={pill}
             >
               <ShuffleGlyph />
-              Shuffle
+              {t('common.shuffle')}
             </button>
             <button
               type="button"
@@ -178,7 +188,7 @@ function JukeboxShelfRow({
               aria-pressed={editing}
               className={pill}
             >
-              {editing ? 'Done' : 'Fine-tune'}
+              {editing ? t('common.done') : t('shelves.fine_tune')}
             </button>
           </div>
         )}
@@ -187,10 +197,10 @@ function JukeboxShelfRow({
         items={slots}
         label={name}
         size="record"
-        verb={editing ? 'Pick' : 'Play from'}
+        verb={editing ? 'pick' : 'play_from'}
         keyOf={(s) => (isPlus(s) ? 'plus' : s.id)}
         nameOf={(s) => (isPlus(s) ? name : s.title)}
-        labelOf={(s) => (isPlus(s) ? `Add a song to ${name}` : undefined)}
+        labelOf={(s) => (isPlus(s) ? t('shelves.add_song_to_shelf', { name }) : undefined)}
         artOf={(s) => (isPlus(s) ? undefined : albumOf(s))}
         render={(s) =>
           isPlus(s) ? (
@@ -215,27 +225,29 @@ function JukeboxShelfRow({
             playTracks(songs, i)
           }
         }}
-        caption={(s) =>
-          isPlus(s)
-            ? { title: songs.length > 0 ? 'Add another song' : 'An empty shelf', detail: 'Tap + to put a song on it' }
-            : {
-                title: s.title,
-                // The how-to goes once a shelf has been played from (`TipId`);
-                // Edit's stays, since it is a different mode's instructions.
-                detail: `${s.artist ?? s.albumArtist ?? 'Unknown artist'}${
-                  editing ? ' — tap a record to move it or take it off' : shelfPlayLearnt ? '' : ' — tap the record to play the shelf from here'
-                }`,
-              }
-        }
+        caption={(s) => {
+          if (isPlus(s)) {
+            return { title: songs.length > 0 ? t('shelves.add_another_song') : t('shelves.an_empty_shelf'), detail: t('shelves.tap_plus_to_add') }
+          }
+          // The how-to goes once a shelf has been played from (`TipId`);
+          // Edit's stays, since it is a different mode's instructions.
+          const artist = s.artist ?? s.albumArtist ?? t('common.unknown_artist')
+          return {
+            title: s.title,
+            detail: editing
+              ? t('shelves.record_caption_editing', { artist })
+              : shelfPlayLearnt ? artist : t('shelves.record_caption_hint', { artist }),
+          }
+        }}
       />
       {editing && picked && (
         // Move the picked record along the shelf, or take it off.
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           <button type="button" onClick={() => move(shelfId, picked, -1)} className={pill} disabled={songs[0]?.id === picked}>
-            ‹ Move left
+            {t('shelves.move_left')}
           </button>
           <button type="button" onClick={() => move(shelfId, picked, 1)} className={pill} disabled={songs[songs.length - 1]?.id === picked}>
-            Move right ›
+            {t('shelves.move_right')}
           </button>
           <button
             type="button"
@@ -245,7 +257,7 @@ function JukeboxShelfRow({
             }}
             className="inline-flex items-center gap-1.5 rounded-full border border-red-300 px-3 py-1 text-[12.5px] font-medium text-red-700 transition hover:border-red-500 dark:border-red-800 dark:text-red-400"
           >
-            Take off
+            {t('shelves.take_off')}
           </button>
         </div>
       )}
@@ -255,6 +267,7 @@ function JukeboxShelfRow({
 
 /** Choose the songs for a shelf: tap to put one on, tap again to take it off. */
 function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string; onClose(): void }) {
+  const t = useT()
   const dialogRef = useDialogFocus()
   const tracks = useLibraryStore((s) => s.tracks)
   const shelves = useShelvesStore((s) => s.shelves)
@@ -283,7 +296,7 @@ function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string;
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label={`Add songs to ${name}`}
+      aria-label={t('shelves.add_songs_to', { name })}
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
@@ -292,13 +305,13 @@ function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string;
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">Add songs to {name}</p>
+          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{t('shelves.add_songs_to', { name })}</p>
           <button
             type="button"
             onClick={onClose}
             className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1 text-[13px] font-semibold text-white shadow-sm"
           >
-            Done
+            {t('common.done')}
           </button>
         </div>
         <div className="px-4 py-2.5">
@@ -306,26 +319,26 @@ function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string;
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search your songs"
-            aria-label="Search your songs"
+            placeholder={t('shelves.search_your_songs')}
+            aria-label={t('shelves.search_your_songs')}
             className="w-full rounded-full border border-slate-300 bg-white px-4 py-1.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         </div>
         <ul className="min-h-0 flex-1 overflow-y-auto px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {shown.map((t) => {
-            const on = onShelf.has(t.id)
+          {shown.map((track) => {
+            const on = onShelf.has(track.id)
             return (
-              <li key={t.id}>
+              <li key={track.id}>
                 <button
                   type="button"
-                  onClick={() => setTarget(toggle(target, t.id))}
+                  onClick={() => setTarget(toggle(target, track.id))}
                   aria-pressed={on}
                   className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] text-slate-900 dark:text-slate-100">{t.title}</span>
+                    <span className="block truncate text-[14px] text-slate-900 dark:text-slate-100">{track.title}</span>
                     <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
-                      {[t.artist ?? t.albumArtist, t.album].filter(Boolean).join(' — ')}
+                      {[track.artist ?? track.albumArtist, track.album].filter(Boolean).join(' — ')}
                     </span>
                   </span>
                   <span
@@ -342,7 +355,7 @@ function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string;
           })}
           {found.length > shown.length && (
             <li className="px-2 py-3 text-center text-[12px] text-slate-500 dark:text-slate-400">
-              {(found.length - shown.length).toLocaleString()} more — search to find them
+              {t.plural('shelves.picker_more', found.length - shown.length)}
             </li>
           )}
         </ul>

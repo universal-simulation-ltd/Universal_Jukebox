@@ -3,6 +3,7 @@ import Cover from './Cover'
 import CoverFan from './CoverFan'
 import Record45 from './Record45'
 import { ShelfRow } from './Shelf'
+import { useT, type MessageKey } from '../i18n'
 import {
   IPhoneBrowserError, KIND_LABEL, TITLE_MAX, artBlob, findInLibrary, indexLibrary, keepArt, requestsInOrder, searchArt,
   type ArtResult, type MusicRequest, type RequestKind,
@@ -33,12 +34,27 @@ const isPlus = (slot: Slot): slot is typeof PLUS => slot === PLUS
 const pill =
   'inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1 text-[12.5px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400'
 
+/** Each kind's tooltip in the switch — whole sentences, one per kind. */
+const KIND_DEFAULT: Record<RequestKind, MessageKey> = {
+  track: 'shelves.kind_default_track', album: 'shelves.kind_default_album', artist: 'shelves.kind_default_artist',
+}
+const KIND_DOUBLE_TAP: Record<RequestKind, MessageKey> = {
+  track: 'shelves.kind_double_tap_track', album: 'shelves.kind_double_tap_album', artist: 'shelves.kind_double_tap_artist',
+}
+
+/** Why a picture could not be had — kept as a kind, so the words follow a language switch. */
+type RequestError = 'iphone' | 'search' | 'download'
+const ERROR_TEXT: Record<RequestError, MessageKey> = {
+  iphone: 'shelves.error_iphone_browser', search: 'shelves.error_search', download: 'shelves.error_download',
+}
+
 /** Who by, for a caption: "Album · The Beatles". */
 function describe(r: MusicRequest): string {
   return r.kind === 'artist' ? KIND_LABEL.artist : [KIND_LABEL[r.kind], r.artist].filter(Boolean).join(' · ')
 }
 
 export default function Requests() {
+  const t = useT()
   const requests = useRequestsStore((s) => s.requests)
   const setGot = useRequestsStore((s) => s.setGot)
   const remove = useRequestsStore((s) => s.remove)
@@ -65,7 +81,7 @@ export default function Requests() {
 
   return (
     <section
-      aria-label="Your requests"
+      aria-label={t('shelves.your_requests')}
       className="overflow-hidden rounded-3xl bg-sky-50/80 py-4 ring-1 ring-sky-200/80 dark:bg-sky-950/25 dark:ring-sky-900/60"
     >
       <div className="mb-1 flex items-center justify-between gap-2 px-4">
@@ -73,9 +89,9 @@ export default function Requests() {
           <svg viewBox="0 0 20 20" className="h-4 w-4 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M6 3.5h8a1 1 0 0 1 1 1v12l-5-3-5 3v-12a1 1 0 0 1 1-1z" />
           </svg>
-          Requests
+          {t('shelves.requests')}
           <span className="font-normal text-slate-500 dark:text-slate-400">
-            {requests.length === 0 || toGet > 0 ? `${toGet > 0 ? `${toGet} ` : ''}to add to library` : 'all added'}
+            {toGet > 0 ? t.plural('shelves.n_to_add_to_library', toGet) : requests.length === 0 ? t('shelves.to_add_to_library') : t('shelves.all_added')}
           </span>
         </p>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -85,20 +101,20 @@ export default function Requests() {
               onClick={clearGot}
               className={pill}
             >
-              Clear {got} added
+              {t.plural('shelves.clear_added', got)}
             </button>
           )}
         </div>
       </div>
       <ShelfRow<Slot>
         items={slots}
-        label="Requests"
+        label={t('shelves.requests')}
         size="record"
         rail="steel"
-        verb="Choose"
+        verb="choose"
         keyOf={(s) => (isPlus(s) ? 'plus' : s.id)}
-        nameOf={(s) => (isPlus(s) ? 'Requests' : s.title)}
-        labelOf={(s) => (isPlus(s) ? 'Request a song, album or artist' : undefined)}
+        nameOf={(s) => (isPlus(s) ? t('shelves.requests') : s.title)}
+        labelOf={(s) => (isPlus(s) ? t('shelves.request_plus_label') : undefined)}
         artOf={(s) => (isPlus(s) ? undefined : sleeves.get(s.id))}
         render={(s) =>
           isPlus(s) ? (
@@ -144,11 +160,11 @@ export default function Requests() {
                     : 'inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1 text-[12.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700'
                 }
               >
-                {s.gotAt ? 'Not got yet' : '✓ Got it'}
+                {s.gotAt ? t('shelves.not_got_yet') : t('shelves.got_it')}
               </button>
               {found.length > 0 && (
                 <button type="button" onClick={() => playTracks(found, 0)} className={pill}>
-                  ▶ Play
+                  ▶ {t('common.play')}
                 </button>
               )}
               <button
@@ -156,7 +172,7 @@ export default function Requests() {
                 onClick={() => remove(s.id)}
                 className="inline-flex items-center gap-1.5 rounded-full border border-red-300 px-3 py-1 text-[12.5px] font-medium text-red-700 transition hover:border-red-500 dark:border-red-800 dark:text-red-400"
               >
-                Remove
+                {t('common.remove')}
               </button>
             </>
           )
@@ -164,12 +180,12 @@ export default function Requests() {
         caption={(s) =>
           isPlus(s)
             ? {
-                title: requests.length > 0 ? 'Request another' : 'Nothing requested yet',
-                detail: 'Use this area to remind yourself to add items to your library at a later date.',
+                title: requests.length > 0 ? t('shelves.request_another') : t('shelves.nothing_requested'),
+                detail: t('shelves.requests_explainer'),
               }
             : {
                 title: s.title,
-                detail: `${describe(s)} — ${s.gotAt ? 'in your library ✓' : 'tick it once it’s in your library'}`,
+                detail: t(s.gotAt ? 'shelves.request_caption_got' : 'shelves.request_caption_to_get', { what: describe(s) }),
               }
         }
       />
@@ -204,6 +220,7 @@ function RequestArt({ request, sleeve }: { request: MusicRequest; sleeve: Album 
 
 /** Say what to get, and — if you like — find its picture. */
 function RequestDialog({ onClose }: { onClose(): void }) {
+  const t = useT()
   const dialogRef = useDialogFocus()
   const add = useRequestsStore((s) => s.add)
   const defaultKind = useRequestsStore((s) => s.defaultKind)
@@ -216,7 +233,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
   const [searching, setSearching] = useState(false)
   const [chosen, setChosen] = useState<ArtResult | null>(null)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<RequestError | null>(null)
   const words = kind === 'artist' ? title : [title, artist].filter((w) => w.trim()).join(' ')
 
   useEffect(() => {
@@ -234,11 +251,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
     try {
       setResults(await searchArt(kind, words))
     } catch (e) {
-      setError(
-        e instanceof IPhoneBrowserError
-          ? 'Apple’s search sends iPhone browsers to the Music app instead of answering, so pictures can’t be found here. They can in the Jukebox app, or on an iPad or computer. You can still add it without one.'
-          : 'The search didn’t get an answer. Check the connection and try again — or add it without a picture.',
-      )
+      setError(e instanceof IPhoneBrowserError ? 'iphone' : 'search')
     } finally {
       setSearching(false)
     }
@@ -255,7 +268,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
         art = await keepArt(chosen.image)
       } catch {
         setSaving(false)
-        setError('That picture wouldn’t download. Pick another, or add it without one.')
+        setError('download')
         return
       }
     }
@@ -272,7 +285,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label="Request music"
+      aria-label={t('shelves.request_music')}
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
@@ -281,13 +294,13 @@ function RequestDialog({ onClose }: { onClose(): void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">Request music</p>
+          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{t('shelves.request_music')}</p>
           <button type="button" onClick={onClose} className="text-[13px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
-          <div role="radiogroup" aria-label="What to get" className="flex gap-1 rounded-full bg-slate-100 p-1 dark:bg-slate-800">
+          <div role="radiogroup" aria-label={t('shelves.what_to_get')} className="flex gap-1 rounded-full bg-slate-100 p-1 dark:bg-slate-800">
             {(['track', 'album', 'artist'] as const).map((k) => (
               <button
                 key={k}
@@ -308,7 +321,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
                   setResults(null)
                   setChosen(null)
                 }}
-                title={defaultKind === k ? `${KIND_LABEL[k]} — new requests start here` : `Double-tap to start new requests on ${KIND_LABEL[k]}`}
+                title={t(defaultKind === k ? KIND_DEFAULT[k] : KIND_DOUBLE_TAP[k])}
                 className={`flex-1 touch-manipulation rounded-full px-3 py-1 text-[13px] font-medium transition ${
                   kind === k ? 'bg-white shadow-sm dark:bg-slate-950' : ''
                 } ${
@@ -324,7 +337,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
             ))}
           </div>
           <p className="-mt-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
-            Double-tap one to start there every time — it’s the orange one.
+            {t('shelves.double_tap_hint')}
           </p>
           <form
             className="space-y-2"
@@ -338,8 +351,8 @@ function RequestDialog({ onClose }: { onClose(): void }) {
               value={title}
               maxLength={TITLE_MAX}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={kind === 'artist' ? 'Artist' : kind === 'album' ? 'Album' : 'Song'}
-              aria-label={kind === 'artist' ? 'Artist' : kind === 'album' ? 'Album title' : 'Song title'}
+              placeholder={t(kind === 'artist' ? 'shelves.field_artist' : kind === 'album' ? 'shelves.field_album' : 'shelves.field_song')}
+              aria-label={t(kind === 'artist' ? 'shelves.field_artist' : kind === 'album' ? 'shelves.field_album_title' : 'shelves.field_song_title')}
               className={field}
             />
             {kind !== 'artist' && (
@@ -347,26 +360,25 @@ function RequestDialog({ onClose }: { onClose(): void }) {
                 value={artist}
                 maxLength={TITLE_MAX}
                 onChange={(e) => setArtist(e.target.value)}
-                placeholder="Artist (optional)"
-                aria-label="Artist"
+                placeholder={t('shelves.field_artist_optional')}
+                aria-label={t('shelves.field_artist')}
                 className={field}
               />
             )}
             <button type="submit" disabled={!words.trim() || searching} className={pill}>
-              {searching ? 'Searching…' : 'Find a picture'}
+              {searching ? t('shelves.searching') : t('shelves.find_a_picture')}
             </button>
             <p className="text-[11.5px] leading-snug text-slate-500 dark:text-slate-400">
-              Finding a picture sends what you typed to Apple’s iTunes Search — nothing else, and only when you tap it.
-              The picture you pick is kept on this device.
+              {t('shelves.picture_privacy')}
             </p>
           </form>
           {results && results.length === 0 && (
-            <p className="text-[13px] text-slate-500 dark:text-slate-400">No pictures found. Try other words, or add it without one.</p>
+            <p className="text-[13px] text-slate-500 dark:text-slate-400">{t('shelves.no_pictures')}</p>
           )}
           {results && results.length > 0 && (
             <>
               {kind === 'artist' && (
-                <p className="text-[12px] text-slate-500 dark:text-slate-400">Pick one of their covers to stand for them.</p>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">{t('shelves.pick_cover_for_artist')}</p>
               )}
               <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {results.map((r) => {
@@ -403,7 +415,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
               </ul>
             </>
           )}
-          {error && <p className="text-[13px] text-red-700 dark:text-red-400">{error}</p>}
+          {error && <p className="text-[13px] text-red-700 dark:text-red-400">{t(ERROR_TEXT[error])}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-slate-800">
           <button
@@ -412,7 +424,7 @@ function RequestDialog({ onClose }: { onClose(): void }) {
             disabled={!title.trim() || saving}
             className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm disabled:opacity-50"
           >
-            {saving ? 'Adding…' : chosen ? 'Add with this picture' : 'Add request'}
+            {saving ? t('shelves.adding') : chosen ? t('shelves.add_with_picture') : t('shelves.add_request')}
           </button>
         </div>
       </div>

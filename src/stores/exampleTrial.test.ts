@@ -229,7 +229,7 @@ describe('what a trial must not touch', () => {
     useLibraryStore.setState({ tracks: [demoTrack, moved], albums: [demoAlbum, other] })
     const merge = {
       kind: 'merge' as const, intoAlbumId: demoAlbum.id, intoTitle: 'Made Up', intoArtist: 'The Demo Band',
-      fromAlbumIds: [other.id], trackIds: [moved.id], reason: 'test',
+      fromAlbumIds: [other.id], trackIds: [moved.id], rule: 'split-artists' as const, folder: '',
     }
     useTidyStore.setState({ status: 'done', proposals: [merge], chosen: new Set([`merge:${demoAlbum.id}:${moved.id}`]) })
 

@@ -8,6 +8,8 @@
 // them is not stored — it becomes a shelf when its first song goes on, and
 // then another empty one appears below it.
 
+import { getT } from '../i18n/runtime.ts'
+
 export interface JukeboxShelf {
   id: string
   trackIds: string[]
@@ -63,9 +65,21 @@ export function parseShelves(raw: unknown): JukeboxShelf[] {
 /** Longest name a shelf keeps. */
 export const NAME_MAX = 40
 
-/** A shelf's name as shown: yours, or "Shelf N" by its place. */
+/**
+ * A shelf's name as shown: yours, or "Shelf N" by its place.
+ *
+ * ⚠️ "Shelf N" is never stored — an unnamed shelf has no `name` at all — so it
+ * is written here, at display time, in the reader's language. A name you gave
+ * a shelf is yours and is shown as you typed it.
+ */
 export function shelfName(shelf: JukeboxShelf, index: number): string {
-  return shelf.name?.trim() || `Shelf ${index + 1}`
+  return shelf.name?.trim() || unnamedShelf(index + 1)
+}
+
+/** "Shelf 3" — what the shelf in place `n` (from 1) is called until it is named. */
+export function unnamedShelf(n: number): string {
+  const t = getT()
+  return t('shelves.shelf_n', { n: t.num(n) })
 }
 
 /** Call a shelf something — or, with an empty name, go back to "Shelf N". */

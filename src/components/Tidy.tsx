@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { DropRing } from '@unisim/sdk'
-import { plural } from '../lib/format'
+import { useT, type Translator } from '../i18n'
+import { shownName } from '../lib/format'
 import { goHome } from '../lib/route'
+import type { MergeProposal } from '../lib/tidy'
 import { useLibraryStore } from '../stores/libraryStore'
 import { proposalKey, useTidyStore } from '../stores/tidyStore'
 
@@ -13,7 +15,24 @@ import { proposalKey, useTidyStore } from '../stores/tidyStore'
 // the album, the picture it wants to use, where that picture came from, and one
 // sentence saying why it is safe — and it is ticked, not done.
 
+/**
+ * Why a merge is safe, in one sentence — written here from the rule that found
+ * it (`MergeProposal.rule`), so it follows the reader's language. The top of
+ * the chosen folder has no path, so it has sentences of its own rather than a
+ * translated phrase dropped into the brackets.
+ */
+function mergeReason(t: Translator, p: MergeProposal): string {
+  const folder = p.folder
+  if (p.rule === 'split-artists') {
+    return folder ? t('tidy.reason_split_artists', { folder }) : t('tidy.reason_split_artists_root')
+  }
+  // "This track" or "these tracks" — one or more, not a count's grammar.
+  if (p.trackIds.length === 1) return folder ? t('tidy.reason_loose_track', { folder }) : t('tidy.reason_loose_track_root')
+  return folder ? t('tidy.reason_loose_tracks', { folder }) : t('tidy.reason_loose_tracks_root')
+}
+
 export default function Tidy() {
+  const t = useT()
   const status = useTidyStore((s) => s.status)
   const proposals = useTidyStore((s) => s.proposals)
   const chosen = useTidyStore((s) => s.chosen)
@@ -45,59 +64,51 @@ export default function Tidy() {
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
         </svg>
-        Back to your library
+        {t('tidy.back_to_library')}
       </button>
 
       <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-        Tidy up your library
+        {t('tidy.title')}
       </h1>
       <p className="mt-2 text-[14px] leading-relaxed text-slate-600 dark:text-slate-300">
-        Missing covers found on your own disk, and records that have been split in two by
-        inconsistent tags. Nothing is looked up online and{' '}
-        <strong className="font-semibold text-slate-900 dark:text-slate-100">
-          your music files are never changed
-        </strong>{' '}
-        — this only corrects the library here.
+        {t.rich('tidy.intro', {
+          strong: (
+            <strong className="font-semibold text-slate-900 dark:text-slate-100">
+              {t('tidy.intro_strong')}
+            </strong>
+          ),
+        })}
       </p>
 
       {status === 'looking' && (
         <div className="mt-8 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
           <DropRing size={34} motion="busy" aria-hidden />
-          <span>Looking through your library…</span>
+          <span>{t('tidy.looking')}</span>
         </div>
       )}
 
       {status === 'unavailable' && (
-        <Note>
-          The tidy-up reads your files to find artwork, so it needs access to your music
-          folder. Choose it again from the banner on your library and come back.
-        </Note>
+        <Note>{t('tidy.unavailable')}</Note>
       )}
 
       {status === 'done' && applied > 0 && (
         <Note>
-          Done — {plural(applied, 'change')} applied. They will survive rescanning, because
-          they are stored separately from the library.{' '}
+          {t.plural('tidy.applied', applied)}{' '}
           <button
             type="button"
             onClick={() => void look()}
             className="font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
           >
-            Look again
+            {t('tidy.look_again')}
           </button>
         </Note>
       )}
 
       {status === 'done' && applied === 0 && proposals.length === 0 && (
         <Note>
-          Nothing to do — {checked === 0
-            ? 'every album already has its artwork'
-            : `checked ${plural(checked, 'album')} with no artwork and found nothing on disk to use`}
-          , and no records look like they have been split in two.
+          {checked === 0 ? t('tidy.nothing_to_do_all_art') : t.plural('tidy.nothing_to_do_checked', checked)}
           <span className="mt-2 block text-slate-500 dark:text-slate-400">
-            The app only uses artwork that is already in your files or sitting in the folder
-            beside them — it never asks the internet, which is also why it can’t invent a
-            cover that isn’t there.
+            {t('tidy.nothing_to_do_note')}
           </span>
         </Note>
       )}
@@ -106,7 +117,7 @@ export default function Tidy() {
         <>
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
             <p className="text-[13px] text-slate-600 dark:text-slate-300">
-              {plural(proposals.length, 'suggestion')} · {chosen.size} selected
+              {t.plural('tidy.suggestions', proposals.length, { selected: t.num(chosen.size) })}
             </p>
             <div className="flex gap-3 text-[12.5px]">
               <button
@@ -114,20 +125,20 @@ export default function Tidy() {
                 onClick={() => chooseAll(true)}
                 className="text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
               >
-                Select all
+                {t('tidy.select_all')}
               </button>
               <button
                 type="button"
                 onClick={() => chooseAll(false)}
                 className="text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
               >
-                Select none
+                {t('tidy.select_none')}
               </button>
             </div>
           </div>
 
           {covers.length > 0 && (
-            <Section title={`Artwork found on your disk (${covers.length})`}>
+            <Section title={t('tidy.section_covers', { count: t.num(covers.length) })}>
               {covers.map((p) => {
                 if (p.kind !== 'cover') return null
                 const key = proposalKey(p)
@@ -146,15 +157,15 @@ export default function Tidy() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-medium text-slate-900 dark:text-slate-100">
-                        {p.title}
+                        {shownName(p.title)}
                       </span>
                       <span className="block truncate text-[12.5px] text-slate-500 dark:text-slate-400">
-                        {p.artist}
+                        {shownName(p.artist)}
                       </span>
                       <span className="mt-1 block text-[12px] text-slate-500 dark:text-slate-400">
                         {p.source === 'folder'
-                          ? <>Found <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800">{p.sourceLabel}</code> in the album’s folder.</>
-                          : <>Taken from the artwork already inside <em>{p.sourceLabel}</em>.</>}
+                          ? t.rich('tidy.cover_from_folder', { file: <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800">{p.sourceLabel}</code> })
+                          : t.rich('tidy.cover_from_track', { file: <em>{p.sourceLabel}</em> })}
                       </span>
                     </span>
                   </label>
@@ -164,7 +175,7 @@ export default function Tidy() {
           )}
 
           {merges.length > 0 && (
-            <Section title={`Records split in two (${merges.length})`}>
+            <Section title={t('tidy.section_merges', { count: t.num(merges.length) })}>
               {merges.map((p) => {
                 if (p.kind !== 'merge') return null
                 const key = proposalKey(p)
@@ -178,13 +189,13 @@ export default function Tidy() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[14px] font-medium text-slate-900 dark:text-slate-100">
-                        Move {plural(p.trackIds.length, 'track')} into “{p.intoTitle}”
+                        {t.plural('tidy.move_tracks_into', p.trackIds.length, { title: shownName(p.intoTitle) })}
                       </span>
                       <span className="block text-[12.5px] text-slate-500 dark:text-slate-400">
-                        {p.intoArtist}
+                        {shownName(p.intoArtist)}
                       </span>
                       <span className="mt-1 block text-[12px] text-slate-500 dark:text-slate-400">
-                        {p.reason}
+                        {mergeReason(t, p)}
                       </span>
                     </span>
                   </label>
@@ -200,10 +211,10 @@ export default function Tidy() {
               disabled={chosen.size === 0}
               className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-50"
             >
-              Apply {chosen.size > 0 ? plural(chosen.size, 'change') : 'changes'}
+              {chosen.size > 0 ? t.plural('tidy.apply_changes', chosen.size) : t('tidy.apply_changes')}
             </button>
             <p className="text-[12px] text-slate-500 dark:text-slate-400">
-              Your files are not touched. To undo, forget the library and scan again.
+              {t('tidy.files_not_touched')}
             </p>
           </div>
         </>

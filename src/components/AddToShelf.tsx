@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { plural } from '../lib/format'
-import { NAME_MAX, NEW_SHELF, shelfName } from '../lib/shelves'
+import { useT } from '../i18n'
+import { NAME_MAX, NEW_SHELF, shelfName, unnamedShelf } from '../lib/shelves'
 import { useShelvesStore } from '../stores/shelvesStore'
 import type { Track } from '../lib/types'
 import { ModeButton } from './ModeButton'
@@ -42,6 +42,7 @@ function shelvesHolding(ids: readonly string[]): Set<string> {
  * in a song's row. `mode`: Now Playing's row of round buttons.
  */
 export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'pill' | 'round' | 'icon' | 'mode' }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   // The shelves that already held them when the sheet opened — so closing it
   // can tell whether it put them somewhere new ("Added to shelf", 2026-09-27).
@@ -49,23 +50,25 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
   const { said, say } = useDone()
   if (tracks.length === 0) return null
   const one = tracks.length === 1 ? tracks[0] : null
-  const label = one ? `Add “${one.title}” to a shelf` : `Add ${plural(tracks.length, 'song')} to a shelf`
+  const label = one ? t('shelves.add_song_title_to_a_shelf', { title: one.title }) : t.plural('shelves.add_songs_to_a_shelf', tracks.length)
   const done = said !== null
   const show = () => {
-    setBefore(shelvesHolding(tracks.map((t) => t.id)))
+    setBefore(shelvesHolding(tracks.map((track) => track.id)))
     setOpen(true)
   }
   const close = () => {
     setOpen(false)
-    const now = shelvesHolding(tracks.map((t) => t.id))
-    if ([...now].some((id) => !before.has(id))) say('Added to shelf')
+    const now = shelvesHolding(tracks.map((track) => track.id))
+    // ⚠️ Said once, as text: the bubble is gone in a moment, so it does not
+    // follow a language switched in that moment.
+    if ([...now].some((id) => !before.has(id))) say(t('shelves.added_to_shelf'))
   }
   const glyph = done ? <TickGlyph className="h-4 w-4" /> : <ShelfGlyph />
   return (
     <span className="relative inline-flex shrink-0">
       {variant === 'mode' ? (
         // In the row of round buttons on Now Playing (`PlayModes`).
-        <ModeButton label={done ? 'Added to shelf' : 'Add to shelf'} ariaLabel={label} onClick={show}>
+        <ModeButton label={done ? t('shelves.added_to_shelf') : t('shelves.add_to_shelf')} ariaLabel={label} onClick={show}>
           {glyph}
         </ModeButton>
       ) : variant === 'pill' || variant === 'round' ? (
@@ -73,7 +76,7 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
           type="button"
           onClick={show}
           aria-label={variant === 'round' ? label : undefined}
-          title={variant === 'round' ? 'Add to shelf' : undefined}
+          title={variant === 'round' ? t('shelves.add_to_shelf') : undefined}
           className={`inline-flex items-center rounded-full border text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] ${
             variant === 'round' ? 'h-[38px] w-[38px] justify-center' : 'gap-2 px-5 py-2'
           } ${
@@ -83,7 +86,7 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
           }`}
         >
           {glyph}
-          {variant === 'pill' && <span aria-live="polite">{said ?? 'Add to shelf'}</span>}
+          {variant === 'pill' && <span aria-live="polite">{said ?? t('shelves.add_to_shelf')}</span>}
         </button>
       ) : (
         <button
@@ -101,23 +104,24 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
         </button>
       )}
       {variant !== 'pill' && <DoneBubble text={said} align={variant === 'icon' ? 'end' : 'center'} />}
-      {open && <ShelfSheet tracks={tracks} title={one ? one.title : plural(tracks.length, 'song')} onClose={close} />}
+      {open && <ShelfSheet tracks={tracks} title={one ? one.title : t.plural('common.songs', tracks.length)} onClose={close} />}
     </span>
   )
 }
 
 export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title: string; onClose(): void }) {
+  const t = useT()
   const dialogRef = useDialogFocus()
   const shelves = useShelvesStore((s) => s.shelves)
   const toggle = useShelvesStore((s) => s.toggle)
   const add = useShelvesStore((s) => s.add)
   const rename = useShelvesStore((s) => s.rename)
-  const ids = tracks.map((t) => t.id)
+  const ids = tracks.map((track) => track.id)
   const one = ids.length === 1 ? ids[0] : null
   /** The name being typed for a new shelf — `null` until "New shelf" is tapped. */
   const [draft, setDraft] = useState<string | null>(null)
   /** What the shelf would be called if it is left unnamed — the placeholder. */
-  const nextName = `Shelf ${shelves.length + 1}`
+  const nextName = unnamedShelf(shelves.length + 1)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -143,7 +147,9 @@ export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title:
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label={`Add ${title} to a shelf`}
+      // One song by its title; several as a count — a whole sentence either
+      // way, rather than a translated "3 songs" dropped into another one.
+      aria-label={one ? t('shelves.add_title_to_a_shelf', { title }) : t.plural('shelves.add_songs_to_a_shelf', ids.length)}
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={(e) => {
         e.stopPropagation()
@@ -156,7 +162,7 @@ export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title:
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
           <div className="min-w-0">
-            <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">Add to a shelf</p>
+            <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{t('shelves.add_to_a_shelf')}</p>
             <p className="truncate text-[12.5px] text-slate-500 dark:text-slate-400">{title}</p>
           </div>
           <button
@@ -164,7 +170,7 @@ export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title:
             onClick={onClose}
             className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1 text-[13px] font-semibold text-white shadow-sm"
           >
-            Done
+            {t('common.done')}
           </button>
         </div>
         <ul className="min-h-0 flex-1 overflow-y-auto px-2 py-1.5 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -180,7 +186,7 @@ export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title:
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-medium text-slate-900 dark:text-slate-100">{shelfName(shelf, i)}</span>
-                    <span className="block text-[12px] text-slate-500 dark:text-slate-400">{plural(shelf.trackIds.length, 'song')}</span>
+                    <span className="block text-[12px] text-slate-500 dark:text-slate-400">{t.plural('common.songs', shelf.trackIds.length)}</span>
                   </span>
                   <Tick on={on} />
                 </button>
@@ -194,7 +200,7 @@ export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title:
                 onClick={() => setDraft('')}
                 className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
               >
-                <span className="min-w-0 flex-1 text-[14px] font-medium">New shelf…</span>
+                <span className="min-w-0 flex-1 text-[14px] font-medium">{t('shelves.new_shelf')}</span>
                 <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-current text-[15px]" aria-hidden>
                   +
                 </span>
@@ -223,14 +229,14 @@ export function ShelfSheet({ tracks, title, onClose }: { tracks: Track[]; title:
                     }
                   }}
                   placeholder={nextName}
-                  aria-label="Name for the new shelf"
+                  aria-label={t('shelves.name_for_new_shelf')}
                   className="min-w-0 flex-1 rounded-lg border border-orange-400 bg-white px-2.5 py-1.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:outline-none dark:bg-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="submit"
                   className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm"
                 >
-                  Create
+                  {t('shelves.create')}
                 </button>
               </form>
             )}

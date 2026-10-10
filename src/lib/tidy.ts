@@ -69,8 +69,15 @@ export interface MergeProposal {
   fromAlbumIds: string[]
   /** The tracks that move. */
   trackIds: string[]
-  /** One sentence, shown to the user, saying why this is safe. */
-  reason: string
+  /**
+   * Which rule found it — the sentence saying why it is safe is written from
+   * this by the page (`Tidy.tsx`), in the reader's language, not here.
+   * `split-artists`: one record's tracks in one folder under two artist tags.
+   * `no-album-tag`: tracks with no album tag beside a record in its folder.
+   */
+  rule: 'split-artists' | 'no-album-tag'
+  /** The folder it was found in; `''` for the top of the chosen folder. */
+  folder: string
 }
 
 /** Every distinct folder an album's tracks live in. */
@@ -168,11 +175,14 @@ export function findMerges(tracks: Track[], albums: Album[]): MergeProposal[] {
       proposals.push({
         kind: 'merge',
         intoAlbumId: keep,
+        // The scanner's own English placeholders — DATA, like the names it
+        // files untagged music under; `shownName` translates them on screen.
         intoTitle: keeper?.title ?? 'Unknown album',
         intoArtist: keeper?.artist ?? 'Unknown artist',
         fromAlbumIds: from,
         trackIds: tracks.filter((t) => from.includes(t.albumId)).map((t) => t.id),
-        reason: `Same album name, same folder (${dir || 'the chosen folder'}), different artist tags.`,
+        rule: 'split-artists',
+        folder: dir,
       })
     }
   }
@@ -193,7 +203,8 @@ export function findMerges(tracks: Track[], albums: Album[]): MergeProposal[] {
       intoArtist: album.artist,
       fromAlbumIds: [],
       trackIds: loose.map((t) => t.id),
-      reason: `${loose.length === 1 ? 'This track has' : 'These tracks have'} no album tag, but ${loose.length === 1 ? 'sits' : 'sit'} in the same folder (${dir || 'the chosen folder'}) as the rest of the record.`,
+      rule: 'no-album-tag',
+      folder: dir,
     })
   }
 

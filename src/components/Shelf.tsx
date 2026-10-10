@@ -4,7 +4,8 @@ import Cover from './Cover'
 import { coverUrl, fallbackHue } from '../lib/art'
 import Record45 from './Record45'
 import { navigate } from '../lib/route'
-import { plural } from '../lib/format'
+import { useT, type MessageKey } from '../i18n'
+import { shownGenre } from '../lib/genres'
 import { grooveRings } from '../lib/grooves'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { newSeed, shelfRows, shelfStarts, SHELF_MAX_ROWS, TRACK_SHELF_MAX_ROWS } from '../lib/libraryView'
@@ -74,6 +75,7 @@ function Shelves<T>({
   /** How many shelves at most — ten for the records, twenty for the songs. */
   maxRows?: number
 }) {
+  const t = useT()
   // ⚠️ THE RESUME ITEM JOINS THE FIRST SHELF; IT DOES NOT RESHUFFLE THE REST
   // (James, 2026-09-11: "When having the resume listening card show that songs
   // artist in the shelf above as first item - keep the other items the same in
@@ -125,7 +127,9 @@ function Shelves<T>({
             <LazyShelf eager={i < EAGER_SHELVES} height={shelfHeight} onMeasure={measured}>
               {row(
                 r,
-                groups ? `${groups[i].genre} — ${r.length} on the shelf` : rows.length > 1 ? `Shelf ${i + 1} of ${rows.length}` : label,
+                groups
+                  ? t.plural('shelves.genre_shelf', r.length, { genre: shownGenre(groups[i].genre) })
+                  : rows.length > 1 ? t('shelves.shelf_n_of_m', { n: t.num(i + 1), total: t.num(rows.length) }) : label,
                 // ⚠️ EACH SHELF OPENS SOMEWHERE OF ITS OWN — `shelfStarts`
                 // holds the rule and the reasoning. It replaced a
                 // 1st/2nd/1st/2nd brick stagger (James, 2026-09-11), which
@@ -217,12 +221,13 @@ function LazyShelf({
 }
 
 export default function Shelf({ albums, lead, groups }: { albums: Album[]; lead?: Album; groups?: { genre: string; items: Album[] }[] }) {
+  const t = useT()
   return (
     <Shelves
       items={albums}
       lead={lead}
       groups={groups}
-      label="Albums on the shelf"
+      label={t('shelves.albums_on_the_shelf')}
       row={(row, label, start, heading) => (
         <ShelfRow
           items={row}
@@ -234,7 +239,7 @@ export default function Shelf({ albums, lead, groups }: { albums: Album[]; lead?
           render={(a) => <Sleeve album={a} />}
           artOf={(a) => a}
           open={(a) => navigate({ view: 'album', albumId: a.id })}
-          caption={(a) => ({ title: a.title, detail: `${[a.artist, a.year].filter(Boolean).join(' · ')} — tap the record to open it` })}
+          caption={(a) => ({ title: a.title, detail: t('shelves.album_caption', { detail: [a.artist, a.year].filter(Boolean).join(' · ') }) })}
         />
       )}
     />
@@ -249,12 +254,13 @@ export function ArtistShelf({
   lead?: { name: string; albums: Album[] }
   groups?: { genre: string; items: { name: string; albums: Album[] }[] }[]
 }) {
+  const t = useT()
   return (
     <Shelves
       items={artists}
       lead={lead}
       groups={groups}
-      label="Artists on the shelf"
+      label={t('shelves.artists_on_the_shelf')}
       row={(row, label, start, heading) => (
         <ShelfRow
           items={row}
@@ -269,7 +275,7 @@ export function ArtistShelf({
           open={(a) =>
             a.albums.length === 1 ? navigate({ view: 'album', albumId: a.albums[0].id }) : navigate({ view: 'artist', artist: a.name })
           }
-          caption={(a) => ({ title: a.name, detail: `${plural(a.albums.length, 'album')} — tap the record to open it` })}
+          caption={(a) => ({ title: a.name, detail: t.plural('shelves.artist_caption', a.albums.length) })}
         />
       )}
     />
@@ -280,10 +286,11 @@ export function ArtistShelf({
 export function TrackShelf({
   tracks, onPlay, lead, groups,
 }: { tracks: Track[]; onPlay(track: Track): void; lead?: Track; groups?: { genre: string; items: Track[] }[] }) {
+  const t = useT()
   const albums = useLibraryStore((s) => s.albums)
   const albumOf = useMemo(() => {
     const byId = new Map(albums.map((a) => [a.id, a]))
-    return (t: Track) => byId.get(t.albumId)
+    return (track: Track) => byId.get(track.albumId)
   }, [albums])
   /** The song whose options are open, from a hold. */
   const [options, setOptions] = useState<Track | null>(null)
@@ -296,7 +303,7 @@ export function TrackShelf({
       lead={lead}
       groups={groups}
       maxRows={TRACK_SHELF_MAX_ROWS}
-      label="Songs on the shelf"
+      label={t('shelves.songs_on_the_shelf')}
       row={(row, label, start, heading) => (
         <ShelfRow
           items={row}
@@ -304,23 +311,23 @@ export function TrackShelf({
           start={start}
           heading={heading}
           size="record"
-          verb="Play"
-          keyOf={(t) => t.id}
-          nameOf={(t) => t.title}
-          render={(t) => <Record45 album={albumOf(t)} grooves={grooveRings(t.durationSec)} />}
+          verb="play"
+          keyOf={(s) => s.id}
+          nameOf={(s) => s.title}
+          render={(s) => <Record45 album={albumOf(s)} grooves={grooveRings(s.durationSec)} />}
           artOf={albumOf}
-          open={(t) => onPlay(t)}
+          open={(s) => onPlay(s)}
           // Play now or queue it from a tap and HOLD, not from buttons under
           // the record (James, 2026-09-27) — `TrackOptions`.
-          hold={(t) => {
+          hold={(s) => {
             markTipSeen('hold')
-            setOptions(t)
+            setOptions(s)
           }}
           // The how-to goes once somebody has held a record (`TipId`).
-          caption={(t) => ({
-            title: t.title,
-            detail: `${t.artist ?? t.albumArtist ?? 'Unknown artist'}${holdLearnt ? '' : ' — tap to play, hold for options'}`,
-          })}
+          caption={(s) => {
+            const artist = s.artist ?? s.albumArtist ?? t('common.unknown_artist')
+            return { title: s.title, detail: holdLearnt ? artist : t('shelves.track_caption_hint', { artist }) }
+          }}
         />
       )}
     />
@@ -335,8 +342,8 @@ interface ShelfRowProps<T> {
   keyOf(item: T): string
   /** The thing's name, for its button: "Open Kid A", "Show Kid A". */
   nameOf(item: T): string
-  /** What tapping the middle one does, for its button. */
-  verb?: string
+  /** What tapping the middle one does, for its button: "Open Kid A", "Play from Kid A". */
+  verb?: ShelfVerb
   render(item: T): ReactNode
   open(item: T, index: number): void
   caption(item: T): { title: string; detail: string }
@@ -371,6 +378,20 @@ interface ShelfRowProps<T> {
 }
 
 /**
+ * What tapping the middle record does. A kind, not a word: each is a whole
+ * sentence with the record's name in it (`shelves.item_*`), because "verb +
+ * name" glued together is English word order.
+ */
+export type ShelfVerb = 'open' | 'play' | 'play_from' | 'pick' | 'choose'
+const VERB_LABEL: Record<ShelfVerb, MessageKey> = {
+  open: 'shelves.item_open',
+  play: 'shelves.item_play',
+  play_from: 'shelves.item_play_from',
+  pick: 'shelves.item_pick',
+  choose: 'shelves.item_choose',
+}
+
+/**
  * Where each shelf was left, by page, shelf and first record — so a shelf you
  * come back to is where you left it (James, 2026-09-11: "preserve the state it
  * was on"). A reordered or refilled shelf starts afresh.
@@ -382,7 +403,8 @@ const HOLD_MS = 450
 /** A finger that moves further than this is swiping, not holding. */
 const HOLD_SLOP_PX = 10
 
-export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood', below, hold }: ShelfRowProps<T>) {
+export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood', below, hold }: ShelfRowProps<T>) {
+  const t = useT()
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
   const [middle, setMiddle] = useState(0)
@@ -560,7 +582,7 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'Op
                 else bringToMiddle(i)
               }}
               {...holdHandlers(item)}
-              aria-label={labelOf?.(item) ?? (acts ? `${verb} ${nameOf(item)}` : `Show ${nameOf(item)}`)}
+              aria-label={labelOf?.(item) ?? t(acts ? VERB_LABEL[verb] : 'shelves.item_show', { name: nameOf(item) })}
               aria-current={isMiddle ? 'true' : undefined}
               className="relative w-full shrink-0 snap-center select-none [-webkit-touch-callout:none] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]"
               style={{

@@ -31,6 +31,7 @@ export interface CoverProposal {
   artist: string
   /** Where the picture came from, for the sentence shown to the user. */
   source: 'folder' | 'track'
+  /** The image's path, or the music file's name — a name, never words to translate. */
   sourceLabel: string
   picture: Picture
   /** A preview URL, revoked when the proposals are dropped. */
@@ -265,12 +266,12 @@ async function findPicture(
   for (const trackId of gap.trackIds) {
     const meta = byId.get(trackId)
     const file = meta ? files.get(meta.path) : undefined
-    if (!file) continue
+    if (!meta || !file) continue
     try {
       const slice = await file.slice(0, ART_READ_BYTES).arrayBuffer()
       const tags = readTags(new Uint8Array(slice), true)
       if (tags.picture) {
-        return { picture: tags.picture, source: 'track', label: meta?.name ?? 'a track on this album' }
+        return { picture: tags.picture, source: 'track', label: meta.name }
       }
     } catch { /* one unreadable file is not a failed tidy */ }
   }

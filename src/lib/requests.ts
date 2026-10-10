@@ -44,6 +44,7 @@
 
 import { downscaleImage } from '@unisim/sdk'
 import { fold } from './format'
+import { getT } from '../i18n/runtime.ts'
 import type { Album, Track } from './types'
 
 export type RequestKind = 'track' | 'album' | 'artist'
@@ -68,7 +69,16 @@ export const TITLE_MAX = 120
 /** Past this many the oldest ticked ones go first, then the oldest of all. */
 export const REQUESTS_MAX = 200
 
-export const KIND_LABEL: Record<RequestKind, string> = { track: 'Song', album: 'Album', artist: 'Artist' }
+/**
+ * "Song", "Album", "Artist", in the reader's language. Getters, so each read
+ * asks `getT()` at that moment — a plain object would be frozen in whatever
+ * language was active when this module loaded.
+ */
+export const KIND_LABEL: Readonly<Record<RequestKind, string>> = {
+  get track() { return getT()('shelves.kind_track') },
+  get album() { return getT()('shelves.kind_album') },
+  get artist() { return getT()('shelves.kind_artist') },
+}
 
 // ── Matching ─────────────────────────────────────────────────────────────────
 
