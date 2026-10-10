@@ -29,7 +29,7 @@ L’application n’a pas de décodeurs à elle : elle s’appuie sur la lecture
 
 ## Connaître la raison
 
-Par défaut, les morceaux illisibles sont ignorés sans message. Si vous préférez savoir pourquoi, cochez **Show error messages** dans Tune this app, rubrique Messages : l’application indiquera alors chaque fichier qu’elle n’a pas pu lire et ce qui n’allait pas.`,
+Par défaut, les morceaux illisibles sont ignorés sans message. Si vous préférez savoir pourquoi, cochez **Afficher les messages d’erreur** dans Régler cette application, rubrique Messages : l’application indiquera alors chaque fichier qu’elle n’a pas pu lire et ce qui n’allait pas.`,
   },
   {
     id: 'tags-and-artwork',
@@ -47,12 +47,12 @@ L’application lit les types de tags courants utilisés par les fichiers MP3, M
 ## Quand les tags manquent ou sont faux
 
 - **Un fichier sans tags** est affiché sous son nom de fichier, sans le numéro de piste éventuel placé au début. L’application ne devine pas l’artiste à partir du nom de fichier, car une mauvaise supposition est pire qu’un champ vide.
-- **Un album coupé en deux** signifie généralement que ses pistes ont été étiquetées de façon incohérente — par exemple, le nom de l’artiste écrit de deux manières.
+- **Disques coupés en deux** : cela signifie généralement que leurs pistes ont été étiquetées de façon incohérente — par exemple, le nom de l’artiste écrit de deux manières.
 - **Une pochette manquante** peut signifier que l’image n’a jamais été enregistrée dans les fichiers, ou qu’elle se trouve dans une piste ultérieure plutôt que dans la première.
 
 ## Faire le ménage
 
-**Tidy up library**, dans Tune this app, rubrique Your library, recherche deux choses : des pochettes déjà présentes sur votre appareil mais inutilisées (une image nommée comme une pochette, par exemple cover.jpg, à côté des pistes, ou une image enregistrée dans une piste ultérieure), et des albums que des tags incohérents ont coupés en deux. Chaque suggestion vous est présentée avec l’image qui serait utilisée, et rien ne change tant que vous n’appuyez pas sur le bouton.
+**Ranger la bibliothèque**, dans Régler cette application, rubrique Votre bibliothèque, recherche deux choses : des pochettes déjà présentes sur votre appareil mais inutilisées (une image nommée comme une pochette, par exemple cover.jpg, à côté des pistes, ou une image enregistrée dans une piste ultérieure), et des disques que des tags incohérents ont coupés en deux. Chaque suggestion vous est présentée avec l’image qui serait utilisée, et rien ne change tant que vous n’appuyez pas sur le bouton.
 
 L’outil refuse volontairement tout ce dont il ne peut pas être sûr. Deux albums du même nom dans des dossiers différents, ou un dossier contenant deux albums différents, restent tels quels.
 
@@ -69,7 +69,7 @@ Le ménage corrige uniquement la bibliothèque dans l’application. Il ne réé
 
 ## Ajouter de la musique
 
-Ouvrez le menu et choisissez **Your complete library**. De là, vous pouvez ajouter un dossier, relancer une analyse ou retirer un dossier. Ajouter un dossier complète votre bibliothèque au lieu de la remplacer, et en retirer un n’enlève que les morceaux de ce dossier. Le fonctionnement des dossiers dépend de l’endroit où vous utilisez l’application :
+Ouvrez le menu et choisissez **Votre bibliothèque complète**. De là, vous pouvez ajouter un dossier, relancer une analyse ou retirer un dossier. Ajouter un dossier complète votre bibliothèque au lieu de la remplacer, et en retirer un n’enlève que les morceaux de ce dossier. Le fonctionnement des dossiers dépend de l’endroit où vous utilisez l’application :
 
 - **Chrome et Edge** peuvent mémoriser le dossier choisi. À votre retour, il peut vous être demandé de confirmer l’accès une fois, d’un simple geste.
 - **Firefox et Safari** ne peuvent pas conserver l’autorisation de lire un dossier d’une visite à l’autre : vous choisissez donc à nouveau le dossier à chaque fois. Votre bibliothèque, vos pochettes et vos réglages restent en mémoire, si bien que rien n’a besoin d’être relu.
@@ -78,7 +78,7 @@ Ouvrez le menu et choisissez **Your complete library**. De là, vous pouvez ajou
 
 ## Relancer une analyse
 
-L’application ne remarque pas d’elle-même l’arrivée ou la disparition de fichiers. Après avoir ajouté ou supprimé de la musique en dehors de l’application, choisissez **Rescan**. Une nouvelle analyse prend en compte les nouveaux morceaux, retire ceux qui ont disparu et conserve les corrections de ménage que vous avez faites.
+L’application ne remarque pas d’elle-même l’arrivée ou la disparition de fichiers. Après avoir ajouté ou supprimé de la musique en dehors de l’application, choisissez **Réanalyser**. Une nouvelle analyse prend en compte les nouveaux morceaux, retire ceux qui ont disparu et conserve les corrections de ménage que vous avez faites.
 
 ## Les morceaux de la bibliothèque Musique de l’iPhone
 
@@ -86,7 +86,37 @@ Les morceaux synchronisés sur l’iPhone depuis un ordinateur peuvent être lus
 
 ## Ce que l’application conserve
 
-L’application conserve sur votre appareil un catalogue de votre bibliothèque — titres, artistes, albums et petites copies des pochettes — pour s’ouvrir rapidement la fois suivante. Ce catalogue n’est ni sauvegardé ni partagé entre appareils : chaque appareil construit le sien. Effacer les données de ce site dans un navigateur efface le catalogue, mais jamais votre musique.`,
+L’application conserve sur votre appareil un catalogue de votre bibliothèque — titres, artistes, albums et petites copies des pochettes — pour s’ouvrir rapidement la fois suivante. Ce catalogue n’est pas partagé entre appareils : chaque appareil construit le sien. Effacer les données de ce site dans un navigateur efface le catalogue, mais jamais votre musique. Vos étagères, vos demandes et vos réglages peuvent être sauvegardés : voir Protéger votre musique.`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Protéger votre musique',
+    summary: 'Votre musique dans votre propre cloud, et une sauvegarde de vos étagères.',
+    group: 'Fonctionnement',
+    body: `Universal Jukebox n’envoie jamais votre musique en ligne : il ne peut donc pas non plus la perdre. Votre musique n’est en sécurité que si l’endroit où vous la gardez l’est. Un téléphone perdu ou cassé ne devrait pas emporter votre collection avec lui : gardez-en une copie ailleurs.
+
+## Gardez votre musique dans votre propre cloud
+
+N’importe quel stockage en ligne que vous utilisez déjà fera l’affaire : Proton Drive, iCloud Drive, Google Drive, OneDrive, ou un ordinateur que vous sauvegardez. Sur votre téléphone :
+
+1. Placez votre dossier de musique dans votre stockage en ligne.
+2. Dans l’app de ce service, rendez le dossier disponible hors connexion, pour que les morceaux soient stockés sur le téléphone et se lisent sans connexion. Les morceaux uniquement en ligne ne peuvent pas être lus.
+3. Dans Jukebox, ouvrez le menu, choisissez **Votre bibliothèque complète** et ajoutez le dossier. Sur iPhone, le service de cloud doit apparaître dans l’app Fichiers ; sur Android, dans le sélecteur de dossiers.
+
+Après avoir ajouté ou supprimé des morceaux dans le cloud, choisissez **Réanalyser**.
+
+## Sauvegardez ce que vous avez créé dans Jukebox
+
+Vos étagères, vos demandes, vos réglages et les fichiers de paroles que vous avez ajoutés n’existent que dans l’application. Pour les conserver, ouvrez **Régler cette application**, puis **Sauvegarde** :
+
+- **Enregistrer un fichier de sauvegarde** crée un petit fichier unique que vous pouvez garder n’importe où, y compris sur Proton Drive. Aucun compte n’est nécessaire. Dans les applications pour téléphone, il est enregistré dans le dossier Documents de l’application, et vous pouvez le déplacer depuis l’app Fichiers.
+- **Sauvegarder sur votre Universal ID** conserve la même sauvegarde avec votre compte, si vous êtes connecté. Elle est remplacée à chaque sauvegarde, et vous pouvez la supprimer. Elle n’est pas chiffrée de bout en bout. Si elle est trop volumineuse pour votre compte, l’application indique ce qu’elle a laissé de côté, et un fichier de sauvegarde garde tout.
+
+## Sur un nouveau téléphone
+
+Copiez votre musique ou rendez-la disponible hors connexion, ajoutez le dossier et attendez que la bibliothèque se charge. Restaurez ensuite votre sauvegarde. Vos réglages sont remplacés par ceux de la sauvegarde. Ses étagères et ses demandes s’ajoutent à ce que vous avez, et rien n’est retiré.
+
+Les morceaux sont retrouvés grâce à leur titre, leur artiste et leur album : une étagère revient donc même si les fichiers sont de nouvelles copies. Un morceau qui n’est pas encore dans votre bibliothèque est laissé de côté. Restaurez de nouveau après avoir ajouté de la musique pour le récupérer.`,
   },
   {
     id: 'between-songs',
@@ -106,9 +136,9 @@ L’application conserve sur votre appareil un catalogue de votre bibliothèque 
 
 **Les morceaux d’un même album** s’enchaînent directement avec un fondu enchaîné court et doux. Le morceau qui arrive ne monte qu’à mesure que celui qui part descend : la transition est fluide, sans deux morceaux joués fort en même temps.
 
-**Lorsque le morceau suivant est sur un autre disque**, les deux s’enchaînent aussi en fondu par défaut, pendant qu’à l’écran un lecteur glisse vers la sortie et le suivant fait son entrée. Si vous préférez une vraie coupure, cochez **No crossfade between records** dans Tune this app : le bras se lève, un court silence s’installe, puis il se pose sur le disque suivant.
+**Lorsque le morceau suivant est sur un autre disque**, les deux s’enchaînent aussi en fondu par défaut, pendant qu’à l’écran un lecteur glisse vers la sortie et le suivant fait son entrée. Si vous préférez une vraie coupure, cochez **Pas de fondu enchaîné entre les disques** dans Régler cette application : le bras se lève, un court silence s’installe, puis il se pose sur le disque suivant.
 
-**Fade in** et **Fade out**, dans Tune this app, rubrique Sound, ajoutent un fondu pouvant aller jusqu’à huit secondes au début ou à la fin de chaque piste, y compris le dernier morceau d’un album. Tous deux sont désactivés tant que vous ne les réglez pas. Sur un appareil qui ne permet pas à l’application de régler le volume, les fondus ne sont pas disponibles, et Tune this app l’indique.
+**Fondu d’entrée** et **Fondu de sortie**, dans Régler cette application, rubrique Son, ajoutent un fondu pouvant aller jusqu’à huit secondes au début ou à la fin de chaque piste, y compris le dernier morceau d’un album. Tous deux sont désactivés tant que vous ne les réglez pas. Sur un appareil qui ne permet pas à l’application de régler le volume, les fondus ne sont pas disponibles, et la page Régler cette application l’indique.
 
 ## L’animation est indépendante
 
@@ -119,7 +149,7 @@ L’animation de changement de disque, et la fréquence à laquelle elle appara�
     title: 'Paroles : d’où viennent les mots',
     summary: 'D’abord les paroles de vos fichiers ou enregistrées à côté, puis une recherche en ligne facultative.',
     group: 'Fonctionnement',
-    body: `Appuyez sur **Lyrics** dans l’écran Now Playing pour voir les paroles du morceau en cours. Elles peuvent venir de deux sources, toujours dans cet ordre.
+    body: `Appuyez sur **Paroles** dans l’écran En cours de lecture pour voir les paroles du morceau en cours. Elles peuvent venir de deux sources, toujours dans cet ordre.
 
 ## 1. Votre propre fichier
 
@@ -133,9 +163,9 @@ Si vos fichiers n’ont pas de paroles, un programme gratuit pour ordinateur app
 
 ## 2. Une recherche en ligne, seulement si vous l’activez
 
-Sur iPhone et iPad, il n’y a pas de recherche en ligne : ajoutez plutôt des fichiers de paroles comme expliqué ci-dessus. Ailleurs, si un morceau n’a pas de paroles à lui, l’application peut interroger lrclib.net, une collection de paroles gratuite et gérée par une communauté. Cette option est **désactivée** tant que vous ne cochez pas **Look up missing lyrics online** dans Tune this app, rubrique Lyrics.
+Sur iPhone et iPad, il n’y a pas de recherche en ligne : ajoutez plutôt des fichiers de paroles comme expliqué ci-dessus. Ailleurs, si un morceau n’a pas de paroles à lui, l’application peut interroger lrclib.net, une collection de paroles gratuite et gérée par une communauté. Cette option est **désactivée** tant que vous ne cochez pas **Rechercher les paroles manquantes en ligne** dans Régler cette application, rubrique Paroles.
 
-Lorsqu’elle est activée, la recherche d’un morceau n’envoie que son artiste, son titre, son album et sa durée, directement de votre appareil vers lrclib.net. Rien d’autre sur vous, votre appareil ou votre bibliothèque n’est envoyé, et la demande ne passe pas par UNI·SIM. La réponse est conservée sur votre appareil, si bien que chaque morceau n’est demandé qu’une fois. Si aucune parole n’a été trouvée, l’application peut réessayer quelques jours plus tard. Tune this app indique combien de morceaux ont été recherchés, avec un bouton pour tout oublier.
+Lorsqu’elle est activée, la recherche d’un morceau n’envoie que son artiste, son titre, son album et sa durée, directement de votre appareil vers lrclib.net. Rien d’autre sur vous, votre appareil ou votre bibliothèque n’est envoyé, et la demande ne passe pas par UNI·SIM. La réponse est conservée sur votre appareil, si bien que chaque morceau n’est demandé qu’une fois. Si aucune parole n’a été trouvée, l’application peut réessayer quelques jours plus tard. La page Régler cette application indique combien de morceaux ont été recherchés, avec un bouton pour tout oublier.
 
 Comme la collection est rédigée par des bénévoles, il arrive qu’un texte soit inexact ou légèrement décalé.
 
@@ -143,7 +173,7 @@ Comme la collection est rédigée par des bénévoles, il arrive qu’un texte s
 
 Certaines paroles comportent un repère temporel au début de chaque ligne. On parle de paroles synchronisées, souvent dans un format appelé LRC. Avec elles, le panneau des paroles suit le morceau pendant la lecture, et toucher une ligne fait sauter à ce moment du morceau. Les paroles sans repères s’affichent comme du texte simple.
 
-Les paroles synchronisées permettent aussi deux options, toutes deux dans Tune this app, rubrique Lyrics : **Lyrics around the record**, qui écrit les mots autour du disque qui tourne à mesure qu’ils sont chantés, et **Lyrics on the lock screen**, qui affiche la ligne chantée dans les commandes de musique de votre téléphone.`,
+Les paroles synchronisées permettent aussi deux options, toutes deux dans Régler cette application, rubrique Paroles : **Paroles autour du disque**, qui écrit les mots autour du disque qui tourne à mesure qu’ils sont chantés, et **Paroles sur l’écran verrouillé**, qui affiche la ligne chantée dans les commandes de musique de votre téléphone.`,
   },
   {
     id: 'playing-in-the-background',
@@ -165,7 +195,7 @@ Dans un navigateur, le morceau apparaît généralement dans les commandes multi
 
 ## La minuterie de mise en veille
 
-**Sleep**, parmi les boutons ronds de l’écran Now Playing, arrête la musique pour vous :
+**Veille**, parmi les boutons ronds de l’écran En cours de lecture, arrête la musique pour vous :
 
 1. Touchez-le pour passer successivement à 15, 30, 45 et 60 minutes, puis le désactiver.
 2. Ou maintenez-le appuyé pour choisir n’importe quelle durée, jusqu’à 12 heures.
@@ -175,11 +205,11 @@ La minuterie continue de fonctionner lorsque le téléphone est verrouillé.
 
 ## Garder l’écran allumé
 
-Si vous aimez regarder le disque tourner, **Keep awake** empêche l’écran de s’assombrir ou de se verrouiller tant que l’écran Now Playing est ouvert.
+Si vous aimez regarder le disque tourner, **Anti-veille** empêche l’écran de s’assombrir ou de se verrouiller tant que l’écran En cours de lecture est ouvert.
 
 ## Une notification pour chaque morceau
 
-**Notify me of each new song**, dans Tune this app, affiche le morceau, l’artiste et la pochette au début de chaque nouveau morceau lorsque l’application n’est pas à l’écran. Une seule notification est affichée à la fois, remplacée par la suivante, et elle n’émet aucun son. L’option est désactivée tant que vous ne l’activez pas, et c’est à ce moment-là que votre appareil vous demande l’autorisation.`,
+**Me notifier à chaque nouveau morceau**, dans Régler cette application, affiche le morceau, l’artiste et la pochette au début de chaque nouveau morceau lorsque l’application n’est pas à l’écran. Une seule notification est affichée à la fois, remplacée par la suivante, et elle n’émet aucun son. L’option est désactivée tant que vous ne l’activez pas, et c’est à ce moment-là que votre appareil vous demande l’autorisation.`,
   },
   {
     id: 'privacy',
@@ -194,21 +224,21 @@ Si vous aimez regarder le disque tourner, **Keep awake** empêche l’écran de 
 - **Le catalogue de votre bibliothèque** : titres, artistes, albums, petites copies des pochettes et éventuelles corrections de ménage.
 - **Vos réglages, vos demandes et l’endroit où vous vous étiez arrêté.** Ils restent dans l’application sur cet appareil.
 
-Rien de tout cela n’est sauvegardé ni synchronisé par l’application. Si vous utilisez Jukebox sur deux appareils, chacun garde sa propre bibliothèque.
+Rien de tout cela ne quitte votre appareil, sauf si vous faites une sauvegarde. Un fichier de sauvegarde va là où vous l’enregistrez. Une sauvegarde sur votre Universal ID contient vos réglages, vos étagères, vos demandes et les paroles que vous avez ajoutées, désignés par leur titre, leur artiste et leur album ; elle ne contient jamais votre musique. Si vous utilisez Jukebox sur deux appareils, chacun garde sa propre bibliothèque.
 
 ## Les trois recherches
 
 Seules trois fonctions envoient quoi que ce soit au sujet de votre musique, et aucune ne fait rien tant que vous ne le demandez pas. Chacune va directement de votre appareil au service indiqué, sans passer par UNI·SIM, et n’envoie que ce qui est précisé.
 
-- **Recherche de paroles** (absente sur iPhone et iPad ; ailleurs, désactivée tant que vous ne l’activez pas dans Tune this app) : envoie l’artiste, le titre, l’album et la durée d’un morceau à lrclib.net, pour les morceaux qui n’ont pas de paroles à eux.
-- **About this track** (désactivée tant que vous ne l’activez pas, dans Tune this app ou dans le panneau lui-même) : envoie le titre du morceau et le nom de l’artiste à Wikipedia, pour afficher ce que Wikipedia en dit. Les réponses sont conservées sur l’appareil pendant 90 jours, et un morceau sans article est redemandé quelques jours plus tard.
-- **Find a picture**, pour une demande : envoie les mots que vous avez saisis à la recherche iTunes d’Apple, uniquement lorsque vous appuyez dessus. L’image que vous choisissez est enregistrée avec la demande.
+- **Recherche de paroles** (absente sur iPhone et iPad ; ailleurs, désactivée tant que vous ne l’activez pas dans Régler cette application) : envoie l’artiste, le titre, l’album et la durée d’un morceau à lrclib.net, pour les morceaux qui n’ont pas de paroles à eux.
+- **À propos de ce morceau** (désactivée tant que vous ne l’activez pas, dans Régler cette application ou dans le panneau lui-même) : envoie le titre du morceau et le nom de l’artiste à Wikipedia, pour afficher ce que Wikipedia en dit. Les réponses sont conservées sur l’appareil pendant 90 jours, et un morceau sans article est redemandé quelques jours plus tard.
+- **Trouver une image**, pour une demande : envoie les mots que vous avez saisis à la recherche iTunes d’Apple, uniquement lorsque vous appuyez dessus. L’image que vous choisissez est enregistrée avec la demande.
 
-Les réponses des deux premières sont conservées sur votre appareil, si bien qu’un morceau n’est recherché qu’une fois. Tune this app indique combien il y en a et vous permet de les oublier. Aucun son ne quitte jamais votre appareil.
+Les réponses des deux premières sont conservées sur votre appareil, si bien qu’un morceau n’est recherché qu’une fois. La page Régler cette application indique combien il y en a et vous permet de les oublier. Aucun son ne quitte jamais votre appareil.
 
 ## Universal ID
 
-La connexion avec un Universal ID est facultative. Elle vous garde connecté dans toutes les applications UNI·SIM. Pendant que vous êtes connecté, l’application enregistre un événement « ouverture » sur votre compte à chaque démarrage. Cet événement ne dit rien de votre musique.
+La connexion avec un Universal ID est facultative. Elle vous garde connecté dans toutes les applications UNI·SIM, et vous permet de garder une sauvegarde avec votre compte si vous le souhaitez. Pendant que vous êtes connecté, l’application enregistre un événement « ouverture » sur votre compte à chaque démarrage. Cet événement ne dit rien de votre musique.
 
 ## Autorisations
 

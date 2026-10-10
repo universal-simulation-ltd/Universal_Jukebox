@@ -1,0 +1,51 @@
+{
+  "language": "fr-FR",
+  "details": {
+    "defaultLanguage": "en-GB",
+    "contactEmail": "inbox@unisim.co.uk",
+    "contactWebsite": "https://www.unisim.co.uk"
+  },
+  "listing": {
+    "title": "Universal Jukebox : Platine",
+    "shortDescription": "Votre musique sur platine, Walkman ou juke-box, les paroles autour du disque.",
+    "fullDescription": [
+      "Vos disques sont déjà sur votre téléphone. Universal Jukebox les pose sur une platine.",
+      "",
+      "Choisissez un dossier de fichiers MP3, M4A, FLAC ou WAV sur votre téléphone : Jukebox lit les tags, les pochettes et les paroles qu’ils contiennent, et range chaque album sur son étagère. Touchez-en un, et l’aiguille se pose.",
+      "",
+      "Choisissez la machine : une platine vinyle, un lecteur CD portable, un Walkman à cassette, un magnétophone à bandes, un juke-box ou un baladeur. Ou laissez chaque album passer sur la machine de son année : un disque de 1979 tourne sur la platine vinyle, un album de 2003 va dans le lecteur CD.",
+      "",
+      "Les paroles tournent autour du disque",
+      "Quand vos morceaux contiennent des paroles synchronisées, les lignes tournent autour du disque à mesure qu’elles sont chantées, défilent dans le panneau des paroles et peuvent s’afficher sur l’écran verrouillé. Un fichier de paroles placé à côté d’un morceau (Morceau.lrc à côté de Morceau.mp3) est lu lui aussi, et vous pouvez en ajouter un vous-même à n’importe quel morceau. Pour les morceaux qui n’en ont pas, vous pouvez activer une recherche en ligne ; elle reste désactivée tant que vous ne le faites pas.",
+      "",
+      "Pensé pour l’écoute",
+      "• Fondu enchaîné et fondus entre les morceaux, et Volume stable, qui ramène un morceau trop fort au niveau des autres.",
+      "• Aléatoire, répétition, « Lire ensuite » et une file d’attente visible.",
+      "• Un minuteur de veille qui baisse progressivement la musique.",
+      "• Commandes sur l’écran verrouillé, et choix entre haut-parleur et écouteurs.",
+      "• Artistes, albums ou morceaux, de A à Z, au hasard ou par genre, en grille, en liste ou sur une étagère Jukebox.",
+      "• Des étagères qui se lisent comme des playlists, et une liste de la musique que vous voulez encore vous procurer.",
+      "",
+      "À vous, et rien qu’à vous",
+      "Rien n’est envoyé en ligne et il n’y a aucun compte à créer. Pas de publicité, pas de pistage, pas d’outils d’analyse tiers. Pour découvrir l’app avant d’ajouter votre propre musique, essayez la bibliothèque d’exemple : neuf disques imaginaires, créés sur votre téléphone.",
+      "",
+      "Universal Jukebox est open source (AGPL-3.0). Le code est sur GitHub : github.com/universal-simulation-ltd/Universal_Jukebox",
+      "",
+      "Créé au Royaume-Uni par James Markey MBE et UNI·SIM."
+    ]
+  },
+  "images": {
+    "icon": "out/play/icon-512.png",
+    "featureGraphic": "out/fr-FR/play/feature-graphic.png",
+    "phoneScreenshots": [
+      "out/fr-FR/android/01-turntable.png",
+      "out/fr-FR/android/02-shelf.png",
+      "out/fr-FR/android/03-machines.png",
+      "out/fr-FR/android/04-lyrics.png",
+      "out/fr-FR/android/05-artists.png",
+      "out/fr-FR/android/06-album.png",
+      "out/fr-FR/android/07-drawer.png",
+      "out/fr-FR/android/08-tune.png"
+    ]
+  }
+}

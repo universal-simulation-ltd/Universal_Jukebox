@@ -1,0 +1,98 @@
+{
+ "01-turntable": {
+  "headline": [
+   "Votre musique,",
+   "*sur la platine*"
+  ],
+  "label": "Universal Jukebox · 33⅓ · Face A ·"
+ },
+ "02-shelf": {
+  "headline": [
+   "Chaque album",
+   "sur son étagère"
+  ],
+  "sub": "Créé au Royaume-Uni par\nJames Markey MBE et UNI·SIM"
+ },
+ "03-machines": {
+  "headline": [
+   "Choisissez",
+   "*votre platine*"
+  ],
+  "caption": "Vinyle, CD, cassette, magnétophone, juke-box ou baladeur",
+  "chips": [
+   "Platine vinyle",
+   "CD",
+   "Cassette",
+   "Magnétophone",
+   "Juke-box",
+   "Baladeur"
+  ]
+ },
+ "04-lyrics": {
+  "headline": [
+   "Les paroles",
+   "*autour du disque*"
+  ],
+  "caption": "Les paroles synchronisées de vos fichiers, chantées pendant qu’il tourne",
+  "chips": [
+   "Autour du disque",
+   "Sur l’écran verrouillé",
+   "Vos fichiers .lrc"
+  ]
+ },
+ "05-artists": {
+  "headline": [
+   "Chaque artiste,",
+   "*en un coup d’œil*"
+  ],
+  "caption": "Artistes, albums et morceaux, quelques-uns par ligne ou sur l’étagère",
+  "chips": [
+   "3 par ligne",
+   "A–Z",
+   "Aléatoire",
+   "Genre"
+  ]
+ },
+ "06-album": {
+  "headline": [
+   "Chaque album,",
+   "*sa pochette*"
+  ],
+  "caption": "Lisez-le en entier ou en aléatoire, ou écoutez d’abord dix secondes d’un morceau",
+  "chips": [
+   "Lire",
+   "Aléatoire",
+   "Pré-écoute",
+   "Sur étagère"
+  ]
+ },
+ "07-drawer": {
+  "headline": [
+   "Tirez pour",
+   "*plus d’options*"
+  ],
+  "caption": "Recherche, aléatoire et options de liste, cachées jusqu’à ce que vous en ayez besoin",
+  "chips": [
+   "Rechercher",
+   "Aléatoire",
+   "A–Z ou aléatoire",
+   "Étagère Jukebox"
+  ]
+ },
+ "08-tune": {
+  "headline": [
+   "Réglez-le",
+   "*à votre goût*"
+  ],
+  "caption": "Fondu enchaîné, fondus, Volume stable et un minuteur de veille qui s’estompe",
+  "chips": [
+   "Fondu enchaîné",
+   "Volume stable",
+   "Minuteur de veille",
+   "Fondus"
+  ]
+ },
+ "feature-graphic": {
+  "tagline": "Votre musique, sur la platine"
+ }
+}
