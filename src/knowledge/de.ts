@@ -29,7 +29,7 @@ Die App hat keine eigenen Decoder: Sie nutzt die in Ihr Gerät eingebaute Audiow
 
 ## Den Grund erfahren
 
-Standardmäßig werden Titel, die sich nicht abspielen lassen, stillschweigend übersprungen. Wenn Sie lieber wissen möchten, warum, setzen Sie in Tune this app unter Messages ein Häkchen bei **Show error messages**. Die App nennt dann jede Datei, die sie nicht abspielen konnte, und was damit nicht stimmte.`,
+Standardmäßig werden Titel, die sich nicht abspielen lassen, stillschweigend übersprungen. Wenn Sie lieber wissen möchten, warum, setzen Sie in „Diese App anpassen“ unter „Mitteilungen“ ein Häkchen bei **Fehlermeldungen anzeigen**. Die App nennt dann jede Datei, die sie nicht abspielen konnte, und was damit nicht stimmte.`,
   },
   {
     id: 'tags-and-artwork',
@@ -47,12 +47,12 @@ Die App liest die gängigen Tag-Arten von MP3-, M4A-, FLAC- und Ogg-Dateien. Bei
 ## Wenn Tags fehlen oder falsch sind
 
 - **Eine Datei ohne Tags** wird mit ihrem Dateinamen angezeigt, wobei eine vorangestellte Titelnummer entfernt wird. Die App errät keinen Interpreten aus dem Dateinamen, denn eine falsche Vermutung ist schlimmer als ein leeres Feld.
-- **Ein zweigeteiltes Album** bedeutet meist, dass seine Titel uneinheitlich getaggt wurden – zum Beispiel mit zwei verschiedenen Schreibweisen des Interpreten.
+- **Ein in zwei geteiltes Album** bedeutet meist, dass seine Titel uneinheitlich getaggt wurden – zum Beispiel mit zwei verschiedenen Schreibweisen des Interpreten.
 - **Ein fehlendes Cover** kann bedeuten, dass das Bild nie in den Dateien gespeichert wurde oder dass es in einem späteren Titel statt im ersten steckt.
 
 ## Aufräumen
 
-**Tidy up library** in Tune this app unter Your library sucht nach zwei Dingen: Covern, die bereits auf Ihrem Gerät liegen, aber nicht verwendet wurden (ein Bild mit einem typischen Cover-Namen wie cover.jpg neben den Titeln oder ein Bild in einem späteren Titel), und Alben, die durch uneinheitliche Tags zweigeteilt wurden. Jeder Vorschlag wird Ihnen mit dem Bild angezeigt, das verwendet würde, und nichts ändert sich, bevor Sie auf die Schaltfläche tippen.
+**Mediathek aufräumen** in „Diese App anpassen“ unter „Deine Mediathek“ sucht nach zwei Dingen: Covern, die bereits auf Ihrem Gerät liegen, aber nicht verwendet wurden (ein Bild mit einem typischen Cover-Namen wie cover.jpg neben den Titeln oder ein Bild in einem späteren Titel), und Platten, die durch uneinheitliche Tags in zwei geteilt wurden. Jeder Vorschlag wird Ihnen mit dem Bild angezeigt, das verwendet würde, und nichts ändert sich, bevor Sie auf die Schaltfläche tippen.
 
 Alles, worüber sie sich nicht sicher sein kann, lehnt die Funktion bewusst ab. Zwei gleichnamige Alben in verschiedenen Ordnern oder ein Ordner mit zwei verschiedenen Alben bleiben unverändert.
 
@@ -69,7 +69,7 @@ Das Aufräumen korrigiert nur die Mediathek in der App. Es schreibt keine Tags u
 
 ## Musik hinzufügen
 
-Öffnen Sie das Menü und wählen Sie **Your complete library**. Dort können Sie einen Ordner hinzufügen, neu einlesen oder einen Ordner entfernen. Ein hinzugefügter Ordner ergänzt Ihre Mediathek, statt sie zu ersetzen, und beim Entfernen verschwinden nur die Titel dieses Ordners. Wie Ordner funktionieren, hängt davon ab, wo Sie die App nutzen:
+Öffnen Sie das Menü und wählen Sie **Deine gesamte Mediathek**. Dort können Sie einen Ordner hinzufügen, neu einlesen oder einen Ordner entfernen. Ein hinzugefügter Ordner ergänzt Ihre Mediathek, statt sie zu ersetzen, und beim Entfernen verschwinden nur die Titel dieses Ordners. Wie Ordner funktionieren, hängt davon ab, wo Sie die App nutzen:
 
 - **Chrome und Edge** können sich den gewählten Ordner merken. Wenn Sie wiederkommen, werden Sie eventuell einmal gebeten, den Zugriff mit einem Tippen zu bestätigen.
 - **Firefox und Safari** können die Berechtigung, einen Ordner zu lesen, nicht über Besuche hinweg behalten, daher wählen Sie den Ordner jedes Mal neu. Mediathek, Cover und Einstellungen bleiben trotzdem erhalten, sodass nichts erneut gelesen werden muss.
@@ -78,7 +78,7 @@ Das Aufräumen korrigiert nur die Mediathek in der App. Es schreibt keine Tags u
 
 ## Neu einlesen
 
-Die App bemerkt nicht von selbst, wenn Dateien hinzukommen oder verschwinden. Nachdem Sie außerhalb der App Musik hinzugefügt oder gelöscht haben, wählen Sie **Rescan**. Beim erneuten Einlesen werden neue Titel aufgenommen, verschwundene entfernt und Ihre Aufräum-Korrekturen beibehalten.
+Die App bemerkt nicht von selbst, wenn Dateien hinzukommen oder verschwinden. Nachdem Sie außerhalb der App Musik hinzugefügt oder gelöscht haben, wählen Sie **Neu einlesen**. Beim erneuten Einlesen werden neue Titel aufgenommen, verschwundene entfernt und Ihre Aufräum-Korrekturen beibehalten.
 
 ## Titel aus der Musik-Mediathek des iPhones
 
@@ -86,7 +86,37 @@ Titel, die Sie von einem Computer auf das iPhone synchronisieren, können abgesp
 
 ## Was die App speichert
 
-Die App speichert auf Ihrem Gerät einen Katalog Ihrer Mediathek – Titel, Interpreten, Alben und kleine Kopien der Cover –, damit sie beim nächsten Mal schnell startet. Dieser Katalog wird weder gesichert noch zwischen Geräten geteilt: Jedes Gerät erstellt seinen eigenen. Wenn Sie in einem Browser die Daten dieser Website löschen, wird der Katalog gelöscht, aber nie Ihre Musik.`,
+Die App speichert auf Ihrem Gerät einen Katalog Ihrer Mediathek – Titel, Interpreten, Alben und kleine Kopien der Cover –, damit sie beim nächsten Mal schnell startet. Dieser Katalog wird weder gesichert noch zwischen Geräten geteilt: Jedes Gerät erstellt seinen eigenen. Wenn Sie in einem Browser die Daten dieser Website löschen, wird der Katalog gelöscht, aber nie Ihre Musik. Ihre Regale, Wünsche und Einstellungen lassen sich sichern: siehe „Ihre Musik sicher aufbewahren“.`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Ihre Musik sicher aufbewahren',
+    summary: 'Ihre Musik in Ihrer eigenen Cloud und eine Sicherung Ihrer Regale.',
+    group: 'So funktioniert es',
+    body: `Universal Jukebox lädt Ihre Musik nie hoch – und kann sie deshalb auch nicht verlieren. Ihre Musik ist nur so sicher wie der Ort, an dem Sie sie aufbewahren. Ein verlorenes oder kaputtes Smartphone sollte Ihre Sammlung nicht mitnehmen, also bewahren Sie eine Kopie woanders auf.
+
+## Ihre Musik in Ihrer eigenen Cloud
+
+Jeder Cloud-Speicher, den Sie bereits nutzen, eignet sich: Proton Drive, iCloud Drive, Google Drive, OneDrive oder ein Computer, den Sie sichern. Auf Ihrem Smartphone:
+
+1. Legen Sie Ihren Musikordner in Ihren Cloud-Speicher.
+2. Machen Sie den Ordner in der App dieses Dienstes offline verfügbar, damit die Songs auf dem Smartphone gespeichert sind und ohne Verbindung abgespielt werden. Songs, die nur online liegen, können nicht abgespielt werden.
+3. Öffnen Sie in Jukebox das Menü, wählen Sie **Deine gesamte Mediathek** und fügen Sie den Ordner hinzu. Auf einem iPhone muss der Cloud-Dienst in der Dateien-App erscheinen, unter Android in der Ordnerauswahl.
+
+Wählen Sie **Neu einlesen**, nachdem Sie in der Cloud Songs hinzugefügt oder entfernt haben.
+
+## Sichern, was Sie in Jukebox angelegt haben
+
+Ihre Regale, Ihre Wünsche, Ihre Einstellungen und alle Songtext-Dateien, die Sie hinzugefügt haben, gibt es nur in der App. Um sie zu behalten, öffnen Sie **Diese App anpassen** und dann **Sicherung**:
+
+- **Sicherungsdatei speichern** erstellt eine kleine Datei, die Sie überall aufbewahren können, auch in Proton Drive. Ein Konto ist nicht nötig. In den Smartphone-Apps wird sie im Ordner „Dokumente“ der App gespeichert, und Sie können sie in der Dateien-App verschieben.
+- **In deiner Universal ID sichern** bewahrt dieselbe Sicherung bei Ihrem Konto auf, wenn Sie angemeldet sind. Sie wird bei jedem Sichern ersetzt, und Sie können sie löschen. Sie ist nicht Ende-zu-Ende-verschlüsselt. Ist sie zu groß für Ihr Konto, sagt die App, was sie weggelassen hat – eine Sicherungsdatei behält alles.
+
+## Auf einem neuen Smartphone
+
+Kopieren Sie Ihre Musik hinüber oder machen Sie sie offline verfügbar, fügen Sie den Ordner hinzu und warten Sie, bis die Mediathek geladen ist. Stellen Sie dann Ihre Sicherung wieder her. Ihre Einstellungen werden durch die der Sicherung ersetzt. Deren Regale und Wünsche kommen zu Ihren hinzu, und nichts wird entfernt.
+
+Songs werden anhand von Titel, Interpret und Album wiedergefunden, sodass ein Regal zurückkommt, obwohl die Dateien neue Kopien sind. Ein Song, der noch nicht in Ihrer Mediathek ist, wird ausgelassen. Stellen Sie nach dem Hinzufügen weiterer Musik noch einmal wieder her, um ihn zurückzuholen.`,
   },
   {
     id: 'between-songs',
@@ -106,9 +136,9 @@ Die App speichert auf Ihrem Gerät einen Katalog Ihrer Mediathek – Titel, Inte
 
 **Titel desselben Albums** gehen mit einer kurzen, sanften Überblendung direkt ineinander über. Der neue Titel wird erst lauter, während der alte leiser wird – der Übergang ist also fließend, statt dass zwei Songs gleichzeitig laut spielen.
 
-**Wenn der nächste Titel auf einer anderen Platte ist**, werden die beiden standardmäßig ebenfalls überblendet, während im Bild ein Player hinausgleitet und der nächste hereingleitet. Wenn Sie lieber einen klaren Schnitt möchten, setzen Sie in Tune this app ein Häkchen bei **No crossfade between records**: Die Nadel hebt sich, es folgt ein Moment der Stille, und sie setzt auf der nächsten Platte auf.
+**Wenn der nächste Titel auf einer anderen Platte ist**, werden die beiden standardmäßig ebenfalls überblendet, während im Bild ein Player hinausgleitet und der nächste hereingleitet. Wenn Sie lieber einen klaren Schnitt möchten, setzen Sie in „Diese App anpassen“ ein Häkchen bei **Keine Überblendung zwischen Platten**: Die Nadel hebt sich, es folgt ein Moment der Stille, und sie setzt auf der nächsten Platte auf.
 
-**Fade in** und **Fade out** in Tune this app unter Sound fügen am Anfang oder Ende jedes Titels eine Blende von bis zu acht Sekunden hinzu, auch beim letzten Song eines Albums. Beide sind aus, bis Sie sie einstellen. Auf einem Gerät, auf dem die App die Lautstärke nicht steuern kann, sind Blenden nicht verfügbar, und Tune this app weist darauf hin.
+**Einblenden** und **Ausblenden** in „Diese App anpassen“ unter „Ton“ fügen am Anfang oder Ende jedes Titels eine Blende von bis zu acht Sekunden hinzu, auch beim letzten Song eines Albums. Beide sind aus, bis Sie sie einstellen. Auf einem Gerät, auf dem die App die Lautstärke nicht steuern kann, sind Blenden nicht verfügbar, und „Diese App anpassen“ weist darauf hin.
 
 ## Die Animation ist davon getrennt
 
@@ -119,13 +149,13 @@ Die Plattenwechsel-Animation und wie oft sie erscheint, betrifft das Bild und se
     title: 'Songtexte: woher die Worte kommen',
     summary: 'Zuerst die Texte in Ihren Dateien oder daneben, dazu eine optionale Online-Suche.',
     group: 'So funktioniert es',
-    body: `Tippen Sie in Now Playing auf **Lyrics**, um den Text des laufenden Songs zu sehen. Er kann aus zwei Quellen stammen, immer in dieser Reihenfolge.
+    body: `Tippen Sie unter „Läuft gerade“ auf **Songtext**, um den Text des laufenden Songs zu sehen. Er kann aus zwei Quellen stammen, immer in dieser Reihenfolge.
 
 ## 1. Ihre eigene Datei
 
 Viele Musikdateien enthalten den Songtext in ihren Tags, eingetragen vom Shop, einem Ripping-Programm oder einem Tag-Editor. Die App sieht zuerst dort nach. Das funktioniert ohne Internetverbindung, und weil es Ihre eigene Datei ist, hat es immer Vorrang vor allem, was online gefunden wird.
 
-Eine Textdatei neben einem Song wird ebenfalls gelesen, wenn sie den Namen des Songs trägt und auf **.lrc** endet: *Song.mp3* und *Song.lrc*. Sie wird beim Durchsuchen des Ordners eingelesen. Durchsuchen Sie Ihre Musik also erneut, nachdem Sie Textdateien hinzugefügt haben. Eine Textdatei, die Sie im Lyrics-Bereich zu einem einzelnen Song hinzufügen, hat Vorrang vor beiden.
+Eine Textdatei neben einem Song wird ebenfalls gelesen, wenn sie den Namen des Songs trägt und auf **.lrc** endet: *Song.mp3* und *Song.lrc*. Sie wird beim Durchsuchen des Ordners eingelesen. Durchsuchen Sie Ihre Musik also erneut, nachdem Sie Textdateien hinzugefügt haben. Eine Textdatei, die Sie im Songtext-Bereich zu einem einzelnen Song hinzufügen, hat Vorrang vor beiden.
 
 ## Songtexte für die ganze Mediathek
 
@@ -133,9 +163,9 @@ Haben Ihre Dateien keine Texte, kann ein kostenloses Programm für Computer name
 
 ## 2. Eine Online-Suche, nur wenn Sie sie einschalten
 
-Auf iPhone und iPad gibt es keine Online-Suche: Fügen Sie stattdessen Textdateien wie oben beschrieben hinzu. Anderswo gilt: Hat ein Song keinen eigenen Text, kann die App bei lrclib.net nachfragen, einer kostenlosen, von einer Community gepflegten Sammlung von Songtexten. Diese Funktion ist **aus**, bis Sie in Tune this app unter Lyrics ein Häkchen bei **Look up missing lyrics online** setzen.
+Auf iPhone und iPad gibt es keine Online-Suche: Fügen Sie stattdessen Textdateien wie oben beschrieben hinzu. Anderswo gilt: Hat ein Song keinen eigenen Text, kann die App bei lrclib.net nachfragen, einer kostenlosen, von einer Community gepflegten Sammlung von Songtexten. Diese Funktion ist **aus**, bis Sie in „Diese App anpassen“ unter „Songtexte“ ein Häkchen bei **Fehlende Songtexte online suchen** setzen.
 
-Ist sie eingeschaltet, sendet die Suche nach einem Song nur Interpret, Titel, Album und Länge, direkt von Ihrem Gerät an lrclib.net. Nichts weiter über Sie, Ihr Gerät oder Ihre Mediathek wird gesendet, und die Anfrage läuft nicht über UNI·SIM. Die Antwort wird auf Ihrem Gerät gespeichert, sodass jeder Song nur einmal abgefragt wird. Wurde kein Text gefunden, versucht es die App eventuell nach einigen Tagen erneut. Tune this app zeigt, wie viele Songs abgefragt wurden, und bietet eine Schaltfläche, um alle zu vergessen.
+Ist sie eingeschaltet, sendet die Suche nach einem Song nur Interpret, Titel, Album und Länge, direkt von Ihrem Gerät an lrclib.net. Nichts weiter über Sie, Ihr Gerät oder Ihre Mediathek wird gesendet, und die Anfrage läuft nicht über UNI·SIM. Die Antwort wird auf Ihrem Gerät gespeichert, sodass jeder Song nur einmal abgefragt wird. Wurde kein Text gefunden, versucht es die App eventuell nach einigen Tagen erneut. „Diese App anpassen“ zeigt, wie viele Songs abgefragt wurden, und bietet eine Schaltfläche, um alle zu vergessen.
 
 Da die Sammlung von Freiwilligen erstellt wird, kann ein Text gelegentlich ungenau oder leicht verschoben sein.
 
@@ -143,7 +173,7 @@ Da die Sammlung von Freiwilligen erstellt wird, kann ein Text gelegentlich ungen
 
 Manche Songtexte haben am Anfang jeder Zeile eine Zeitmarke. Man spricht von synchronisierten Songtexten, oft in einem Format namens LRC. Damit folgt die Textanzeige dem Song während der Wiedergabe, und ein Tippen auf eine Zeile springt an diese Stelle im Song. Texte ohne Zeitmarken werden als normaler Text angezeigt.
 
-Synchronisierte Texte ermöglichen außerdem zwei optionale Extras, beide in Tune this app unter Lyrics: **Lyrics around the record** schreibt die Worte beim Singen rund um die sich drehende Platte, und **Lyrics on the lock screen** zeigt die gerade gesungene Zeile in den Musiksteuerelementen Ihres Smartphones.`,
+Synchronisierte Texte ermöglichen außerdem zwei optionale Extras, beide in „Diese App anpassen“ unter „Songtexte“: **Songtext rund um die Platte** schreibt die Worte beim Singen rund um die sich drehende Platte, und **Songtext auf dem Sperrbildschirm** zeigt die gerade gesungene Zeile in den Musiksteuerelementen Ihres Smartphones.`,
   },
   {
     id: 'playing-in-the-background',
@@ -165,7 +195,7 @@ Im Browser erscheint der Song meist in den Mediensteuerelementen Ihres Computers
 
 ## Der Sleep-Timer
 
-**Sleep** unter den runden Schaltflächen in Now Playing beendet die Musik für Sie:
+**Sleep-Timer** unter den runden Schaltflächen bei „Läuft gerade“ beendet die Musik für Sie:
 
 1. Tippen Sie darauf, um nacheinander 15, 30, 45 und 60 Minuten und dann Aus einzustellen.
 2. Oder halten Sie die Schaltfläche gedrückt, um eine beliebige Dauer bis zu 12 Stunden zu wählen.
@@ -175,11 +205,11 @@ Der Timer läuft auch bei gesperrtem Smartphone weiter.
 
 ## Bildschirm eingeschaltet lassen
 
-Wenn Sie der Platte gern beim Drehen zusehen, verhindert **Keep awake**, dass der Bildschirm dunkler wird oder sich sperrt, solange Now Playing geöffnet ist.
+Wenn Sie der Platte gern beim Drehen zusehen, verhindert **Bildschirm an**, dass der Bildschirm dunkler wird oder sich sperrt, solange „Läuft gerade“ geöffnet ist.
 
 ## Eine Benachrichtigung pro Song
 
-**Notify me of each new song** in Tune this app zeigt Song, Interpret und Cover an, sobald ein neuer Song beginnt, während die App nicht im Vordergrund ist. Es wird immer nur eine angezeigt, die vom nächsten Song ersetzt wird, und sie gibt keinen Ton von sich. Die Funktion ist aus, bis Sie sie einschalten – und erst dann fragt Ihr Gerät nach der Berechtigung.`,
+**Bei jedem neuen Song benachrichtigen** in „Diese App anpassen“ zeigt Song, Interpret und Cover an, sobald ein neuer Song beginnt, während die App nicht im Vordergrund ist. Es wird immer nur eine angezeigt, die vom nächsten Song ersetzt wird, und sie gibt keinen Ton von sich. Die Funktion ist aus, bis Sie sie einschalten – und erst dann fragt Ihr Gerät nach der Berechtigung.`,
   },
   {
     id: 'privacy',
@@ -194,21 +224,21 @@ Wenn Sie der Platte gern beim Drehen zusehen, verhindert **Keep awake**, dass de
 - **Der Katalog Ihrer Mediathek**: Titel, Interpreten, Alben, kleine Kopien der Cover und etwaige Aufräum-Korrekturen.
 - **Ihre Einstellungen, Ihre Wünsche und die Stelle, an der Sie aufgehört haben.** Sie bleiben in der App auf diesem Gerät.
 
-Nichts davon wird von der App gesichert oder synchronisiert. Wenn Sie Jukebox auf zwei Geräten nutzen, hat jedes seine eigene Mediathek.
+Nichts davon verlässt Ihr Gerät, es sei denn, Sie erstellen eine Sicherung. Eine Sicherungsdatei landet dort, wo Sie sie speichern. Eine Sicherung in Ihrer Universal ID enthält Ihre Einstellungen, Regale, Wünsche und etwaige von Ihnen hinzugefügte Songtexte, benannt nach Titel, Interpret und Album; Ihre Musik enthält sie nie. Wenn Sie Jukebox auf zwei Geräten nutzen, hat jedes seine eigene Mediathek.
 
 ## Die drei Abfragen
 
 Nur drei Funktionen senden überhaupt etwas über Ihre Musik, und keine davon tut etwas, bevor Sie es möchten. Jede geht direkt von Ihrem Gerät an den genannten Dienst, ohne Umweg über UNI·SIM, und sendet nur das Aufgeführte.
 
-- **Songtext-Suche** (nicht auf iPhone oder iPad; sonst aus, bis Sie sie in Tune this app einschalten): sendet Interpret, Titel, Album und Länge eines Songs an lrclib.net, für Songs ohne eigenen Text.
-- **About this track** (aus, bis Sie es einschalten – in Tune this app oder direkt im Bereich selbst): sendet den Songtitel und den Namen des Interpreten an Wikipedia, um anzuzeigen, was Wikipedia darüber schreibt. Antworten werden 90 Tage auf dem Gerät gespeichert, und nach einem Song ohne Artikel wird nach einigen Tagen erneut gefragt.
-- **Find a picture** bei einem Wunsch: sendet die von Ihnen eingegebenen Wörter an Apples iTunes-Suche, und zwar nur, wenn Sie darauf tippen. Das gewählte Bild wird mit dem Wunsch gespeichert.
+- **Songtext-Suche** (nicht auf iPhone oder iPad; sonst aus, bis Sie sie in „Diese App anpassen“ einschalten): sendet Interpret, Titel, Album und Länge eines Songs an lrclib.net, für Songs ohne eigenen Text.
+- **Über diesen Song** (aus, bis Sie es einschalten – in „Diese App anpassen“ oder direkt im Bereich selbst): sendet den Songtitel und den Namen des Interpreten an Wikipedia, um anzuzeigen, was Wikipedia darüber schreibt. Antworten werden 90 Tage auf dem Gerät gespeichert, und nach einem Song ohne Artikel wird nach einigen Tagen erneut gefragt.
+- **Bild suchen** bei einem Wunsch: sendet die von Ihnen eingegebenen Wörter an Apples iTunes-Suche, und zwar nur, wenn Sie darauf tippen. Das gewählte Bild wird mit dem Wunsch gespeichert.
 
-Die Antworten der ersten beiden werden auf Ihrem Gerät gespeichert, sodass ein Song nur einmal abgefragt wird. Tune this app zeigt, wie viele es sind, und lässt Sie sie vergessen. Audio verlässt Ihr Gerät nie.
+Die Antworten der ersten beiden werden auf Ihrem Gerät gespeichert, sodass ein Song nur einmal abgefragt wird. „Diese App anpassen“ zeigt, wie viele es sind, und lässt Sie sie vergessen. Audio verlässt Ihr Gerät nie.
 
 ## Universal ID
 
-Die Anmeldung mit einer Universal ID ist optional. Sie hält Sie in allen UNI·SIM-Apps angemeldet. Solange Sie angemeldet sind, erfasst die App bei jedem Start ein „Geöffnet“-Ereignis in Ihrem Konto. Dieses Ereignis sagt nichts über Ihre Musik aus.
+Die Anmeldung mit einer Universal ID ist optional. Sie hält Sie in allen UNI·SIM-Apps angemeldet und ermöglicht Ihnen, auf Wunsch eine Sicherung bei Ihrem Konto aufzubewahren. Solange Sie angemeldet sind, erfasst die App bei jedem Start ein „Geöffnet“-Ereignis in Ihrem Konto. Dieses Ereignis sagt nichts über Ihre Musik aus.
 
 ## Berechtigungen
 

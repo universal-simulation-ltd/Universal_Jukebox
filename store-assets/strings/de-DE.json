@@ -1,0 +1,98 @@
+{
+ "01-turntable": {
+  "headline": [
+   "Deine Musik",
+   "*auf Platte*"
+  ],
+  "label": "Universal Jukebox · 33⅓ · Seite A ·"
+ },
+ "02-shelf": {
+  "headline": [
+   "Jedes Album",
+   "im Regal"
+  ],
+  "sub": "Entwickelt in Großbritannien von\nJames Markey MBE und UNI·SIM"
+ },
+ "03-machines": {
+  "headline": [
+   "Wähl dein",
+   "*Abspielgerät*"
+  ],
+  "caption": "Vinyl, CD, Kassette, Tonband, Jukebox oder Taschenplayer",
+  "chips": [
+   "Plattenspieler",
+   "CD",
+   "Kassette",
+   "Tonbandgerät",
+   "Jukebox",
+   "Taschenplayer"
+  ]
+ },
+ "04-lyrics": {
+  "headline": [
+   "Der Text kreist",
+   "*um die Platte*"
+  ],
+  "caption": "Synchronisierte Songtexte aus deinen eigenen Dateien, passend zur drehenden Platte",
+  "chips": [
+   "Rund um die Platte",
+   "Auf dem Sperrbildschirm",
+   "Deine .lrc-Dateien"
+  ]
+ },
+ "05-artists": {
+  "headline": [
+   "Jeder Interpret",
+   "*auf einen Blick*"
+  ],
+  "caption": "Interpreten, Alben und Titel, ein paar pro Reihe oder im Regal",
+  "chips": [
+   "3 pro Reihe",
+   "A–Z",
+   "Zufällig",
+   "Genre"
+  ]
+ },
+ "06-album": {
+  "headline": [
+   "Jedes Album",
+   "*in seiner Hülle*"
+  ],
+  "caption": "Abspielen, zufällig mischen oder vorher zehn Sekunden eines Songs hören",
+  "chips": [
+   "Abspielen",
+   "Zufällig",
+   "Vorhören",
+   "Ins Regal"
+  ]
+ },
+ "07-drawer": {
+  "headline": [
+   "Runterziehen",
+   "*für mehr*"
+  ],
+  "caption": "Suche, Zufallswiedergabe und Listenoptionen – unsichtbar, bis du sie brauchst",
+  "chips": [
+   "Suchen",
+   "Zufällig",
+   "A–Z oder zufällig",
+   "Jukebox-Regal"
+  ]
+ },
+ "08-tune": {
+  "headline": [
+   "Ganz nach",
+   "*deinem Ohr*"
+  ],
+  "caption": "Überblendung, Ein- und Ausblenden, Gleichmäßige Lautstärke und ein Sleep-Timer, der sanft ausblendet",
+  "chips": [
+   "Überblendung",
+   "Gleichmäßige Lautstärke",
+   "Sleep-Timer",
+   "Ein-/Ausblenden"
+  ]
+ },
+ "feature-graphic": {
+  "tagline": "Deine Musik auf Platte"
+ }
+}

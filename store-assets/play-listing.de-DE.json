@@ -1,0 +1,51 @@
+{
+  "language": "de-DE",
+  "details": {
+    "defaultLanguage": "en-GB",
+    "contactEmail": "inbox@unisim.co.uk",
+    "contactWebsite": "https://www.unisim.co.uk"
+  },
+  "listing": {
+    "title": "Universal Jukebox: Musikplayer",
+    "shortDescription": "Deine eigene Musik auf Plattenspieler, Walkman, Jukebox – der Text kreist mit.",
+    "fullDescription": [
+      "Deine Platten sind schon auf deinem Handy. Universal Jukebox legt sie auf den Plattenspieler.",
+      "",
+      "Wähle einen Ordner mit MP3-, M4A-, FLAC- oder WAV-Dateien auf deinem Handy. Jukebox liest die Tags, die Cover und die Songtexte darin und stellt jedes Album in sein Regal. Tippe auf eins, und die Nadel senkt sich.",
+      "",
+      "Wähle, worauf sie laufen: ein Plattenspieler, ein tragbarer CD-Player, ein Kassetten-Walkman, ein Tonbandgerät, eine Jukebox oder ein Taschenplayer. Oder lass jedes Album auf dem Gerät seines Jahrgangs laufen – dann dreht sich eine Platte von 1979 auf Vinyl, und eine von 2003 kommt in den CD-Player.",
+      "",
+      "Der Text kreist um die Platte",
+      "Wenn deine Songs synchronisierte Songtexte haben, kreisen die Zeilen beim Singen um die drehende Platte, laufen im Songtext-Bereich mit und können auf deinem Sperrbildschirm erscheinen. Eine Songtext-Datei neben einem Song (Song.lrc neben Song.mp3) wird ebenfalls gelesen, und du kannst selbst jedem Song eine hinzufügen. Für Songs ohne Text kannst du eine Online-Suche einschalten; sie bleibt aus, bis du das tust.",
+      "",
+      "Gemacht zum Hören",
+      "• Überblendung und Ein-/Ausblenden zwischen Songs, dazu Gleichmäßige Lautstärke, die einen lauten Titel an die übrigen angleicht.",
+      "• Zufallswiedergabe, Wiederholen, Als Nächstes spielen und eine Warteschlange, die du sehen kannst.",
+      "• Ein Sleep-Timer, der die Musik sanft ausblendet.",
+      "• Steuerung auf dem Sperrbildschirm und die Wahl zwischen Lautsprecher und Kopfhörern.",
+      "• Interpreten, Alben oder Titel – von A bis Z, zufällig oder nach Genre, als Raster, Liste oder Jukebox-Regal.",
+      "• Regale, die als Playlists laufen, und eine Liste der Musik, die du dir noch besorgen willst.",
+      "",
+      "Deins, und nur deins",
+      "Nichts wird hochgeladen, und du musst kein Konto anlegen. Keine Werbung, kein Tracking, keine Analysedienste von Drittanbietern. Wenn du dir alles ansehen willst, bevor du deine eigene Musik hinzufügst, probier die Beispiel-Mediathek aus: neun erfundene Platten, auf deinem Handy erzeugt.",
+      "",
+      "Universal Jukebox ist Open Source (AGPL-3.0). Der Code liegt auf GitHub: github.com/universal-simulation-ltd/Universal_Jukebox",
+      "",
+      "Entwickelt in Großbritannien von James Markey MBE und UNI·SIM."
+    ]
+  },
+  "images": {
+    "icon": "out/play/icon-512.png",
+    "featureGraphic": "out/de-DE/play/feature-graphic.png",
+    "phoneScreenshots": [
+      "out/de-DE/android/01-turntable.png",
+      "out/de-DE/android/02-shelf.png",
+      "out/de-DE/android/03-machines.png",
+      "out/de-DE/android/04-lyrics.png",
+      "out/de-DE/android/05-artists.png",
+      "out/de-DE/android/06-album.png",
+      "out/de-DE/android/07-drawer.png",
+      "out/de-DE/android/08-tune.png"
+    ]
+  }
+}
