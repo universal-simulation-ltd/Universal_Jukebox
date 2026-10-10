@@ -2,18 +2,22 @@
 // and Shuffle under it, then the songs. Play puts the record on, and the
 // player store takes you to the deck (`showTheDeck`), as on the website.
 
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Tip from '../components/Tip'
+import { markTipSeen } from '../lib/tips'
+import { matchTracks } from '../lib/search'
+import { PullDrawer } from './PullDrawer'
 import Cover from '../components/Cover'
 import { compareBase } from '../lib/collate'
 import { plural, totalTime } from '../lib/format'
 import { navigate } from '../lib/route'
-import type { Album } from '../lib/types'
+import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
 import AddToQueue from '../components/AddToQueue'
 import AddToShelf from '../components/AddToShelf'
 import { IconPlay, IconShuffle } from './icons'
-import { SongList } from './LibraryScreens'
+import { SearchBox, SongList } from './LibraryScreens'
 
 function usePlayShuffle() {
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -32,6 +36,48 @@ function usePlayShuffle() {
 
 /** Play and Shuffle, then the website's own "add all of these" buttons: to a
  *  shelf, and to the queue (that one only once something is playing). */
+/** The top bar's search button on these pages (NativeApp's TopBar) asks for this. */
+export const FIND_EVENT = 'jukebox:find-within'
+
+/**
+ * Search inside the page — the website's FindWithin. Folded away like the
+ * library's drawer: pull down from the top, or the search button in the top
+ * bar. Returns the box, and the tracks that match (all of them while empty).
+ */
+function useFindWithin(tracks: Track[], label: string) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+  const shown = open || query.trim() !== ''
+  useEffect(() => {
+    const onFind = () => {
+      setOpen(true)
+      input.current?.focus({ preventScroll: true })
+    }
+    window.addEventListener(FIND_EVENT, onFind)
+    return () => window.removeEventListener(FIND_EVENT, onFind)
+  }, [])
+  const openDrawer = useCallback(() => setOpen(true), [])
+  const closeDrawer = useCallback(() => setOpen(false), [])
+  const found = useMemo(() => matchTracks(tracks, query), [tracks, query])
+  const box = (
+    <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer}>
+      <SearchBox
+        input={input}
+        query={query}
+        setQuery={setQuery}
+        label={label}
+        onClose={() => {
+          setQuery('')
+          setOpen(false)
+          input.current?.blur()
+        }}
+      />
+    </PullDrawer>
+  )
+  return { box, found, searching: query.trim() !== '' }
+}
+
 function Actions({ tracks, onPlay, onShuffle }: { tracks: Parameters<typeof AddToShelf>[0]['tracks']; onPlay(): void; onShuffle(): void }) {
   return (
     <div className="jx-actions-wrap">
@@ -58,11 +104,17 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
   const tracks = useMemo(() => sortAlbumTracks(allTracks.filter((t) => t.albumId === albumId)), [allTracks, albumId])
   const { playTracks, shuffleThese } = usePlayShuffle()
   const onTheDeck = usePlayerStore((s) => currentTrack(s)?.albumId === albumId)
+  const find = useFindWithin(tracks, `Search ${album?.title ?? 'this album'}`)
 
   if (!album) return <p className="jx-empty">This album isn’t in your library any more.</p>
 
   return (
     <div className="jx-page">
+      {find.box}
+      {/* While searching, the cover and buttons step aside so the matches sit
+          right under the box. */}
+      {!find.searching && (
+      <>
       <div className="jx-hero">
         {/* The cover opens the jukebox: puts the record on, or — when it is
             already turning — just goes to it (AlbumView's rule: never lose
@@ -70,10 +122,15 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
         <button
           type="button"
           className="jx-hero-open"
-          onClick={() => (onTheDeck ? showTheDeck() : playTracks(tracks, 0))}
+          onClick={() => {
+            markTipSeen('cover')
+            if (onTheDeck) showTheDeck()
+            else playTracks(tracks, 0)
+          }}
           aria-label={onTheDeck ? 'Go to the record' : `Play ${album.title} on the jukebox`}
         >
           <Cover album={album} className="jx-hero-cover" />
+          <Tip id="cover" detail="to open the jukebox" />
         </button>
         <h1 className="jx-h1">{album.title}</h1>
         <button type="button" className="jx-link" onClick={() => navigate({ view: 'artist', artist: album.artist })}>
@@ -82,7 +139,11 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
         <p className="jx-sub">{[album.year, plural(tracks.length, 'track'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
       </div>
       <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
-      <SongList tracks={tracks} albums={albums} onPlay={(i) => playTracks(tracks, i)} numbered />
+      </>
+      )}
+      {find.searching && find.found.length === 0 ? <p className="jx-empty">No track on this album matches.</p> : null}
+      {/* A found track plays the album on from itself, as a tap in the full list would. */}
+      <SongList tracks={find.found} albums={albums} onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))} numbered />
     </div>
   )
 }
@@ -99,11 +160,15 @@ export function ArtistScreen({ name }: { name: string }) {
   }, [albums, allTracks])
   const { playTracks, shuffleThese } = usePlayShuffle()
   const albumYear = useMemo(() => new Map(albums.map((a) => [a.id, a.year])), [albums])
+  const find = useFindWithin(tracks, `Search ${name}`)
 
   if (albums.length === 0) return <p className="jx-empty">This artist isn’t in your library any more.</p>
 
   return (
     <div className="jx-page">
+      {find.box}
+      {!find.searching && (
+      <>
       <div className="jx-hero">
         <h1 className="jx-h1">{name}</h1>
         <p className="jx-sub">{[plural(albums.length, 'album'), plural(tracks.length, 'track'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
@@ -120,14 +185,17 @@ export function ArtistScreen({ name }: { name: string }) {
           </li>
         ))}
       </ul>
+      </>
+      )}
       {/* Every song of theirs, album by album — the website's "All songs by …"
           page, here under their albums. Playing one plays on from it through
           the rest. */}
-      <p className="jx-label">All tracks</p>
+      <p className="jx-label">{find.searching ? 'Matching tracks' : 'All tracks'}</p>
+      {find.searching && find.found.length === 0 ? <p className="jx-empty">None of their tracks matches.</p> : null}
       <SongList
-        tracks={tracks}
+        tracks={find.found}
         albums={allAlbums}
-        onPlay={(i) => playTracks(tracks, i)}
+        onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))}
         subtitle={(t) => [t.album, albumYear.get(t.albumId)].filter(Boolean).join(' · ')}
       />
     </div>

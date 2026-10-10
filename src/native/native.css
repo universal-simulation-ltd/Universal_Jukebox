@@ -112,6 +112,9 @@ html.dark .jx {
   font: inherit; font-size: 16px; color: var(--jx-fg); padding: 8px 0;
 }
 .jx-search input::placeholder { color: var(--jx-mute); }
+/* The field shows focus as a whole, not the input's own box inside it. */
+.jx-search input:focus-visible { outline: none; }
+.jx-search:focus-within { box-shadow: 0 0 0 2px var(--jx-acc); }
 
 /* Covers: a grid that is two across on a phone and more on an iPad. */
 .jx-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 14px; }
@@ -195,6 +198,24 @@ html.dark .jx {
 .jx-genre-back { align-self: flex-start; margin: -6px 0 -8px -4px; }
 /* The website's shelf and genre list, inside the phone's margins. */
 .jx-web { min-width: 0; }
+
+/* Preview (headphones): lit while its few seconds play. */
+.jx-preview { width: 40px; }
+.jx-preview svg { width: 21px; height: 21px; }
+.jx-preview.on { color: var(--jx-acc); }
+.jx-preview.on svg { width: 16px; height: 16px; }
+/* The top bar's search on an album or artist page. */
+.jx-bar-search { margin-left: auto; justify-content: center; padding: 0; }
+.jx-bar-search svg { width: 23px; height: 23px; }
+/* Matches on a tab while searching. */
+.jx-count {
+  position: absolute; top: 4px; left: calc(50% + 6px);
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--jx-fill); color: #fff; font-style: normal; font-size: 11px; line-height: 18px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* The first-run "Tap here" tip hangs off the album cover. */
+.jx-hero-open { position: relative; }
 
 /* A song row with its ⋯ (SongList). */
 .jx-song { display: flex; align-items: center; }

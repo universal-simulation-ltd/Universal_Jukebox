@@ -24,7 +24,8 @@ import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { DEFAULTS, useSettingsStore, type LibraryColumns, type ListTab } from '../stores/settingsStore'
-import { IconBack, IconClose, IconMore, IconSearch, IconShuffle } from './icons'
+import { IconBack, IconClose, IconMore, IconPreview, IconSearch, IconShuffle, IconStop } from './icons'
+import { PREVIEW_RUN_SEC, PREVIEW_START_SEC } from '../lib/audio'
 import TrackOptions from '../components/TrackOptions'
 import ResumeCard from '../components/ResumeCard'
 import { haptic } from '../lib/haptics'
@@ -162,6 +163,7 @@ function Screen({
     filterNote ?? null,
   ].filter(Boolean)
   const openDrawer = useCallback(() => setPulled(true), [])
+  const closeDrawer = useCallback(() => setPulled(false), [])
 
   return (
     <div className="jx-page">
@@ -192,7 +194,7 @@ function Screen({
           </button>
         )}
       </div>
-      <PullDrawer shown={shown} onOpen={openDrawer}>
+      <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer}>
         <SearchBox
           input={input}
           query={query}
@@ -460,7 +462,8 @@ export function SongsScreen(props: ListProps) {
  * Rows of songs. `onPlay` gets the row's index, and the caller decides what
  * the queue is — the whole search on Tracks, the album on an album.
  *
- * ⋯ at the end of a row, or holding the row, opens the website's own options
+ * Headphones at the end of a row preview it (`Preview`). ⋯, or holding the
+ * row, opens the website's own options
  * sheet (`TrackOptions`): play now, play next, add to the queue, add to a
  * shelf, go to the album.
  */
@@ -534,6 +537,7 @@ export function SongList({
                 </small>
               </span>
             </button>
+            <Preview track={track} />
             <button type="button" className="jx-more" onClick={() => setOptions(i)} aria-label={`Options for ${track.title}`}>
               <IconMore />
             </button>
@@ -541,6 +545,27 @@ export function SongList({
         ))}
       </ul>
     </>
+  )
+}
+
+/**
+ * Hear a few seconds of a song without touching what's playing — the
+ * website's preview (`components/PreviewButton.tsx`, the player store's
+ * `preview`): from PREVIEW_START_SEC in, for PREVIEW_RUN_SEC. Tap again to stop.
+ */
+function Preview({ track }: { track: Track }) {
+  const running = usePlayerStore((s) => s.previewTrackId === track.id)
+  const preview = usePlayerStore((s) => s.preview)
+  return (
+    <button
+      type="button"
+      className={`jx-more jx-preview${running ? ' on' : ''}`}
+      onClick={() => preview(track)}
+      aria-pressed={running}
+      aria-label={running ? `Stop previewing ${track.title}` : `Preview ${track.title}, ${PREVIEW_RUN_SEC} seconds from ${PREVIEW_START_SEC} seconds in`}
+    >
+      {running ? <IconStop /> : <IconPreview />}
+    </button>
   )
 }
 

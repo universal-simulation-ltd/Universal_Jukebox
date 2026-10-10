@@ -64,6 +64,24 @@ export function IconTune() {
   )
 }
 
+/** Headphones — preview a few seconds of a song. */
+export function IconPreview() {
+  return (
+    <svg {...base} strokeWidth={1.7}>
+      <path d="M4 15v-3a8 8 0 0 1 16 0v3" />
+      <path d="M4 14.5h2.2a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1H5.4A1.4 1.4 0 0 1 4 18.7v-4.2ZM20 14.5h-2.2a1 1 0 0 0-1 1v3.6a1 1 0 0 0 1 1h.8a1.4 1.4 0 0 0 1.4-1.4v-4.2Z" />
+    </svg>
+  )
+}
+
+export function IconStop() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <rect x="6.5" y="6.5" width="11" height="11" rx="2.2" />
+    </svg>
+  )
+}
+
 /** ⋯ — a song's options. */
 export function IconMore() {
   return (

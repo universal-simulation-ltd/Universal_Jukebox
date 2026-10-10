@@ -19,7 +19,7 @@
 // Double-tap a tab to make it the one the app opens on (the suite convention;
 // `homeTab`, the same setting as the website's starred tab).
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { BedsideHost } from '../components/Bedside'
 import ErrorBanner from '../components/ErrorBanner'
 import ExampleNotice from '../components/ExampleNotice'
@@ -36,9 +36,11 @@ import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type HomeTab, type ListTab } from '../stores/settingsStore'
-import { orderFrom, type LibraryOrder } from '../lib/libraryView'
-import { AlbumScreen, ArtistScreen } from './DetailScreens'
-import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, IconTune } from './icons'
+import { albumsOfBigArtists, isFullAlbum, orderFrom, type LibraryOrder } from '../lib/libraryView'
+import { libraryInGenre } from '../lib/genres'
+import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
+import { AlbumScreen, ArtistScreen, FIND_EVENT } from './DetailScreens'
+import { IconAlbums, IconArtists, IconBack, IconDown, IconSearch, IconShelves, IconSongs, IconTune } from './icons'
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
@@ -117,6 +119,26 @@ export default function NativeApp() {
   const [homeFlash, setHomeFlash] = useState<TabView | null>(null)
 
   const view: View = route.home ? homeTab : route.view
+
+  // While searching, each library tab says how many it has (the website's tab
+  // counts) — the only way to know the tab you are NOT on has answers. From
+  // `lib/search`, with the tabs' own filters, so a count never disagrees
+  // with the list it stands for.
+  const albums = useLibraryStore((s) => s.albums)
+  const tracks = useLibraryStore((s) => s.tracks)
+  const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
+  const artistsMin3 = useSettingsStore((s) => s.artistsMin3)
+  const genre = route.home ? undefined : route.genre
+  const counts = useMemo(() => {
+    if (!query.trim()) return null
+    const seen = genre ? libraryInGenre(albums, tracks, genre) : { albums, tracks }
+    const all = tabCounts(seen.albums, seen.tracks, query)
+    return {
+      ...all,
+      ...(fullOnly ? { albums: matchAlbums(seen.albums.filter(isFullAlbum), query).length } : {}),
+      ...(artistsMin3 ? { artists: matchArtistNames(albumsOfBigArtists(seen.albums), query).length } : {}),
+    } as Record<ListTab, number>
+  }, [albums, tracks, query, genre, fullOnly, artistsMin3])
   const hasLibrary = status === 'ready' || status === 'scanning'
   const playing = view === 'playing'
 
@@ -266,6 +288,11 @@ export default function NativeApp() {
               >
                 <Icon />
                 <span>{label}</span>
+                {counts && target in counts && (
+                  <i className="jx-count" aria-label={`${counts[target as ListTab]} found`}>
+                    {counts[target as ListTab].toLocaleString()}
+                  </i>
+                )}
                 {homeTab === target && <i className="jx-home-dot" aria-hidden />}
               </button>
             ))}
@@ -310,6 +337,17 @@ function TopBar({ view, route }: { view: View; route: Route }) {
           <span>{up.label}</span>
         </button>
         {route.artist && view === 'artist' ? <span className="jx-bar-title">{route.artist}</span> : null}
+        {/* Search inside the album or artist (DetailScreens' FindWithin). */}
+        {(view === 'album' || view === 'artist') && (
+          <button
+            type="button"
+            className="jx-back jx-bar-search"
+            onClick={() => window.dispatchEvent(new Event(FIND_EVENT))}
+            aria-label={view === 'album' ? 'Search this album' : `Search ${route.artist}`}
+          >
+            <IconSearch />
+          </button>
+        )}
       </div>
     )
   }

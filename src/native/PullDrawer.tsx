@@ -7,15 +7,33 @@
 // vertical pull, and not one that starts on a sideways swiper (`data-swipe-x`,
 // the shelves). It follows the finger with some resistance, opens past
 // PULL_TO_OPEN, and springs shut otherwise.
+//
+// Scroll it out of sight and it folds itself away again, so the next time
+// it's wanted it is pulled out again (James, 2026-10-10). The list below is
+// held where it is on screen, so nothing jumps. The
+// parent decides whether to let go: with a search typed in, the box stays.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { navBarBottom } from '../lib/scrollBelowBar'
 
 /** How far the finger has to travel, in px, before letting go opens it. */
 const PULL_TO_OPEN = 64
 /** The drawer moves this much per pixel of finger: a pull, not a drag. */
 const RESIST = 0.6
 
-export function PullDrawer({ shown, onOpen, children }: { shown: boolean; onOpen(): void; children: ReactNode }) {
+export function PullDrawer({
+  shown,
+  onOpen,
+  onScrolledAway,
+  children,
+}: {
+  shown: boolean
+  onOpen(): void
+  /** It has scrolled out of sight under the top bar. Left out while it must
+   *  stay (a search is typed in), and then it never folds itself. */
+  onScrolledAway?: () => void
+  children: ReactNode
+}) {
   const box = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   const full = () => inner.current?.offsetHeight ?? 120
@@ -42,6 +60,38 @@ export function PullDrawer({ shown, onOpen, children }: { shown: boolean; onOpen
   useLayoutEffect(() => {
     settle(shown ? full() : 0)
   }, [shown, settle])
+
+  // Open: fold away once it is scrolled out of sight.
+  useEffect(() => {
+    if (!shown || !onScrolledAway) return
+    let frame = 0
+    const check = () => {
+      frame = 0
+      const el = box.current
+      if (!el || el.offsetHeight === 0) return
+      if (el.getBoundingClientRect().bottom > navBarBottom()) return
+      // Keep what's below exactly where it is on screen. Measured rather than
+      // assumed: Chromium (Android) moves the page itself when content above
+      // the view goes (scroll anchoring) and WebKit (iOS) doesn't, so a fixed
+      // scrollBy(-height) jumped twice the height on the A065's WebView.
+      const below = el.nextElementSibling
+      const before = below?.getBoundingClientRect().top ?? 0
+      el.style.transition = 'none'
+      el.style.height = '0px'
+      el.style.opacity = '0'
+      const after = below?.getBoundingClientRect().top ?? 0
+      if (after !== before) window.scrollBy(0, after - before)
+      onScrolledAway()
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(check)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [shown, onScrolledAway])
 
   useEffect(() => {
     if (shown) return
