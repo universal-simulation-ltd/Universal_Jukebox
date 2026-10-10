@@ -1,5 +1,5 @@
-// LibraryScreens.tsx — the phone app's three library tabs: Albums (a grid of
-// covers), Artists and Songs (lists). Each has the search box at its top, and a
+// LibraryScreens.tsx — the phone app's three library tabs: Artists (a list),
+// Albums (a grid of covers) and Tracks (a list). Each has the search box at its top, and a
 // Shuffle that plays what the tab is showing.
 //
 // They read the same stores as the website's AlbumGrid / ArtistList /
@@ -155,8 +155,8 @@ export function SongsScreen({ query, setQuery }: SearchProps) {
 
   return (
     <div className="jx-page">
-      <Heading title="Songs" count={plural(shown.length, 'song')} onShuffle={shown.length ? () => shuffleSongs(shown) : undefined} />
-      <SearchBox query={query} setQuery={setQuery} label="Search songs" />
+      <Heading title="Tracks" count={plural(shown.length, 'track')} onShuffle={shown.length ? () => shuffleSongs(shown) : undefined} />
+      <SearchBox query={query} setQuery={setQuery} label="Search tracks" />
       {shown.length === 0 && query.trim() ? <Nothing query={query} /> : null}
       <SongList tracks={shown.slice(0, limit)} albums={albums} onPlay={(i) => playTracks(shown, i)} showAlbum />
       <More left={shown.length - limit} onMore={() => setLimit((n) => n + PAGE)} />
@@ -166,7 +166,7 @@ export function SongsScreen({ query, setQuery }: SearchProps) {
 
 /**
  * Rows of songs. `onPlay` gets the row's index, and the caller decides what
- * the queue is — the whole search on Songs, the album on an album.
+ * the queue is — the whole search on Tracks, the album on an album.
  */
 export function SongList({
   tracks,

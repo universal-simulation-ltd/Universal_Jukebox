@@ -58,7 +58,7 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
         <button type="button" className="jx-link" onClick={() => navigate({ view: 'artist', artist: album.artist })}>
           {album.artist}
         </button>
-        <p className="jx-sub">{[album.year, plural(tracks.length, 'song'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
+        <p className="jx-sub">{[album.year, plural(tracks.length, 'track'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
       </div>
       <Actions onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       <SongList tracks={tracks} albums={albums} onPlay={(i) => playTracks(tracks, i)} numbered />
@@ -84,7 +84,7 @@ export function ArtistScreen({ name }: { name: string }) {
     <div className="jx-page">
       <div className="jx-hero">
         <h1 className="jx-h1">{name}</h1>
-        <p className="jx-sub">{[plural(albums.length, 'album'), plural(tracks.length, 'song'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
+        <p className="jx-sub">{[plural(albums.length, 'album'), plural(tracks.length, 'track'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
       </div>
       <Actions onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       <ul className="jx-grid">
@@ -93,7 +93,7 @@ export function ArtistScreen({ name }: { name: string }) {
             <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
               <Cover album={album} className="jx-cover" />
               <b>{album.title}</b>
-              <small>{[album.year, plural(album.trackCount, 'song')].filter(Boolean).join(' · ')}</small>
+              <small>{[album.year, plural(album.trackCount, 'track')].filter(Boolean).join(' · ')}</small>
             </button>
           </li>
         ))}

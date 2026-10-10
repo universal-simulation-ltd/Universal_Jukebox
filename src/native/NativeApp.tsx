@@ -1,7 +1,8 @@
 // NativeApp.tsx — the phone app's shell (see shell.ts for why it exists).
 // Loaded lazily by App.tsx, so the website never downloads it.
 //
-// Tabs: Albums · Artists · Songs · Shelves · Tune. The top is the suite's
+// Tabs: Artists · Albums · Tracks · Shelves · Tune — widest to narrowest, the
+// website's order (James, 2026-10-10). The top is the suite's
 // pulsing light bar and the screen's way back, and nothing else: no navbar,
 // suite switcher, actions menu or sign-in (James, 2026-10-10 — an everyday app
 // asks for an account only where a feature needs one, and on the phone none
@@ -46,9 +47,9 @@ import './native.css'
 type TabView = HomeTab | 'settings'
 
 const TABS: { view: TabView; label: string; Icon: () => JSX.Element }[] = [
-  { view: 'albums', label: 'Albums', Icon: IconAlbums },
   { view: 'artists', label: 'Artists', Icon: IconArtists },
-  { view: 'tracks', label: 'Songs', Icon: IconSongs },
+  { view: 'albums', label: 'Albums', Icon: IconAlbums },
+  { view: 'tracks', label: 'Tracks', Icon: IconSongs },
   { view: 'jukebox', label: 'Shelves', Icon: IconShelves },
   { view: 'settings', label: 'Tune', Icon: IconTune },
 ]

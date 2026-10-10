@@ -441,7 +441,7 @@ npm run build
 ### The phone screens
 
 The iPhone, iPad and Android apps have screens of their own, in `src/native/`:
-a tab bar (Albums, Artists, Songs, Shelves, Tune), what's playing docked above
+a tab bar (Artists, Albums, Tracks, Shelves, Tune), what's playing docked above
 it, and the record full screen. There is no navbar, suite switcher or sign-in
 in the phone apps, and the iPhone app never looks lyrics up online
 (`barsOnlineLyrics` in `lib/nativeFile.ts` says why). Now Playing, the shelves
