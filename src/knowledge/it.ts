@@ -86,7 +86,37 @@ I brani sincronizzati sull’iPhone da un computer si possono riprodurre. La pri
 
 ## Cosa conserva l’app
 
-L’app conserva sul tuo dispositivo un catalogo della libreria (titoli, artisti, album e piccole copie delle copertine), così la volta successiva si apre in fretta. Questo catalogo non viene salvato altrove né condiviso tra dispositivi: ogni dispositivo crea il proprio. Cancellare i dati di questo sito in un browser cancella il catalogo, ma mai la tua musica.`,
+L’app conserva sul tuo dispositivo un catalogo della libreria (titoli, artisti, album e piccole copie delle copertine), così la volta successiva si apre in fretta. Questo catalogo non viene condiviso tra dispositivi: ogni dispositivo crea il proprio. Cancellare i dati di questo sito in un browser cancella il catalogo, ma mai la tua musica. Di scaffali, richieste e impostazioni puoi fare un backup: vedi Tenere al sicuro la tua musica.`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Tenere al sicuro la tua musica',
+    summary: 'La tua musica nel tuo cloud, e un backup dei tuoi scaffali.',
+    group: 'Come funziona',
+    body: `Universal Jukebox non carica mai la tua musica, quindi non può nemmeno perderla. La tua musica è al sicuro quanto il posto in cui la tieni. Un telefono perso o rotto non dovrebbe portarsi via la tua collezione, quindi tienine una copia da un’altra parte.
+
+## Tieni la tua musica nel tuo cloud
+
+Va bene qualsiasi spazio di archiviazione cloud che usi già: Proton Drive, iCloud Drive, Google Drive, OneDrive o un computer di cui fai il backup. Sul telefono:
+
+1. Metti la tua cartella musicale nel tuo spazio cloud.
+2. Nell’app di quel servizio, rendi la cartella disponibile offline, così i brani vengono salvati sul telefono e si riproducono senza connessione. I brani che sono solo online non si possono riprodurre.
+3. In Jukebox, apri il menu, scegli **La tua libreria completa** e aggiungi la cartella. Su iPhone, il servizio cloud deve comparire nell’app File; su Android, nel selettore delle cartelle.
+
+Dopo aver aggiunto o rimosso brani nel cloud, scegli **Ripeti scansione**.
+
+## Fai il backup di ciò che hai creato in Jukebox
+
+I tuoi scaffali, le tue richieste, le tue impostazioni e gli eventuali file di testo che hai aggiunto esistono solo nell’app. Per conservarli, apri **Regola questa app** e poi **Backup**:
+
+- **Salva un file di backup** crea un unico piccolo file che puoi conservare dove vuoi, anche su Proton Drive. Non serve un account. Nelle app per telefono viene salvato nella cartella Documenti dell’app, e puoi spostarlo dall’app File.
+- **Fai il backup sul tuo Universal ID** conserva lo stesso backup con il tuo account, se hai effettuato l’accesso. Viene sostituito a ogni nuovo backup e puoi eliminarlo. Non è crittografato end-to-end. Se è troppo grande per il tuo account, l’app ti dice cosa ha lasciato fuori, e un file di backup conserva tutto.
+
+## Su un nuovo telefono
+
+Copia la tua musica o rendila disponibile offline, aggiungi la cartella e attendi che la libreria si carichi. Poi ripristina il backup. Le tue impostazioni vengono sostituite da quelle del backup. I suoi scaffali e le sue richieste si aggiungono a ciò che hai, e non viene rimosso nulla.
+
+I brani vengono ritrovati in base a titolo, artista e album, quindi uno scaffale torna anche se i file sono copie nuove. Un brano che non è ancora nella tua libreria viene lasciato fuori. Ripeti il ripristino dopo aver aggiunto altra musica per recuperarlo.`,
   },
   {
     id: 'between-songs',
@@ -194,7 +224,7 @@ Se ti piace guardare il disco che gira, **Resta acceso** impedisce allo schermo 
 - **Il catalogo della tua libreria**: titoli, artisti, album, piccole copie delle copertine ed eventuali correzioni fatte con il riordino.
 - **Le tue impostazioni, le tue richieste e il punto in cui eri arrivato.** Restano nell’app su questo dispositivo.
 
-L’app non esegue backup né sincronizza nulla di tutto questo. Se usi Jukebox su due dispositivi, ognuno ha la propria libreria.
+Niente di tutto questo lascia il tuo dispositivo, a meno che tu non faccia un backup. Un file di backup va dove lo salvi tu. Un backup sul tuo Universal ID contiene impostazioni, scaffali, richieste ed eventuali testi che hai aggiunto, identificati per titolo, artista e album; non contiene mai la tua musica. Se usi Jukebox su due dispositivi, ognuno ha la propria libreria.
 
 ## Le tre ricerche
 
@@ -208,7 +238,7 @@ Le risposte delle prime due vengono conservate sul tuo dispositivo, così un bra
 
 ## Universal ID
 
-Accedere con un Universal ID è facoltativo. Ti mantiene connesso in tutte le app UNI·SIM. Mentre hai effettuato l’accesso, l’app registra un evento di «apertura» sul tuo account ogni volta che si avvia. Quell’evento non dice nulla della tua musica.
+Accedere con un Universal ID è facoltativo. Ti mantiene connesso in tutte le app UNI·SIM e, se vuoi, ti permette di conservare un backup con il tuo account. Mentre hai effettuato l’accesso, l’app registra un evento di «apertura» sul tuo account ogni volta che si avvia. Quell’evento non dice nulla della tua musica.
 
 ## Permessi
 
