@@ -13,6 +13,7 @@ import { hasNativeImporter } from '../lib/nativeImport'
 import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { RecordMark } from './icons'
+import { HelpLink } from './TuneExtras'
 
 export function WelcomeScreen() {
   const pickFolder = useLibraryStore((s) => s.pickFolder)
@@ -96,6 +97,9 @@ export function WelcomeScreen() {
       </button>
       <p className="jx-fine">Made-up albums, so you can see every machine before adding your own.</p>
 
+      {/* The website's Landing explains music in the cloud and on streaming
+          services; here that is the knowledge base, one tap away. */}
+      <HelpLink label="Music in the cloud or on a streaming service?" />
       <button type="button" className="jx-link center" onClick={() => navigate({ view: 'settings' })}>
         Tune this app
       </button>

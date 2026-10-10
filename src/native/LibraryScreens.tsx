@@ -24,7 +24,10 @@ import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { DEFAULTS, useSettingsStore, type LibraryColumns, type ListTab } from '../stores/settingsStore'
-import { IconBack, IconClose, IconSearch, IconShuffle } from './icons'
+import { IconBack, IconClose, IconMore, IconSearch, IconShuffle } from './icons'
+import TrackOptions from '../components/TrackOptions'
+import ResumeCard from '../components/ResumeCard'
+import { haptic } from '../lib/haptics'
 import { PullDrawer } from './PullDrawer'
 
 /** Rows drawn before "Show more": a phone lays out a few hundred rows instantly, not ten thousand. */
@@ -293,6 +296,9 @@ export function AlbumsScreen(props: ListProps) {
         <div className="jx-web"><AlbumGrid query={query} order={layout.effective} genre={genre} /></div>
       ) : (
         <>
+          {/* "Pick up where you left off" — the website puts it in its lists
+              too; it draws nothing when there is nothing to resume. */}
+          {!query.trim() && <ResumeCard />}
           <Nothing query={shown.length === 0 ? query : ''} />
           {layout.columns === 1 ? (
             <ul className="jx-list">
@@ -376,6 +382,7 @@ export function ArtistsScreen(props: ListProps) {
         <div className="jx-web"><ArtistList query={query} order={layout.effective} genre={genre} /></div>
       ) : (
         <>
+          {!query.trim() && <ResumeCard />}
           <Nothing query={names.length === 0 ? query : ''} />
           <ul className={layout.columns === 1 ? 'jx-list' : `jx-grid n${layout.columns} artists`}>
             {names.slice(0, limit).map((name) => {
@@ -439,6 +446,7 @@ export function SongsScreen(props: ListProps) {
         <div className="jx-web"><TrackList query={query} order={layout.effective} genre={genre} /></div>
       ) : (
         <>
+          {!query.trim() && <ResumeCard />}
           <Nothing query={shown.length === 0 ? query : ''} />
           <SongList tracks={shown.slice(0, limit)} albums={albums} onPlay={(i) => playTracks(shown, i)} showAlbum />
           <More left={shown.length - limit} onMore={() => setLimit((n) => n + PAGE)} />
@@ -451,6 +459,10 @@ export function SongsScreen(props: ListProps) {
 /**
  * Rows of songs. `onPlay` gets the row's index, and the caller decides what
  * the queue is — the whole search on Tracks, the album on an album.
+ *
+ * ⋯ at the end of a row, or holding the row, opens the website's own options
+ * sheet (`TrackOptions`): play now, play next, add to the queue, add to a
+ * shelf, go to the album.
  */
 export function SongList({
   tracks,
@@ -458,40 +470,82 @@ export function SongList({
   onPlay,
   showAlbum = false,
   numbered = false,
+  subtitle,
 }: {
   tracks: Track[]
   albums: Album[]
   onPlay(index: number): void
   showAlbum?: boolean
   numbered?: boolean
+  /** The row's second line, when it isn't the artist (and album). */
+  subtitle?: (track: Track) => string
 }) {
   const playingId = usePlayerStore((s) => currentTrack(s)?.id)
   const albumOf = useMemo(() => new Map(albums.map((a) => [a.id, a])), [albums])
+  const [options, setOptions] = useState<number | null>(null)
+  const hold = useRef<{ timer: number; fired: boolean } | null>(null)
+  const startHold = (i: number) => {
+    cancelHold()
+    const h = { timer: 0, fired: false }
+    h.timer = window.setTimeout(() => {
+      h.fired = true
+      haptic('tap')
+      setOptions(i)
+    }, HOLD_MS)
+    hold.current = h
+  }
+  const cancelHold = () => {
+    if (hold.current) window.clearTimeout(hold.current.timer)
+  }
   return (
-    <ul className="jx-list">
-      {tracks.map((track, i) => (
-        <li key={track.id}>
-          <button
-            type="button"
-            className={`jx-row${track.id === playingId ? ' on' : ''}`}
-            onClick={() => onPlay(i)}
-            aria-current={track.id === playingId ? 'true' : undefined}
-          >
-            {numbered ? (
-              <span className="jx-no">{track.trackNo ?? i + 1}</span>
-            ) : (
-              <Cover album={albumOf.get(track.albumId)} className="jx-thumb" />
-            )}
-            <span>
-              <b>{track.title}</b>
-              <small>{[track.artist ?? track.albumArtist, showAlbum ? track.album : null].filter(Boolean).join(' · ')}</small>
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
+    <>
+      {options !== null && tracks[options] && (
+        <TrackOptions track={tracks[options]} onPlay={() => onPlay(options)} onClose={() => setOptions(null)} />
+      )}
+      <ul className="jx-list">
+        {tracks.map((track, i) => (
+          <li key={track.id} className="jx-song">
+            <button
+              type="button"
+              className={`jx-row${track.id === playingId ? ' on' : ''}`}
+              onClick={() => {
+                // A hold that opened the sheet is not also a tap.
+                if (hold.current?.fired) return void (hold.current = null)
+                onPlay(i)
+              }}
+              onPointerDown={(e) => { if (e.pointerType !== 'mouse') startHold(i) }}
+              onPointerUp={cancelHold}
+              onPointerLeave={cancelHold}
+              onPointerCancel={cancelHold}
+              onContextMenu={(e) => { e.preventDefault(); setOptions(i) }}
+              aria-current={track.id === playingId ? 'true' : undefined}
+            >
+              {numbered ? (
+                <span className="jx-no">{track.trackNo ?? i + 1}</span>
+              ) : (
+                <Cover album={albumOf.get(track.albumId)} className="jx-thumb" />
+              )}
+              <span>
+                <b>{track.title}</b>
+                <small>
+                  {subtitle
+                    ? subtitle(track)
+                    : [track.artist ?? track.albumArtist, showAlbum ? track.album : null].filter(Boolean).join(' · ')}
+                </small>
+              </span>
+            </button>
+            <button type="button" className="jx-more" onClick={() => setOptions(i)} aria-label={`Options for ${track.title}`}>
+              <IconMore />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
+
+/** How long a press is held before it opens a song's options, as on the Tracks shelf. */
+const HOLD_MS = 450
 
 function More({ left, onMore }: { left: number; onMore(): void }) {
   if (left <= 0) return null

@@ -196,6 +196,39 @@ html.dark .jx {
 /* The website's shelf and genre list, inside the phone's margins. */
 .jx-web { min-width: 0; }
 
+/* A song row with its ⋯ (SongList). */
+.jx-song { display: flex; align-items: center; }
+.jx-song .jx-row { flex: 1; min-width: 0; }
+.jx-more { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border: 0; background: none; color: var(--jx-mute); }
+.jx-more svg { width: 20px; height: 20px; }
+.jx-song .jx-row { -webkit-touch-callout: none; user-select: none; }
+
+/* Album / artist: add-all buttons under Play and Shuffle. */
+.jx-actions-wrap { display: flex; flex-direction: column; gap: 10px; }
+.jx-actions-more { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.jx-actions-more:empty { display: none; }
+.jx-hero-open { border: 0; background: none; padding: 0; border-radius: 12px; }
+.jx-hero-open:active .jx-hero-cover { transform: scale(0.98); }
+
+/* Tune: Your music, About & help, then the website's sections without their
+   own heading (this page has one). */
+.jx-tune-settings > div:last-child > h1,
+.jx-tune-settings > div:last-child > h1 + p,
+/* …and its "Back to your library" link, which shows from 640px (an iPad): the
+   tab bar is the way back here. */
+.jx-tune-settings > div:last-child > button:first-child { display: none; }
+.jx-tune-card { display: flex; flex-direction: column; gap: 4px; padding: 6px 14px 12px; }
+.jx-tune-card > .jx-label { margin: 8px 0 2px; }
+.jx-tune-card .jx-row { min-height: 54px; }
+.jx-tune-card .jx-list > li:last-child { border-bottom: 0; }
+.jx-tune-card > .jx-row + .jx-row { border-top: 1px solid var(--jx-line); }
+.jx-tune-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.jx-tune-actions .jx-btn { min-height: 44px; font-size: 15px; }
+.jx-confirm { display: flex; gap: 14px; flex: none; }
+.jx-link.quiet { color: var(--jx-mute); font-size: 14px; flex: none; }
+.jx-link.danger { font-size: 14px; font-weight: 650; flex: none; }
+.jx-fine.left { text-align: left; margin: 0; }
+
 /* One album or artist. */
 .jx-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding-top: 4px; }
 .jx-hero-cover { width: min(68vw, 300px); aspect-ratio: 1; margin-bottom: 14px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 18px 40px -16px rgba(0, 0, 0, 0.5); }

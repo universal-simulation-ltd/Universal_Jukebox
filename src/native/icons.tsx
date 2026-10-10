@@ -64,6 +64,17 @@ export function IconTune() {
   )
 }
 
+/** ⋯ — a song's options. */
+export function IconMore() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <circle cx="5.5" cy="12" r="1.9" />
+      <circle cx="12" cy="12" r="1.9" />
+      <circle cx="18.5" cy="12" r="1.9" />
+    </svg>
+  )
+}
+
 export function IconClose() {
   return (
     <svg {...base} strokeWidth={2.2}>

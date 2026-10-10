@@ -43,6 +43,7 @@ import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
 import { WelcomeScreen } from './WelcomeScreen'
+import { AboutAndHelp, YourMusic } from './TuneExtras'
 import './native.css'
 
 type TabView = HomeTab | 'settings'
@@ -212,7 +213,14 @@ export default function NativeApp() {
         {tab && tab !== 'settings' && view === tab && <ExampleNotice onLibraryPage />}
 
         {view === 'settings' ? (
-          <div className="jx-page jx-tune"><Settings /></div>
+          // Your music and About & help first (the website's menu), then Tune
+          // this app's own sections; its heading is this page's (native.css).
+          <div className="jx-page jx-tune jx-tune-settings">
+            <h1 className="jx-h1">Tune this app</h1>
+            <YourMusic />
+            <AboutAndHelp />
+            <Settings />
+          </div>
         ) : view === 'about' ? (
           <div className="jx-page jx-tune"><About /></div>
         ) : view === 'tidy' ? (
