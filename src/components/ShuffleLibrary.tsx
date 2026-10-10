@@ -4,6 +4,7 @@ import { shuffleScope } from '../lib/shuffleScope'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type ListTab } from '../stores/settingsStore'
+import { useT, type MessageKey } from '../i18n'
 
 // Shuffle the list on screen, the way the tab you are on reads it (James,
 // 2026-09-11: "Is there a shuffle all button e.g. shuffle all artists (plays the
@@ -21,13 +22,16 @@ import { useSettingsStore, type ListTab } from '../stores/settingsStore'
 // it used to be hidden, because a whole-library shuffle under search results
 // would not have been shuffling what was on the screen.
 
-const COPY: Record<ListTab, { all: string; these: string; detail?: string }> = {
-  artists: { all: 'Shuffle artists', these: 'Shuffle these artists', detail: 'Each artist in full, their songs shuffled' },
-  albums: { all: 'Shuffle albums', these: 'Shuffle these albums', detail: 'Each album in full, in order' },
-  tracks: { all: 'Shuffle all songs', these: 'Shuffle these songs' },
+// Whole sentences, label and detail together — keys, so the words are looked up
+// in the reader's language at render time.
+const COPY: Record<ListTab, { all: MessageKey; these: MessageKey }> = {
+  artists: { all: 'library.shuffle_artists_all', these: 'library.shuffle_artists_these' },
+  albums: { all: 'library.shuffle_albums_all', these: 'library.shuffle_albums_these' },
+  tracks: { all: 'library.shuffle_songs_all', these: 'library.shuffle_songs_these' },
 }
 
 export default function ShuffleLibrary({ view, query, genre }: { view: ListTab; query: string; genre?: string }) {
+  const t = useT()
   const tracks = useLibraryStore((s) => s.tracks)
   const albums = useLibraryStore((s) => s.albums)
   const fullAlbumsOnly = useSettingsStore((s) => s.fullAlbumsOnly)
@@ -51,8 +55,7 @@ export default function ShuffleLibrary({ view, query, genre }: { view: ListTab; 
   // shuffle button just put a button with the shuffle icon next to the
   // settings icon") — its label says which shuffle it is, and whether it is
   // the whole library or the list in front of you.
-  const label = scope.narrowed ? copy.these : copy.all
-  const says = copy.detail ? `${label} — ${copy.detail.toLowerCase()}` : label
+  const says = t(scope.narrowed ? copy.these : copy.all)
   return (
     <button
       type="button"

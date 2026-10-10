@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref } from 'react'
 import { flushSync } from 'react-dom'
+import { useT } from '../i18n'
 
 // A search box for the page you are ALREADY on — one record, rather than the
 // whole library (James, 2026-09-15: "Album scroll down for search within").
@@ -186,14 +187,15 @@ export default function FindWithin({
  * handler runs is what makes the X work on an empty box as well as a full one.
  */
 function ClearButton({ onClear, tabIndex }: { onClear(): void; tabIndex: number }) {
+  const t = useT()
   return (
     <button
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClear}
       tabIndex={tabIndex}
-      aria-label="Clear and close the search box"
-      title="Clear and close"
+      aria-label={t('library.clear_and_close_search')}
+      title={t('library.clear_and_close')}
       className="absolute top-1/2 right-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-orange-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-orange-400"
     >
       <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>

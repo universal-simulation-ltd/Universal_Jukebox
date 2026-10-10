@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { plural } from '../lib/format'
+import { useT } from '../i18n'
 import { navigate } from '../lib/route'
 import { usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
@@ -15,6 +15,7 @@ import { useDialogFocus } from '../lib/useDialogFocus'
 const SAID_MS = 900
 
 export default function TrackOptions({ track, onPlay, onClose }: { track: Track; onPlay(): void; onClose(): void }) {
+  const t = useT()
   const dialogRef = useDialogFocus()
   const enqueue = usePlayerStore((s) => s.enqueue)
   const queued = usePlayerStore((s) => s.queue.length)
@@ -30,14 +31,14 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
   }, [onClose])
   useEffect(() => {
     if (said === null) return
-    const t = window.setTimeout(onClose, SAID_MS)
-    return () => window.clearTimeout(t)
+    const timer = window.setTimeout(onClose, SAID_MS)
+    return () => window.clearTimeout(timer)
   }, [said, onClose])
 
   const queue = (mode: 'next' | 'end') => {
     enqueue([track], mode)
     const { order, cursor } = usePlayerStore.getState()
-    setSaid(mode === 'next' ? 'Plays next' : `${plural(order.length - cursor - 1, 'song')} in queue`)
+    setSaid(mode === 'next' ? t('library.plays_next') : t.plural('library.in_queue', order.length - cursor - 1))
   }
 
   if (shelving) return <ShelfSheet tracks={[track]} title={track.title} onClose={onClose} />
@@ -50,7 +51,7 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label={`Options for ${track.title}`}
+      aria-label={t('library.options_for', { title: track.title })}
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
@@ -61,7 +62,7 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
         <div className="px-3 pt-1 pb-2">
           <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-slate-100">{track.title}</p>
           <p className="truncate text-[12.5px] text-slate-500 dark:text-slate-400">
-            {[track.artist ?? track.albumArtist, track.album].filter(Boolean).join(' — ') || 'Unknown artist'}
+            {[track.artist ?? track.albumArtist, track.album].filter(Boolean).join(' — ') || t('common.unknown_artist')}
           </p>
         </div>
         {said ? (
@@ -80,24 +81,24 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
               }}
             >
               <span className="w-5 text-center text-orange-600">▶</span>
-              Play now
+              {t('library.play_now')}
             </button>
             {/* With nothing playing, "next" and "the end" are both "now". */}
             {queued > 0 && (
               <>
                 <button type="button" className={row} onClick={() => queue('next')}>
                   <span className="w-5 text-center text-slate-500">⤴</span>
-                  Play next
+                  {t('library.play_next')}
                 </button>
                 <button type="button" className={row} onClick={() => queue('end')}>
                   <span className="w-5 text-center text-slate-500">＋</span>
-                  Add to queue
+                  {t('library.add_to_queue')}
                 </button>
               </>
             )}
             <button type="button" className={row} onClick={() => setShelving(true)}>
               <span className="w-5 text-center text-slate-500">◎</span>
-              Add to a shelf…
+              {t('library.add_to_a_shelf')}
             </button>
             <button
               type="button"
@@ -108,7 +109,7 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
               }}
             >
               <span className="w-5 text-center text-slate-500">▤</span>
-              Go to the album
+              {t('library.go_to_album')}
             </button>
           </div>
         )}

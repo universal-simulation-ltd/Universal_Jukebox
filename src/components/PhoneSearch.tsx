@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
+import { useT } from '../i18n'
 
 // The library's search box on a PHONE: folded away above the tabs, and pulled
 // down into view with your finger (James, 2026-09-11: "hide the search box at
@@ -36,6 +37,7 @@ const PhoneSearch = forwardRef<PhoneSearchHandle, PhoneSearchProps>(function Pho
   { query, setQuery, open, setOpen },
   ref,
 ) {
+  const t = useT()
   const box = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -152,8 +154,8 @@ const PhoneSearch = forwardRef<PhoneSearchHandle, PhoneSearchProps>(function Pho
             onBlur={() => {
               if (!query.trim()) setOpen(false)
             }}
-            placeholder="Search your library"
-            aria-label="Search your library"
+            placeholder={t('library.search_your_library')}
+            aria-label={t('library.search_your_library')}
             className="w-full rounded-full border border-slate-300 bg-white py-2 pr-11 pl-4 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
           <ClearButton onClear={clearAndClose} tabIndex={shown ? 0 : -1} />
@@ -173,14 +175,15 @@ const PhoneSearch = forwardRef<PhoneSearchHandle, PhoneSearchProps>(function Pho
  * handler runs is what makes the X work on an empty box as well as a full one.
  */
 function ClearButton({ onClear, tabIndex }: { onClear(): void; tabIndex: number }) {
+  const t = useT()
   return (
     <button
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClear}
       tabIndex={tabIndex}
-      aria-label="Clear and close the search box"
-      title="Clear and close"
+      aria-label={t('library.clear_and_close_search')}
+      title={t('library.clear_and_close')}
       className="absolute top-1/2 right-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-orange-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-orange-400"
     >
       <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>

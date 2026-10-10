@@ -4,7 +4,8 @@ import AddToShelf from './AddToShelf'
 import Cover from './Cover'
 import { SongRow } from './TrackList'
 import { PlayGlyph, ShuffleGlyph } from './AlbumView'
-import { plural, totalTime } from '../lib/format'
+import { shownName, totalTime } from '../lib/format'
+import { useT } from '../i18n'
 import { goHome, navigate } from '../lib/route'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -23,6 +24,9 @@ import { compareBase } from '../lib/collate'
 // it this is the albums page, which "All N albums by …" still wants.
 
 export default function ArtistView({ name, songs = false }: { name: string; songs?: boolean }) {
+  const t = useT()
+  /** The name as shown — "Unknown artist" in the reader's language. */
+  const artist = shownName(name)
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -45,20 +49,22 @@ export default function ArtistView({ name, songs = false }: { name: string; song
 
   /** Each album as a song's second line: "Title · 2009". */
   const albumLine = useMemo(
-    () => new Map(albums.map((a) => [a.id, [a.title, a.year].filter(Boolean).join(' · ')])),
-    [albums],
+    () => new Map(albums.map((a) => [a.id, [shownName(a.title), a.year].filter(Boolean).join(' · ')])),
+    // `t`: a language switch renames "Unknown album".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [albums, t],
   )
 
   if (albums.length === 0) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-slate-500 dark:text-slate-400">No albums by {name} in the library.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('library.no_albums_by', { artist })}</p>
         <button
           type="button"
           onClick={goHome}
           className="mt-3 text-sm font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
         >
-          Back to your library
+          {t('library.back_to_library')}
         </button>
       </div>
     )
@@ -84,12 +90,12 @@ export default function ArtistView({ name, songs = false }: { name: string; song
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
         </svg>
-        Your library
+        {t('library.your_library')}
       </button>
 
-      <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">{songs ? `All songs by ${name}` : name}</h1>
+      <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">{songs ? t('library.all_songs_by', { artist }) : artist}</h1>
       <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
-        {[plural(albums.length, 'album'), plural(tracks.length, 'song'), totalTime(tracks)].filter(Boolean).join(' · ')}
+        {[t.plural('common.albums', albums.length), t.plural('common.songs', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}
       </p>
 
       <div className="mt-5 flex flex-wrap gap-2.5">
@@ -100,7 +106,7 @@ export default function ArtistView({ name, songs = false }: { name: string; song
           className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50"
         >
           <PlayGlyph />
-          Play all
+          {t('library.play_all')}
         </button>
         <button
           type="button"
@@ -109,7 +115,7 @@ export default function ArtistView({ name, songs = false }: { name: string; song
           className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
         >
           <ShuffleGlyph />
-          Shuffle all
+          {t('library.shuffle_all')}
         </button>
         <AddToQueue tracks={tracks} />
         <AddToShelf tracks={tracks} variant="pill" />
@@ -134,7 +140,7 @@ export default function ArtistView({ name, songs = false }: { name: string; song
             onClick={() => navigate({ view: 'artist', artist: name })}
             className="mt-6 text-[13px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
           >
-            Their {plural(albums.length, 'album')} ›
+            {t.plural('library.their_albums', albums.length)}
           </button>
         </>
       ) : (
@@ -151,10 +157,10 @@ export default function ArtistView({ name, songs = false }: { name: string; song
                 className="aspect-square w-full shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 group-hover:shadow-md group-focus-visible:ring-2 group-focus-visible:ring-orange-600 dark:ring-white/10"
               />
               <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
-                {album.title}
+                {shownName(album.title)}
               </p>
               <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
-                {[album.year, plural(album.trackCount, 'track')].filter(Boolean).join(' · ')}
+                {[album.year, t.plural('common.tracks', album.trackCount)].filter(Boolean).join(' · ')}
               </p>
             </button>
           </li>

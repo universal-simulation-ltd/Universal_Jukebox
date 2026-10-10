@@ -1,5 +1,5 @@
 import { usePlayerStore } from '../stores/playerStore'
-import { plural } from '../lib/format'
+import { useT } from '../i18n'
 import { DoneBubble, TickGlyph } from './DoneBubble'
 import { useDone } from '../lib/useDone'
 import type { Track } from '../lib/types'
@@ -18,6 +18,7 @@ import type { Track } from '../lib/types'
  * song's row.
  */
 export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track[]; variant?: 'pill' | 'round' | 'icon' }) {
+  const t = useT()
   const enqueue = usePlayerStore((s) => s.enqueue)
   // Only whether anything is queued — a count here re-rendered every row's
   // button in a long list each time a song was added.
@@ -32,9 +33,9 @@ export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track
   const add = () => {
     enqueue(tracks, 'end')
     const { order, cursor } = usePlayerStore.getState()
-    say(`${plural(order.length - cursor - 1, 'song')} in queue`)
+    say(t.plural('library.in_queue', order.length - cursor - 1))
   }
-  const label = tracks.length === 1 ? `Add “${tracks[0].title}” to the queue` : 'Add to queue'
+  const label = tracks.length === 1 ? t('library.add_song_to_queue', { title: tracks[0].title }) : t('library.add_to_queue')
   const done = said !== null
 
   if (variant === 'icon') {
@@ -44,7 +45,7 @@ export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track
           type="button"
           onClick={add}
           aria-label={label}
-          title="Add to queue"
+          title={t('library.add_to_queue')}
           className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] ${
             done
               ? 'text-emerald-600 dark:text-emerald-400'
@@ -65,7 +66,7 @@ export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track
         onClick={add}
         disabled={tracks.length === 0}
         aria-label={variant === 'round' ? label : undefined}
-        title={variant === 'round' ? 'Add to queue' : undefined}
+        title={variant === 'round' ? t('library.add_to_queue') : undefined}
         className={`inline-flex items-center rounded-full border text-sm font-medium transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 ${
           variant === 'round' ? 'h-[38px] w-[38px] justify-center' : 'gap-2 px-5 py-2'
         } ${
@@ -75,7 +76,7 @@ export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track
         }`}
       >
         {done ? <TickGlyph className="h-4 w-4" /> : <QueueGlyph />}
-        {variant === 'pill' && <span aria-live="polite">{said ?? 'Add to queue'}</span>}
+        {variant === 'pill' && <span aria-live="polite">{said ?? t('library.add_to_queue')}</span>}
       </button>
       {variant === 'round' && <DoneBubble text={said} />}
     </span>

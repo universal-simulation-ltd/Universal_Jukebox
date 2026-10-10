@@ -13,6 +13,8 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import type { Album } from '../lib/types'
 import { compareBase, compareBaseNumeric } from '../lib/collate'
+import { shownName } from '../lib/format'
+import { useT } from '../i18n'
 
 // The front door once there is a library: a grid of covers.
 //
@@ -34,6 +36,7 @@ interface AlbumGridProps {
 }
 
 export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridProps) {
+  const t = useT()
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const { albums, tracks } = useMemo(
@@ -77,12 +80,12 @@ export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridPro
     return (
       <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
         {query.trim()
-          ? `Nothing matching “${query}”.`
+          ? t('library.nothing_matching', { query })
           : genre && albums.length > 0
-            ? `No genre here has ${GENRE_MIN} songs or more, so there is nothing to file. Switch back to A–Z.`
+            ? t.plural('library.no_genre_big_enough', GENRE_MIN)
             : fullOnly && albums.length > 0
-              ? `No full albums — every album here has fewer than ${FULL_ALBUM_MIN} tracks. Tap “Full albums” to show all albums.`
-              : 'No albums yet.'}
+              ? t.plural('library.no_full_albums', FULL_ALBUM_MIN)
+              : t('library.no_albums_yet')}
       </p>
     )
   }
@@ -104,10 +107,10 @@ export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridPro
         {/* `line-clamp-2` and not `truncate`: album titles are long and the
             second line is usually the half that identifies the record. */}
         <p className={`mt-2 line-clamp-2 font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400 ${small ? 'text-[11.5px] leading-snug' : 'text-[13px]'}`}>
-          {album.title}
+          {shownName(album.title)}
         </p>
         <p className={`line-clamp-1 text-slate-500 dark:text-slate-400 ${small ? 'text-[10.5px]' : 'text-[12px]'}`}>
-          {album.artist}
+          {shownName(album.artist)}
           {album.year && columns !== 4 ? ` · ${album.year}` : ''}
         </p>
       </button>

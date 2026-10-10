@@ -4,6 +4,7 @@
 import type { Album, Track } from './types'
 import { COLUMN_CYCLE, type LibraryColumns } from '../stores/settingsStore'
 import { ORDER_KINDS, type OrderKind } from './order'
+import { getT } from '../i18n/runtime.ts'
 
 /**
  * A–Z is each list's own alphabetical order (albums by title,
@@ -144,8 +145,10 @@ export function nextColumns(columns: LibraryColumns): LibraryColumns {
   return COLUMN_CYCLE[(i + 1) % COLUMN_CYCLE.length]
 }
 
+/** The layout button's words. Translated when called, so call it while rendering. */
 export function columnsLabel(columns: LibraryColumns): string {
-  return columns === 'jukebox' ? 'Jukebox' : `${columns} per row`
+  const t = getT()
+  return columns === 'jukebox' ? t('library.layout_jukebox') : t.plural('library.layout_per_row', columns)
 }
 
 /**

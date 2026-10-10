@@ -1,5 +1,6 @@
 import type { Album, Track } from './types'
 import { compareBase } from './collate'
+import { getT } from '../i18n/runtime.ts'
 
 // Genre, out of the tags people actually have — and the shelves it makes.
 //
@@ -17,8 +18,19 @@ import { compareBase } from './collate'
 /** Fewer songs than this behind a genre and it gets no shelf (James, 2026-09-12). */
 export const GENRE_MIN = 3
 
-/** Where the songs whose files carry no genre at all go — always last. */
+/**
+ * Where the songs whose files carry no genre at all go — always last.
+ *
+ * ⚠️ AN ID, NOT WORDS: it is the genre's name in the route (`#/<tab>/genre/No
+ * genre`) and in every comparison here, so it stays English. `shownGenre` is
+ * what puts it on screen.
+ */
 export const NO_GENRE = 'No genre'
+
+/** A genre's name as shown: `NO_GENRE` in the reader's language, any other genre as tagged. */
+export function shownGenre(name: string): string {
+  return name === NO_GENRE ? getT()('library.no_genre') : name
+}
 
 /**
  * ID3v1's numbered genres, which MP3s still carry in 2026.

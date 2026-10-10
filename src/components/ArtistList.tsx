@@ -7,7 +7,8 @@ import Cover from './Cover'
 import CoverFan from './CoverFan'
 import OpenGroup, { GROUP_MEMBER_TINT } from './OpenGroup'
 import { PlayGlyph } from './AlbumView'
-import { plural } from '../lib/format'
+import { shownName } from '../lib/format'
+import { useT } from '../i18n'
 import { matchArtistNames } from '../lib/search'
 import { navigate } from '../lib/route'
 import { ARTIST_MIN, albumsOfBigArtists, gridClass, seededOrder, type LibraryOrder } from '../lib/libraryView'
@@ -49,6 +50,7 @@ let openArtists: ReadonlySet<string> = new Set()
 
 /** `genre`: one opened from the genre list — only the artists with a record in it (`route.genre`). */
 export default function ArtistList({ query, order, genre: inGenre }: { query: string; order: LibraryOrder; genre?: string }) {
+  const t = useT()
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const { albums: library, tracks } = useMemo(
@@ -122,12 +124,12 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
     return (
       <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
         {query.trim()
-          ? `No artist matching “${query}”.`
+          ? t('library.no_artist_matching', { query })
           : min3 && library.length > 0 && albums.length === 0
-            ? `No artist has ${ARTIST_MIN} songs or more yet. Tap “Min. ${ARTIST_MIN}” to show all artists.`
+            ? t.plural('library.no_big_artists', ARTIST_MIN)
             : genre && albums.length > 0
-            ? `No genre here has ${GENRE_MIN} songs or more, so there is nothing to file. Switch back to A–Z.`
-            : 'No artists yet.'}
+            ? t.plural('library.no_genre_big_enough', GENRE_MIN)
+            : t('library.no_artists_yet')}
       </p>
     )
   }
@@ -173,9 +175,9 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
                   className="aspect-square w-full shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 group-hover:shadow-md group-focus-visible:ring-2 group-focus-visible:ring-orange-600 dark:ring-white/10"
                 />
                 <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
-                  {artist.name}
+                  {shownName(artist.name)}
                 </p>
-                <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">1 album</p>
+                <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">{t.plural('common.albums', 1)}</p>
               </button>
             </li>
           )
@@ -236,12 +238,12 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
                       : 'text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400'
                   }`}
                 >
-                  {artist.name}
+                  {shownName(artist.name)}
                 </p>
                 <p className="line-clamp-1 text-[12px] text-slate-500 dark:text-slate-400">
                   {isOpen
-                    ? `Showing ${plural(artist.albums.length, 'album')} — tap to fold up`
-                    : plural(artist.albums.length, 'album')}
+                    ? t.plural('library.showing_albums', artist.albums.length)
+                    : t.plural('common.albums', artist.albums.length)}
                 </p>
               </button>
             </li>
@@ -264,9 +266,9 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
                     </span>
                   </div>
                   <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
-                    All songs by {artist.name}
+                    {t('library.all_songs_by', { artist: shownName(artist.name) })}
                   </p>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400">Play or shuffle</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400">{t('library.play_or_shuffle')}</p>
                 </button>
               </li>
             )}
@@ -286,7 +288,7 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
                       className="aspect-square w-full shadow-sm ring-1 ring-slate-900/5 transition group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-orange-600 dark:ring-white/10"
                     />
                     <p className="mt-2 line-clamp-2 text-[13px] font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
-                      {album.title}
+                      {shownName(album.title)}
                     </p>
                     {album.year && <p className="text-[12px] text-slate-500 dark:text-slate-400">{album.year}</p>}
                   </button>

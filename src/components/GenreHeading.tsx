@@ -1,5 +1,5 @@
-import { GENRE_MIN } from '../lib/genres'
-import { plural } from '../lib/format'
+import { GENRE_MIN, shownGenre } from '../lib/genres'
+import { useT } from '../i18n'
 
 // The genre a run of records belongs to, and the note that owns up to what the
 // genre view leaves out.
@@ -11,9 +11,10 @@ import { plural } from '../lib/format'
 
 /** The genre over a run of tiles, with how many are in it. */
 export default function GenreHeading({ genre, count }: { genre: string; count: number }) {
+  useT() // re-render on a language switch, for `shownGenre`
   return (
     <h3 className="mb-3 flex items-baseline gap-2 text-[13px] font-semibold text-slate-900 dark:text-slate-100">
-      {genre}
+      {shownGenre(genre)}
       <span className="text-[12px] font-normal text-slate-500 tabular-nums dark:text-slate-400">{count}</span>
     </h3>
   )
@@ -28,11 +29,14 @@ export default function GenreHeading({ genre, count }: { genre: string; count: n
  * plain English is the difference.
  */
 export function GenreFootnote({ hidden }: { hidden: { songs: number; genres: number } }) {
+  const t = useT()
   if (hidden.songs === 0) return null
+  const min = t.num(GENRE_MIN)
   return (
     <p className="mt-6 text-center text-[12px] text-slate-500 dark:text-slate-400">
-      {plural(hidden.songs, 'song')} not shown — {hidden.genres === 1 ? 'one genre has' : `${hidden.genres} genres have`}{' '}
-      fewer than {GENRE_MIN} songs. They are all there in A–Z.
+      {hidden.genres === 1
+        ? t.plural('library.genre_footnote_one_genre', hidden.songs, { min })
+        : t.plural('library.genre_footnote_genres', hidden.songs, { min, genres: t.num(hidden.genres) })}
     </p>
   )
 }

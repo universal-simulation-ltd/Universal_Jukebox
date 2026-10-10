@@ -15,6 +15,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
 import { compareBase } from '../lib/collate'
+import { useT } from '../i18n'
 
 // Every track, in one list.
 //
@@ -67,6 +68,7 @@ let shownAll = false
 
 /** `genre`: one opened from the genre list — only its songs (`route.genre`). */
 export default function TrackList({ query, order, genre: inGenre }: { query: string; order: LibraryOrder; genre?: string }) {
+  const t = useT()
   const library = useLibraryStore((s) => s.tracks)
   const tracks = useMemo(() => (inGenre ? library.filter((t) => trackInGenre(t, inGenre)) : library), [library, inGenre])
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -136,10 +138,10 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
     return (
       <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
         {query.trim()
-          ? `Nothing matching “${query}”.`
+          ? t('library.nothing_matching', { query })
           : genre && tracks.length > 0
-            ? `No genre here has ${GENRE_MIN} songs or more, so there is nothing to file. Switch back to A–Z.`
-            : 'No tracks yet.'}
+            ? t.plural('library.no_genre_big_enough', GENRE_MIN)
+            : t('library.no_tracks_yet')}
       </p>
     )
   }
@@ -184,14 +186,14 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
       {!onShelf && hidden > 0 && (
         <div className="py-6 text-center">
           <p className="text-[13px] text-slate-500 dark:text-slate-400">
-            Showing the first {CAP.toLocaleString()} of {matched.length.toLocaleString()}. Search finds any of them.
+            {t('library.showing_first', { cap: t.num(CAP), total: t.num(matched.length) })}
           </p>
           <button
             type="button"
             onClick={() => setShowAll(true)}
             className="mt-2 text-[13px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
           >
-            Show all {matched.length.toLocaleString()} anyway
+            {t('library.show_all_anyway', { count: t.num(matched.length) })}
           </button>
         </div>
       )}
@@ -206,6 +208,7 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
  * the two lists are the same list.
  */
 export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () => void; subtitle?: string }) {
+  const t = useT()
   // One number per row, so pausing or changing track re-renders the row(s)
   // concerned rather than every row in the list: 0 not this song, 1 this song
   // paused, 2 this song playing.
@@ -231,7 +234,7 @@ export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () 
             {track.title}
           </span>
           <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
-            {subtitle ?? ([track.artist, track.album].filter(Boolean).join(' — ') || 'Unknown')}
+            {subtitle ?? ([track.artist, track.album].filter(Boolean).join(' — ') || t('library.unknown'))}
           </span>
         </span>
         {/* Hidden below 560px (tier T5): the format chip is the first

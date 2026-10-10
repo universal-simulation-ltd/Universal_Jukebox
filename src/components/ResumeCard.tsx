@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import Cover from './Cover'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { resolveDeck } from '../lib/decks'
-import { clock } from '../lib/format'
+import { clock, shownName } from '../lib/format'
+import { useT } from '../i18n'
 import { lockArt } from '../lib/lockArt'
 import { hideResume, useResumable } from '../lib/resume'
 import { usePlayerStore } from '../stores/playerStore'
@@ -18,6 +19,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 // shows is `useResumable`, which the lists ask too.
 
 export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) => React.ReactNode } = {}) {
+  const t = useT()
   const setSetting = useSettingsStore((s) => s.set)
   const deckSetting = useSettingsStore((s) => s.deck)
   const eras = useSettingsStore((s) => s.deckEras)
@@ -54,7 +56,7 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
   // beside them, which on a phone left the title about ten letters.
   const card = (
     <section
-      aria-label="Resume listening"
+      aria-label={t('library.resume_listening')}
       className="flex items-center gap-3.5 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-900 dark:ring-white/10"
     >
       {/* The art resumes too; the words below are the button a screen reader
@@ -85,11 +87,11 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
           className="block w-full text-left focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
           <span className="block text-[11px] font-semibold tracking-wide text-orange-700 uppercase dark:text-orange-400">
-            Resume listening{session.sec > 5 ? ` · ${clock(session.sec)}` : ''}
+            {t('library.resume_listening')}{session.sec > 5 ? ` · ${clock(session.sec)}` : ''}
           </span>
           <span className="mt-0.5 line-clamp-2 text-[15px] leading-snug font-medium text-slate-900 dark:text-slate-100">{track.title}</span>
           <span className="block truncate text-[13px] text-slate-600 dark:text-slate-300">
-            {track.artist ?? track.albumArtist ?? album?.artist}
+            {track.artist ?? track.albumArtist ?? shownName(album?.artist)}
           </span>
         </button>
         <div className="-ml-2.5 mt-1 flex flex-wrap">
@@ -98,14 +100,14 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
             onClick={hideResume}
             className="rounded-full px-2.5 py-1 text-[12px] font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            Hide
+            {t('library.hide')}
           </button>
           <button
             type="button"
             onClick={() => setSetting('resumeCard', false)}
             className="rounded-full px-2.5 py-1 text-[12px] text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800"
           >
-            Don’t show again
+            {t('library.dont_show_again')}
           </button>
         </div>
       </div>

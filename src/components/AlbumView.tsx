@@ -6,7 +6,8 @@ import AddToQueue from './AddToQueue'
 import AddToShelf from './AddToShelf'
 import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
-import { clock, plural, totalTime } from '../lib/format'
+import { clock, shownName, totalTime } from '../lib/format'
+import { useT } from '../i18n'
 import { navigate } from '../lib/route'
 import { matchTracks } from '../lib/search'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
@@ -23,6 +24,7 @@ import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore
 // finger to pull with.
 
 export default function AlbumView({ albumId }: { albumId: string }) {
+  const t = useT()
   const albums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -62,19 +64,21 @@ export default function AlbumView({ albumId }: { albumId: string }) {
   if (!album) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-slate-500 dark:text-slate-400">That album isn’t in the library.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('library.album_not_found')}</p>
         <button
           type="button"
           onClick={() => navigate({ view: 'albums' })}
           className="mt-3 text-sm font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
         >
-          Back to albums
+          {t('library.back_to_albums')}
         </button>
       </div>
     )
   }
 
   const total = totalTime(tracks)
+  const title = shownName(album.title)
+  const artist = shownName(album.artist)
   // Multi-disc albums show their disc headings; single-disc ones must not, or
   // every ordinary album grows a spurious "Disc 1" row.
   // ⚠️ ...and never while searching. "Disc 2" over a list of whatever matched is
@@ -130,8 +134,8 @@ export default function AlbumView({ albumId }: { albumId: string }) {
         setQuery={setQuery}
         open={searchOpen}
         setOpen={setSearchOpen}
-        label={`Search ${album.title}`}
-        placeholder={`Search ${album.title}`}
+        label={t('library.search_album', { title })}
+        placeholder={t('library.search_album', { title })}
       />
       <button
         type="button"
@@ -141,7 +145,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
         </svg>
-        All albums
+        {t('library.all_albums')}
       </button>
 
       {/* Stacks to one column below 980px (tier T3): deck above, words below. */}
@@ -164,7 +168,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
           type="button"
           onClick={openTheJukebox}
           disabled={tracks.length === 0}
-          aria-label={onTheDeck ? `Open the jukebox — ${album.title} is on` : `Play ${album.title} on the deck`}
+          aria-label={onTheDeck ? t('library.open_jukebox_album_on', { title }) : t('library.play_album_on_deck', { title })}
           className="group relative block w-full max-w-[260px] shrink-0 rounded-xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] disabled:cursor-default md:w-[260px]"
         >
           <Cover
@@ -177,23 +181,23 @@ export default function AlbumView({ albumId }: { albumId: string }) {
           <span className="pointer-events-none absolute inset-0 flex items-end justify-center rounded-xl bg-gradient-to-t from-slate-900/75 via-slate-900/10 to-transparent opacity-0 transition-opacity group-enabled:group-hover:opacity-100 group-enabled:group-focus-visible:opacity-100">
             <span className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3.5 py-1.5 text-[12.5px] font-semibold text-slate-900 shadow-sm">
               <PlayGlyph />
-              Click to open jukebox
+              {t('library.click_to_open_jukebox')}
             </span>
           </span>
-          <Tip id="cover" detail="to open the jukebox" />
+          <Tip id="cover" detail={t('app.tip_cover')} />
         </button>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-            {album.title}
+            {title}
           </h1>
-          <p className="mt-1 text-[15px] text-slate-600 dark:text-slate-300">{album.artist}</p>
+          <p className="mt-1 text-[15px] text-slate-600 dark:text-slate-300">{artist}</p>
           {artistAlbumCount > 1 && (
             <button
               type="button"
               onClick={() => navigate({ view: 'artist', artist: album.artist })}
               className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
             >
-              All {artistAlbumCount} albums by {album.artist}
+              {t.plural('library.all_albums_by', artistAlbumCount, { artist })}
               <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
                 <path d="M7.3 4.3a1 1 0 0 1 1.4 0l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 0 1-1.4-1.4L11.58 10l-4.3-4.3a1 1 0 0 1 0-1.4Z" />
               </svg>
@@ -201,8 +205,8 @@ export default function AlbumView({ albumId }: { albumId: string }) {
           )}
           <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
             {searching
-              ? `${found.length} of ${plural(tracks.length, 'track')} matching “${query.trim()}”`
-              : [album.year, plural(tracks.length, 'track'), total].filter(Boolean).join(' · ')}
+              ? t.plural('library.tracks_matching', tracks.length, { found: t.num(found.length), query: query.trim() })
+              : [album.year, t.plural('common.tracks', tracks.length), total].filter(Boolean).join(' · ')}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2.5">
@@ -213,7 +217,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50"
             >
               <PlayGlyph />
-              Play
+              {t('common.play')}
             </button>
             {/* Just the icons after Play (James, 2026-09-26: "have less words
                 for these shortcuts"). */}
@@ -221,8 +225,8 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               type="button"
               onClick={shuffleAlbum}
               disabled={tracks.length === 0}
-              aria-label="Shuffle"
-              title="Shuffle"
+              aria-label={t('common.shuffle')}
+              title={t('common.shuffle')}
               className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full border border-slate-300 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
             >
               <ShuffleGlyph />
@@ -239,8 +243,8 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               <button
                 type="button"
                 onClick={() => search.current?.open()}
-                aria-label={`Search ${album.title}`}
-                title="Find a song on this record"
+                aria-label={t('library.search_album', { title })}
+                title={t('library.find_on_record')}
                 className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full border border-slate-300 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
               >
                 <FindGlyph />
@@ -262,7 +266,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
             <li key={track.id}>
               {first && (
                 <p className="pt-5 pb-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
-                  Disc {track.discNo ?? 1}
+                  {t('library.disc_number', { number: track.discNo ?? 1 })}
                 </p>
               )}
               <div className="flex items-center gap-2">
@@ -313,7 +317,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
 
       {searching && found.length === 0 && (
         <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          Nothing on this record matching “{query.trim()}”.
+          {t('library.nothing_on_record_matching', { query: query.trim() })}
         </p>
       )}
     </div>
