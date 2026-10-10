@@ -10,6 +10,56 @@
 html.jx-phone { background-color: #f6f2ec; }
 html.jx-phone.dark { background-color: #14110f; }
 
+/* ---- the website's screens, in the phone's colours ----
+   Now Playing, Tune, the shelves, About and the track sheet are the website's
+   own components (Tailwind), drawn in the suite's orange and cool slate. On the
+   phone they take the phone's look instead (James, 2026-10-11: Now Playing was
+   the one screen still looking like the website), by redefining the two
+   colour families Tailwind draws them from — its utilities read
+   `var(--color-orange-500)` and so on — rather than editing the components,
+   which the website shares. On html.jx-phone, so the sheets a component
+   portals to <body> get it too. The light bar keeps the suite's orange: it is
+   drawn in a literal colour, on purpose. */
+html.jx-phone {
+  /* Orange → the record-label red (600 = --jx-fill). */
+  --color-orange-50: #fdf3f2;
+  --color-orange-100: #fbe4e1;
+  --color-orange-200: #f7cbc5;
+  --color-orange-300: #f0a59b;
+  --color-orange-400: #e5735f;
+  --color-orange-500: #d1452f;
+  --color-orange-600: #b42318;
+  --color-orange-700: #96190f;
+  --color-orange-800: #7a160e;
+  --color-orange-900: #63150f;
+  --color-orange-950: #360805;
+  /* Slate → warm neutrals, the paper and warm black of the phone's own screens. */
+  --color-slate-50: #faf8f5;
+  --color-slate-100: #f3efe9;
+  --color-slate-200: #e6e0d7;
+  --color-slate-300: #d3cbbf;
+  --color-slate-400: #a89f93;
+  --color-slate-500: #7d7469;
+  --color-slate-600: #5f574e;
+  --color-slate-700: #463f38;
+  --color-slate-800: #2e2924;
+  --color-slate-900: #1f1b18;
+  --color-slate-950: #14110f;
+}
+/* The few places the website names the suite orange outright: the big play
+   button's gradient, focus rings, the tick boxes. */
+html.jx-phone .from-\[\#FE8C01\] { --tw-gradient-from: #d1452f; }
+html.jx-phone .to-\[\#E05504\] { --tw-gradient-to: #96190f; }
+html.jx-phone .focus-visible\:outline-\[\#E05504\]:focus-visible,
+html.jx-phone .group:focus-visible .group-focus-visible\:outline-\[\#E05504\] { outline-color: var(--jx-acc, #b42318); }
+html.jx-phone .ring-\[\#E05504\] { --tw-ring-color: #b42318; }
+html.jx-phone .accent-\[\#E05504\] { accent-color: #b42318; }
+/* The scrubber's fill and thumb (StageTransport, index.css) read this. */
+html.jx-phone { --jb-accent: #b42318; }
+html.jx-phone.dark { --jb-accent: #e5735f; }
+/* Dark mode draws the record navy on the website; warm black here. */
+html.jx-phone.dark .dark\:bg-\[\#12192b\] { background-color: #1a1613; }
+
 .jx {
   --jx-bg: #f6f2ec;
   --jx-row: #ffffff;

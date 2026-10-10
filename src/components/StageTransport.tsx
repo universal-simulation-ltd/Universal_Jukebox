@@ -60,7 +60,8 @@ export default function StageTransport({ compact = false, after }: { compact?: b
         onClick={(e) => e.stopPropagation()}
         className="jb-scrub block h-1.5 w-full cursor-pointer appearance-none disabled:cursor-default"
         style={{
-          background: `linear-gradient(to right, #E05504 ${share}%, rgb(148 163 184 / 0.35) ${share}%)`,
+          // The fill reads --jb-accent where a shell sets one (the phone app's red, native.css).
+          background: `linear-gradient(to right, var(--jb-accent, #E05504) ${share}%, rgb(148 163 184 / 0.35) ${share}%)`,
         }}
       />
       <div className="mt-1.5 flex items-center justify-between text-[11.5px] tabular-nums text-slate-500 dark:text-slate-400">
