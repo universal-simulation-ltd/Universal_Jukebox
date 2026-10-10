@@ -149,6 +149,23 @@ html.dark .jx {
 .jx-link { border: 0; background: none; padding: 4px 0; color: var(--jx-acc); font-size: 17px; font-weight: 500; text-align: left; }
 .jx-link.center { align-self: center; font-size: 15px; }
 
+/* The list options, behind the sliders button. */
+.jx-heading-buttons { display: flex; gap: 8px; flex: none; }
+.jx-round { position: relative; }
+.jx-round.on { background: var(--jx-fill); color: #fff; }
+.jx-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--jx-acc); box-shadow: 0 0 0 2px var(--jx-bg); }
+.jx-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.jx-chip {
+  min-height: 36px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--jx-line); background: var(--jx-row); color: var(--jx-fg);
+  font-size: 14px; font-weight: 600;
+}
+/* Lit only when changed from the app's default, never for being "on" (the website's rule). */
+.jx-chip.on { border-color: var(--jx-acc); color: var(--jx-acc); }
+.jx-genre-back { align-self: flex-start; margin: -6px 0 -8px -4px; }
+/* The website's shelf and genre list, inside the phone's margins. */
+.jx-web { min-width: 0; }
+
 /* One album or artist. */
 .jx-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding-top: 4px; }
 .jx-hero-cover { width: min(68vw, 300px); aspect-ratio: 1; margin-bottom: 14px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 18px 40px -16px rgba(0, 0, 0, 0.5); }

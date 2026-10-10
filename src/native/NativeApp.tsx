@@ -35,7 +35,8 @@ import { useBooting } from '../lib/boot'
 import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
-import { useSettingsStore, type HomeTab } from '../stores/settingsStore'
+import { useSettingsStore, type HomeTab, type ListTab } from '../stores/settingsStore'
+import { orderFrom, type LibraryOrder } from '../lib/libraryView'
 import { AlbumScreen, ArtistScreen } from './DetailScreens'
 import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, IconTune } from './icons'
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
@@ -99,6 +100,18 @@ export default function NativeApp() {
   const homeTab = useSettingsStore((s) => s.homeTab)
   const setSetting = useSettingsStore((s) => s.set)
   const [query, setQuery] = useState('')
+  /** Each list's order. Random is remembered as a preference and gets a fresh shuffle each launch (the website's rule). */
+  const [orders, setOrders] = useState<Record<ListTab, LibraryOrder>>(() => {
+    const stored = useSettingsStore.getState().libraryOrder
+    return { artists: orderFrom(stored.artists), albums: orderFrom(stored.albums), tracks: orderFrom(stored.tracks) }
+  })
+  const listProps = (tab: ListTab) => ({
+    query,
+    setQuery,
+    order: orders[tab],
+    setOrder: (order: LibraryOrder) => setOrders((all) => ({ ...all, [tab]: order })),
+    genre: route.home ? undefined : route.genre,
+  })
   const lastTap = useRef<{ view: TabView; at: number } | null>(null)
   const [homeFlash, setHomeFlash] = useState<TabView | null>(null)
 
@@ -218,11 +231,11 @@ export default function NativeApp() {
             <JukeboxShelves />
           </div>
         ) : view === 'artists' ? (
-          <ArtistsScreen query={query} setQuery={setQuery} />
+          <ArtistsScreen key={`artists${route.genre ?? ''}`} {...listProps('artists')} />
         ) : view === 'tracks' ? (
-          <SongsScreen query={query} setQuery={setQuery} />
+          <SongsScreen key={`tracks${route.genre ?? ''}`} {...listProps('tracks')} />
         ) : (
-          <AlbumsScreen query={query} setQuery={setQuery} />
+          <AlbumsScreen key={`albums${route.genre ?? ''}`} {...listProps('albums')} />
         )}
       </main>
 
