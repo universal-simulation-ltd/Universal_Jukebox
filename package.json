@@ -19,6 +19,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "i18n:check": "node scripts/i18n-check.mjs",
     "test:tags": "node scripts/selftest.mjs",
     "deploy": "npm run build && wrangler deploy",
     "cap:sync": "npm run build:desktop && npx cap sync && npm run check:mobile-bundle && npm run check:ios-launch",

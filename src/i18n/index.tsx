@@ -10,8 +10,10 @@
 //
 // Dictionaries live in `src/i18n/<lang>/<namespace>.ts`. English (en-GB) is
 // the source of truth and defines the shape (`Messages`); every other language
-// is typed against it, so `tsc` fails on a missing or misspelt key, and
-// `i18n.test.ts` fails on a missing placeholder or plural form.
+// is typed against it (`Draft`), so `tsc` fails on a misspelt or stale key;
+// a key a language has not translated yet shows in English. `i18n.test.ts`
+// fails on a dropped placeholder or plural form, and `npm run i18n:check`
+// also on a missing key — the gate before a release.
 //
 // Keys are `<namespace>.<key>`. Placeholders are `{name}`. A plural is two
 // (or more) keys sharing a stem — `songs_one`, `songs_other` — read through
@@ -28,18 +30,36 @@ import {
   registerLanguages,
   setActiveLanguage,
   type BasicTranslator,
+  type Draft,
   type MessageKey,
   type Messages,
   type PluralKey,
   type Vars,
 } from './runtime.ts'
 import { TRANSLATIONS } from './languages.ts'
+import { en } from './en/index.ts'
 
 export { getT, intlLocale }
-export type { BasicTranslator, MessageKey, Messages, PluralKey, Vars }
+export type { BasicTranslator, Draft, MessageKey, Messages, PluralKey, Vars }
 export type Language = (typeof SUPPORTED_LANGUAGES)[number]
 
 registerLanguages(TRANSLATIONS)
+
+// DEV ONLY: `?pseudo` in the address shows every translated string in ⟦brackets⟧,
+// so any text on screen WITHOUT them is still hard-coded — the quickest check
+// that a screen is translatable before any translation exists. `import.meta.env.DEV`
+// is a build-time constant, so none of this reaches a production bundle.
+const PSEUDO = 'en-x-pseudo' as Language
+const pseudo =
+  import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).has('pseudo')
+if (pseudo) {
+  registerLanguages({
+    [PSEUDO]: Object.fromEntries(
+      Object.entries(en).map(([ns, keys]) => [ns, Object.fromEntries(Object.entries(keys).map(([k, v]) => [k, `⟦${v}⟧`]))]),
+    ) as Messages,
+  })
+}
+const shown = (language: Language): Language => (pseudo ? PSEUDO : language)
 
 export interface Translator extends BasicTranslator {
   /**
@@ -66,7 +86,7 @@ export function makeTranslator(lang: Language): Translator {
 /** The translator for a component. Re-renders when the language changes. */
 export function useT(): Translator {
   const { language } = useLanguage()
-  return useMemo(() => makeTranslator(language), [language])
+  return useMemo(() => makeTranslator(shown(language)), [language])
 }
 
 /**
@@ -77,7 +97,7 @@ export function useT(): Translator {
 export function I18nRoot({ children }: { children: ReactNode }) {
   // `language` is the EFFECTIVE one: this app's override, else the global.
   const { language, setAppLanguage } = useLanguage()
-  setActiveLanguage(language)
+  setActiveLanguage(shown(language))
   if (typeof document !== 'undefined' && document.documentElement.lang !== language) {
     document.documentElement.lang = language
   }

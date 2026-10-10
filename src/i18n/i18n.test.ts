@@ -1,21 +1,32 @@
 // Every language has every key, and nothing else; every translation keeps the
 // English placeholders ({name}) and plural stems. `tsc` already fails on a
-// missing key (each dictionary is typed against English) — this also catches
-// a dropped `{count}`, an extra key, and an empty string, and keeps catching
-// them if anyone loosens a type.
+// misspelt or stale key (each dictionary is typed against English) — this also
+// catches a dropped `{count}`, an extra key, and an empty string, and keeps
+// catching them if anyone loosens a type.
+//
+// ⚠️ A MISSING key fails only under `npm run i18n:check` (I18N_STRICT set).
+// Translations land a language at a time, and a key not translated yet shows
+// in English, so the everyday `npm test` stays green while they are in
+// progress; the strict run is the gate before a release. One language:
+// `npm run i18n:check -- de` (or several: `-- de fr`). The everyday run still
+// prints how far each language has got (`--reporter=verbose`).
 import { describe, expect, it } from 'vitest'
 import { en } from './en/index.ts'
 import { TRANSLATIONS } from './languages.ts'
-import { getT, makeBasicTranslator } from './runtime.ts'
+import { getT, makeBasicTranslator, registerLanguages } from './runtime.ts'
 
 const SUITE = ['fr', 'es', 'it', 'de', 'pt-BR', 'pt-PT', 'tr']
 
+/** `I18N_STRICT=1` (or `all`) requires every language; `I18N_STRICT=de,fr` just those. */
+const STRICT = (process.env.I18N_STRICT ?? '').split(/[\s,]+/).filter(Boolean)
+const strict = (lang: string) => STRICT.includes('1') || STRICT.includes('all') || STRICT.includes(lang)
+
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
 
-function flat(dict: Record<string, Record<string, string>>): Map<string, string> {
+function flat(dict: Record<string, Partial<Record<string, string>>>): Map<string, string> {
   const out = new Map<string, string>()
   for (const [ns, keys] of Object.entries(dict)) {
-    for (const [k, v] of Object.entries(keys)) out.set(`${ns}.${k}`, v)
+    for (const [k, v] of Object.entries(keys)) if (v !== undefined) out.set(`${ns}.${k}`, v)
   }
   return out
 }
@@ -35,9 +46,10 @@ describe('i18n dictionaries', () => {
     describe(lang, () => {
       const dict = TRANSLATIONS[lang] ? flat(TRANSLATIONS[lang]) : new Map<string, string>()
 
-      it('has every English key', () => {
-        const missing = [...english.keys()].filter((k) => !dict.has(k))
-        expect(missing).toEqual([])
+      const missing = [...english.keys()].filter((k) => !dict.has(k))
+
+      it(`has ${english.size - missing.length} of ${english.size} English keys`, () => {
+        if (strict(lang)) expect(missing).toEqual([])
       })
 
       it('has no key English lacks', () => {
@@ -76,5 +88,21 @@ describe('runtime', () => {
 
   it('falls back to English for an unknown language', () => {
     expect(makeBasicTranslator('xx').plural('common.albums', 2)).toBe('2 albums')
+  })
+
+  it('falls back to English key by key in a part-translated language', () => {
+    registerLanguages({ 'it-x-part': { ...Object.fromEntries(Object.keys(en).map((ns) => [ns, {}])), common: { cancel: 'Annuler', songs_one: '{count} morceau' } } as never })
+    const t = makeBasicTranslator('it-x-part')
+    expect(t('common.cancel')).toBe('Annuler')
+    expect(t('common.close')).toBe('Close')
+    expect(t.plural('common.songs', 1)).toBe('1 morceau')
+    // `_other` is not translated yet: English's, rather than the key.
+    expect(t.plural('common.songs', 2)).toBe('2 songs')
+  })
+
+  it('picks plural forms by the language: French and Portuguese say "one" for 0', () => {
+    registerLanguages({ 'fr-x-test': { common: { songs_one: '{count} morceau', songs_other: '{count} morceaux' } } as never })
+    expect(makeBasicTranslator('fr-x-test').plural('common.songs', 0)).toBe('0 morceau')
+    expect(makeBasicTranslator('fr-x-test').plural('common.songs', 1204)).toBe('1\u202f204 morceaux')
   })
 })

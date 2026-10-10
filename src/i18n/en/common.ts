@@ -43,6 +43,19 @@ export default {
   'save': 'Save',
   'open': 'Open',
   'more': 'More',
+  'add': 'Add',
+  'edit': 'Edit',
+  'clear': 'Clear', // empties a search box or a list
+  'undo': 'Undo',
+  'yes': 'Yes',
+  'no': 'No',
+  'search': 'Search',
+  'try_again': 'Try again',
+  'loading': 'Loading…',
+  'next': 'Next', // next track
+  'previous': 'Previous', // previous track
+  'show_more': 'Show more',
+  'show_less': 'Show less',
   'on': 'On', // a setting that is switched on, in a short summary
   'off': 'Off', // a setting that is switched off, in a short summary
 

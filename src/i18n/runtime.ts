@@ -6,9 +6,9 @@
 // Only English is loaded here. `index.tsx` registers the other languages and
 // sets the active one, so under vitest every message is English, which is what
 // the tests read.
-import { en, type Messages } from './en/index.ts'
+import { en, type Draft, type Messages } from './en/index.ts'
 
-export type { Messages }
+export type { Draft, Messages }
 
 /** Every key, as `namespace.key`. */
 export type MessageKey = {
@@ -24,9 +24,9 @@ export type PluralKey = MessageKey extends infer K
 
 export type Vars = Record<string, string | number>
 
-const DICTS: Record<string, Messages> = { en }
+const DICTS: Record<string, Draft> = { en }
 
-export function registerLanguages(dicts: Record<string, Messages>): void {
+export function registerLanguages(dicts: Record<string, Draft>): void {
   Object.assign(DICTS, dicts)
 }
 
@@ -36,7 +36,7 @@ export function registerLanguages(dicts: Record<string, Messages>): void {
  * → pt-PT, pt-BR; `fr-CA` → fr; always ending in English. `en-gb` (the suite's
  * default) and `en` both land on English.
  */
-function chain(lang: string): Messages[] {
+function chain(lang: string): Draft[] {
   const l = lang.replace('_', '-').toLowerCase()
   const codes =
     l === 'pt-br' ? ['pt-BR', 'pt-PT']
