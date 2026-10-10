@@ -12,6 +12,16 @@
     account (the SDK's <UsageTracker />). Nothing about the music. Declared as
     product interaction, for analytics, because that is what it is.
 
+  The one exception to "only when the user asks" (since 2026-09-17): the
+  suite user count (@unisim/sdk presence.js, started by
+  <UniversalProvider>). From the moment the app opens, signed in or not, and
+  every 45 s while it is in front, it sends a random install id this app
+  makes itself (kept in the WebView's localStorage), the platform and the
+  product name, with the account id once signed in, so "N users" can be
+  counted. Declared as Device ID and Product Interaction, analytics,
+  linked (a signed-in beat names the account), not tracking — the same
+  answers as Ergo Assess and Universal QR (2026-10-10).
+
   Three lookups send a song's artist and title (never the file) straight from
   the phone to a public service, only when the user asks for what they return:
   LRCLIB for lyrics, Wikipedia for "About this track", and the iTunes Search
@@ -87,7 +97,21 @@
 			</array>
 		</dict>
 		<dict>
-			<!-- One "session.opened" event per launch while signed in. -->
+			<!-- The suite user count's random install id (SDK presence.js). -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- The user count's "this install is open" beat, signed in or not,
+			     and one "session.opened" event per launch while signed in. -->
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>

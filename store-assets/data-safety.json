@@ -1,5 +1,5 @@
 {
-  "_about": "Play Data safety answers. Build the importable CSV with: node Docs_UNI_SIM/store-kit/data-safety.mjs Universal_Apps/Universal_Jukebox/store-assets/data-safety.json Universal_Apps/Universal_Jukebox/store-assets/out/play/data-safety.csv. Checked against the code 2026-09-27: the music, its tags and art never leave the device; sign-in (@unisim/sdk) is optional \u2014 password, emailed code, or Apple/Google/Microsoft; while signed in, one session.opened usage event per launch. The three lookups (lrclib.net, Wikipedia, iTunes Search) go straight from the phone to those services and are not collected by us. Mirrors ios/App/App/PrivacyInfo.xcprivacy.",
+  "_about": "Play Data safety answers. Build the importable CSV with: node Docs_UNI_SIM/store-kit/data-safety.mjs Universal_Apps/Universal_Jukebox/store-assets/data-safety.json Universal_Apps/Universal_Jukebox/store-assets/out/play/data-safety.csv. Checked against the code 2026-09-27: the music, its tags and art never leave the device; sign-in (@unisim/sdk) is optional — password, emailed code, or Apple/Google/Microsoft; while signed in, one session.opened usage event per launch. The suite user count (@unisim/sdk presence.js) sends a random install id the app makes itself and the platform when the app opens and every 45 s in use, signed in or not, plus the account id once signed in: App interactions + Device or other IDs, required, Analytics (as Ergo Assess and Universal QR; brought in line 2026-10-10). The three lookups (lrclib.net, Wikipedia, iTunes Search) go straight from the phone to those services and are not collected by us. Mirrors ios/App/App/PrivacyInfo.xcprivacy.",
   "accountCreation": [
     "PSL_ACM_USER_ID_PASSWORD",
     "PSL_ACM_USER_ID_OTHER_AUTH",
@@ -22,7 +22,13 @@
       ]
     },
     "PSL_USER_INTERACTION": {
-      "required": false,
+      "required": true,
+      "purposes": [
+        "PSL_ANALYTICS"
+      ]
+    },
+    "PSL_DEVICE_ID": {
+      "required": true,
       "purposes": [
         "PSL_ANALYTICS"
       ]
