@@ -9,6 +9,7 @@ import { watchAudioRoute } from './lib/nowPlayingNative'
 import './index.css'
 import { installShortcuts } from './lib/shortcuts'
 import { followThemeWithStatusBar } from './lib/systemBars'
+import { phoneScreens } from './native/shell'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
 // mount <UniversalProvider> so the shared navbar works and, when the visitor is
@@ -50,6 +51,10 @@ const universalConfig = {
   supabaseAnonKey: import.meta.env.VITE_PLATFORM_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5Z2Z4Z2Fsb2pvanBweG1oZGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTY4MjUsImV4cCI6MjA5NDMzMjgyNX0.hLy_vt9vY_rdPKF3nL32yAuMCD604E3CH5VM7D7CaNE',
   product: 'jukebox' as const,
   cookieDomain: import.meta.env.PROD ? '.unisim.co.uk' : undefined,
+  // ⚠️ The phone app has no sign-in at all (James, 2026-10-10). Nothing in it needs
+  // an account — the backup file still works — so the SDK hides every account
+  // affordance, and with no sign-in there is no Delete my account to provide.
+  noAccounts: phoneScreens(),
 }
 
 // ⚠️ THE LIBRARY IS READ BEFORE REACT RENDERS, not from an effect afterwards.

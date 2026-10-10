@@ -13,7 +13,7 @@ import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGr
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
-import { isNativeShell, nativePlatform } from '../lib/nativeFile'
+import { barsOnlineLyrics, isNativeShell, nativePlatform } from '../lib/nativeFile'
 import { nativeCommandLog } from '../lib/nowPlayingNative'
 import { formatPlaybackLog } from '../lib/playbackLog'
 import { savedEvents } from '../lib/bgLog'
@@ -168,7 +168,7 @@ export default function Settings() {
       s.hiddenModes.length === 0
         ? 'All shown'
         : `${MODE_KEYS.length - s.hiddenModes.length} of ${MODE_KEYS.length} shown`,
-    lyrics: `${s.lyricsOnline ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
+    lyrics: `${s.lyricsOnline && !barsOnlineLyrics() ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
     about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
     notifications: sentence([
       s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
@@ -489,12 +489,15 @@ export default function Settings() {
           note="Jukebox reads the lyrics your files were tagged with. Most files have none."
           summary={summaries.lyrics}
         >
-          <Toggle
-            label="Look up missing lyrics online"
-            hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
-            checked={s.lyricsOnline}
-            onChange={(v) => s.set('lyricsOnline', v)}
-          />
+          {/* Not on iPhone or iPad — `barsOnlineLyrics` says why. */}
+          {!barsOnlineLyrics() && (
+            <Toggle
+              label="Look up missing lyrics online"
+              hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
+              checked={s.lyricsOnline}
+              onChange={(v) => s.set('lyricsOnline', v)}
+            />
+          )}
           <Toggle
             label="Lyrics around the record"
             hint="On Now Playing, the words appear around the spinning record as they are sung — in one of three styles, chosen below. Needs lyrics with timings."

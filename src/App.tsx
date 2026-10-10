@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. No event may carry a
@@ -41,6 +41,11 @@ import { DEFAULTS, useSettingsStore, type HomeTab, type ListTab } from './stores
 import { useThemeStore } from './stores/themeStore'
 import { usePrefersReducedMotion } from './lib/usePrefersReducedMotion'
 import { isNativeShell } from './lib/nativeFile'
+import { phoneScreens } from './native/shell'
+
+// The phone app has screens of its own (src/native/, see shell.ts). Loaded on
+// demand, so the website's bundle never carries them.
+const NativeApp = lazy(() => import('./native/NativeApp'))
 
 // The single page container. The navbar (via the SDK's `contentClassName`), the
 // page body and the player bar all share it, so the suite switcher lines up
@@ -166,6 +171,16 @@ function useMiniMode(): boolean {
 }
 
 export default function App() {
+  return phoneScreens() ? (
+    <Suspense fallback={null}>
+      <NativeApp />
+    </Suspense>
+  ) : (
+    <WebApp />
+  )
+}
+
+function WebApp() {
   const route = useRoute()
   const mini = useMiniMode()
 

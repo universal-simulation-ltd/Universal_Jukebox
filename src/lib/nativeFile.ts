@@ -322,6 +322,18 @@ export function hasOwnMusicFolder(): boolean {
   return isNativeShell() && nativePlatform() === 'ios'
 }
 
+/**
+ * The iPhone and iPad app never looks lyrics up online (James, 2026-10-10).
+ *
+ * LRCLIB's lyrics are crowd-sourced, with no licence behind them, and App
+ * Review turns down apps that show lyrics they hold no rights to (5.2).
+ * Lyrics from the person's own files, and .lrc files they add, are theirs and
+ * stay. Android and the website keep the opt-in lookup.
+ */
+export function barsOnlineLyrics(): boolean {
+  return isNativeShell() && nativePlatform() === 'ios'
+}
+
 /** The native plugin behind a chosen folder — see `usesChosenFolder`. */
 export const MUSIC_FOLDER_PLUGIN = 'JukeboxMusicFolder'
 

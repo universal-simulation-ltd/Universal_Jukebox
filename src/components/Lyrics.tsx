@@ -11,6 +11,7 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { navigate } from '../lib/route'
+import { barsOnlineLyrics } from '../lib/nativeFile'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 
 // The words, under the deck.
@@ -339,6 +340,18 @@ function Nothing() {
   const track = usePlayerStore(currentTrack)
   const reload = useLyricsStore((s) => s.reload)
 
+  // The iPhone app never looks lyrics up (`barsOnlineLyrics`): a lyrics file of
+  // your own is the way to add them there.
+  if (barsOnlineLyrics()) {
+    return (
+      <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
+        <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
+          There are no lyrics saved in this file.
+        </p>
+        <AddLyricsFile />
+      </div>
+    )
+  }
   if (online) {
     return (
       <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">

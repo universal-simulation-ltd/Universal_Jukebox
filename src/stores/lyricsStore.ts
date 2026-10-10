@@ -7,6 +7,7 @@ import { onlineLyrics } from '../lib/lrclib'
 import { exampleLyrics } from '../lib/exampleLibrary'
 import { useLibraryStore } from './libraryStore'
 import { settings } from './settingsStore'
+import { barsOnlineLyrics } from '../lib/nativeFile'
 import type { Track } from '../lib/types'
 
 // Finding the words for the track on the deck.
@@ -167,7 +168,7 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
     }
   }
 
-  const allowNetwork = settings().lyricsOnline
+  const allowNetwork = settings().lyricsOnline && !barsOnlineLyrics()
   const found = await onlineLyrics(track, allowNetwork)
   if (mine !== token) return
 

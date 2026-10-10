@@ -438,6 +438,20 @@ npm run lint
 npm run build
 ```
 
+### The phone screens
+
+The iPhone, iPad and Android apps have screens of their own, in `src/native/`:
+a tab bar (Albums, Artists, Songs, Shelves, Tune), what's playing docked above
+it, and the record full screen. There is no navbar, suite switcher or sign-in
+in the phone apps, and the iPhone app never looks lyrics up online
+(`barsOnlineLyrics` in `lib/nativeFile.ts` says why). Now Playing, the shelves
+and Tune this app are the website's own components inside the phone's shell.
+The website and the Windows app never load that folder.
+
+To see the phone screens in a browser, run `npm run dev` and open the page with
+`?app` on the end (`?app=0` goes back). Files then come from the browser's own
+pickers, since the native plugins aren't there.
+
 ### The mobile builds
 
 ```sh

@@ -1,0 +1,210 @@
+/* native.css — the phone app's look (src/native/). Its own, on purpose
+   (James, 2026-10-10): warm paper / warm black grounds, the
+   system font, and a record-label red as the accent, not the suite's orange
+   and Nunito. The one suite mark kept is the pulsing light bar.
+
+   --jx-acc is red TEXT on the ground; --jx-fill is a red SURFACE with white on
+   it (6.4:1). Light/dark follow the app's own theme setting (html.dark), like
+   the rest of Jukebox; light is the default. */
+
+html.jx-phone { background-color: #f6f2ec; }
+html.jx-phone.dark { background-color: #14110f; }
+
+.jx {
+  --jx-bg: #f6f2ec;
+  --jx-row: #ffffff;
+  --jx-row2: #ece6dd;
+  --jx-line: rgba(40, 28, 20, 0.1);
+  --jx-fg: #1c1714;
+  --jx-mute: rgba(28, 23, 20, 0.6);
+  --jx-acc: #b42318;
+  --jx-fill: #b42318;
+  --jx-bar: rgba(246, 242, 236, 0.94);
+  --jx-top-h: 50px;
+  --jx-tabs-h: 56px;
+  --jx-mini-h: 64px;
+
+  min-height: 100vh;
+  color: var(--jx-fg);
+  font-family: -apple-system, 'SF Pro Text', system-ui, Roboto, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+html.dark .jx {
+  --jx-bg: #14110f;
+  --jx-row: #1e1a17;
+  --jx-row2: #2a2420;
+  --jx-line: rgba(255, 240, 225, 0.09);
+  --jx-fg: #f4eee8;
+  --jx-mute: rgba(244, 238, 232, 0.6);
+  --jx-acc: #ff8a7a;
+  --jx-fill: #b42318;
+  --jx-bar: rgba(20, 17, 15, 0.94);
+}
+.jx button { font: inherit; color: inherit; cursor: pointer; }
+.jx :focus-visible { outline: 2px solid var(--jx-acc); outline-offset: 2px; }
+.jx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- the top: light bar + the way back ---- */
+.jx-top {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--jx-bar);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  backdrop-filter: saturate(1.6) blur(18px);
+  border-bottom: 1px solid var(--jx-line);
+}
+/* The suite's light bar, as the web UniversalBar and Ergo iOS draw it. */
+.jx-strip { height: 3px; background: linear-gradient(90deg, rgba(224, 85, 4, 0), #e05504, rgba(224, 85, 4, 0)); animation: jx-pulse 2.4s ease-in-out infinite; }
+@keyframes jx-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .jx-strip { animation: none; } }
+.jx-bar {
+  display: flex; align-items: center; gap: 8px;
+  height: var(--jx-top-h);
+  padding: 0 max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+}
+.jx-brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; padding-left: 4px; }
+.jx-brand b { color: var(--jx-acc); font-weight: 700; }
+.jx-back {
+  display: inline-flex; align-items: center; gap: 2px;
+  min-width: 44px; min-height: 44px; padding: 0 6px 0 0;
+  border: 0; background: none; color: var(--jx-acc); font-size: 17px;
+}
+.jx-back svg { width: 26px; height: 26px; }
+.jx-bar-title { font-size: 16px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* ---- the page ---- */
+.jx-main {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--jx-top-h) + 3px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+.jx-tabbed .jx-main { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--jx-tabs-h) + var(--jx-mini-h) + 24px); }
+/* The banners from the website, given the page's side margins. */
+.jx-main > :not(.jx-page):not(.jx-playing) { margin-left: 16px; margin-right: 16px; }
+.jx-main > :not(.jx-page):not(.jx-playing):first-child { margin-top: 12px; }
+.jx-page { display: flex; flex-direction: column; gap: 14px; padding: 16px 16px 8px; max-width: 980px; margin: 0 auto; }
+.jx-playing { padding: 8px 16px 0; }
+
+.jx-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.jx-h1 { margin: 0; font-size: 30px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.1; }
+.jx-sub { margin: 2px 0 0; color: var(--jx-mute); font-size: 14px; }
+.jx-label { margin: 8px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--jx-mute); }
+.jx-fine { margin: -4px 0 0; color: var(--jx-mute); font-size: 13px; text-align: center; }
+.jx-empty { color: var(--jx-mute); font-size: 15px; padding: 24px 4px; text-align: center; }
+.jx-card { margin: 0; background: var(--jx-row); border: 1px solid var(--jx-line); border-radius: 16px; padding: 12px 14px; font-size: 14px; }
+
+.jx-round {
+  display: grid; place-items: center; flex: none;
+  width: 44px; height: 44px; border-radius: 50%; border: 0;
+  background: var(--jx-row2); color: var(--jx-acc);
+}
+.jx-round svg { width: 22px; height: 22px; }
+
+.jx-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--jx-row2); border-radius: 12px; padding: 0 12px; min-height: 40px;
+  color: var(--jx-mute);
+}
+.jx-search svg { width: 18px; height: 18px; flex: none; }
+.jx-search input {
+  flex: 1; min-width: 0; border: 0; background: none; outline: none;
+  font: inherit; font-size: 16px; color: var(--jx-fg); padding: 8px 0;
+}
+.jx-search input::placeholder { color: var(--jx-mute); }
+
+/* Covers: a grid that is two across on a phone and more on an iPad. */
+.jx-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 14px; }
+.jx-grid > li { content-visibility: auto; contain-intrinsic-size: auto 220px; }
+.jx-tile { display: flex; flex-direction: column; gap: 2px; width: 100%; border: 0; background: none; padding: 0; text-align: left; }
+.jx-tile .jx-cover { width: 100%; aspect-ratio: 1; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px -8px rgba(0, 0, 0, 0.35); }
+.jx-tile b, .jx-row b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jx-tile small, .jx-row small { font-size: 13px; color: var(--jx-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jx-tile:active .jx-cover { transform: scale(0.97); }
+
+.jx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.jx-list > li { content-visibility: auto; contain-intrinsic-size: auto 60px; border-bottom: 1px solid var(--jx-line); }
+.jx-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  min-height: 60px; padding: 8px 2px; border: 0; background: none; text-align: left;
+}
+.jx-row > span:not(.jx-no):not(.jx-chev) { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.jx-row:active { background: var(--jx-row2); }
+.jx-row:disabled { opacity: 0.5; }
+.jx-row.on b, .jx-row.on .jx-no { color: var(--jx-acc); }
+.jx-thumb { width: 44px; height: 44px; flex: none; }
+.jx-thumb.round { border-radius: 50%; }
+.jx-no { width: 28px; flex: none; text-align: right; color: var(--jx-mute); font-variant-numeric: tabular-nums; font-size: 14px; }
+.jx-chev { color: var(--jx-mute); font-size: 22px; padding: 0 4px; }
+
+.jx-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 50px; border-radius: 14px; border: 0;
+  background: var(--jx-row2); color: var(--jx-acc); font-weight: 650; font-size: 16px; padding: 0 16px;
+}
+.jx-btn.primary { background: var(--jx-fill); color: #fff; }
+.jx-btn:disabled { opacity: 0.55; }
+.jx-btn svg { width: 20px; height: 20px; flex: none; }
+.jx-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.jx-link { border: 0; background: none; padding: 4px 0; color: var(--jx-acc); font-size: 17px; font-weight: 500; text-align: left; }
+.jx-link.center { align-self: center; font-size: 15px; }
+
+/* One album or artist. */
+.jx-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding-top: 4px; }
+.jx-hero-cover { width: min(68vw, 300px); aspect-ratio: 1; margin-bottom: 14px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 18px 40px -16px rgba(0, 0, 0, 0.5); }
+.jx-hero .jx-h1 { font-size: 24px; }
+.jx-hero .jx-link { text-align: center; }
+
+/* First run. */
+.jx-welcome { padding-top: 28px; max-width: 560px; }
+.jx-welcome-art { display: grid; place-items: center; }
+.jx-welcome-art .jx-mark { width: 132px; height: 132px; animation: jx-spin 1.8s linear infinite; filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.3)); }
+@keyframes jx-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .jx-welcome-art .jx-mark { animation: none; } }
+.jx-welcome .jx-h1 { text-align: center; }
+.jx-welcome > .jx-sub { text-align: center; font-size: 15px; line-height: 1.45; }
+
+/* Reused website screens (Tune, About, the shelves): their own headings
+   and cards, inside the phone's margins. */
+.jx-tune { gap: 12px; }
+
+/* ---- the dock: what's playing, then the tabs ---- */
+.jx-dock {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  padding: 0 max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
+  background: var(--jx-bar);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  backdrop-filter: saturate(1.6) blur(18px);
+  border-top: 1px solid var(--jx-line);
+}
+.jx-mini {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 4px;
+  height: var(--jx-mini-h); margin: 8px 0 2px; padding: 0 4px 0 8px;
+  background: var(--jx-row); border: 1px solid var(--jx-line); border-radius: 16px;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.4);
+}
+.jx-mini-line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--jx-acc); transform-origin: left; }
+.jx-mini-open { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; height: 100%; border: 0; background: none; padding: 0; text-align: left; }
+.jx-mini-open span { display: flex; flex-direction: column; min-width: 0; }
+.jx-mini-open b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jx-mini-open small { font-size: 13px; color: var(--jx-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jx-mini-cover { width: 46px; height: 46px; flex: none; border-radius: 8px !important; }
+.jx-mini-btn { display: grid; place-items: center; width: 46px; height: 46px; border: 0; background: none; flex: none; }
+.jx-mini-btn svg { width: 24px; height: 24px; }
+.jx-mini-btn[aria-busy] { opacity: 0.5; }
+
+.jx-tabs { display: grid; grid-template-columns: repeat(5, 1fr); height: var(--jx-tabs-h); }
+.jx-tab {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 0; background: none; color: var(--jx-mute); font-size: 10.5px; font-weight: 600;
+  touch-action: manipulation;
+}
+.jx-tab svg { width: 25px; height: 25px; }
+.jx-tab[aria-current='page'] { color: var(--jx-acc); }
+/* The tab the app opens on: a short rule under its name, not a dot (a dot
+   reads as a badge). */
+.jx-home-dot { position: absolute; bottom: 2px; left: calc(50% - 7px); width: 14px; height: 2px; border-radius: 1px; background: currentColor; opacity: 0.55; }
+.jx-tab.flash svg { animation: jx-home-pop 480ms ease-out; }
+@keyframes jx-home-pop { 40% { transform: scale(1.3); } }
