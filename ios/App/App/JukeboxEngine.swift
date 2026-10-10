@@ -344,9 +344,10 @@ final class JukeboxEngine: NSObject {
         return false
     }
 
-    /// Put a song on the active deck: the CUT (`audio.load`).
-    func load(_ e: Entry, autoplay: Bool, fadeInOverride: Double?, startAt: Double, level: Double?) {
-        dropPageMove(for: e)
+    /// Put a song on the active deck: the CUT (`audio.load`). `fromPage`: the
+    /// page asked, so this is the song its last plan said it had moved to.
+    func load(_ e: Entry, autoplay: Bool, fadeInOverride: Double?, startAt: Double, level: Double?, fromPage: Bool = false) {
+        if fromPage { dropPageMove(for: e) }
         finishRetirement()
         cancelPending()
         let i = active
@@ -371,8 +372,8 @@ final class JukeboxEngine: NSObject {
 
     /// The real crossfade (`audio.crossfade`): the next song starts under this
     /// one on the other deck, and the two swap at once.
-    func crossfade(_ e: Entry, seconds: Double, hold: Double, curve: Curve, level: Double?) {
-        dropPageMove(for: e)
+    func crossfade(_ e: Entry, seconds: Double, hold: Double, curve: Curve, level: Double?, fromPage: Bool = false) {
+        if fromPage { dropPageMove(for: e) }
         // Two crossfades at once would need three decks — finish the one in flight.
         finishRetirement()
         cancelPending()
@@ -488,20 +489,25 @@ final class JukeboxEngine: NSObject {
         apply(active)
         publishNowPlaying()
         emitState(force: true)
+        // Nothing left to play: let whatever the person was listening to before
+        // carry on.
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     /// The next stretch of the queue (`EnginePlanDraft`).
     ///
     /// ⚠️ IT MAY BE OLDER OR NEWER THAN WHAT IS PLAYING. The page builds it the
     /// moment its cursor moves, which can be before it has loaded that song (a
-    /// record change lifts the arm first) or just after the engine moved on by
-    /// itself. So it is lined up against what is actually on the deck:
+    /// record change lifts the arm first, a Music-library song is copied out)
+    /// or just after the engine moved on by itself. `pageSeq` says which:
     ///   - `current` is what is playing: take the list as it is;
-    ///   - what is playing is IN the list: the engine is ahead — drop up to it;
-    ///   - neither: the page has moved on and not loaded yet — `current` goes at
-    ///     the front, so if the app goes away now that is the song that follows.
+    ///   - the page is behind (`pageSeq` < `seq`) and what is playing is in the
+    ///     list: the engine is ahead — drop up to it;
+    ///   - the page is up to date and `current` is not playing: the page has
+    ///     moved (forwards OR back) and not loaded yet — `current` goes at the
+    ///     front, so if the app goes away now that is the song that follows.
     func setUpcoming(current: Entry?, entries: [Entry], previous: Entry?, repeatOne: Transition?,
-                     wrap: Bool, limits: Limits, stableVolume: Bool, cueLevel: Double) {
+                     wrap: Bool, limits: Limits, stableVolume: Bool, cueLevel: Double, pageSeq: Int) {
         self.limits = limits
         self.stableVolume = stableVolume
         self.cueLevel = cueLevel
@@ -510,16 +516,18 @@ final class JukeboxEngine: NSObject {
         previousEntry = previous
         history = []
         let playing = decks[active].entry
-        if let current = current, let playing = playing, current.trackId == playing.trackId {
+        let behind = pageSeq < seq
+        if let current = current, let playing = playing,
+           current.key == playing.key || (current.trackId == playing.trackId && !behind) {
             playing.gain = current.gain ?? playing.gain
             playing.intro = current.intro ?? playing.intro
             playing.outro = current.outro ?? playing.outro
             upcoming = entries
             pageMovedAt = nil
-        } else if let playing = playing, let at = entries.firstIndex(where: { $0.key == playing.key }) {
+        } else if behind, let playing = playing, let at = entries.firstIndex(where: { $0.key == playing.key }) {
             upcoming = Array(entries[(at + 1)...])
             pageMovedAt = nil
-        } else if let current = current, playing != nil {
+        } else if let current = current, playing != nil, !behind {
             upcoming = [current] + entries
             if pageMovedAt == nil { pageMovedAt = CACurrentMediaTime() }
         } else {
@@ -731,8 +739,12 @@ final class JukeboxEngine: NSObject {
         if !appActive { measureAhead() }
     }
 
+    /// The page has loaded the song its plan said it had moved to: the copy
+    /// `setUpcoming` put at the front comes off. ONLY that one — a repeating
+    /// one-song queue's next is itself, and taking it would end the night.
+    /// (Otherwise the page's new plan follows the load straight away.)
     private func dropPageMove(for e: Entry) {
-        if upcoming.first?.key == e.key { upcoming.removeFirst() }
+        if pageMovedAt != nil, upcoming.first?.key == e.key { upcoming.removeFirst() }
         pageMovedAt = nil
     }
 

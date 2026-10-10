@@ -77,7 +77,7 @@ public class JukeboxEnginePlugin: CAPPlugin, CAPBridgedPlugin {
         let level = call.getDouble("level")
         onMain(call) {
             guard self.engine.accepts(seq: seq) else { return }
-            self.engine.load(entry, autoplay: autoplay, fadeInOverride: fadeIn, startAt: startAt, level: level)
+            self.engine.load(entry, autoplay: autoplay, fadeInOverride: fadeIn, startAt: startAt, level: level, fromPage: true)
         }
     }
 
@@ -93,7 +93,7 @@ public class JukeboxEnginePlugin: CAPPlugin, CAPBridgedPlugin {
         let level = call.getDouble("level")
         onMain(call) {
             guard self.engine.accepts(seq: seq) else { return }
-            self.engine.crossfade(entry, seconds: seconds, hold: hold, curve: curve, level: level)
+            self.engine.crossfade(entry, seconds: seconds, hold: hold, curve: curve, level: level, fromPage: true)
         }
     }
 
@@ -138,9 +138,10 @@ public class JukeboxEnginePlugin: CAPPlugin, CAPBridgedPlugin {
         let limits = JukeboxEngine.Limits(call.getObject("limits"))
         let stable = call.getBool("stableVolume") ?? true
         let cueLevel = call.getDouble("cueLevel") ?? 0.5
+        let pageSeq = call.getInt("seq") ?? 0
         onMain(call) {
             self.engine.setUpcoming(current: current, entries: entries, previous: previous, repeatOne: repeatOne,
-                                    wrap: wrap, limits: limits, stableVolume: stable, cueLevel: cueLevel)
+                                    wrap: wrap, limits: limits, stableVolume: stable, cueLevel: cueLevel, pageSeq: pageSeq)
         }
     }
 

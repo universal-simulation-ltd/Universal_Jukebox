@@ -111,7 +111,9 @@ describe('the queue the engine runs on', () => {
   it('sends one turn of a repeating queue, ending on the song before this one', () => {
     expect(upcomingCursors(5, 3, 'all', 50)).toEqual([4, 0, 1, 2])
     expect(upcomingCursors(5, 3, 'one', 50)).toEqual([4, 0, 1, 2])
-    expect(upcomingCursors(1, 0, 'all', 50)).toEqual([])
+    // One song on repeat is its own next.
+    expect(upcomingCursors(1, 0, 'all', 50)).toEqual([0])
+    expect(upcomingCursors(1, 0, 'off', 50)).toEqual([])
   })
 
   it('never more than asked, and nothing for an empty or unplaced queue', () => {

@@ -179,7 +179,8 @@ export function crossfadeTiming(
 export function upcomingCursors(length: number, cursor: number, repeat: 'off' | 'all' | 'one', max: number): number[] {
   const out: number[] = []
   if (length <= 0 || cursor < 0 || cursor >= length) return out
-  const steps = repeat === 'off' ? length - 1 - cursor : length - 1
+  // One song on repeat: its own next, once — the engine rotates it for ever.
+  const steps = repeat === 'off' ? length - 1 - cursor : Math.max(1, length - 1)
   for (let step = 1; step <= steps && out.length < max; step++) out.push((cursor + step) % length)
   return out
 }
