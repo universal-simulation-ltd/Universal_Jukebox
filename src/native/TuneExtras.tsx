@@ -14,11 +14,11 @@ import { useRef, useState } from 'react'
 import { KnowledgeBaseDialog } from '@unisim/sdk'
 import { KNOWLEDGE_BASE } from '../knowledge'
 import { hasMusicLibrary } from '../lib/appleMusic'
-import { plural } from '../lib/format'
+import { useT } from '../i18n'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { hasNativeImporter } from '../lib/nativeImport'
 import { goHome, navigate } from '../lib/route'
-import { trackCountFor } from '../lib/roots'
+import { shownRootLabel, trackCountFor } from '../lib/roots'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useThemeStore } from '../stores/themeStore'
 
@@ -29,6 +29,7 @@ function deviceWord(): 'phone' | 'iPad' {
 }
 
 export function YourMusic() {
+  const t = useT()
   const status = useLibraryStore((s) => s.status)
   const roots = useLibraryStore((s) => s.roots)
   const tracks = useLibraryStore((s) => s.tracks)
@@ -72,8 +73,8 @@ export function YourMusic() {
   // (AppMenu's rule): its folders would all be the demo's.
   if (trying) {
     return (
-      <section className="jx-card jx-tune-card" aria-label="Your music">
-        <p className="jx-label">Your music</p>
+      <section className="jx-card jx-tune-card" aria-label={t('native.your_music')}>
+        <p className="jx-label">{t('native.your_music')}</p>
         <button
           type="button"
           className="jx-row"
@@ -83,8 +84,8 @@ export function YourMusic() {
           }}
         >
           <span>
-            <b>Back to my music</b>
-            <small>Leave the example library</small>
+            <b>{t('app.back_to_my_music')}</b>
+            <small>{t('app.leave_example')}</small>
           </span>
         </button>
       </section>
@@ -93,23 +94,23 @@ export function YourMusic() {
   if (status !== 'ready' && status !== 'scanning') return null
 
   return (
-    <section className="jx-card jx-tune-card" aria-label="Your music">
-      <p className="jx-label">Your music · {plural(tracks.length, 'song')}</p>
+    <section className="jx-card jx-tune-card" aria-label={t('native.your_music')}>
+      <p className="jx-label">{t.plural('native.your_music_songs', tracks.length)}</p>
       <ul className="jx-list">
         {roots.map((root) => (
           <li key={root.id}>
             <div className="jx-row">
               <span>
-                <b>{root.label}</b>
-                <small>{plural(trackCountFor(tracks, root), 'song')}</small>
+                <b>{shownRootLabel(root.label)}</b>
+                <small>{t.plural('common.songs', trackCountFor(tracks, root))}</small>
               </span>
               {removing === root.id ? (
                 <span className="jx-confirm">
                   <button type="button" className="jx-link danger" onClick={() => { setRemoving(null); void removeFolder(root.id) }}>
-                    Remove
+                    {t('common.remove')}
                   </button>
                   <button type="button" className="jx-link quiet" onClick={() => setRemoving(null)}>
-                    Keep
+                    {t('native.keep')}
                   </button>
                 </span>
               ) : (
@@ -117,27 +118,29 @@ export function YourMusic() {
                   type="button"
                   className="jx-link quiet"
                   onClick={() => setRemoving(root.id)}
-                  title="Takes it out of Jukebox — the music files themselves stay where they are"
+                  title={t('app.remove_folder_title')}
                 >
-                  Remove
+                  {t('common.remove')}
                 </button>
               )}
             </div>
           </li>
         ))}
       </ul>
-      {removing && <p className="jx-fine left">Only Jukebox forgets it. The music files stay where they are.</p>}
+      {removing && <p className="jx-fine left">{t('native.remove_note')}</p>}
       <div className="jx-tune-actions">
-        {canAddTracks && <button type="button" className="jx-btn" onClick={addTracks}>Add tracks</button>}
-        {canAddFolder && <button type="button" className="jx-btn" onClick={addFolder}>Add a folder</button>}
+        {canAddTracks && <button type="button" className="jx-btn" onClick={addTracks}>{t('app.add_tracks')}</button>}
+        {canAddFolder && <button type="button" className="jx-btn" onClick={addFolder}>{t('app.add_folder')}</button>}
         {(native || folders.length > 0) && (
           <button type="button" className="jx-btn" onClick={() => void rescan()}>
-            {folders.length > 1 ? 'Rescan my folders' : 'Rescan my music'}
+            {folders.length > 1 ? t('app.rescan_folders') : t('native.rescan_music')}
           </button>
         )}
         {hasMusicLibrary() && (
           <button type="button" className="jx-btn" onClick={() => void importMusicLibrary()}>
-            {hasMusicRoot ? `Refresh my ${deviceWord()}’s Music library` : `Add my ${deviceWord()}’s Music library`}
+            {deviceWord() === 'iPad'
+              ? t(hasMusicRoot ? 'native.refresh_library_ipad' : 'native.add_library_ipad')
+              : t(hasMusicRoot ? 'native.refresh_library_phone' : 'native.add_library_phone')}
           </button>
         )}
       </div>
@@ -173,21 +176,22 @@ export function YourMusic() {
 
 /** About Universal Jukebox and the knowledge base — the website's Advanced menu. */
 export function AboutAndHelp() {
+  const t = useT()
   const [kb, setKb] = useState(false)
   const theme = useThemeStore((s) => s.effective)
   return (
-    <section className="jx-card jx-tune-card" aria-label="About and help">
+    <section className="jx-card jx-tune-card" aria-label={t('native.about_and_help')}>
       <button type="button" className="jx-row" onClick={() => setKb(true)}>
         <span>
-          <b>Knowledge base</b>
-          <small>How music files, lyrics and background play work</small>
+          <b>{t('native.knowledge_base')}</b>
+          <small>{t('app.knowledge_base_detail')}</small>
         </span>
         <span className="jx-chev" aria-hidden>›</span>
       </button>
       <button type="button" className="jx-row" onClick={() => navigate({ view: 'about' })}>
         <span>
-          <b>About Universal Jukebox</b>
-          <small>What it plays, what it can’t, and why</small>
+          <b>{t('app.about_jukebox')}</b>
+          <small>{t('native.about_detail')}</small>
         </span>
         <span className="jx-chev" aria-hidden>›</span>
       </button>

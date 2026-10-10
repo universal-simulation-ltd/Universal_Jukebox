@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { scrollToTop } from '../lib/scrollTop'
+import { useT } from '../i18n'
 
 // A floating "back to the top" (James, 2026-09-11: "when scrolling down have a
 // floating up arrow to scroll to the top"). It appears once you are most of a
@@ -7,6 +8,7 @@ import { scrollToTop } from '../lib/scrollTop'
 // is taller on a phone with a home indicator and absent with nothing queued.
 
 export default function ScrollTopButton() {
+  const t = useT()
   const [shown, setShown] = useState(false)
   const [lift, setLift] = useState(16)
 
@@ -35,8 +37,8 @@ export default function ScrollTopButton() {
     <button
       type="button"
       onClick={scrollToTop}
-      aria-label="Back to the top"
-      title="Back to the top"
+      aria-label={t('app.back_to_top')}
+      title={t('app.back_to_top')}
       aria-hidden={!shown}
       tabIndex={shown ? 0 : -1}
       style={{ bottom: lift }}

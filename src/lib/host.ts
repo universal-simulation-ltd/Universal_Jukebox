@@ -14,6 +14,12 @@ export function isDesktopApp(): boolean {
 /**
  * The thing that grants permissions and decodes files, as a sentence names it:
  * `the` / `this` mid-sentence, `This` to open one.
+ *
+ * ⚠️ ENGLISH ONLY — for English text such as logs. A translated sentence must
+ * not have one of these words dropped into it (gender, case and word order
+ * change with the noun): branch on `isDesktopApp()` and give each variant its
+ * own whole sentence in `src/i18n` (`ErrorBanner`'s `missing_*_browser` /
+ * `missing_*_app`).
  */
 export function host(): { the: string; this: string; This: string } {
   return isDesktopApp()

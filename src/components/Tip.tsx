@@ -1,4 +1,5 @@
 import { useSettingsStore, type TipId } from '../stores/settingsStore'
+import { useT } from '../i18n'
 
 // First-run tips (James, 2026-09-10): "Tap here" on the record, and on the
 // album cover, so somebody new finds that the two open each other. A tip goes
@@ -17,6 +18,7 @@ import { useSettingsStore, type TipId } from '../stores/settingsStore'
  * is a `transform`, and on the same element it would replace the centring.
  */
 export default function Tip({ id, detail }: { id: TipId; detail: string }) {
+  const t = useT()
   const seen = useSettingsStore((s) => s.tipsSeen.includes(id))
   if (seen) return null
   return (
@@ -24,7 +26,7 @@ export default function Tip({ id, detail }: { id: TipId; detail: string }) {
       <span role="note" className="flex flex-col items-center motion-safe:animate-[jb-tip-bob_1.6s_ease-in-out_infinite]">
         <span className="h-0 w-0 border-x-[7px] border-b-[8px] border-x-transparent border-b-orange-600" aria-hidden />
         <span className="rounded-full bg-orange-600 px-3.5 py-1 text-center text-[12.5px] leading-tight font-semibold whitespace-nowrap text-white shadow-lg">
-          Tap here
+          {t('app.tip_tap_here')}
           <span className="block text-[10.5px] font-medium opacity-90">{detail}</span>
         </span>
       </span>

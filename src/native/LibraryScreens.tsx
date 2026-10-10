@@ -16,8 +16,9 @@ import Cover from '../components/Cover'
 import GenreIndex from '../components/GenreIndex'
 import TrackList from '../components/TrackList'
 import { compareBase } from '../lib/collate'
-import { plural } from '../lib/format'
-import { GENRE_MIN, libraryInGenre } from '../lib/genres'
+import { shownName } from '../lib/format'
+import { useT } from '../i18n'
+import { GENRE_MIN, libraryInGenre, shownGenre } from '../lib/genres'
 import { ARTIST_MIN, albumsOfBigArtists, columnsLabel, isFullAlbum, nextColumns, nextOrder, seededOrder, type LibraryOrder } from '../lib/libraryView'
 import { navigate } from '../lib/route'
 import { matchAlbums, matchArtistNames, matchTracks } from '../lib/search'
@@ -59,6 +60,7 @@ export function SearchBox({
   /** The ✕: clear the search and fold the drawer away. */
   onClose?: () => void
 }) {
+  const t = useT()
   return (
     <label className="jx-search">
       <IconSearch />
@@ -83,7 +85,7 @@ export function SearchBox({
           className="jx-search-close"
           onMouseDown={(e) => e.preventDefault()}
           onClick={onClose}
-          aria-label="Clear and close"
+          aria-label={t('native.clear_and_close')}
         >
           <IconClose />
         </button>
@@ -117,6 +119,7 @@ function useSeen(genre?: string) {
 
 function Screen({
   title,
+  searchLabel,
   count,
   onShuffle,
   query,
@@ -130,6 +133,8 @@ function Screen({
   children,
 }: {
   title: string
+  /** The search box's placeholder: "Search albums", "Search Blues albums". */
+  searchLabel: string
   count: string
   onShuffle?: () => void
   tab: ListTab
@@ -139,6 +144,7 @@ function Screen({
   filterNote?: string | null
   children: ReactNode
 } & ListProps) {
+  const t = useT()
   // The drawer (PullDrawer): opened by pulling down from the top, and kept
   // open while there is a search.
   const [pulled, setPulled] = useState(false)
@@ -148,14 +154,14 @@ function Screen({
   const columns = useSettingsStore((s) => s.libraryColumns)
   const genresMin3 = useSettingsStore((s) => s.genresMin3)
   const next = nextOrder(order)
-  const orderLabel = (o: LibraryOrder) => (o.kind === 'az' ? 'A–Z' : o.kind === 'random' ? 'Random' : 'Genre')
+  const orderLabel = (o: LibraryOrder) => t(o.kind === 'az' ? 'native.chip_az' : o.kind === 'random' ? 'native.chip_random' : 'native.chip_genre')
   // The layout pill. Artists and Albums step through the website's cycle —
   // 2, 3, 4 per row, the jukebox shelf, then 1, which on a phone is a list —
   // and Tracks is the list or the shelf (James, 2026-10-10: "Artist should
   // show the 3 per row view by default (I can't find the option?)").
   const cols = columns[tab]
   const nextCols: LibraryColumns = tab === 'tracks' ? (cols === 'jukebox' ? 2 : 'jukebox') : nextColumns(cols)
-  const layoutLabel = (c: LibraryColumns) => (c === 'jukebox' ? 'Jukebox' : tab === 'tracks' || c === 1 ? 'List' : columnsLabel(c))
+  const layoutLabel = (c: LibraryColumns) => (c === 'jukebox' ? t('native.layout_jukebox') : tab === 'tracks' || c === 1 ? t('native.layout_list') : columnsLabel(c))
   // With the drawer shut, what's changed from the usual is said under the
   // title, so a filtered or shuffled list never looks like a broken one.
   const notes = [
@@ -171,12 +177,12 @@ function Screen({
       {genre && (
         <button type="button" className="jx-back wide jx-genre-back" onClick={() => navigate({ view: tab })}>
           <IconBack />
-          <span>Genres</span>
+          <span>{t('native.genres_back')}</span>
         </button>
       )}
       <div className="jx-heading">
         <div>
-          <h1 className="jx-h1">{genre ?? title}</h1>
+          <h1 className="jx-h1">{genre ? shownGenre(genre) : title}</h1>
           <p className="jx-sub">{[count, ...(shown ? [] : notes)].join(' · ')}</p>
         </div>
       </div>
@@ -185,17 +191,17 @@ function Screen({
           input={input}
           query={query}
           setQuery={setQuery}
-          label={`Search ${(genre ? `${genre} ` : '') + title.toLowerCase()}`}
+          label={searchLabel}
           onClose={() => {
             setQuery('')
             setPulled(false)
             input.current?.blur()
           }}
         />
-        <div className="jx-chips" role="group" aria-label="Play and list options">
+        <div className="jx-chips" role="group" aria-label={t('native.options_group')}>
           {onShuffle && (
             <button type="button" className="jx-chip play" onClick={onShuffle}>
-              <IconShuffle /> Shuffle
+              <IconShuffle /> {t('common.shuffle')}
             </button>
           )}
           <button
@@ -205,7 +211,7 @@ function Screen({
               setOrder(next)
               setSetting('libraryOrder', { ...useSettingsStore.getState().libraryOrder, [tab]: next.kind })
             }}
-            aria-label={`${orderLabel(order)}. Tap for ${orderLabel(next)}`}
+            aria-label={t('native.chip_tap_for', { now: orderLabel(order), next: orderLabel(next) })}
           >
             {orderLabel(order)}
           </button>
@@ -215,7 +221,7 @@ function Screen({
               className={`jx-chip${genresMin3 !== DEFAULTS.genresMin3 ? ' on' : ''}`}
               onClick={() => setSetting('genresMin3', !genresMin3)}
             >
-              {genresMin3 ? `Min. ${GENRE_MIN}` : 'All genres'}
+              {genresMin3 ? t('native.chip_min', { n: t.num(GENRE_MIN) }) : t('native.chip_all_genres')}
             </button>
           )}
           {filter}
@@ -223,7 +229,7 @@ function Screen({
             type="button"
             className={`jx-chip${cols !== DEFAULTS.libraryColumns[tab] ? ' on' : ''}`}
             onClick={() => setSetting('libraryColumns', { ...columns, [tab]: nextCols })}
-            aria-label={`${layoutLabel(cols)}. Tap for ${layoutLabel(nextCols)}`}
+            aria-label={t('native.chip_tap_for', { now: layoutLabel(cols), next: layoutLabel(nextCols) })}
           >
             {layoutLabel(cols)}
           </button>
@@ -243,10 +249,12 @@ function FilterChip({ on, isDefault, label, offLabel, onToggle }: { on: boolean;
 }
 
 function Nothing({ query }: { query: string }) {
-  return query.trim() ? <p className="jx-empty">Nothing in your library matches “{query.trim()}”.</p> : null
+  const t = useT()
+  return query.trim() ? <p className="jx-empty">{t('native.nothing_matches', { query: query.trim() })}</p> : null
 }
 
 export function AlbumsScreen(props: ListProps) {
+  const t = useT()
   const { query, order, genre } = props
   const seen = useSeen(genre)
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
@@ -264,16 +272,17 @@ export function AlbumsScreen(props: ListProps) {
     <Screen
       {...props}
       tab="albums"
-      title="Albums"
-      count={plural(shown.length, 'album')}
+      title={t('native.heading_albums')}
+      searchLabel={genre ? t('native.search_genre_albums', { genre : shownGenre(genre) }) : t('native.search_albums')}
+      count={t.plural('common.albums', shown.length)}
       onShuffle={shown.length ? () => shuffleAlbums(shown) : undefined}
-      filterNote={fullOnly !== DEFAULTS.fullAlbumsOnly ? (fullOnly ? 'Full albums' : 'All albums') : null}
+      filterNote={fullOnly !== DEFAULTS.fullAlbumsOnly ? (fullOnly ? t('native.chip_full_albums') : t('native.chip_all_albums')) : null}
       filter={
         <FilterChip
           on={fullOnly}
           isDefault={fullOnly === DEFAULTS.fullAlbumsOnly}
-          label="Full albums"
-          offLabel="All albums"
+          label={t('native.chip_full_albums')}
+          offLabel={t('native.chip_all_albums')}
           onToggle={() => setSetting('fullAlbumsOnly', !fullOnly)}
         />
       }
@@ -295,8 +304,8 @@ export function AlbumsScreen(props: ListProps) {
                   <button type="button" className="jx-row" onClick={() => navigate({ view: 'album', albumId: album.id })}>
                     <Cover album={album} className="jx-thumb" />
                     <span>
-                      <b>{album.title}</b>
-                      <small>{[album.artist, album.year].filter(Boolean).join(' · ')}</small>
+                      <b>{shownName(album.title)}</b>
+                      <small>{[shownName(album.artist), album.year].filter(Boolean).join(' · ')}</small>
                     </span>
                   </button>
                 </li>
@@ -308,8 +317,8 @@ export function AlbumsScreen(props: ListProps) {
                 <li key={album.id}>
                   <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
                     <Cover album={album} className="jx-cover" />
-                    <b>{album.title}</b>
-                    <small>{album.artist}</small>
+                    <b>{shownName(album.title)}</b>
+                    <small>{shownName(album.artist)}</small>
                   </button>
                 </li>
               ))}
@@ -323,6 +332,7 @@ export function AlbumsScreen(props: ListProps) {
 }
 
 export function ArtistsScreen(props: ListProps) {
+  const t = useT()
   const { query, order, genre } = props
   const seen = useSeen(genre)
   const min3 = useSettingsStore((s) => s.artistsMin3)
@@ -350,16 +360,17 @@ export function ArtistsScreen(props: ListProps) {
     <Screen
       {...props}
       tab="artists"
-      title="Artists"
-      count={plural(names.length, 'artist')}
+      title={t('native.heading_artists')}
+      searchLabel={genre ? t('native.search_genre_artists', { genre : shownGenre(genre) }) : t('native.search_artists')}
+      count={t.plural('common.artists', names.length)}
       onShuffle={names.length ? () => shuffleArtists(names.flatMap((n) => byArtist.get(n) ?? [])) : undefined}
-      filterNote={min3 !== DEFAULTS.artistsMin3 ? (min3 ? `Min. ${ARTIST_MIN}` : 'All artists') : null}
+      filterNote={min3 !== DEFAULTS.artistsMin3 ? (min3 ? t('native.chip_min', { n: t.num(ARTIST_MIN) }) : t('native.chip_all_artists')) : null}
       filter={
         <FilterChip
           on={min3}
           isDefault={min3 === DEFAULTS.artistsMin3}
-          label={`Min. ${ARTIST_MIN}`}
-          offLabel="All artists"
+          label={t('native.chip_min', { n: t.num(ARTIST_MIN) })}
+          offLabel={t('native.chip_all_artists')}
           onToggle={() => setSetting('artistsMin3', !min3)}
         />
       }
@@ -382,15 +393,15 @@ export function ArtistsScreen(props: ListProps) {
                     <button type="button" className="jx-row" onClick={() => navigate({ view: 'artist', artist: name })}>
                       <Cover album={face} className="jx-thumb round" />
                       <span>
-                        <b>{name}</b>
-                        <small>{plural(theirs.length, 'album')}</small>
+                        <b>{shownName(name)}</b>
+                        <small>{t.plural('common.albums', theirs.length)}</small>
                       </span>
                     </button>
                   ) : (
                     <button type="button" className="jx-tile" onClick={() => navigate({ view: 'artist', artist: name })}>
                       <Cover album={face} className="jx-cover round" />
-                      <b>{name}</b>
-                      <small>{plural(theirs.length, 'album')}</small>
+                      <b>{shownName(name)}</b>
+                      <small>{t.plural('common.albums', theirs.length)}</small>
                     </button>
                   )}
                 </li>
@@ -405,6 +416,7 @@ export function ArtistsScreen(props: ListProps) {
 }
 
 export function SongsScreen(props: ListProps) {
+  const t = useT()
   const { query, order, genre } = props
   const seen = useSeen(genre)
   const albums = useLibraryStore((s) => s.albums)
@@ -424,8 +436,9 @@ export function SongsScreen(props: ListProps) {
     <Screen
       {...props}
       tab="tracks"
-      title="Tracks"
-      count={plural(shown.length, 'track')}
+      title={t('native.heading_tracks')}
+      searchLabel={genre ? t('native.search_genre_tracks', { genre : shownGenre(genre) }) : t('native.search_tracks')}
+      count={t.plural('common.tracks', shown.length)}
       onShuffle={shown.length ? () => shuffleSongs(shown) : undefined}
     >
       {layout.genreList ? (
@@ -469,6 +482,7 @@ export function SongList({
   /** The row's second line, when it isn't the artist (and album). */
   subtitle?: (track: Track) => string
 }) {
+  const t = useT()
   const playingId = usePlayerStore((s) => currentTrack(s)?.id)
   const albumOf = useMemo(() => new Map(albums.map((a) => [a.id, a])), [albums])
   const [options, setOptions] = useState<number | null>(null)
@@ -519,12 +533,12 @@ export function SongList({
                 <small>
                   {subtitle
                     ? subtitle(track)
-                    : [track.artist ?? track.albumArtist, showAlbum ? track.album : null].filter(Boolean).join(' · ')}
+                    : [shownName(track.artist ?? track.albumArtist), showAlbum ? shownName(track.album) : null].filter(Boolean).join(' · ')}
                 </small>
               </span>
             </button>
             <Preview track={track} />
-            <button type="button" className="jx-more" onClick={() => setOptions(i)} aria-label={`Options for ${track.title}`}>
+            <button type="button" className="jx-more" onClick={() => setOptions(i)} aria-label={t('native.options_for', { title: track.title })}>
               <IconMore />
             </button>
           </li>
@@ -542,13 +556,14 @@ export function SongList({
 function Preview({ track }: { track: Track }) {
   const running = usePlayerStore((s) => s.previewTrackId === track.id)
   const preview = usePlayerStore((s) => s.preview)
+  const t = useT()
   return (
     <button
       type="button"
       className={`jx-more jx-preview${running ? ' on' : ''}`}
       onClick={() => preview(track)}
       aria-pressed={running}
-      aria-label={running ? `Stop previewing ${track.title}` : `Preview ${track.title}, ${PREVIEW_RUN_SEC} seconds from ${PREVIEW_START_SEC} seconds in`}
+      aria-label={running ? t('native.stop_preview', { title: track.title }) : t('native.preview', { title: track.title, run: t.num(PREVIEW_RUN_SEC), start: t.num(PREVIEW_START_SEC) })}
     >
       {running ? <IconStop /> : <IconPreview />}
     </button>
@@ -559,10 +574,11 @@ function Preview({ track }: { track: Track }) {
 const HOLD_MS = 450
 
 function More({ left, onMore }: { left: number; onMore(): void }) {
+  const t = useT()
   if (left <= 0) return null
   return (
     <button type="button" className="jx-btn" onClick={onMore}>
-      Show {Math.min(left, PAGE).toLocaleString()} more
+      {t.plural('native.show_more', Math.min(left, PAGE))}
     </button>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { plural } from '../lib/format'
+import { useT } from '../i18n'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -13,6 +13,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 // the next time they look. Tapping it lists which, and why.
 
 export default function SkippedBanner() {
+  const t = useT()
   const skipped = usePlayerStore((s) => s.skipped)
   const dismiss = usePlayerStore((s) => s.dismissSkipped)
   const [open, setOpen] = useState(false)
@@ -35,8 +36,8 @@ export default function SkippedBanner() {
           aria-expanded={open}
           className="min-w-0 flex-1 basis-56 text-left font-medium underline-offset-2 hover:underline"
         >
-          {plural(skipped.length, 'track')} couldn’t play and {skipped.length === 1 ? 'was' : 'were'} skipped
-          <span className="ml-1.5 text-[11px] opacity-70">{open ? 'Hide' : 'Tell me more'}</span>
+          {t.plural('app.skipped', skipped.length)}
+          <span className="ml-1.5 text-[11px] opacity-70">{open ? t('app.skipped_hide') : t('app.skipped_more')}</span>
         </button>
         <button
           type="button"
@@ -46,7 +47,7 @@ export default function SkippedBanner() {
           }}
           className="shrink-0 rounded-full px-3 py-1 text-[12.5px] font-medium text-amber-900 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"
         >
-          Dismiss
+          {t('app.dismiss')}
         </button>
       </div>
       {open && (
@@ -61,8 +62,7 @@ export default function SkippedBanner() {
             ))}
           </ul>
           <p className="mt-2.5 opacity-80">
-            The music carried on with the next track. A song that has gone from the iPhone’s Music library, or a file
-            that was moved or deleted, can’t be played — rescan from Actions, or choose the folder again.
+            {t('app.skipped_explain')}
           </p>
         </div>
       )}

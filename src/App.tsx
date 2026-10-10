@@ -33,7 +33,7 @@ import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route
 import { useBooting } from './lib/boot'
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, matchArtistNames, tabCounts } from './lib/search'
-import { GENRE_MIN, libraryInGenre } from './lib/genres'
+import { GENRE_MIN, libraryInGenre, shownGenre } from './lib/genres'
 import { ARTIST_MIN, FULL_ALBUM_MIN, albumsOfBigArtists, columnsLabel, isFullAlbum, nextColumns, nextOrder, orderFrom, type LibraryOrder } from './lib/libraryView'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
@@ -42,6 +42,7 @@ import { useThemeStore } from './stores/themeStore'
 import { usePrefersReducedMotion } from './lib/usePrefersReducedMotion'
 import { isNativeShell } from './lib/nativeFile'
 import { phoneScreens } from './native/shell'
+import { useT, type MessageKey } from './i18n'
 
 // The phone app has screens of its own (src/native/, see shell.ts). Loaded on
 // demand, so the website's bundle never carries them.
@@ -89,24 +90,28 @@ function togglePill(active: boolean): string {
 /**
  * What the order pill says it is on, and what it says it will do next. One
  * table, so the button's own label and the label a screen reader hears can
- * never say different things.
+ * never say different things. Keys, looked up at render: `now` is a sentence
+ * of its own and `next` the whole "Tap for …", so neither is a word dropped
+ * into the other's grammar.
  */
-const ORDER_SAID: Record<LibraryOrder['kind'], { now: string; next: string }> = {
-  az: { now: 'In A to Z order', next: 'A to Z' },
-  random: { now: 'In random order', next: 'random order' },
-  genre: { now: 'By genre', next: 'the list of genres' },
+const ORDER_SAID: Record<LibraryOrder['kind'], { now: MessageKey; next: MessageKey }> = {
+  az: { now: 'app.order_now_az', next: 'app.order_tap_az' },
+  random: { now: 'app.order_now_random', next: 'app.order_tap_random' },
+  genre: { now: 'app.order_now_genre', next: 'app.order_tap_genre' },
 }
 
 // Artists, Albums, Tracks (James, 2026-09-11) — widest to narrowest.
 /** Two taps on one tab within this long are a double tap. */
 const DOUBLE_TAP_MS = 350
 
-const TABS: { view: HomeTab; label: string }[] = [
-  { view: 'artists', label: 'Artists' },
-  { view: 'albums', label: 'Albums' },
-  { view: 'tracks', label: 'Tracks' },
+// Keys, not words, so the tabs follow a change of language; each tab has its
+// own whole sentences for the hover and the screen reader.
+const TABS: { view: HomeTab; label: MessageKey; home: MessageKey; doubleTap: MessageKey; nowHome: MessageKey }[] = [
+  { view: 'artists', label: 'app.tab_artists', home: 'app.tab_home_artists', doubleTap: 'app.tab_double_tap_artists', nowHome: 'app.tab_now_home_artists' },
+  { view: 'albums', label: 'app.tab_albums', home: 'app.tab_home_albums', doubleTap: 'app.tab_double_tap_albums', nowHome: 'app.tab_now_home_albums' },
+  { view: 'tracks', label: 'app.tab_tracks', home: 'app.tab_home_tracks', doubleTap: 'app.tab_double_tap_tracks', nowHome: 'app.tab_now_home_tracks' },
   // Your own shelves of songs — `JukeboxShelves` (James, 2026-09-11).
-  { view: 'jukebox', label: 'Jukebox' },
+  { view: 'jukebox', label: 'app.tab_jukebox', home: 'app.tab_home_jukebox', doubleTap: 'app.tab_double_tap_jukebox', nowHome: 'app.tab_now_home_jukebox' },
 ]
 
 function useRoute(): Route {
@@ -181,6 +186,7 @@ export default function App() {
 }
 
 function WebApp() {
+  const t = useT()
   const route = useRoute()
   const mini = useMiniMode()
 
@@ -546,7 +552,7 @@ function WebApp() {
               <nav
                 ref={tabsNav}
                 className="flex max-w-full min-w-0 flex-auto items-center gap-0.5 overflow-x-auto sm:gap-1 [scrollbar-width:none] sm:flex-none [&::-webkit-scrollbar]:hidden"
-                aria-label="Library views"
+                aria-label={t('app.tabs_label')}
               >
                 {TABS.map((tab) => {
                   // ⚠️ NO STARS — DOUBLE-TAP A TAB to have the library open on
@@ -576,7 +582,7 @@ function WebApp() {
                         navigate({ view: tab.view, genre: tab.view === 'jukebox' ? undefined : genre })
                       }}
                       aria-current={active ? 'page' : undefined}
-                      title={isHome ? `${tab.label} — the library opens here` : `Double-tap to open the library on ${tab.label}`}
+                      title={isHome ? t(tab.home) : t(tab.doubleTap)}
                       className={`shrink-0 touch-manipulation rounded-full px-2 py-1.5 sm:px-2.5 text-[13px] font-medium transition ${
                         active
                           ? isHome
@@ -588,13 +594,13 @@ function WebApp() {
                       }`}
                       style={{ animation: homeFlash?.view === tab.view && !reducedMotion ? 'jb-home-pop 480ms ease-out' : undefined }}
                     >
-                      {tab.label}
+                      {t(tab.label)}
                       {/* Only while searching. A permanent count is a number
                           nobody asked for; during a search it is the only way
                           to know the tab you are NOT looking at has answers. */}
                       {counts && tab.view !== 'jukebox' && (
                         <span className="ml-1 tabular-nums opacity-70">
-                          ({counts[tab.view].toLocaleString()})
+                          ({t.num(counts[tab.view])})
                         </span>
                       )}
                     </button>
@@ -616,8 +622,8 @@ function WebApp() {
                 onClick={() => setOptionsOpen((o) => !o)}
                 aria-expanded={optionsOpen}
                 aria-controls="jb-list-options"
-                aria-label="List options"
-                title="List options"
+                aria-label={t('app.list_options')}
+                title={t('app.list_options')}
                 className={`relative inline-flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
                   optionsOpen
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
@@ -640,7 +646,10 @@ function WebApp() {
                   confirmation text 'library opens on'"). */}
               {homeFlash && (
                 <p key={homeFlash.n} aria-live="polite" className="sr-only">
-                  The library now opens on {TABS.find((t) => t.view === homeFlash.view)?.label}
+                  {(() => {
+                    const said = TABS.find((tab) => tab.view === homeFlash.view)?.nowHome
+                    return said ? t(said) : null
+                  })()}
                 </p>
               )}
               {/* The wider screens' box, inline with the tabs. A phone uses
@@ -649,8 +658,8 @@ function WebApp() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search your library"
-                aria-label="Search your library"
+                placeholder={t('app.search_library')}
+                aria-label={t('app.search_library')}
                 className="ml-auto hidden w-full max-w-xs rounded-full border border-slate-300 bg-white px-4 py-1.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none sm:block dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
               {/* No "Now playing" button here any more (James, 2026-09-11:
@@ -666,16 +675,16 @@ function WebApp() {
                     setOrders((all) => ({ ...all, [listTab]: next }))
                     setSetting('libraryOrder', { ...useSettingsStore.getState().libraryOrder, [listTab]: next.kind })
                   }}
-                  aria-label={`${ORDER_SAID[order.kind].now}. Tap for ${ORDER_SAID[nextOrder(order).kind].next}`}
-                  title={`Tap for ${ORDER_SAID[nextOrder(order).kind].next}`}
+                  aria-label={`${t(ORDER_SAID[order.kind].now)} ${t(ORDER_SAID[nextOrder(order).kind].next)}`}
+                  title={t(ORDER_SAID[nextOrder(order).kind].next)}
                   className={togglePill(order.kind !== DEFAULTS.libraryOrder[listTab])}
                 >
                   {order.kind === 'az' ? (
-                    'A–Z'
+                    t('app.pill_az')
                   ) : (
                     <span className="inline-flex items-center gap-1">
                       {order.kind === 'random' ? <ShuffleGlyph /> : <GenreGlyph />}
-                      {order.kind === 'random' ? 'Random' : 'Genre'}
+                      {order.kind === 'random' ? t('app.pill_random') : t('app.pill_genre')}
                     </span>
                   )}
                 </button>
@@ -687,15 +696,11 @@ function WebApp() {
                     type="button"
                     onClick={() => setSetting('genresMin3', !genresMin3)}
                     // Says what is shown, as "Full albums" does (see below).
-                    aria-label={
-                      genresMin3
-                        ? `Genres with ${GENRE_MIN} or more songs. Tap for all genres`
-                        : `All genres. Tap for only those with ${GENRE_MIN} or more songs`
-                    }
-                    title={genresMin3 ? `Genres with ${GENRE_MIN} or more songs — tap for all genres` : `Every genre — tap for only those with ${GENRE_MIN} or more songs`}
+                    aria-label={t.plural(genresMin3 ? 'app.genres_min_aria' : 'app.genres_all_aria', GENRE_MIN)}
+                    title={t.plural(genresMin3 ? 'app.genres_min_title' : 'app.genres_all_title', GENRE_MIN)}
                     className={togglePill(genresMin3 !== DEFAULTS.genresMin3)}
                   >
-                    {genresMin3 ? `Min. ${GENRE_MIN}` : 'All genres'}
+                    {genresMin3 ? t('app.pill_min', { n: t.num(GENRE_MIN) }) : t('app.pill_all_genres')}
                   </button>
                 )}
                 {/* ⚠️ THE LABEL SAYS WHAT YOU ARE SEEING, like A–Z and the
@@ -709,15 +714,11 @@ function WebApp() {
                   <button
                     type="button"
                     onClick={() => setSetting('fullAlbumsOnly', !fullAlbumsOnly)}
-                    aria-label={
-                      fullAlbumsOnly
-                        ? `Full albums, ${FULL_ALBUM_MIN} or more tracks. Tap for all albums`
-                        : 'All albums, singles too. Tap for full albums only'
-                    }
-                    title={fullAlbumsOnly ? `Albums with ${FULL_ALBUM_MIN} or more tracks — tap for all albums` : 'Every album, singles too — tap for full albums only'}
+                    aria-label={fullAlbumsOnly ? t.plural('app.full_albums_aria', FULL_ALBUM_MIN) : t('app.all_albums_aria')}
+                    title={fullAlbumsOnly ? t.plural('app.full_albums_title', FULL_ALBUM_MIN) : t('app.all_albums_title')}
                     className={togglePill(fullAlbumsOnly !== DEFAULTS.fullAlbumsOnly)}
                   >
-                    {fullAlbumsOnly ? 'Full albums' : 'All albums'}
+                    {fullAlbumsOnly ? t('app.pill_full_albums') : t('app.pill_all_albums')}
                   </button>
                 )}
                 {view === 'artists' && (
@@ -725,15 +726,11 @@ function WebApp() {
                     type="button"
                     onClick={() => setSetting('artistsMin3', !artistsMin3)}
                     // Says what is shown, as "Full albums" does (above).
-                    aria-label={
-                      artistsMin3
-                        ? `Artists with ${ARTIST_MIN} or more songs. Tap for all artists`
-                        : `All artists. Tap for only those with ${ARTIST_MIN} or more songs`
-                    }
-                    title={artistsMin3 ? `Artists with ${ARTIST_MIN} or more songs — tap for all artists` : `Every artist — tap for only those with ${ARTIST_MIN} or more songs`}
+                    aria-label={t.plural(artistsMin3 ? 'app.artists_min_aria' : 'app.artists_all_aria', ARTIST_MIN)}
+                    title={t.plural(artistsMin3 ? 'app.artists_min_title' : 'app.artists_all_title', ARTIST_MIN)}
                     className={togglePill(artistsMin3 !== DEFAULTS.artistsMin3)}
                   >
-                    {artistsMin3 ? `Min. ${ARTIST_MIN}` : 'All artists'}
+                    {artistsMin3 ? t('app.pill_min', { n: t.num(ARTIST_MIN) }) : t('app.pill_all_artists')}
                   </button>
                 )}
                 {/* Albums per row: 2, 3, 4, the jukebox shelf, 1 (James,
@@ -745,13 +742,13 @@ function WebApp() {
                   <button
                     type="button"
                     onClick={() => setSetting('libraryColumns', { ...allColumns, tracks: columns === 'jukebox' ? 2 : 'jukebox' })}
-                    aria-label={columns === 'jukebox' ? 'Jukebox. Tap for the list' : 'List. Tap for the jukebox'}
-                    title="The list, or the shelf of records — tap to change"
+                    aria-label={columns === 'jukebox' ? t('app.tracks_jukebox_aria') : t('app.tracks_list_aria')}
+                    title={t('app.tracks_layout_title')}
                     className={togglePill(columns !== DEFAULTS.libraryColumns[listTab])}
                   >
                     <span className="inline-flex items-center gap-1">
                       <GridGlyph />
-                      {columns === 'jukebox' ? 'Jukebox' : 'List'}
+                      {columns === 'jukebox' ? t('app.pill_jukebox') : t('app.pill_list')}
                     </span>
                   </button>
                 )}
@@ -759,8 +756,8 @@ function WebApp() {
                   <button
                     type="button"
                     onClick={() => setSetting('libraryColumns', { ...allColumns, [listTab]: nextColumns(columns) })}
-                    aria-label={`${columnsLabel(columns)}. Tap for ${columnsLabel(nextColumns(columns))}`}
-                    title="How many albums in a row — tap to change"
+                    aria-label={t('app.pill_tap_for', { now: columnsLabel(columns), next: columnsLabel(nextColumns(columns)) })}
+                    title={t('app.columns_title')}
                     className={togglePill(columns !== DEFAULTS.libraryColumns[listTab])}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -778,8 +775,8 @@ function WebApp() {
                   <button
                     type="button"
                     onClick={() => phoneSearch.current?.open()}
-                    aria-label="Search your library"
-                    title="Search — or pull down from the top of the page"
+                    aria-label={t('app.search_library')}
+                    title={t('app.search_title')}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:border-orange-500 hover:text-orange-700 sm:hidden dark:border-slate-700 dark:text-slate-300 dark:hover:text-orange-400"
                   >
                     <SearchGlyph />
@@ -802,9 +799,9 @@ function WebApp() {
                   }}
                   className="inline-flex items-center gap-1 rounded-full border border-slate-300 px-3 py-1 text-[12.5px] font-medium text-slate-600 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] dark:border-slate-700 dark:text-slate-300 dark:hover:text-orange-400"
                 >
-                  <span aria-hidden>‹</span> Genres
+                  <span aria-hidden>‹</span> {t('app.genres_back')}
                 </button>
-                <h2 className="min-w-0 truncate text-[17px] font-semibold text-slate-900 dark:text-slate-100">{genre}</h2>
+                <h2 className="min-w-0 truncate text-[17px] font-semibold text-slate-900 dark:text-slate-100">{shownGenre(genre)}</h2>
               </div>
             )}
             {view === 'jukebox' ? (
@@ -837,20 +834,26 @@ function WebApp() {
       <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className={`${CONTAINER} flex flex-row items-center gap-3 py-4 text-xs text-slate-500 sm:gap-4 dark:text-slate-400`}>
           <span>
-            With{' '}
-            <span aria-hidden="true" className="text-orange-600 dark:text-orange-400">&hearts;</span>
-            <span className="sr-only">love</span>{' '}
-            from{' '}
-            <a href="https://www.unisim.co.uk" target="_blank" rel="noreferrer" className="text-slate-700 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-300 dark:hover:text-orange-400">
-              UNISIM.co.uk
-            </a>
+            {t.rich('app.footer_with_love', {
+              heart: (
+                <>
+                  <span aria-hidden="true" className="text-orange-600 dark:text-orange-400">&hearts;</span>
+                  <span className="sr-only">{t('app.footer_love')}</span>
+                </>
+              ),
+              site: (
+                <a href="https://www.unisim.co.uk" target="_blank" rel="noreferrer" className="text-slate-700 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-300 dark:hover:text-orange-400">
+                  UNISIM.co.uk
+                </a>
+              ),
+            })}
           </span>
           <a
             href={REPO_URL}
             target="_blank"
             rel="noreferrer"
-            aria-label="Universal Jukebox on GitHub"
-            title="View source on GitHub"
+            aria-label={t('app.github_label')}
+            title={t('app.github_title')}
             className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
@@ -866,17 +869,18 @@ function WebApp() {
 }
 
 function MiniStageNote() {
+  const t = useT()
   return (
     <div className="py-10 text-center">
       <p className="text-sm text-slate-600 dark:text-slate-300">
-        The player is at the bottom of the screen.
+        {t('app.mini_stage_note')}
       </p>
       <button
         type="button"
         onClick={goHome}
         className="mt-3 text-sm font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
       >
-        Back to your library
+        {t('app.back_to_library')}
       </button>
     </div>
   )

@@ -9,8 +9,11 @@ import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { IconNext, IconPause, IconPlay } from './icons'
+import { shownName } from '../lib/format'
+import { useT } from '../i18n'
 
 export function MiniPlayer() {
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const playing = usePlayerStore((s) => s.playing)
   const loading = usePlayerStore((s) => s.loading)
@@ -55,18 +58,18 @@ export function MiniPlayer() {
             navigate({ view: 'playing' })
           }
         }}
-        aria-label={`Now playing: ${track.title}. Open the record`}
+        aria-label={t('native.mini_open', { title: track.title })}
       >
         <Cover album={album} className="jx-mini-cover" />
         <span>
           <b>{track.title}</b>
-          <small>{track.artist ?? track.albumArtist ?? album?.artist}</small>
+          <small>{shownName(track.artist ?? track.albumArtist ?? album?.artist)}</small>
         </span>
       </button>
-      <button type="button" className="jx-mini-btn" onClick={toggle} aria-label={playing ? 'Pause' : 'Play'} aria-busy={loading || undefined}>
+      <button type="button" className="jx-mini-btn" onClick={toggle} aria-label={playing ? t('common.pause') : t('common.play')} aria-busy={loading || undefined}>
         {playing ? <IconPause /> : <IconPlay />}
       </button>
-      <button type="button" className="jx-mini-btn" onClick={next} aria-label="Next song">
+      <button type="button" className="jx-mini-btn" onClick={next} aria-label={t('native.next_song')}>
         <IconNext />
       </button>
     </div>

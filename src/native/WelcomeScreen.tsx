@@ -14,8 +14,10 @@ import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { RecordMark } from './icons'
 import { HelpLink } from './TuneExtras'
+import { useT } from '../i18n'
 
 export function WelcomeScreen() {
+  const t = useT()
   const pickFolder = useLibraryStore((s) => s.pickFolder)
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
@@ -49,16 +51,16 @@ export function WelcomeScreen() {
   type Way = { label: string; sub: string; run(): void }
   const ways: Way[] = []
   if (hasMusicLibrary()) {
-    ways.push({ label: 'My Music library', sub: 'Songs synced to this phone from a computer', run: () => void importMusicLibrary() })
+    ways.push({ label: t('native.way_music_library'), sub: t('native.way_music_library_sub'), run: () => void importMusicLibrary() })
   }
   if (!native || chosen) {
-    ways.push({ label: 'A folder of music', sub: 'In Files, iCloud Drive or on a drive you plug in', run: chooseFolder })
+    ways.push({ label: t('native.way_folder'), sub: t('native.way_folder_sub'), run: chooseFolder })
   }
   if (own) {
-    ways.push({ label: 'The Jukebox folder', sub: 'Files › On My iPhone › Jukebox', run: () => void scanNativeFolder() })
+    ways.push({ label: t('native.way_jukebox_folder'), sub: t('native.way_jukebox_folder_sub'), run: () => void scanNativeFolder() })
   }
   if (!chosen || own) {
-    ways.push({ label: 'Pick songs', sub: 'Choose files one at a time', run: pickSongs })
+    ways.push({ label: t('native.way_pick'), sub: t('native.way_pick_sub'), run: pickSongs })
   }
 
   return (
@@ -66,18 +68,18 @@ export function WelcomeScreen() {
       <div className="jx-welcome-art" aria-hidden>
         <RecordMark />
       </div>
-      <h1 className="jx-h1">Your music, on the turntable</h1>
+      <h1 className="jx-h1">{t('native.welcome_title')}</h1>
       <p className="jx-sub">
-        Jukebox plays the music already on your phone: a record turning, the words going round it. Nothing is uploaded and there is no account.
+        {t('native.welcome_body')}
       </p>
 
       {importProgress ? (
         <p className="jx-card" role="status">
-          Copying {importProgress.done} of {importProgress.total}: {importProgress.name}
+          {t('native.copying', { done: importProgress.done, total: importProgress.total, name: importProgress.name })}
         </p>
       ) : null}
 
-      <p className="jx-label">Where is your music?</p>
+      <p className="jx-label">{t('native.where_is_music')}</p>
       <ul className="jx-list">
         {ways.map((way) => (
           <li key={way.label}>
@@ -93,15 +95,15 @@ export function WelcomeScreen() {
       </ul>
 
       <button type="button" className="jx-btn primary" disabled={busy} onClick={tryExample}>
-        {building ? 'Cutting the records…' : 'Try it with the example library'}
+        {building ? t('app.cutting_records') : t('native.try_example')}
       </button>
-      <p className="jx-fine">Made-up albums, so you can see every machine before adding your own.</p>
+      <p className="jx-fine">{t('native.made_up')}</p>
 
       {/* The website's Landing explains music in the cloud and on streaming
           services; here that is the knowledge base, one tap away. */}
-      <HelpLink label="Music in the cloud or on a streaming service?" />
+      <HelpLink label={t('native.cloud_help')} />
       <button type="button" className="jx-link center" onClick={() => navigate({ view: 'settings' })}>
-        Tune this app
+        {t('native.tune_title')}
       </button>
 
       <input

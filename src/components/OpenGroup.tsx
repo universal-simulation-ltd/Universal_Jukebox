@@ -1,5 +1,6 @@
 import Cover from './Cover'
 import type { Album } from '../lib/types'
+import { useT } from '../i18n'
 
 // The card a fan turns into when you open it.
 //
@@ -25,6 +26,7 @@ interface OpenGroupProps {
 }
 
 export default function OpenGroup({ albums, className = '' }: OpenGroupProps) {
+  const t = useT()
   const front = albums[0]
   return (
     <div
@@ -58,7 +60,7 @@ export default function OpenGroup({ albums, className = '' }: OpenGroupProps) {
         <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor">
           <path d="M10 6.6a1 1 0 0 1 .7.3l4 4a1 1 0 1 1-1.4 1.4L10 9.02l-3.3 3.3a1 1 0 1 1-1.4-1.42l4-4a1 1 0 0 1 .7-.3Z" />
         </svg>
-        Open
+        {t('common.open')}
       </span>
     </div>
   )

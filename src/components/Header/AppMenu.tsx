@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLibraryStore } from '../../stores/libraryStore'
-import { trackCountFor } from '../../lib/roots'
-import { plural } from '../../lib/format'
+import { shownRootLabel, trackCountFor } from '../../lib/roots'
+import { useT } from '../../i18n'
 import { goHome, navigate } from '../../lib/route'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../../lib/nativeFile'
 import { hasMusicLibrary } from '../../lib/appleMusic'
@@ -45,6 +45,7 @@ import { useThemeStore } from '../../stores/themeStore'
 // not in it), while a browser keeps picked files only until the page reloads.
 
 export default function AppMenu() {
+  const t = useT()
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const removeFolder = useLibraryStore((s) => s.removeFolder)
   const status = useLibraryStore((s) => s.status)
@@ -136,7 +137,7 @@ export default function AppMenu() {
           is invisible and has nothing to go back to when the app opens on Now
           Playing. Always here, first, so it is in the same place on every page. */}
       <Row onClick={goHome}>
-        <span className="block font-medium text-slate-800 dark:text-slate-100">Jukebox Library</span>
+        <span className="block font-medium text-slate-800 dark:text-slate-100">{t('app.menu_home')}</span>
       </Row>
       <Divider />
       {/* ⚠️ TRYING THE EXAMPLE LIBRARY, THE LIBRARY ROW IS THE WAY BACK
@@ -152,10 +153,10 @@ export default function AppMenu() {
               leaveExample()
               goHome()
             }}
-            title="Puts your own library back, exactly as you left it"
+            title={t('app.back_to_my_music_title')}
           >
-            <span className="block font-medium text-slate-800 dark:text-slate-100">Back to my music</span>
-            <span className="block text-[11.5px] text-slate-400 dark:text-slate-500">Leave the example library</span>
+            <span className="block font-medium text-slate-800 dark:text-slate-100">{t('app.back_to_my_music')}</span>
+            <span className="block text-[11.5px] text-slate-400 dark:text-slate-500">{t('app.leave_example')}</span>
           </Row>
           <Divider />
         </>
@@ -171,8 +172,8 @@ export default function AppMenu() {
             className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <span className="min-w-0 flex-1">
-              <span className="block font-medium text-slate-800 dark:text-slate-100">Your complete library</span>
-              <span className="block text-[11.5px] text-slate-400 dark:text-slate-500">{plural(tracks.length, 'song')}</span>
+              <span className="block font-medium text-slate-800 dark:text-slate-100">{t('app.complete_library')}</span>
+              <span className="block text-[11.5px] text-slate-400 dark:text-slate-500">{t.plural('common.songs', tracks.length)}</span>
             </span>
             <svg
               viewBox="0 0 20 20"
@@ -193,34 +194,34 @@ export default function AppMenu() {
               {roots.map((root) => (
                 <div key={root.id} className="flex items-baseline gap-2 px-3 py-1.5">
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] text-slate-800 dark:text-slate-100">{root.label}</span>
+                    <span className="block truncate text-[13px] text-slate-800 dark:text-slate-100">{shownRootLabel(root.label)}</span>
                     <span className="block text-[11.5px] text-slate-400 dark:text-slate-500">
-                      {plural(trackCountFor(tracks, root), 'song')}
+                      {t.plural('common.songs', trackCountFor(tracks, root))}
                     </span>
                   </span>
                   <button
                     type="button"
                     onClick={() => void removeFolder(root.id)}
-                    title="Takes it out of Jukebox — the music files themselves stay where they are"
+                    title={t('app.remove_folder_title')}
                     className="shrink-0 text-[11.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
                   >
-                    Remove
+                    {t('common.remove')}
                   </button>
                 </div>
               ))}
               {canAddTracks && (
-                <Row onClick={addTracks} title="Copies the songs you pick into the Universal Jukebox folder">
-                  Add tracks…
+                <Row onClick={addTracks} title={t('app.add_tracks_title')}>
+                  {t('app.add_tracks_menu')}
                 </Row>
               )}
               {canAddFolder && (
-                <Row onClick={addFolder} title="Adds a folder to your library — the ones you already have stay">
-                  Add a folder…
+                <Row onClick={addFolder} title={t('app.add_folder_title')}>
+                  {t('app.add_folder_menu')}
                 </Row>
               )}
               {(native || folders.length > 0) && (
-                <Row onClick={() => void rescan()} title="Picks up anything added or changed since the last scan">
-                  {folders.length > 1 ? 'Rescan my folders' : 'Rescan my music folder'}
+                <Row onClick={() => void rescan()} title={t('app.rescan_title')}>
+                  {folders.length > 1 ? t('app.rescan_folders') : t('app.rescan_folder')}
                 </Row>
               )}
               {/* The iPhone's Music library — songs synced from a Mac. A sync
@@ -228,11 +229,13 @@ export default function AppMenu() {
               {musicLibrary && (
                 <Row
                   onClick={() => void importMusicLibrary()}
-                  title="The songs synced to this iPhone from your computer, as they are in the Music app"
+                  title={t('app.music_library_title')}
                 >
                   {/* Whose library, said (James, 2026-09-13: "Change it to
                       'Refresh my phone's Music Library'") — an iPad's on an iPad. */}
-                  {hasMusicRoot ? `Refresh my ${deviceWord()}’s Music Library` : `Add my ${deviceWord()}’s Music Library…`}
+                  {deviceWord() === 'iPad'
+                    ? t(hasMusicRoot ? 'app.refresh_library_ipad' : 'app.add_library_ipad')
+                    : t(hasMusicRoot ? 'app.refresh_library_phone' : 'app.add_library_phone')}
                 </Row>
               )}
             </div>
@@ -256,14 +259,14 @@ export default function AppMenu() {
           colour is Settings ▸ Appearance; the app is English-only until 1.1),
           and Global Tuning went to the SDK's account panel, for signed-in
           users only (the SDK's rule since 0.165.0). */}
-      <Row onClick={() => navigate({ view: 'settings' })}>Tune this app…</Row>
+      <Row onClick={() => navigate({ view: 'settings' })}>{t('app.tune_menu')}</Row>
       <button
         type="button"
         aria-expanded={advanced}
         onClick={() => setAdvanced(!advanced)}
         className="flex w-full items-center gap-3 px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
       >
-        <span className="flex-1">Advanced</span>
+        <span className="flex-1">{t('app.advanced')}</span>
         <svg
           viewBox="0 0 20 20"
           className={`h-4 w-4 shrink-0 text-slate-400 transition-transform dark:text-slate-500 ${advanced ? 'rotate-180' : ''}`}
@@ -275,14 +278,14 @@ export default function AppMenu() {
       </button>
       {advanced && (
         <div className="mb-1 ml-3 border-l border-slate-200 pl-1 dark:border-slate-700">
-          <Row onClick={() => navigate({ view: 'about' })}>About Universal Jukebox</Row>
+          <Row onClick={() => navigate({ view: 'about' })}>{t('app.about_jukebox')}</Row>
           {/* The suite's knowledge base lives in Advanced (James, 2026-09-27:
               "more discreet e.g. in advanced in the actions pill"). Jukebox
               hand-rolls this section, so it mounts the SDK's dialog itself
               rather than taking the navbar's `knowledgeBase`, which would draw
               a second Advanced. */}
-          <Row onClick={() => setKb(true)} title="How music files, lyrics and background play work">
-            Knowledge base…
+          <Row onClick={() => setKb(true)} title={t('app.knowledge_base_detail')}>
+            {t('app.knowledge_base_menu')}
           </Row>
         </div>
       )}

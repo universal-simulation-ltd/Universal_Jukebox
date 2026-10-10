@@ -1,11 +1,12 @@
-import { folderAccess } from '../lib/roots'
+import { folderAccess, shownRootLabel } from '../lib/roots'
 import type { Root } from '../lib/types'
 import { useMissingFile, type MissingFile } from '../lib/useMissingFile'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import FolderAccessButton from './FolderAccessButton'
-import { host } from '../lib/host'
+import { isDesktopApp } from '../lib/host'
+import { useT, type Translator } from '../i18n'
 
 // The one error slot at the top of every page — and, when a track would not
 // play because its file could not be found, the way back.
@@ -24,6 +25,7 @@ import { host } from '../lib/host'
 // button must never loop over several folders.
 
 export default function ErrorBanner() {
+  const t = useT()
   const playerError = usePlayerStore((s) => s.error)
   const dismissPlayerError = usePlayerStore((s) => s.dismissError)
   const replayMissing = usePlayerStore((s) => s.replayMissing)
@@ -40,7 +42,7 @@ export default function ErrorBanner() {
   // Only the player's error is about a missing file; a library error that
   // happens to be showing alongside a stale `missingTrack` must not be
   // reworded into one.
-  const said = playerError && missing?.root ? explain(missing, missing.root) : null
+  const said = playerError && missing?.root ? explain(t, missing, missing.root) : null
 
   return (
     <div
@@ -60,7 +62,7 @@ export default function ErrorBanner() {
           }}
           className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105"
         >
-          Play it
+          {t('app.play_it')}
         </button>
       )}
       <button
@@ -71,7 +73,7 @@ export default function ErrorBanner() {
         }}
         className="shrink-0 font-medium underline-offset-2 hover:underline"
       >
-        Dismiss
+        {t('app.dismiss')}
       </button>
     </div>
   )
@@ -85,11 +87,16 @@ export default function ErrorBanner() {
  * press — the rest of the folder is fine, which is worth saying).
  */
 function explain(
+  t: Translator,
   { track, folderLapsed, reachableNow }: MissingFile,
   root: Root,
 ): { text: string; action: 'folder' | 'play' | null } {
-  const name = `“${track.title}”`
-  const folder = root.label
+  // The song's and the folder's names go in as they are; the quotes round the
+  // song are in each sentence, so a language can use its own.
+  const vars = { title: track.title, folder: shownRootLabel(root.label) }
+  // "the browser" or "the app" (the Windows app): a sentence each, never a word
+  // dropped into one — see `lib/host.ts`.
+  const desktop = isDesktopApp()
 
   // ⚠️ The Music library has no folder to reopen or rescan, so none of the
   // folder wording below is true of it. Its songs fail for two reasons only,
@@ -97,37 +104,37 @@ function explain(
   // Music download — DRM-protected, and iOS gives no third-party player a copy.
   if (root.source === 'music-library') {
     return {
-      text: `${name} can’t be played. It’s no longer in the Music library on this iPhone, or it’s an Apple Music download — those are protected, and iOS doesn’t let other apps play them. Refreshing the Music library from the menu brings the list up to date.`,
+      text: t('app.missing_music_library', vars),
       action: null,
     }
   }
 
   if (reachableNow) {
-    return { text: `${folder} is back, and ${name} with it.`, action: 'play' }
+    return { text: t('app.missing_back', vars), action: 'play' }
   }
 
   if (folderLapsed) {
     switch (folderAccess(root)) {
       case 'reopen':
         return {
-          text: `${name} is in ${folder}, and ${host().the} needs your permission again before anything in that folder can play. Nothing was lost.`,
+          text: t(desktop ? 'app.missing_reopen_app' : 'app.missing_reopen_browser', vars),
           action: 'folder',
         }
       case 'choose':
         return {
-          text: `${name} is in ${folder}, which ${host().this} can’t reopen on its own — choose the folder again and it will play. Nothing has to be read twice.`,
+          text: t(desktop ? 'app.missing_choose_app' : 'app.missing_choose_browser', vars),
           action: 'folder',
         }
       case 'rescan':
         return {
-          text: `${name} is listed under ${folder}, but nothing in that folder can be found any more. Rescanning brings the library back in line with what’s there.`,
+          text: t('app.missing_rescan', vars),
           action: 'folder',
         }
     }
   }
 
   return {
-    text: `${name} isn’t in ${folder} any more — it was moved, renamed or deleted since the folder was last read. Everything else in ${folder} still plays.`,
+    text: t('app.missing_gone', vars),
     action: null,
   }
 }

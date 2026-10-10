@@ -44,18 +44,24 @@ import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, Ic
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
+import { shownName } from '../lib/format'
 import { WelcomeScreen } from './WelcomeScreen'
 import { AboutAndHelp, YourMusic } from './TuneExtras'
+import { useT, type MessageKey } from '../i18n'
 import './native.css'
 
 type TabView = HomeTab | 'settings'
 
-const TABS: { view: TabView; label: string; Icon: () => JSX.Element }[] = [
-  { view: 'artists', label: 'Artists', Icon: IconArtists },
-  { view: 'albums', label: 'Albums', Icon: IconAlbums },
-  { view: 'tracks', label: 'Tracks', Icon: IconSongs },
-  { view: 'jukebox', label: 'Shelves', Icon: IconShelves },
-  { view: 'settings', label: 'Tune', Icon: IconTune },
+// Keys, not words: the labels are looked up as each render draws them, so a
+// change of language in Tune this app reaches the tabs at once. The hover and
+// screen-reader sentences are whole sentences per tab (a tab name dropped into
+// a sentence would not take its grammar in every language).
+const TABS: { view: TabView; label: MessageKey; home?: MessageKey; doubleTap?: MessageKey; nowHome?: MessageKey; Icon: () => JSX.Element }[] = [
+  { view: 'artists', label: 'native.tab_artists', home: 'native.tab_home_artists', doubleTap: 'native.tab_double_tap_artists', nowHome: 'native.tab_now_home_artists', Icon: IconArtists },
+  { view: 'albums', label: 'native.tab_albums', home: 'native.tab_home_albums', doubleTap: 'native.tab_double_tap_albums', nowHome: 'native.tab_now_home_albums', Icon: IconAlbums },
+  { view: 'tracks', label: 'native.tab_tracks', home: 'native.tab_home_tracks', doubleTap: 'native.tab_double_tap_tracks', nowHome: 'native.tab_now_home_tracks', Icon: IconSongs },
+  { view: 'jukebox', label: 'native.tab_shelves', home: 'native.tab_home_shelves', doubleTap: 'native.tab_double_tap_shelves', nowHome: 'native.tab_now_home_shelves', Icon: IconShelves },
+  { view: 'settings', label: 'native.tab_tune', Icon: IconTune },
 ]
 
 /** Two taps on one tab within this long are a double tap. */
@@ -95,6 +101,7 @@ function tabOf(view: View): TabView | null {
 }
 
 export default function NativeApp() {
+  const t = useT()
   const route = useRoute()
   const status = useLibraryStore((s) => s.status)
   const hydrate = useLibraryStore((s) => s.hydrate)
@@ -238,7 +245,7 @@ export default function NativeApp() {
           // Your music and About & help first (the website's menu), then Tune
           // this app's own sections; its heading is this page's (native.css).
           <div className="jx-page jx-tune jx-tune-settings">
-            <h1 className="jx-h1">Tune this app</h1>
+            <h1 className="jx-h1">{t('native.tune_title')}</h1>
             <YourMusic />
             <AboutAndHelp />
             <Settings />
@@ -257,7 +264,7 @@ export default function NativeApp() {
           <div className="jx-playing"><NowPlaying /></div>
         ) : view === 'jukebox' ? (
           <div className="jx-page jx-tune">
-            <h1 className="jx-h1">Shelves</h1>
+            <h1 className="jx-h1">{t('native.shelves_heading')}</h1>
             <JukeboxShelves />
           </div>
         ) : view === 'artists' ? (
@@ -277,20 +284,20 @@ export default function NativeApp() {
         <div className="jx-dock">
           <MiniPlayer />
           <nav className="jx-tabs" aria-label="Jukebox">
-            {TABS.map(({ view: target, label, Icon }) => (
+            {TABS.map(({ view: target, label, home, doubleTap, Icon }) => (
               <button
                 key={target}
                 type="button"
                 className={`jx-tab${homeFlash === target ? ' flash' : ''}`}
                 aria-current={tab === target ? 'page' : undefined}
                 onClick={() => tapTab(target)}
-                title={target === 'settings' ? undefined : homeTab === target ? `${label}: the app opens here` : `Double-tap to open the app on ${label}`}
+                title={!home || !doubleTap ? undefined : homeTab === target ? t(home) : t(doubleTap)}
               >
                 <Icon />
-                <span>{label}</span>
+                <span>{t(label)}</span>
                 {counts && target in counts && (
-                  <i className="jx-count" aria-label={`${counts[target as ListTab]} found`}>
-                    {counts[target as ListTab].toLocaleString()}
+                  <i className="jx-count" aria-label={t.plural('native.tab_count_found', counts[target as ListTab])}>
+                    {t.num(counts[target as ListTab])}
                   </i>
                 )}
                 {homeTab === target && <i className="jx-home-dot" aria-hidden />}
@@ -301,7 +308,10 @@ export default function NativeApp() {
       )}
       {homeFlash && (
         <p aria-live="polite" className="jx-sr">
-          The app now opens on {TABS.find((t) => t.view === homeFlash)?.label}
+          {(() => {
+            const said = TABS.find((tab) => tab.view === homeFlash)?.nowHome
+            return said ? t(said) : null
+          })()}
         </p>
       )}
       <BedsideHost />
@@ -311,23 +321,24 @@ export default function NativeApp() {
 
 /** The row under the light bar: the way back, or the app's name at the top level. */
 function TopBar({ view, route }: { view: View; route: Route }) {
+  const t = useT()
   if (view === 'playing') {
     return (
       <div className="jx-bar">
-        <button type="button" className="jx-back" onClick={() => goBack(goHome)} aria-label="Close the record">
+        <button type="button" className="jx-back" onClick={() => goBack(goHome)} aria-label={t('native.close_record')}>
           <IconDown />
         </button>
-        <span className="jx-bar-title">Now playing</span>
+        <span className="jx-bar-title">{t('native.now_playing')}</span>
       </div>
     )
   }
   const up: { label: string; to: () => void } | null =
     view === 'album'
-      ? { label: 'Albums', to: () => navigate({ view: 'albums' }) }
+      ? { label: t('native.tab_albums'), to: () => navigate({ view: 'albums' }) }
       : view === 'artist'
-        ? { label: 'Artists', to: () => navigate({ view: 'artists' }) }
+        ? { label: t('native.tab_artists'), to: () => navigate({ view: 'artists' }) }
         : view === 'about' || view === 'tidy'
-          ? { label: 'Tune', to: () => navigate({ view: 'settings' }) }
+          ? { label: t('native.tab_tune'), to: () => navigate({ view: 'settings' }) }
           : null
   if (up) {
     return (
@@ -336,7 +347,7 @@ function TopBar({ view, route }: { view: View; route: Route }) {
           <IconBack />
           <span>{up.label}</span>
         </button>
-        {route.artist && view === 'artist' ? <span className="jx-bar-title">{route.artist}</span> : null}
+        {route.artist && view === 'artist' ? <span className="jx-bar-title">{shownName(route.artist)}</span> : null}
       </div>
     )
   }

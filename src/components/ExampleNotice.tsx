@@ -2,6 +2,7 @@ import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import { goHome } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { openSourcesOnLanding } from '../lib/landingIntent'
+import { useT } from '../i18n'
 
 // "This is the demo" — said once you are INSIDE it, where the landing page that
 // explained it is no longer on screen.
@@ -30,6 +31,7 @@ import { openSourcesOnLanding } from '../lib/landingIntent'
 //     is in the menu, in the library's place (`AppMenu`).
 
 export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolean }) {
+  const t = useT()
   // Booleans, so plain selectors are safe: each compares equal to its last result.
   const isExample = useLibraryStore((s) => s.roots.some((r) => r.id === EXAMPLE_ROOT_ID))
   const trying = useLibraryStore((s) => s.trying)
@@ -43,8 +45,8 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
         className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-orange-300 bg-orange-50 px-4 py-2.5 text-[12.5px] leading-relaxed text-orange-950 dark:border-orange-800/70 dark:bg-orange-950/30 dark:text-orange-100"
       >
         <p className="min-w-0 flex-1 basis-56">
-          <strong className="font-semibold">You’re trying the example library.</strong>{' '}
-          Your own music is set aside exactly as it was, and nothing you do here is saved to it.
+          <strong className="font-semibold">{t('app.trying_lead')}</strong>{' '}
+          {t('app.trying_body')}
         </p>
         <button
           type="button"
@@ -55,7 +57,7 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
           }}
           className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-3.5 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
-          Back to my music
+          {t('app.back_to_my_music')}
         </button>
       </div>
     )
@@ -64,10 +66,9 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
   if (!isExample || !onLibraryPage) return null
   return (
     <p className="mb-5 inline-flex max-w-full flex-wrap items-baseline gap-x-2 rounded-2xl border border-dashed border-orange-300 bg-orange-50/70 px-4 py-2 text-[12.5px] leading-relaxed text-orange-950 dark:border-orange-800/70 dark:bg-orange-950/25 dark:text-orange-100">
-      <strong className="font-semibold">Example library</strong>
+      <strong className="font-semibold">{t('app.example_label')}</strong>
       <span>
-        Four made-up artists, with music and sleeves generated on this device. To play your own
-        music instead, add it and this steps aside.
+        {t('app.example_body')}
       </span>
       <button
         type="button"
@@ -78,7 +79,7 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
         }}
         className="font-semibold text-orange-800 underline decoration-orange-300 underline-offset-2 transition hover:text-orange-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:text-orange-200 dark:decoration-orange-700 dark:hover:text-orange-50"
       >
-        Use my own music
+        {t('app.use_own_music')}
       </button>
     </p>
   )

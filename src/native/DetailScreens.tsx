@@ -9,7 +9,8 @@ import { matchTracks } from '../lib/search'
 import { PullDrawer } from './PullDrawer'
 import Cover from '../components/Cover'
 import { compareBase } from '../lib/collate'
-import { plural, totalTime } from '../lib/format'
+import { shownName, totalTime } from '../lib/format'
+import { useT } from '../i18n'
 import { navigate } from '../lib/route'
 import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
@@ -68,14 +69,15 @@ function useFindWithin(tracks: Track[], label: string) {
 }
 
 function Actions({ tracks, onPlay, onShuffle }: { tracks: Parameters<typeof AddToShelf>[0]['tracks']; onPlay(): void; onShuffle(): void }) {
+  const t = useT()
   return (
     <div className="jx-actions-wrap">
       <div className="jx-actions">
         <button type="button" className="jx-btn primary" onClick={onPlay}>
-          <IconPlay /> Play
+          <IconPlay /> {t('common.play')}
         </button>
         <button type="button" className="jx-btn" onClick={onShuffle}>
-          <IconShuffle /> Shuffle
+          <IconShuffle /> {t('common.shuffle')}
         </button>
       </div>
       <div className="jx-actions-more">
@@ -87,15 +89,16 @@ function Actions({ tracks, onPlay, onShuffle }: { tracks: Parameters<typeof AddT
 }
 
 export function AlbumScreen({ albumId }: { albumId: string }) {
+  const t = useT()
   const albums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const album = albums.find((a) => a.id === albumId)
   const tracks = useMemo(() => sortAlbumTracks(allTracks.filter((t) => t.albumId === albumId)), [allTracks, albumId])
   const { playTracks, shuffleThese } = usePlayShuffle()
   const onTheDeck = usePlayerStore((s) => currentTrack(s)?.albumId === albumId)
-  const find = useFindWithin(tracks, `Search ${album?.title ?? 'this album'}`)
+  const find = useFindWithin(tracks, album ? t('native.search_named', { name: shownName(album.title) }) : t('native.search_this_album'))
 
-  if (!album) return <p className="jx-empty">This album isn’t in your library any more.</p>
+  if (!album) return <p className="jx-empty">{t('native.album_gone')}</p>
 
   return (
     <div className="jx-page">
@@ -116,21 +119,21 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
             if (onTheDeck) showTheDeck()
             else playTracks(tracks, 0)
           }}
-          aria-label={onTheDeck ? 'Go to the record' : `Play ${album.title} on the jukebox`}
+          aria-label={onTheDeck ? t('native.go_to_record') : t('native.play_on_jukebox', { title: shownName(album.title) })}
         >
           <Cover album={album} className="jx-hero-cover" />
-          <Tip id="cover" detail="to open the jukebox" />
+          <Tip id="cover" detail={t('app.tip_cover')} />
         </button>
-        <h1 className="jx-h1">{album.title}</h1>
+        <h1 className="jx-h1">{shownName(album.title)}</h1>
         <button type="button" className="jx-link" onClick={() => navigate({ view: 'artist', artist: album.artist })}>
-          {album.artist}
+          {shownName(album.artist)}
         </button>
-        <p className="jx-sub">{[album.year, plural(tracks.length, 'track'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
+        <p className="jx-sub">{[album.year, t.plural('common.tracks', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
       </div>
       <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       </>
       )}
-      {find.searching && find.found.length === 0 ? <p className="jx-empty">No track on this album matches.</p> : null}
+      {find.searching && find.found.length === 0 ? <p className="jx-empty">{t('native.no_album_match')}</p> : null}
       {/* A found track plays the album on from itself, as a tap in the full list would. */}
       <SongList tracks={find.found} albums={albums} onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))} numbered />
     </div>
@@ -138,6 +141,7 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
 }
 
 export function ArtistScreen({ name }: { name: string }) {
+  const t = useT()
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const albums = useMemo(() => allAlbums.filter((a) => a.artist === name).sort(byYearThenTitle), [allAlbums, name])
@@ -149,9 +153,9 @@ export function ArtistScreen({ name }: { name: string }) {
   }, [albums, allTracks])
   const { playTracks, shuffleThese } = usePlayShuffle()
   const albumYear = useMemo(() => new Map(albums.map((a) => [a.id, a.year])), [albums])
-  const find = useFindWithin(tracks, `Search ${name}`)
+  const find = useFindWithin(tracks, t('native.search_named', { name: shownName(name) }))
 
-  if (albums.length === 0) return <p className="jx-empty">This artist isn’t in your library any more.</p>
+  if (albums.length === 0) return <p className="jx-empty">{t('native.artist_gone')}</p>
 
   return (
     <div className="jx-page">
@@ -159,8 +163,8 @@ export function ArtistScreen({ name }: { name: string }) {
       {!find.searching && (
       <>
       <div className="jx-hero">
-        <h1 className="jx-h1">{name}</h1>
-        <p className="jx-sub">{[plural(albums.length, 'album'), plural(tracks.length, 'track'), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
+        <h1 className="jx-h1">{shownName(name)}</h1>
+        <p className="jx-sub">{[t.plural('common.albums', albums.length), t.plural('common.tracks', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
       </div>
       <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       <ul className="jx-grid">
@@ -168,8 +172,8 @@ export function ArtistScreen({ name }: { name: string }) {
           <li key={album.id}>
             <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
               <Cover album={album} className="jx-cover" />
-              <b>{album.title}</b>
-              <small>{[album.year, plural(album.trackCount, 'track')].filter(Boolean).join(' · ')}</small>
+              <b>{shownName(album.title)}</b>
+              <small>{[album.year, t.plural('common.tracks', album.trackCount)].filter(Boolean).join(' · ')}</small>
             </button>
           </li>
         ))}
@@ -179,13 +183,13 @@ export function ArtistScreen({ name }: { name: string }) {
       {/* Every song of theirs, album by album — the website's "All songs by …"
           page, here under their albums. Playing one plays on from it through
           the rest. */}
-      <p className="jx-label">{find.searching ? 'Matching tracks' : 'All tracks'}</p>
-      {find.searching && find.found.length === 0 ? <p className="jx-empty">None of their tracks matches.</p> : null}
+      <p className="jx-label">{find.searching ? t('native.matching_tracks') : t('native.all_tracks')}</p>
+      {find.searching && find.found.length === 0 ? <p className="jx-empty">{t('native.no_artist_match')}</p> : null}
       <SongList
         tracks={find.found}
         albums={allAlbums}
         onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))}
-        subtitle={(t) => [t.album, albumYear.get(t.albumId)].filter(Boolean).join(' · ')}
+        subtitle={(track) => [shownName(track.album), albumYear.get(track.albumId)].filter(Boolean).join(' · ')}
       />
     </div>
   )

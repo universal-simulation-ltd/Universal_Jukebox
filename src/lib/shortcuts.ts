@@ -2,6 +2,7 @@ import { pluginRegistered } from './nativePlugins'
 import { planVoice, type VoiceFocus, type VoiceRequest } from './voiceSearch'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { getT } from '../i18n/runtime.ts'
 
 // The Home Screen shortcuts — long-press the icon for Shuffle songs, Shuffle
 // albums or Shuffle artists (James, 2026-09-11) — and the voice assistants:
@@ -100,6 +101,6 @@ export function playFromSearch(request: VoiceRequest): void {
       return
     case 'none':
       // Shown only with Settings › "Show error messages" ticked, like every error.
-      usePlayerStore.setState({ error: `Nothing called “${plan.asked}” in your library.` })
+      usePlayerStore.setState({ error: getT()('app.voice_not_found', { asked: plan.asked }) })
   }
 }
