@@ -7,6 +7,7 @@ import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { haptic } from '../lib/haptics'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { useT } from '../i18n'
 
 // The persistent transport, pinned to the bottom of every view.
 //
@@ -26,6 +27,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
   // row, 80 of a 393px screen, and the record ended up under it. The stage's
   // words column carries the transport now (`NowPlaying`).
   const stepAside = onStage
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const playing = usePlayerStore((s) => s.playing)
   const loading = usePlayerStore((s) => s.loading)
@@ -71,8 +73,8 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
         step={0.5}
         value={known ? Math.min(position, durationSec) : 0}
         disabled={!known}
-        aria-label="Seek"
-        aria-valuetext={known ? `${clock(Math.min(position, durationSec))} of ${clock(durationSec)}` : undefined}
+        aria-label={t('player.seek')}
+        aria-valuetext={known ? t('player.seek_position', { position: clock(Math.min(position, durationSec)), duration: clock(durationSec) }) : undefined}
         onChange={(e) => setScrubbing(Number(e.target.value))}
         onPointerUp={() => {
           if (scrubbing !== null) seekTo(scrubbing)
@@ -134,7 +136,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
               {track.title}
             </span>
             <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
-              {track.artist ?? 'Unknown artist'}
+              {track.artist ?? t('common.unknown_artist')}
             </span>
           </span>
         </button>
@@ -145,7 +147,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
             popup"): shuffle is in the queue popup, and both, with the two
             repeats, are under the records on Now Playing (`PlayModes`). */}
         <div className="flex shrink-0 items-center gap-1">
-          <IconButton label="Previous track" onClick={previous}>
+          <IconButton label={t('player.previous_track')} onClick={previous}>
             <PrevGlyph />
           </IconButton>
           <button
@@ -159,12 +161,12 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
               e.stopPropagation()
               toggle()
             }}
-            aria-label={ceremony ? 'Skip the intro' : playing ? 'Pause' : 'Play'}
+            aria-label={ceremony ? t('player.skip_intro') : playing ? t('common.pause') : t('common.play')}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
           >
             {loading && !playing ? <SpinnerGlyph /> : playing ? <PauseGlyph /> : <PlayGlyph />}
           </button>
-          <IconButton label="Next track" onClick={next}>
+          <IconButton label={t('player.next_track')} onClick={next}>
             <NextGlyph />
           </IconButton>
           <QueuePeek />
@@ -176,7 +178,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
             {clock(position)} / {clock(known ? durationSec : undefined)}
           </span>
           <div className="hidden items-center gap-1.5 lg:flex">
-            <IconButton label={muted ? 'Unmute' : 'Mute'} onClick={toggleMute}>
+            <IconButton label={muted ? t('player.unmute') : t('player.mute')} onClick={toggleMute}>
               {muted || volume === 0 ? <MutedGlyph /> : <VolumeGlyph />}
             </IconButton>
             {/* ⚠️ The same capability check as the Settings fade sliders
@@ -193,16 +195,16 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
                 max={1}
                 step={0.01}
                 value={muted ? 0 : volume}
-                aria-label="Volume"
+                aria-label={t('player.volume')}
                 onChange={(e) => setVolume(Number(e.target.value))}
                 className="jb-scrub h-1 w-20 cursor-pointer appearance-none rounded-full bg-slate-200 dark:bg-slate-700"
               />
             ) : (
               <span
                 className="max-w-[7.5rem] text-[11px] leading-tight text-slate-500 dark:text-slate-400"
-                title="This device doesn’t let an app set the playback volume — that belongs to its own volume buttons."
+                title={t('player.volume_on_device_hint')}
               >
-                Volume is on your device’s buttons
+                {t('player.volume_on_device')}
               </span>
             )}
           </div>
@@ -310,6 +312,7 @@ function QueuePeek() {
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
+  const t = useT()
 
   useEffect(() => {
     if (!open) return
@@ -353,7 +356,7 @@ function QueuePeek() {
   return (
     <div ref={wrap} className="relative">
       <IconButton
-        label={open ? 'Hide what’s playing next' : 'What’s playing next'}
+        label={open ? t('player.playing_next_hide') : t('player.playing_next_show')}
         active={open}
         onClick={() => setOpen((v) => !v)}
         // Same reason as the play button: without this the click that OPENS
@@ -366,7 +369,7 @@ function QueuePeek() {
       {open ? (
         <div
           role="dialog"
-          aria-label="Playing next"
+          aria-label={t('player.playing_next')}
           onClick={(e) => e.stopPropagation()}
           // Right-aligned and above the bar. `max-h` with its own scroller, or
           // a long lookahead pushes the panel off the top of a phone.
@@ -374,9 +377,9 @@ function QueuePeek() {
         >
           {/* Shuffle, moved here off the bar — it is about what plays next. */}
           <div className="sticky top-0 z-10 -mx-1.5 -mt-1.5 mb-1 flex items-center justify-between border-b border-slate-100 bg-white px-3 py-1.5 dark:border-slate-800 dark:bg-slate-900">
-            <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">Playing next</span>
+            <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">{t('player.playing_next')}</span>
             <ChipToggle selected={shuffle} onClick={toggleShuffle} icon={<ShuffleGlyph />}>
-              Shuffle {shuffle ? 'on' : 'off'}
+              {shuffle ? t('player.shuffle_on') : t('player.shuffle_off')}
             </ChipToggle>
           </div>
           {window.map(({ track, orderIndex }) => {
@@ -416,7 +419,7 @@ function QueuePeek() {
                     {track.title}
                   </span>
                   <span className="block truncate text-[11.5px] text-slate-500 dark:text-slate-400">
-                    {track.artist ?? 'Unknown artist'}
+                    {track.artist ?? t('common.unknown_artist')}
                   </span>
                 </span>
               </button>
@@ -424,7 +427,7 @@ function QueuePeek() {
           })}
           {to < order.length ? (
             <p className="px-2 py-1.5 text-[11.5px] text-slate-500 dark:text-slate-400">
-              and {order.length - to} more
+              {t.plural('player.and_more', order.length - to)}
             </p>
           ) : null}
         </div>

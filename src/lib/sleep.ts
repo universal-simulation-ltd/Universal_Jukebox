@@ -2,6 +2,7 @@
 // cycle 15,30,45,60 and if active turn off music after that time (fade out
 // music for last minute of it). If tap and hold then have a selector popup so
 // user can choose e.g. 2h15"). The clock and the fade are `stores/sleepStore`.
+import { getT } from '../i18n/runtime.ts'
 
 /** What a tap steps through, in minutes; one past the last is off. */
 export const SLEEP_PRESETS = [15, 30, 45, 60] as const
@@ -35,6 +36,7 @@ export function sleepGain(leftSec: number): number {
 /** "14 min", "1h 05" — what is left, for the word under the button. */
 export function sleepLeft(leftSec: number): string {
   const min = Math.max(0, Math.ceil(leftSec / 60))
-  if (min < 60) return `${min} min`
-  return `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}`
+  const t = getT()
+  if (min < 60) return t('player.sleep_left_min', { min: t.num(min) })
+  return t('player.sleep_left_hr_min', { hr: t.num(Math.floor(min / 60)), min: String(min % 60).padStart(2, '0') })
 }

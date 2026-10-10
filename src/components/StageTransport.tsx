@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { clock, plural } from '../lib/format'
+import { clock } from '../lib/format'
 import { usePlayerStore } from '../stores/playerStore'
+import { useT } from '../i18n'
 
 // The transport at full size, under the record on a phone's Now Playing —
 // where the thumb already is after swiping the records (James, 2026-09-28,
@@ -31,6 +32,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
   const next = usePlayerStore((s) => s.next)
   const previous = usePlayerStore((s) => s.previous)
   const seekTo = usePlayerStore((s) => s.seekTo)
+  const t = useT()
   // As the bar's: while dragging, follow the finger, not the audio clock.
   const [scrubbing, setScrubbing] = useState<number | null>(null)
 
@@ -51,8 +53,8 @@ export default function StageTransport({ compact = false, after }: { compact?: b
         step={0.5}
         value={known ? Math.min(position, durationSec) : 0}
         disabled={!known}
-        aria-label="Seek"
-        aria-valuetext={known ? `${clock(Math.min(position, durationSec))} of ${clock(durationSec)}` : undefined}
+        aria-label={t('player.seek')}
+        aria-valuetext={known ? t('player.seek_position', { position: clock(Math.min(position, durationSec)), duration: clock(durationSec) }) : undefined}
         onChange={(e) => setScrubbing(Number(e.target.value))}
         onPointerUp={release}
         onKeyUp={release}
@@ -66,12 +68,12 @@ export default function StageTransport({ compact = false, after }: { compact?: b
       />
       <div className="mt-1.5 flex items-center justify-between text-[11.5px] tabular-nums text-slate-500 dark:text-slate-400">
         <span>{clock(position)}</span>
-        <span>{cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')}` : ''}</span>
+        <span>{cursor >= 0 ? t.plural('player.queue_position', queue.length, { position: t.num(cursor + 1) }) : ''}</span>
         <span>{known ? `−${clock(Math.max(0, durationSec - position))}` : '—'}</span>
       </div>
 
       <div className={`flex items-center ${compact ? 'mt-1.5 justify-start gap-5' : 'mt-3 justify-center gap-8'}`}>
-        <RoundButton label="Previous track" onPress={previous}>
+        <RoundButton label={t('player.previous_track')} onPress={previous}>
           <svg viewBox="0 0 20 20" className="h-6 w-6" fill="currentColor" aria-hidden>
             <path d="M6 4h2v12H6zM17 4.7v10.6a1 1 0 0 1-1.53.85l-8.2-5.3a1 1 0 0 1 0-1.7l8.2-5.3A1 1 0 0 1 17 4.7Z" />
           </svg>
@@ -84,7 +86,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
             e.stopPropagation()
             toggle()
           }}
-          aria-label={ceremony ? 'Skip the intro' : playing ? 'Pause' : 'Play'}
+          aria-label={ceremony ? t('player.skip_intro') : playing ? t('common.pause') : t('common.play')}
           className={`inline-flex ${compact ? 'h-14 w-14' : 'h-16 w-16'} items-center justify-center rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-lg shadow-orange-600/25 transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]`}
         >
           {loading && !playing ? (
@@ -101,7 +103,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
             </svg>
           )}
         </button>
-        <RoundButton label="Next track" onPress={next}>
+        <RoundButton label={t('player.next_track')} onPress={next}>
           <svg viewBox="0 0 20 20" className="h-6 w-6" fill="currentColor" aria-hidden>
             <path d="M12 4h2v12h-2zM3 4.7v10.6a1 1 0 0 0 1.53.85l8.2-5.3a1 1 0 0 0 0-1.7l-8.2-5.3A1 1 0 0 0 3 4.7Z" />
           </svg>

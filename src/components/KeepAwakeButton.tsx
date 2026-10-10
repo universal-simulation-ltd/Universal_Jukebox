@@ -1,6 +1,7 @@
 import { canKeepAwake } from '../lib/keepAwake'
 import { useSettingsStore } from '../stores/settingsStore'
 import { ModeButton } from './ModeButton'
+import { useT } from '../i18n'
 
 // "Keep awake" in the row under the records waiting to go on — the screen stays
 // on while Now Playing is open, so the lyrics can be read along to (James,
@@ -13,12 +14,13 @@ import { ModeButton } from './ModeButton'
 export default function KeepAwakeButton() {
   const on = useSettingsStore((s) => s.keepAwake)
   const set = useSettingsStore((s) => s.set)
+  const t = useT()
   if (!canKeepAwake()) return null
   return (
     <ModeButton
-      label="Keep awake"
+      label={t('player.keep_awake')}
       on={on}
-      ariaLabel={on ? 'The screen stays on while this page is open — tap to let it lock' : 'Keep the screen on while this page is open'}
+      ariaLabel={on ? t('player.keep_awake_aria_on') : t('player.keep_awake_aria_off')}
       onClick={() => set('keepAwake', !on)}
     >
       <AwakeGlyph />

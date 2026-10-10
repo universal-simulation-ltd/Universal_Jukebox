@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePlayerStore } from '../stores/playerStore'
+import { useT } from '../i18n'
 
 // What is coming up.
 //
@@ -29,6 +30,7 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
   const clearQueue = usePlayerStore((s) => s.clearQueue)
   const jumpTo = usePlayerStore((s) => s.jumpTo)
   const [limit, setLimit] = useState(PAGE)
+  const t = useT()
 
   if (order.length === 0) return null
 
@@ -42,7 +44,7 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
     <section id="jb-up-next" className="mt-12">
       <div className="mb-3 flex items-center justify-between gap-4">
         <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-          Up next <span className="font-normal tabular-nums normal-case opacity-80">({upcoming.length.toLocaleString()})</span>
+          {t('player.up_next')} <span className="font-normal tabular-nums normal-case opacity-80">({t.num(upcoming.length)})</span>
         </h2>
         <div className="flex items-center gap-4">
           <button
@@ -50,7 +52,7 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
             onClick={clearQueue}
             className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
           >
-            Clear
+            {t('common.clear')}
           </button>
           {onHide && (
             <button
@@ -58,7 +60,7 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
               onClick={onHide}
               className="text-[12.5px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
             >
-              Hide
+              {t('player.hide')}
             </button>
           )}
         </div>
@@ -66,7 +68,7 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
 
       {upcoming.length === 0 ? (
         <p className="text-[13px] text-slate-500 dark:text-slate-400">
-          Nothing after this one.
+          {t('player.nothing_after')}
         </p>
       ) : (
         <ol className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -88,14 +90,14 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
                 <button
                   type="button"
                   onClick={() => jumpTo(orderIndex)}
-                  aria-label={`Play ${track.title} now`}
+                  aria-label={t('player.play_now', { title: track.title })}
                   className="min-w-0 flex-1 rounded-md text-left transition hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:hover:text-orange-400"
                 >
                   <span className="block truncate text-[13.5px] text-slate-900 dark:text-slate-100">
                     {track.title}
                   </span>
                   <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
-                    {track.artist ?? 'Unknown artist'}
+                    {track.artist ?? t('common.unknown_artist')}
                   </span>
                 </button>
                 <button
@@ -113,7 +115,7 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
                     })
                   }}
                   data-queue-remove
-                  aria-label={`Remove ${track.title} from the queue`}
+                  aria-label={t('player.remove_from_queue', { title: track.title })}
                   className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:text-slate-500 dark:hover:text-red-400"
                 >
                   <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
@@ -133,14 +135,14 @@ export default function Queue({ onHide }: { onHide?: () => void }) {
             onClick={() => setLimit((l) => l + PAGE)}
             className="rounded-full border border-slate-300 px-4 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400"
           >
-            Show {Math.min(PAGE, hidden)} more
+            {t.plural('player.show_more', Math.min(PAGE, hidden))}
           </button>
           <button
             type="button"
             onClick={() => setLimit(Number.POSITIVE_INFINITY)}
             className="rounded-full px-4 py-1.5 text-[13px] font-medium text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
           >
-            Show all {upcoming.length.toLocaleString()}
+            {t.plural('player.show_all', upcoming.length)}
           </button>
         </div>
       )}

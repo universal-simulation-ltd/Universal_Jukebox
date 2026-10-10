@@ -3,6 +3,7 @@ import { expectRouteChange, mediaElement, mediaElements } from '../lib/audio'
 import { noteEvent } from '../lib/bgLog'
 import { canPickOutput, pickOutput, ROUTE_EVENTS, routedAway, type RoutableMedia } from '../lib/outputPicker'
 import { ModeButton } from './ModeButton'
+import { useT } from '../i18n'
 
 // "Output" in the row under the records waiting to go on — the way to send the
 // sound somewhere else (James, 2026-09-15: "we need a way to select the output
@@ -25,6 +26,7 @@ export default function OutputButton() {
   const [can, setCan] = useState(false)
   /** Whether the sound is going somewhere other than this device. */
   const [away, setAway] = useState(false)
+  const t = useT()
 
   useEffect(() => {
     const decks = mediaElements()
@@ -42,9 +44,9 @@ export default function OutputButton() {
 
   return (
     <ModeButton
-      label="Output"
+      label={t('player.output')}
       on={away}
-      ariaLabel={away ? 'Sound is going to another device — choose where it comes out' : 'Choose where the sound comes out'}
+      ariaLabel={away ? t('player.output_aria_away') : t('player.output_aria_here')}
       // ⚠️ Called straight out of the tap. `pickOutput` runs as far as the
       // WebKit call before it awaits anything, because both APIs want a user
       // gesture and count it spent once a promise has resolved.

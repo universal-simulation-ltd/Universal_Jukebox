@@ -32,6 +32,7 @@ import { cachedIntro, introHold, measureIntro } from '../lib/intro'
 import { cachedOutro, measureOutro, outroLead } from '../lib/outro'
 import { noteEvent } from '../lib/bgLog'
 import { followLockLyrics } from '../lib/lockLyrics'
+import { getT } from '../i18n/runtime.ts'
 
 // Playback: the queue, what is on, and the transport.
 //
@@ -455,7 +456,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const file = useLibraryStore.getState().fileFor(track)
     if (!file) {
       set({
-        error: 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.',
+        error: getT()('player.error_unreachable'),
         missingTrack: track,
       })
       return
@@ -1131,8 +1132,8 @@ function skipPast(track: Track, reason: string): boolean {
  */
 let preparing = 0
 
-const UNPLAYABLE =
-  'That song can’t be played — it isn’t on this iPhone any more, or it’s an Apple Music download, which iOS doesn’t let other apps play.'
+const UNPLAYABLE = () =>
+  getT()('player.error_unplayable_iphone')
 
 /**
  * Make sure a track has a file before anything tries to play it.
@@ -1161,7 +1162,7 @@ function whenPlayable(set: Set, track: Track, resume: () => void): boolean {
   void library.prepare(track).then((file) => {
     if (token !== preparing) return
     if (!file) {
-      if (!skipPast(track, 'not on this iPhone any more')) unreachable(set, track, UNPLAYABLE)
+      if (!skipPast(track, getT()('player.skipped_not_on_iphone'))) unreachable(set, track, UNPLAYABLE())
       return
     }
     resume()
@@ -1222,8 +1223,8 @@ function startCeremonyOrPlay(set: Set, get: Get, track: Track | undefined) {
   if (whenPlayable(set, track, () => startCeremonyOrPlay(set, get, track))) return
   const file = useLibraryStore.getState().fileFor(track)
   if (!file) {
-    if (skipPast(track, 'its file is missing')) return
-    unreachable(set, track, 'That file isn’t reachable any more. If the folder moved or the drive was unplugged, choose the folder again.')
+    if (skipPast(track, getT()('player.skipped_file_missing'))) return
+    unreachable(set, track, getT()('player.error_unreachable'))
     return
   }
 
@@ -1373,8 +1374,8 @@ function playPrepared(
 ) {
   const file = track ? useLibraryStore.getState().fileFor(track) : null
   if (!file || !track) {
-    if (track && skipPast(track, 'its file is missing')) return
-    unreachable(set, track, 'That file isn’t reachable any more. Choose the folder again to restore playback.')
+    if (track && skipPast(track, getT()('player.skipped_file_missing'))) return
+    unreachable(set, track, getT()('player.error_unreachable_restore'))
     return
   }
   publishNowPlaying(track)

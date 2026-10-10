@@ -1,6 +1,7 @@
 import { PREVIEW_RUN_SEC, PREVIEW_START_SEC } from '../lib/audio'
 import { usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
+import { useT } from '../i18n'
 
 // The one way to hear a track without putting the record on.
 //
@@ -22,10 +23,11 @@ export default function PreviewButton({ track }: { track: Track }) {
   // it replaced — not every preview button in a long list.
   const running = usePlayerStore((s) => s.previewTrackId === track.id)
   const preview = usePlayerStore((s) => s.preview)
+  const t = useT()
 
   const label = running
-    ? `Stop previewing ${track.title}`
-    : `Preview ${track.title} — ${PREVIEW_RUN_SEC} seconds from ${PREVIEW_START_SEC} seconds in`
+    ? t('player.preview_stop_aria', { title: track.title })
+    : t.plural('player.preview_aria', PREVIEW_RUN_SEC, { title: track.title, start: t.num(PREVIEW_START_SEC) })
 
   return (
     <button
@@ -33,7 +35,7 @@ export default function PreviewButton({ track }: { track: Track }) {
       onClick={() => preview(track)}
       aria-label={label}
       aria-pressed={running}
-      title={running ? 'Stop the preview' : `Preview ${PREVIEW_RUN_SEC} seconds`}
+      title={running ? t('player.preview_stop_title') : t.plural('player.preview_title', PREVIEW_RUN_SEC)}
       className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
         running
           ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300'

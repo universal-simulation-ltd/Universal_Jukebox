@@ -2,6 +2,7 @@ import { DECKS } from '../lib/decks'
 import { DECK_SETTINGS, useSettingsStore } from '../stores/settingsStore'
 import { DeckMiniature } from './Deck'
 import { ModeButton } from './ModeButton'
+import { useT } from '../i18n'
 
 // The machine on Now Playing, one tap at a time (James, 2026-10-03: "Add a
 // button to cycle through the players"): vinyl, CD, cassette, reel-to-reel,
@@ -15,11 +16,12 @@ import { ModeButton } from './ModeButton'
 export default function PlayerButton() {
   const deck = useSettingsStore((s) => s.deck)
   const set = useSettingsStore((s) => s.set)
+  const t = useT()
   const next = DECK_SETTINGS[(DECK_SETTINGS.indexOf(deck) + 1) % DECK_SETTINGS.length]
   return (
     <ModeButton
       label={DECKS[deck].label}
-      ariaLabel={`Player: ${DECKS[deck].label}. Tap for ${DECKS[next].label}`}
+      ariaLabel={t('player.player_aria', { deck: DECKS[deck].label, next: DECKS[next].label })}
       onClick={() => set('deck', next)}
     >
       <DeckMiniature setting={deck} box={26} />

@@ -1,6 +1,7 @@
 import { quietUnavailable } from '../lib/audioGraph'
 import { LOUD_STEPS_DB, QUIET_STEPS_DB, useSettingsStore } from '../stores/settingsStore'
 import { ModeButton } from './ModeButton'
+import { useT } from '../i18n'
 
 // "Quiet" and "Loud" in the row under the records, beside Output (James,
 // 2026-09-28: add Extra quiet "to the options bar at bottom of now playing" —
@@ -14,6 +15,7 @@ import { ModeButton } from './ModeButton'
 export default function LevelButton({ kind }: { kind: 'quiet' | 'loud' }) {
   const levelDb = useSettingsStore((s) => s.levelDb)
   const set = useSettingsStore((s) => s.set)
+  const t = useT()
   if (quietUnavailable()) return null
   const sign = kind === 'quiet' ? -1 : 1
   // How far out THIS button is, in positive dB; 0 when off or the other one is on.
@@ -21,14 +23,20 @@ export default function LevelButton({ kind }: { kind: 'quiet' | 'loud' }) {
   const steps: readonly number[] = kind === 'quiet' ? QUIET_STEPS_DB : LOUD_STEPS_DB
   const next = steps.find((step) => Math.abs(step) > mine + 0.001) ?? 0
   const on = mine > 0
-  const word = kind === 'quiet' ? 'Quiet' : 'Loud'
-  const shown = `${sign < 0 ? '−' : '+'}${Math.round(mine)} dB`
+  const word = kind === 'quiet' ? t('player.level_quiet') : t('player.level_loud')
+  const shown = t(sign < 0 ? 'player.level_minus_db' : 'player.level_plus_db', { db: t.num(Math.round(mine)) })
+  // One whole sentence per button and state — see the keys in `en/player.ts`.
+  const aria = !on
+    ? t(kind === 'quiet' ? 'player.level_quiet_aria_off' : 'player.level_loud_aria_off', { db: t.num(Math.abs(next)) })
+    : next
+      ? t(kind === 'quiet' ? 'player.level_quiet_aria_on_next' : 'player.level_loud_aria_on_next', { shown, db: t.num(Math.abs(next)) })
+      : t(kind === 'quiet' ? 'player.level_quiet_aria_on_off' : 'player.level_loud_aria_on_off', { shown })
 
   return (
     <ModeButton
       label={on ? shown : word}
       on={on}
-      ariaLabel={`${word}: ${on ? shown : 'off'} — tap for ${next ? `${Math.abs(next)} dB` : 'off'}`}
+      ariaLabel={aria}
       onClick={() => set('levelDb', next)}
     >
       {kind === 'quiet' ? <QuietGlyph /> : <LoudGlyph />}

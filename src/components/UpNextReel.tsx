@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import Cover from './Cover'
-import { plural } from '../lib/format'
+import { useT } from '../i18n'
 import { resolveDeck } from '../lib/decks'
 import { sectorPath } from '../lib/reels'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
@@ -87,6 +87,7 @@ export default function UpNextReel({ onMore }: { onMore?: () => void } = {}) {
   const datedBy = (track: Track | undefined) =>
     track ? (albums.find((a) => a.id === track.albumId) ?? track) : undefined
   const reduced = usePrefersReducedMotion()
+  const t = useT()
 
   const box = useRef<HTMLDivElement>(null)
   const fits = useFits(box)
@@ -124,7 +125,7 @@ export default function UpNextReel({ onMore }: { onMore?: () => void } = {}) {
         id="jb-reel-heading"
         className="mb-3 text-[11px] font-semibold tracking-wide text-slate-400 uppercase lg:text-slate-600 dark:text-slate-500 lg:dark:text-slate-400"
       >
-        Waiting to go on
+        {t('player.waiting_to_go_on')}
       </p>
       {/* ⚠️ `overflow-hidden` is load-bearing rather than defensive. While a
           record is leaving, the row briefly holds one more item than fits — the
@@ -263,6 +264,7 @@ function Waiting({
   leaving?: boolean
 }) {
   const { track } = item
+  const t = useT()
   const album = albums.find((a) => a.id === track.albumId)
   const inner = (
     <>
@@ -277,7 +279,7 @@ function Waiting({
         {track.title}
       </span>
       <span className="mt-0.5 block truncate text-[10.5px] text-slate-400 lg:text-slate-600 dark:text-slate-500 lg:dark:text-slate-400">
-        {track.artist ?? track.albumArtist ?? 'Unknown artist'}
+        {track.artist ?? track.albumArtist ?? t('common.unknown_artist')}
       </span>
     </>
   )
@@ -310,7 +312,7 @@ function Waiting({
         <button
           type="button"
           onClick={onJump}
-          aria-label={`Play ${track.title} now`}
+          aria-label={t('player.play_now', { title: track.title })}
           className="w-full cursor-pointer rounded-lg text-center transition hover:-translate-y-[3px] hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] dark:hover:text-orange-400"
         >
           {inner}
@@ -335,13 +337,14 @@ function Waiting({
  * only thing that says so at 76px is the shape.
  */
 function MoreRecords({ count, onOpen }: { count: number; onOpen?: () => void }) {
+  const t = useT()
   return (
     <div className="shrink-0 pt-1 text-center" style={{ maxWidth: ITEM, width: ITEM }}>
       <button
         type="button"
         onClick={onOpen}
         disabled={!onOpen}
-        aria-label={`Show the ${count} more records in Up next`}
+        aria-label={t.plural('player.more_records_aria', count)}
         className="w-full cursor-pointer rounded-lg text-center transition enabled:hover:-translate-y-[3px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] disabled:cursor-default"
       >
       <div className="mx-auto" style={{ width: MEDIA }} aria-hidden>
@@ -375,10 +378,10 @@ function MoreRecords({ count, onOpen }: { count: number; onOpen?: () => void }) 
         </div>
       </div>
       <span className="mt-2 block text-[11.5px] leading-snug font-medium text-slate-500 lg:text-slate-700 dark:text-slate-400 lg:dark:text-slate-200">
-        {plural(count, 'more record')}
+        {t.plural('player.more_records', count)}
       </span>
       <span className="mt-0.5 block text-[10.5px] text-slate-400 lg:text-slate-600 dark:text-slate-500 lg:dark:text-slate-400">
-        in the queue
+        {t('player.in_the_queue')}
       </span>
       </button>
     </div>

@@ -3,6 +3,7 @@ import { SLEEP_MAX_MIN, SLEEP_PRESETS, nextSleep, sleepLeft } from '../lib/sleep
 import { useSleepStore } from '../stores/sleepStore'
 import { ModeButton } from './ModeButton'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import { useT } from '../i18n'
 
 // "Sleep" in the row under the records (James, 2026-09-27): a tap steps 15,
 // 30, 45, 60 minutes, then off; a hold opens a picker for any time — "e.g.
@@ -21,6 +22,8 @@ export default function SleepButton() {
   /** The hold opened the picker, so the click that ends it must not also step. */
   const held = useRef(false)
   const on = endsAt !== null
+  const t = useT()
+  const next = nextSleep(minutes)
 
   const cancelHold = () => {
     if (hold.current !== null) window.clearTimeout(hold.current)
@@ -47,19 +50,21 @@ export default function SleepButton() {
       onContextMenu={(e) => e.preventDefault()}
     >
       <ModeButton
-        label={on ? sleepLeft(leftSec) : 'Sleep'}
+        label={on ? sleepLeft(leftSec) : t('player.sleep')}
         on={on}
         ariaLabel={
           on
-            ? `The music stops in ${sleepLeft(leftSec)} — tap for ${nextSleep(minutes) ? `${nextSleep(minutes)} minutes` : 'off'}, hold to choose`
-            : 'Sleep timer — tap for 15 minutes, hold to choose a time'
+            ? next
+              ? t.plural('player.sleep_aria_next', next, { left: sleepLeft(leftSec) })
+              : t('player.sleep_aria_to_off', { left: sleepLeft(leftSec) })
+            : t('player.sleep_aria_off')
         }
         onClick={() => {
           if (held.current) {
             held.current = false
             return
           }
-          start(nextSleep(minutes))
+          start(next)
         }}
       >
         <MoonGlyph />
@@ -84,6 +89,7 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5)
 
 function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: boolean; onChoose(minutes: number | null): void; onClose(): void }) {
   const dialogRef = useDialogFocus()
+  const t = useT()
   const [hours, setHours] = useState(Math.floor(initial / 60))
   const [mins, setMins] = useState(Math.round((initial % 60) / 5) * 5)
   const total = Math.min(SLEEP_MAX_MIN, hours * 60 + mins)
@@ -107,7 +113,7 @@ function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: 
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label="Sleep timer"
+      aria-label={t('player.sleep_timer')}
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
@@ -115,20 +121,20 @@ function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: 
         className="w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">Sleep timer</p>
-        <p className="mt-1 text-[12.5px] text-slate-500 dark:text-slate-400">The music fades out over the last minute, then stops.</p>
+        <p className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">{t('player.sleep_timer')}</p>
+        <p className="mt-1 text-[12.5px] text-slate-500 dark:text-slate-400">{t('player.sleep_fade_note')}</p>
         <div className="mt-4 flex items-center justify-center gap-2">
-          <select value={hours} onChange={(e) => setHours(Number(e.target.value))} aria-label="Hours" className={select}>
+          <select value={hours} onChange={(e) => setHours(Number(e.target.value))} aria-label={t('player.hours')} className={select}>
             {HOURS.map((h) => (
               <option key={h} value={h}>
-                {h} h
+                {t('player.picker_hours', { hours: t.num(h) })}
               </option>
             ))}
           </select>
-          <select value={mins} onChange={(e) => setMins(Number(e.target.value))} aria-label="Minutes" className={select}>
+          <select value={mins} onChange={(e) => setMins(Number(e.target.value))} aria-label={t('player.minutes')} className={select}>
             {MINUTES.map((m) => (
               <option key={m} value={m}>
-                {String(m).padStart(2, '0')} min
+                {t('player.picker_minutes', { minutes: String(m).padStart(2, '0') })}
               </option>
             ))}
           </select>
@@ -136,18 +142,22 @@ function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: 
         <div className="mt-3 flex flex-wrap justify-center gap-1.5">
           {[...SLEEP_PRESETS, 90, 120].map((m) => (
             <button key={m} type="button" onClick={() => onChoose(m)} className={chip}>
-              {m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}` : ''}`}
+              {m < 60
+                ? t('player.preset_min', { min: t.num(m) })
+                : m % 60
+                  ? t('player.preset_hr_min', { hr: t.num(Math.floor(m / 60)), min: t.num(m % 60) })
+                  : t('player.preset_hr', { hr: t.num(m / 60) })}
             </button>
           ))}
         </div>
         <div className="mt-5 flex items-center justify-between gap-2">
           {on ? (
             <button type="button" onClick={() => onChoose(null)} className="text-[13px] font-medium text-red-700 dark:text-red-400">
-              Turn off
+              {t('player.turn_off')}
             </button>
           ) : (
             <button type="button" onClick={onClose} className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
-              Cancel
+              {t('common.cancel')}
             </button>
           )}
           <button
@@ -156,7 +166,7 @@ function SleepPicker({ initial, on, onChoose, onClose }: { initial: number; on: 
             onClick={() => onChoose(total)}
             className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-1.5 text-[14px] font-semibold text-white shadow-sm disabled:opacity-50"
           >
-            {total === 0 ? 'Choose a time' : `Stop in ${sleepLeft(total * 60)}`}
+            {total === 0 ? t('player.choose_a_time') : t('player.stop_in', { left: sleepLeft(total * 60) })}
           </button>
         </div>
       </div>

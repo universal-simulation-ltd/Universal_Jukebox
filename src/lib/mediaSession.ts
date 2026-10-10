@@ -11,6 +11,7 @@
 import type { Track } from './types'
 import { noteEvent } from './bgLog'
 import { createCommandGate, isGatedCommand, type CommandVia } from './commandGate'
+import { getT } from '../i18n/runtime.ts'
 
 export interface MediaSessionHandlers {
   onPlay(): void
@@ -84,8 +85,8 @@ export function setMetadata(track: Track | null, coverUrl: string | null, type =
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title,
-      artist: track.artist ?? track.albumArtist ?? 'Unknown artist',
-      album: track.album ?? 'Unknown album',
+      artist: track.artist ?? track.albumArtist ?? getT()('common.unknown_artist'),
+      album: track.album ?? getT()('common.unknown_album'),
       // Several sizes are declared from ONE image because that is what the spec
       // wants and every consumer picks the closest. Declaring a size we don't
       // have would be a lie; declaring one size means some platforms ignore it.
@@ -103,7 +104,7 @@ export function setMetadata(track: Track | null, coverUrl: string | null, type =
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
-        artist: track.artist ?? 'Unknown artist',
+        artist: track.artist ?? getT()('common.unknown_artist'),
         album: track.album ?? '',
       })
     } catch {
@@ -125,7 +126,7 @@ export function setArtistLine(track: Track, line: string | null): void {
   if (!supported()) return
   const metadata = navigator.mediaSession.metadata
   if (!metadata || metadata.title !== track.title) return
-  const wanted = line ?? track.artist ?? track.albumArtist ?? 'Unknown artist'
+  const wanted = line ?? track.artist ?? track.albumArtist ?? getT()('common.unknown_artist')
   if (metadata.artist === wanted) return
   try {
     metadata.artist = wanted

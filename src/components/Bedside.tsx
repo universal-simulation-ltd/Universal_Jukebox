@@ -10,6 +10,7 @@ import { rgba, useSleeveColour } from '../lib/sleeveColour'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import { useT } from '../i18n'
 
 // Bedside: the record turning, the time, the song, and the sleep timer — on
 // black, with the screen held on, for a phone on a bedside table or an iPad on
@@ -47,11 +48,12 @@ export function BedsideHost() {
 }
 
 export function BedsideButton() {
+  const t = useT()
   return (
     <>
       <ModeButton
-        label="Bedside"
-        ariaLabel="Bedside: the record, the time and the sleep timer, dimmed, with the screen kept on"
+        label={t('player.bedside')}
+        ariaLabel={t('player.bedside_aria')}
         onClick={() => useBedside.setState({ open: true })}
       >
         <BedsideGlyph />
@@ -60,24 +62,27 @@ export function BedsideButton() {
   )
 }
 
-function useClock(): string {
-  const format = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  const [now, setNow] = useState(format)
+/** The time now, in the app's language (`locale`), to the minute. */
+function useClock(locale: string): string {
+  // The minute, not the Date: the same number again re-renders nothing, so
+  // Bedside redraws once a minute, as it did when this held the formatted text.
+  const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60_000))
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(format()), 10_000)
+    const timer = window.setInterval(() => setMinute(Math.floor(Date.now() / 60_000)), 10_000)
     return () => window.clearInterval(timer)
   }, [])
-  return now
+  return new Date(minute * 60_000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 function Bedside({ onClose }: { onClose(): void }) {
   const dialogRef = useDialogFocus()
+  const t = useT()
   const track = usePlayerStore(currentTrack)
   const playing = usePlayerStore((s) => s.playing)
   const toggle = usePlayerStore((s) => s.toggle)
   const album = useLibraryStore((s) => (track ? s.albums.find((a) => a.id === track.albumId) : undefined))
   const colour = useSleeveColour(album)
-  const time = useClock()
+  const time = useClock(t.locale)
   useKeepAwake(true)
 
   // Lying down the record sits beside the words; standing, above them.
@@ -102,7 +107,7 @@ function Bedside({ onClose }: { onClose(): void }) {
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label="Bedside"
+      aria-label={t('player.bedside')}
       // ⚠️ Not the document's click: `App.tsx` skips the ceremony on one.
       onClick={(e) => e.stopPropagation()}
       className="outline-none dark fixed inset-0 z-[1100] flex flex-col bg-black text-slate-400"
@@ -116,7 +121,7 @@ function Bedside({ onClose }: { onClose(): void }) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close bedside"
+          aria-label={t('player.close_bedside')}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/10 hover:text-slate-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-slate-400"
         >
           <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -132,7 +137,7 @@ function Bedside({ onClose }: { onClose(): void }) {
         </div>
         <div className="text-center landscape:text-left">
           <p className="text-[clamp(3.5rem,16vw,7rem)] leading-none font-light text-slate-300 tabular-nums">{time}</p>
-          <p className="mt-5 truncate text-[16px] font-medium text-slate-400">{track?.title ?? 'Nothing playing'}</p>
+          <p className="mt-5 truncate text-[16px] font-medium text-slate-400">{track?.title ?? t('player.bedside_nothing_playing')}</p>
           <p className="mt-1 truncate text-[14px] text-slate-500">{track?.artist ?? track?.albumArtist ?? ''}</p>
           {/* ⚠️ TOP-ALIGNED, and play is the same 44px as Sleep's and Quiet's
               circles (`ModeButton`'s h-11). Those two carry a caption under
@@ -143,7 +148,7 @@ function Bedside({ onClose }: { onClose(): void }) {
             <button
               type="button"
               onClick={toggle}
-              aria-label={playing ? 'Pause' : 'Play'}
+              aria-label={playing ? t('common.pause') : t('common.play')}
               className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-slate-300 transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-slate-400"
             >
               {playing ? (

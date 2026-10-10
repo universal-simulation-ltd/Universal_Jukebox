@@ -111,7 +111,8 @@ import { canSetElementVolume } from './volumeSupport'
 import type { SourceFile } from './types'
 import { fadeLevel, type FadeCurve } from './fadeCurve'
 import { shouldComeBack, wasOurs } from './interruption'
-import { host } from './host'
+import { isDesktopApp } from './host'
+import { getT } from '../i18n/runtime.ts'
 
 /** Where playback is, as far as anything outside this file is concerned. */
 export interface AudioState {
@@ -436,15 +437,15 @@ function element(index: 0 | 1): HTMLAudioElement {
 function describeError(error: MediaError | null): string {
   switch (error?.code) {
     case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-      return `${host().This} can't decode that file. If it's an .m4a it may be Apple Lossless rather than AAC — Universal Converter can turn it into FLAC.`
+      return getT()(isDesktopApp() ? 'player.error_cant_decode_app' : 'player.error_cant_decode_browser')
     case MediaError.MEDIA_ERR_DECODE:
-      return 'That file looks damaged — the audio stopped partway through decoding.'
+      return getT()('player.error_damaged')
     case MediaError.MEDIA_ERR_NETWORK:
-      return 'The file could not be read. If it is on an external drive, check it is still connected.'
+      return getT()('player.error_unreadable')
     case MediaError.MEDIA_ERR_ABORTED:
-      return 'Playback was cancelled.'
+      return getT()('player.error_cancelled')
     default:
-      return "That file wouldn't play."
+      return getT()('player.error_wont_play')
   }
 }
 

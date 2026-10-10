@@ -5,7 +5,7 @@ import { scrollToTop } from '../lib/scrollTop'
 import { useLandscapeStage } from '../lib/stageLayout'
 import { navBarBottom } from '../lib/scrollBelowBar'
 import { coverUrl } from '../lib/art'
-import { plural } from '../lib/format'
+import { useT } from '../i18n'
 import { goHome, navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -49,6 +49,7 @@ import { rgba, useSleeveColour } from '../lib/sleeveColour'
 // reasoning.
 
 export default function NowPlaying() {
+  const t = useT()
   const lyricsAround = useSettingsStore((s) => s.lyricsAround)
   // "Keep awake" (in the folded row, `PlayModes`) holds the screen on for as
   // long as this page is open — and only this page. See `lib/keepAwake.ts`.
@@ -113,13 +114,13 @@ export default function NowPlaying() {
         <div className="mx-auto mb-8 max-w-md text-left">
           <ResumeCard />
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Nothing playing.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('player.nothing_playing')}</p>
         <button
           type="button"
           onClick={() => navigate({ view: 'albums' })}
           className="mt-3 text-sm font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
         >
-          Pick an album
+          {t('player.pick_an_album')}
         </button>
       </div>
     )
@@ -139,7 +140,7 @@ export default function NowPlaying() {
         {ceremony ? (
           <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
             <CeremonyCount />
-            <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Cueing up…</p>
+            <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{t('player.cueing_up')}</p>
             {/* ⚠️ The way out, offered AT THE MOMENT the thing happens.
                 Burying "turn this off" in Settings only helps the person who
                 already knows the page exists; the person who finds a 2.3-second
@@ -156,7 +157,7 @@ export default function NowPlaying() {
               }}
               className="mt-4 text-[12px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
             >
-              Don’t show this again
+              {t('player.dont_show_again')}
             </button>
           </div>
         ) : blendCount !== null ? (
@@ -165,7 +166,7 @@ export default function NowPlaying() {
           // to the start. Crossfading has its own switch in Settings.
           <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
             <CeremonyCount />
-            <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Changing records…</p>
+            <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{t('player.changing_records')}</p>
           </div>
         ) : (
           <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
@@ -179,7 +180,7 @@ export default function NowPlaying() {
               {track.title}
             </h1>
             <p className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 lg:text-slate-700 dark:text-slate-300 lg:dark:text-slate-200`}>
-              {track.artist ?? track.albumArtist ?? 'Unknown artist'}
+              {track.artist ?? track.albumArtist ?? t('common.unknown_artist')}
             </p>
             {track.album && (
               <button
@@ -273,8 +274,8 @@ export default function NowPlaying() {
             is as tall as the record beside it is allowed to be. */}
         <div className={`mt-5 flex-wrap justify-center gap-2 lg:justify-start ${landscape ? 'hidden' : 'hidden md:flex'}`}>
           <SpecChip>{track.ext.toUpperCase()}</SpecChip>
-          <SpecChip>{(track.size / 1024 / 1024).toFixed(1)} MB</SpecChip>
-          {track.trackNo && <SpecChip>Track {track.trackNo}</SpecChip>}
+          <SpecChip>{t('player.spec_size_mb', { size: new Intl.NumberFormat(t.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false }).format(track.size / 1024 / 1024) })}</SpecChip>
+          {track.trackNo && <SpecChip>{t('player.spec_track', { number: t.num(track.trackNo) })}</SpecChip>}
           {/* ⚠️ Through `trackGenres`, not raw. A great many MP3s carry the
               genre as ID3v1's NUMBER — `(17)`, or `17` — and iTunes M4As carry
               it in the binary `gnre` atom, which `tags.ts` stores as that same
@@ -303,7 +304,7 @@ export default function NowPlaying() {
             {/* Desktop only, and over the album art — slate-400 here all but
                 vanished on a grey cover (James, 2026-10-08). */}
             <p className="mt-4 hidden text-[12px] text-slate-600 lg:block dark:text-slate-400">
-              {cursor >= 0 ? `${cursor + 1} of ${plural(queue.length, 'track')} queued` : ''}
+              {cursor >= 0 ? t.plural('player.queued_position', queue.length, { position: t.num(cursor + 1) }) : ''}
             </p>
           </>
         )}
@@ -374,6 +375,7 @@ function LyricsToggle() {
   const showFor = useLyricsStore((s) => s.showFor)
   const hideLyrics = useLyricsStore((s) => s.hideLyrics)
   const show = !!track && shownFor !== null
+  const t = useT()
   return (
     <button
       type="button"
@@ -398,7 +400,7 @@ function LyricsToggle() {
       <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
         <path d="M4 3h9a1 1 0 0 1 1 1v11.5a.5.5 0 0 1-.79.4L9 13.6l-4.21 2.3A.5.5 0 0 1 4 15.5V4a1 1 0 0 1 1-1Zm2 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5H6Zm0 3a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Z" />
       </svg>
-      {show ? 'Hide lyrics' : 'Show lyrics'}
+      {show ? t('player.hide_lyrics') : t('player.show_lyrics')}
     </button>
   )
 }
@@ -501,6 +503,7 @@ function useLeavingAlbum(album: Album | undefined, leaving: boolean): Album | un
  * record suspended mid-cue.
  */
 function BackToLibrary({ compact = false }: { compact?: boolean }) {
+  const t = useT()
   return (
     <button
       type="button"
@@ -510,7 +513,7 @@ function BackToLibrary({ compact = false }: { compact?: boolean }) {
       <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
         <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
       </svg>
-      Back to your library
+      {t('player.back_to_library')}
     </button>
   )
 }
