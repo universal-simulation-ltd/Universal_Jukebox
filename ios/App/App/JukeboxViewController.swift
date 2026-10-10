@@ -34,6 +34,9 @@ class JukeboxViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(NotifyPlugin())
         // "Keep awake" on Now Playing — the screen left on for the lyrics.
         bridge?.registerPluginInstance(KeepAwakePlugin())
+        // The music itself, played natively — and the queue run natively
+        // while the phone is locked. See `JukeboxEngine.swift`.
+        bridge?.registerPluginInstance(JukeboxEnginePlugin())
 
         // ⚠️ THE EDGE SWIPE BACK (James, 2026-09-10: "Mobile should also have
         // the edge of screen side swipe to go back instead of having to use

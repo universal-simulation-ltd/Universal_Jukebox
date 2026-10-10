@@ -160,6 +160,30 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         let rate = call.getDouble("rate") ?? 0
 
         DispatchQueue.main.async {
+            // ⚠️ WITH THE NATIVE ENGINE ON, THE ENTRY IS THE ENGINE'S. It knows
+            // exactly what is playing and where, and answers the buttons itself
+            // when the page cannot (a locked phone). So this plugin draws the
+            // picture and hands it over, and writes nothing to the centre and
+            // registers no commands: two writers of one entry is the ▶-over-a-
+            // playing-song story all over again. See `JukeboxEngine.swift`.
+            if JukeboxEngine.shared.enabled {
+                var animated: [String: Any] = [:]
+                var supported: [String] = []
+                if #available(iOS 26.0, *) {
+                    supported = MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys
+                    if let disc = disc, let spin = spin, spin > 0, !supported.isEmpty {
+                        let art = SpinArt(id: artworkId, disc: disc, ground: ground, seconds: spin)
+                        let artwork = MPMediaItemAnimatedArtwork(
+                            artworkID: artworkId,
+                            previewImageRequestHandler: { size, done in done(art.preview(size)) },
+                            videoAssetFileURLRequestHandler: { size, done in art.video(size, done) })
+                        for key in supported { animated[key] = artwork }
+                    }
+                }
+                JukeboxEngine.shared.adoptArtwork(title: title, still: still, animated: animated)
+                call.resolve(["animated": !animated.isEmpty, "supportedKeys": supported, "mode": "engine"])
+                return
+            }
             let center = MPNowPlayingInfoCenter.default()
             if self.mode == .unknown {
                 self.mode = (center.nowPlayingInfo?.isEmpty == false) ? .merge : .own
@@ -217,6 +241,8 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         let duration = call.getDouble("duration") ?? 0
         let rate = call.getDouble("rate") ?? 0
         DispatchQueue.main.async {
+            // The engine's entry runs on the engine's own clock.
+            if JukeboxEngine.shared.enabled { call.resolve(); return }
             // ⚠️ IN `merge` MODE THIS SETS THE PLAY/PAUSE STATE AND NOTHING ELSE,
             // which is why it is above the guard rather than below it.
             //
@@ -262,6 +288,11 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func artist(_ call: CAPPluginCall) {
         let artist = call.getString("artist") ?? ""
         DispatchQueue.main.async {
+            if JukeboxEngine.shared.enabled {
+                JukeboxEngine.shared.setArtistLine(artist)
+                call.resolve()
+                return
+            }
             guard self.mode == .own, !self.ours.isEmpty else { call.resolve(); return }
             self.ours[MPMediaItemPropertyArtist] = artist
             // Where the clock has got to, or re-applying would jump the bar back.
@@ -280,6 +311,8 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func clear(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
+            // The engine's entry goes when the engine stops (`stop`).
+            if JukeboxEngine.shared.enabled { call.resolve(); return }
             self.keeper?.invalidate()
             self.keeper = nil
             if self.mode == .own {

@@ -41,7 +41,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return config
     }
 
-    /// ⚠️ THIS APP DOES NOT TOUCH ITS OWN AUDIO SESSION — and must not.
+    /// ⚠️ SINCE THE NATIVE ENGINE (2026-10-11) THE RULE IS THE OTHER WAY ROUND:
+    /// `JukeboxEngine.swift` plays the music and owns the session, and it is
+    /// WebKit that must not play — the page sends the decks, the preview and
+    /// the start-up cues to the engine instead (`src/lib/audioEngine.ts`). What
+    /// follows is why the two can never both be live, and it still holds: this
+    /// file and the observers below still touch nothing.
+    ///
+    /// THE OLD RULE — THIS APP DOES NOT TOUCH ITS OWN AUDIO SESSION.
     ///
     /// The music is an `<audio>` element, and WebKit plays it from its own
     /// process with its own audio session, which it sets to media playback
