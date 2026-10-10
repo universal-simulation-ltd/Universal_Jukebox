@@ -1,0 +1,51 @@
+{
+  "language": "it-IT",
+  "details": {
+    "defaultLanguage": "en-GB",
+    "contactEmail": "inbox@unisim.co.uk",
+    "contactWebsite": "https://www.unisim.co.uk"
+  },
+  "listing": {
+    "title": "Universal Jukebox: Giradischi",
+    "shortDescription": "La tua musica su giradischi, Walkman o jukebox, con le parole che girano.",
+    "fullDescription": [
+      "I tuoi dischi sono già sul tuo telefono. Universal Jukebox li mette su un giradischi.",
+      "",
+      "Scegli una cartella di file MP3, M4A, FLAC o WAV sul telefono: Jukebox legge i tag, le copertine e i testi che contengono e sistema ogni album sul suo scaffale. Toccane uno e la puntina si appoggia.",
+      "",
+      "Scegli su cosa suona: un giradischi, un lettore CD portatile, un Walkman a cassette, un registratore a bobine, un jukebox o un lettore tascabile. Oppure lascia che ogni album suoni sull’apparecchio del suo anno: un disco del 1979 gira sul vinile e uno del 2003 finisce nel lettore CD.",
+      "",
+      "Le parole girano intorno al disco",
+      "Quando i tuoi brani contengono testi sincronizzati, le righe girano intorno al disco mentre vengono cantate, scorrono nel pannello del testo e possono comparire sulla schermata di blocco. Viene letto anche un file di testo salvato accanto a un brano (Brano.lrc accanto a Brano.mp3), e puoi aggiungerne uno tu a qualsiasi brano. Per i brani che non ne hanno, puoi attivare una ricerca online, disattivata finché non lo fai.",
+      "",
+      "Pensato per ascoltare",
+      "• Dissolvenza incrociata e dissolvenze tra i brani, e Volume stabile, che abbassa una traccia troppo forte al livello delle altre.",
+      "• Riproduzione casuale, ripetizione, «Riproduci dopo» e una coda sempre visibile.",
+      "• Un timer di spegnimento che fa sfumare la musica.",
+      "• Controlli sulla schermata di blocco e la scelta tra altoparlante e cuffie.",
+      "• Artisti, album o brani, in ordine dalla A alla Z, casuale o per genere, in griglia, in elenco o su uno scaffale da jukebox.",
+      "• Scaffali che si riproducono come playlist e un elenco della musica che vuoi ancora procurarti.",
+      "",
+      "Tua, e solo tua",
+      "Non viene caricato nulla e non serve creare un account. Niente pubblicità, niente tracciamento, niente analisi di terze parti. Per vederlo prima di aggiungere la tua musica, prova la libreria di esempio: nove dischi inventati, creati sul tuo telefono.",
+      "",
+      "Universal Jukebox è open source (AGPL-3.0). Il codice è su GitHub: github.com/universal-simulation-ltd/Universal_Jukebox",
+      "",
+      "Realizzato nel Regno Unito da James Markey MBE e UNI·SIM."
+    ]
+  },
+  "images": {
+    "icon": "out/play/icon-512.png",
+    "featureGraphic": "out/it-IT/play/feature-graphic.png",
+    "phoneScreenshots": [
+      "out/it-IT/android/01-turntable.png",
+      "out/it-IT/android/02-shelf.png",
+      "out/it-IT/android/03-machines.png",
+      "out/it-IT/android/04-lyrics.png",
+      "out/it-IT/android/05-artists.png",
+      "out/it-IT/android/06-album.png",
+      "out/it-IT/android/07-drawer.png",
+      "out/it-IT/android/08-tune.png"
+    ]
+  }
+}

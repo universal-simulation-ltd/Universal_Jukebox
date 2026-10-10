@@ -1,0 +1,98 @@
+{
+ "01-turntable": {
+  "headline": [
+   "La tua musica,",
+   "*sul giradischi*"
+  ],
+  "label": "Universal Jukebox · 33⅓ · Lato A ·"
+ },
+ "02-shelf": {
+  "headline": [
+   "Ogni album",
+   "sul suo scaffale"
+  ],
+  "sub": "Realizzato nel Regno Unito da\nJames Markey MBE e UNI·SIM"
+ },
+ "03-machines": {
+  "headline": [
+   "Scegli il tuo",
+   "*apparecchio*"
+  ],
+  "caption": "Vinile, CD, cassetta, registratore a bobine, jukebox o lettore tascabile",
+  "chips": [
+   "Giradischi",
+   "CD",
+   "Cassetta",
+   "Bobine",
+   "Jukebox",
+   "Tascabile"
+  ]
+ },
+ "04-lyrics": {
+  "headline": [
+   "Le parole girano",
+   "*intorno al disco*"
+  ],
+  "caption": "Testi sincronizzati dai tuoi file, cantati mentre il disco gira",
+  "chips": [
+   "Intorno al disco",
+   "Sulla schermata di blocco",
+   "I tuoi file .lrc"
+  ]
+ },
+ "05-artists": {
+  "headline": [
+   "Ogni artista,",
+   "*a colpo d’occhio*"
+  ],
+  "caption": "Artisti, album e brani, pochi per riga o sullo scaffale",
+  "chips": [
+   "3 per riga",
+   "A–Z",
+   "Casuale",
+   "Genere"
+  ]
+ },
+ "06-album": {
+  "headline": [
+   "Ogni album,",
+   "*la sua copertina*"
+  ],
+  "caption": "Riproducilo, ascoltalo in ordine casuale o senti prima dieci secondi di ogni brano",
+  "chips": [
+   "Riproduci",
+   "Casuale",
+   "Anteprima",
+   "Allo scaffale"
+  ]
+ },
+ "07-drawer": {
+  "headline": [
+   "Trascina giù",
+   "*per vedere altro*"
+  ],
+  "caption": "Ricerca, ordine casuale e opzioni elenco, nascoste finché non ti servono",
+  "chips": [
+   "Cerca",
+   "Casuale",
+   "A–Z o casuale",
+   "Scaffale Jukebox"
+  ]
+ },
+ "08-tune": {
+  "headline": [
+   "Regolalo",
+   "*a modo tuo*"
+  ],
+  "caption": "Dissolvenza incrociata, dissolvenze, Volume stabile e un timer di spegnimento che sfuma",
+  "chips": [
+   "Dissolvenza incrociata",
+   "Volume stabile",
+   "Timer di spegnimento",
+   "Dissolvenze"
+  ]
+ },
+ "feature-graphic": {
+  "tagline": "La tua musica, sul giradischi"
+ }
+}
