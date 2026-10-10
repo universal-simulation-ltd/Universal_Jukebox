@@ -29,7 +29,7 @@ A aplicação não tem descodificadores próprios: recorre ao suporte de áudio 
 
 ## Saber o motivo
 
-Por predefinição, as músicas que não podem ser reproduzidas são ignoradas sem aviso. Se preferir saber porquê, assinale **Show error messages** em Tune this app, na secção Messages, e a aplicação indicará cada ficheiro que não conseguiu reproduzir e o que se passava com ele.`,
+Por predefinição, as músicas que não podem ser reproduzidas são ignoradas sem aviso. Se preferir saber porquê, assinale **Mostrar mensagens de erro** em Ajustar esta aplicação, na secção Mensagens, e a aplicação indicará cada ficheiro que não conseguiu reproduzir e o que se passava com ele.`,
   },
   {
     id: 'tags-and-artwork',
@@ -47,12 +47,12 @@ A aplicação lê os tipos de etiqueta mais comuns usados pelos ficheiros MP3, M
 ## Quando as etiquetas faltam ou estão erradas
 
 - **Um ficheiro sem etiquetas** aparece com o nome do ficheiro, sem o número de faixa que possa ter no início. A aplicação não adivinha o artista a partir do nome do ficheiro, porque um palpite errado é pior do que um campo vazio.
-- **Um álbum dividido em dois** significa normalmente que as faixas foram etiquetadas de forma inconsistente — por exemplo, com o nome do artista escrito de duas maneiras.
+- **Um disco dividido em dois** significa normalmente que as faixas foram etiquetadas de forma inconsistente — por exemplo, com o nome do artista escrito de duas maneiras.
 - **Uma capa em falta** pode significar que a imagem nunca foi guardada nos ficheiros, ou que foi guardada numa faixa posterior em vez da primeira.
 
 ## Arrumar a biblioteca
 
-**Tidy up library**, em Tune this app, na secção Your library, procura duas coisas: capas que já estão no seu dispositivo mas não foram usadas (uma imagem com nome de capa, como cover.jpg, junto às faixas, ou uma imagem guardada numa faixa posterior) e álbuns que etiquetas inconsistentes dividiram em dois. Mostra-lhe cada sugestão, com a imagem que usaria, e nada muda até carregar no botão.
+**Arrumar a biblioteca**, em Ajustar esta aplicação, na secção A sua biblioteca, procura duas coisas: capas que já estão no seu dispositivo mas não foram usadas (uma imagem com nome de capa, como cover.jpg, junto às faixas, ou uma imagem guardada numa faixa posterior) e discos que etiquetas inconsistentes dividiram em dois. Mostra-lhe cada sugestão, com a imagem que usaria, e nada muda até carregar no botão.
 
 Recusa propositadamente tudo aquilo de que não pode ter certeza. Dois álbuns com o mesmo nome em pastas diferentes, ou uma pasta com dois álbuns diferentes, ficam como estão.
 
@@ -69,7 +69,7 @@ Arrumar corrige apenas a biblioteca dentro da aplicação. Não reescreve etique
 
 ## Adicionar música
 
-Abra o menu e escolha **Your complete library**. A partir daí pode adicionar uma pasta, fazer uma nova análise ou remover uma pasta. Adicionar uma pasta acrescenta à sua biblioteca em vez de a substituir, e remover uma retira apenas as músicas dessa pasta. O funcionamento das pastas depende de onde utiliza a aplicação:
+Abra o menu e escolha **A sua biblioteca completa**. A partir daí pode adicionar uma pasta, fazer uma nova análise ou remover uma pasta. Adicionar uma pasta acrescenta à sua biblioteca em vez de a substituir, e remover uma retira apenas as músicas dessa pasta. O funcionamento das pastas depende de onde utiliza a aplicação:
 
 - **O Chrome e o Edge** conseguem lembrar-se da pasta que escolheu. Quando voltar, poderá ter de confirmar o acesso uma vez, com um toque.
 - **O Firefox e o Safari** não conseguem manter a autorização para ler uma pasta entre visitas, por isso escolhe a pasta de cada vez. A sua biblioteca, as capas e as definições continuam guardadas, pelo que nada tem de ser lido novamente.
@@ -78,7 +78,7 @@ Abra o menu e escolha **Your complete library**. A partir daí pode adicionar um
 
 ## Nova análise
 
-A aplicação não repara por si própria quando aparecem ou desaparecem ficheiros. Depois de adicionar ou apagar música fora da aplicação, escolha **Rescan**. Uma nova análise acrescenta as músicas novas, retira as que já não existem e mantém as correções que fez ao arrumar a biblioteca.
+A aplicação não repara por si própria quando aparecem ou desaparecem ficheiros. Depois de adicionar ou apagar música fora da aplicação, escolha **Analisar novamente**. Uma nova análise acrescenta as músicas novas, retira as que já não existem e mantém as correções que fez ao arrumar a biblioteca.
 
 ## Músicas da biblioteca da aplicação Música do iPhone
 
@@ -86,7 +86,37 @@ As músicas sincronizadas com o iPhone a partir de um computador podem ser repro
 
 ## O que a aplicação guarda
 
-A aplicação guarda no seu dispositivo um catálogo da sua biblioteca — títulos, artistas, álbuns e cópias pequenas das capas — para abrir rapidamente da próxima vez. Esse catálogo não tem cópia de segurança nem é partilhado entre dispositivos: cada dispositivo cria o seu. Apagar os dados deste site num navegador apaga o catálogo, mas nunca a sua música.`,
+A aplicação guarda no seu dispositivo um catálogo da sua biblioteca — títulos, artistas, álbuns e cópias pequenas das capas — para abrir rapidamente da próxima vez. Esse catálogo não é partilhado entre dispositivos: cada dispositivo cria o seu. Apagar os dados deste site num navegador apaga o catálogo, mas nunca a sua música. As prateleiras, os pedidos e as definições podem ter cópia de segurança: consulte Manter a sua música em segurança.`,
+  },
+  {
+    id: 'keeping-your-music-safe',
+    title: 'Manter a sua música em segurança',
+    summary: 'A sua música na sua própria nuvem, e uma cópia de segurança das suas prateleiras.',
+    group: 'Como funciona',
+    body: `O Universal Jukebox nunca carrega a sua música, por isso também não a pode perder. A sua música está tão segura como o lugar onde a guarda. Um telemóvel perdido ou avariado não deve levar a sua coleção consigo, por isso guarde uma cópia noutro lugar.
+
+## Guarde a sua música na sua própria nuvem
+
+Serve qualquer armazenamento na nuvem que já utilize: Proton Drive, iCloud Drive, Google Drive, OneDrive ou um computador de que faça cópias de segurança. No telemóvel:
+
+1. Coloque a sua pasta de música no armazenamento na nuvem.
+2. Na aplicação desse serviço, disponibilize a pasta offline, para que as músicas fiquem guardadas no telemóvel e toquem sem ligação. As músicas que estão apenas online não podem ser reproduzidas.
+3. No Jukebox, abra o menu, escolha **A sua biblioteca completa** e adicione a pasta. No iPhone, o serviço de nuvem tem de aparecer na aplicação Ficheiros; no Android, no seletor de pastas.
+
+Depois de adicionar ou remover músicas na nuvem, escolha **Analisar novamente**.
+
+## Faça uma cópia de segurança do que criou no Jukebox
+
+As suas prateleiras, os seus pedidos, as suas definições e os ficheiros de letras que adicionou existem apenas na aplicação. Para os guardar, abra **Ajustar esta aplicação** e depois **Cópia de segurança**:
+
+- **Guardar um ficheiro de cópia de segurança** cria um único ficheiro pequeno que pode guardar onde quiser, incluindo no Proton Drive. Não é necessária nenhuma conta. Nas aplicações para telemóvel, é guardado na pasta Documentos da aplicação, e pode movê-lo a partir da aplicação Ficheiros.
+- **Cópia de segurança no seu Universal ID** guarda a mesma cópia de segurança com a sua conta, se tiver a sessão iniciada. É substituída sempre que faz uma cópia, e pode eliminá-la. Não tem encriptação ponto a ponto. Se for demasiado grande para a sua conta, a aplicação indica o que deixou de fora, e um ficheiro de cópia de segurança guarda tudo.
+
+## Num telemóvel novo
+
+Copie a sua música ou disponibilize-a offline, adicione a pasta e espere que a biblioteca carregue. Depois, reponha a cópia de segurança. As suas definições são substituídas pelas da cópia. As prateleiras e os pedidos da cópia são adicionados aos que já tem, e nada é removido.
+
+As músicas são encontradas de novo pelo título, pelo artista e pelo álbum, por isso uma prateleira volta mesmo que os ficheiros sejam cópias novas. Uma música que ainda não esteja na sua biblioteca fica de fora. Reponha novamente depois de adicionar mais música para a recuperar.`,
   },
   {
     id: 'between-songs',
@@ -106,9 +136,9 @@ A aplicação guarda no seu dispositivo um catálogo da sua biblioteca — títu
 
 **As músicas do mesmo álbum** encadeiam-se diretamente com uma transição cruzada curta e suave. A música que chega só sobe à medida que a que sai vai baixando, por isso a passagem é fluida, sem duas músicas a tocar alto ao mesmo tempo.
 
-**Quando a música seguinte está noutro disco**, as duas também se cruzam por predefinição, enquanto na imagem um leitor desliza para fora e o seguinte entra. Se preferir um corte limpo, assinale **No crossfade between records** em Tune this app: a agulha levanta, há um momento de silêncio e pousa no disco seguinte.
+**Quando a música seguinte está noutro disco**, as duas também se cruzam por predefinição, enquanto na imagem um leitor desliza para fora e o seguinte entra. Se preferir um corte limpo, assinale **Sem transição cruzada entre discos** em Ajustar esta aplicação: a agulha levanta, há um momento de silêncio e pousa no disco seguinte.
 
-**Fade in** e **Fade out**, em Tune this app, na secção Sound, acrescentam um desvanecimento de até oito segundos no início ou no fim de cada faixa, incluindo a última música de um álbum. Ambos estão desligados até os definir. Num dispositivo que não permite à aplicação controlar o volume, os desvanecimentos não estão disponíveis, e Tune this app indica-o.
+**Desvanecimento de entrada** e **Desvanecimento de saída**, em Ajustar esta aplicação, na secção Som, acrescentam um desvanecimento de até oito segundos no início ou no fim de cada faixa, incluindo a última música de um álbum. Ambos estão desligados até os definir. Num dispositivo que não permite à aplicação controlar o volume, os desvanecimentos não estão disponíveis, e Ajustar esta aplicação indica-o.
 
 ## A animação é independente
 
@@ -119,7 +149,7 @@ A animação de mudança de disco, e a frequência com que aparece, diz respeito
     title: 'Letras: de onde vêm as palavras',
     summary: 'Primeiro as letras nos seus ficheiros ou guardadas junto a eles, e uma pesquisa online opcional.',
     group: 'Como funciona',
-    body: `Toque em **Lyrics** em Now Playing para ver a letra da música que está a tocar. Pode vir de dois sítios, sempre por esta ordem.
+    body: `Toque em **Mostrar a letra** no ecrã A reproduzir para ver as palavras da música que está a tocar. Pode vir de dois sítios, sempre por esta ordem.
 
 ## 1. O seu próprio ficheiro
 
@@ -133,9 +163,9 @@ Se os seus ficheiros não têm letras, um programa gratuito para computador cham
 
 ## 2. Uma pesquisa online, só se a ativar
 
-No iPhone e no iPad não há pesquisa online: acrescente antes ficheiros de letras como explicado acima. Nos restantes casos, se uma música não tiver letra própria, a aplicação pode consultar o lrclib.net, uma coleção de letras gratuita mantida por uma comunidade. Esta opção está **desligada** até assinalar **Look up missing lyrics online** em Tune this app, na secção Lyrics.
+No iPhone e no iPad não há pesquisa online: acrescente antes ficheiros de letras como explicado acima. Nos restantes casos, se uma música não tiver letra própria, a aplicação pode consultar o lrclib.net, uma coleção de letras gratuita mantida por uma comunidade. Esta opção está **desligada** até assinalar **Procurar online as letras em falta** em Ajustar esta aplicação, na secção Letras.
 
-Quando está ligada, a pesquisa de uma música envia apenas o artista, o título, o álbum e a duração, diretamente do seu dispositivo para o lrclib.net. Não é enviado mais nada sobre si, o seu dispositivo ou a sua biblioteca, e o pedido não passa pela UNI·SIM. A resposta fica guardada no seu dispositivo, pelo que cada música só é consultada uma vez. Se não tiver sido encontrada nenhuma letra, a aplicação pode voltar a tentar passados alguns dias. Tune this app mostra quantas músicas já foram consultadas, com um botão para as esquecer todas.
+Quando está ligada, a pesquisa de uma música envia apenas o artista, o título, o álbum e a duração, diretamente do seu dispositivo para o lrclib.net. Não é enviado mais nada sobre si, o seu dispositivo ou a sua biblioteca, e o pedido não passa pela UNI·SIM. A resposta fica guardada no seu dispositivo, pelo que cada música só é consultada uma vez. Se não tiver sido encontrada nenhuma letra, a aplicação pode voltar a tentar passados alguns dias. Ajustar esta aplicação mostra quantas músicas já foram consultadas, com um botão para as esquecer todas.
 
 Como a coleção é escrita por voluntários, uma ou outra letra pode estar imprecisa ou ligeiramente dessincronizada.
 
@@ -143,7 +173,7 @@ Como a coleção é escrita por voluntários, uma ou outra letra pode estar impr
 
 Algumas letras têm uma marca de tempo no início de cada linha. Chamam-se letras sincronizadas e estão muitas vezes num formato conhecido como LRC. Com elas, o painel de letras acompanha a música enquanto toca, e tocar numa linha salta para esse momento da música. As letras sem marcas de tempo aparecem como texto simples.
 
-As letras sincronizadas permitem ainda dois extras opcionais, ambos em Tune this app, na secção Lyrics: **Lyrics around the record**, que escreve as palavras à volta do disco a girar à medida que são cantadas, e **Lyrics on the lock screen**, que mostra a linha que está a ser cantada nos controlos de música do telemóvel.`,
+As letras sincronizadas permitem ainda dois extras opcionais, ambos em Ajustar esta aplicação, na secção Letras: **Letra à volta do disco**, que escreve as palavras à volta do disco a girar à medida que são cantadas, e **Letra no ecrã de bloqueio**, que mostra a linha que está a ser cantada nos controlos de música do telemóvel.`,
   },
   {
     id: 'playing-in-the-background',
@@ -165,7 +195,7 @@ No navegador, a música aparece normalmente nos controlos multimédia do computa
 
 ## O temporizador
 
-**Sleep**, entre os botões redondos de Now Playing, para a música por si:
+**Dormir**, entre os botões redondos do ecrã A reproduzir, para a música por si:
 
 1. Toque nele para passar por 15, 30, 45 e 60 minutos e, depois, desligar.
 2. Ou mantenha-o premido para escolher qualquer duração, até 12 horas.
@@ -175,11 +205,11 @@ O temporizador continua a funcionar com o telemóvel bloqueado.
 
 ## Manter o ecrã ligado
 
-Se gosta de ver o disco a girar, **Keep awake** impede que o ecrã escureça ou bloqueie enquanto Now Playing estiver aberto.
+Se gosta de ver o disco a girar, **Ecrã ligado** impede que o ecrã escureça ou bloqueie enquanto o ecrã A reproduzir estiver aberto.
 
 ## Uma notificação por música
 
-**Notify me of each new song**, em Tune this app, mostra a música, o artista e a capa quando começa cada nova música, enquanto a aplicação não está no ecrã. Só aparece uma de cada vez, substituída pela seguinte, e não emite qualquer som. Está desligada até a ativar, e é nesse momento que o seu dispositivo pede autorização.`,
+**Notificar-me de cada nova música**, em Ajustar esta aplicação, mostra a música, o artista e a capa quando começa cada nova música, enquanto a aplicação não está no ecrã. Só aparece uma de cada vez, substituída pela seguinte, e não emite qualquer som. Está desligada até a ativar, e é nesse momento que o seu dispositivo pede autorização.`,
   },
   {
     id: 'privacy',
@@ -194,21 +224,21 @@ Se gosta de ver o disco a girar, **Keep awake** impede que o ecrã escureça ou 
 - **O catálogo da sua biblioteca**: títulos, artistas, álbuns, cópias pequenas das capas e as correções que fez ao arrumar.
 - **As suas definições, os seus pedidos e o ponto onde ficou.** Ficam na aplicação, neste dispositivo.
 
-A aplicação não faz cópias de segurança nem sincroniza nada disto. Se utilizar o Jukebox em dois dispositivos, cada um mantém a sua própria biblioteca.
+Nada disto sai do seu dispositivo, a menos que faça uma cópia de segurança. Um ficheiro de cópia de segurança vai para onde o guardar. Uma cópia de segurança no seu Universal ID contém as definições, as prateleiras, os pedidos e as letras que adicionou, identificadas pelo título, pelo artista e pelo álbum; nunca contém a sua música. Se utilizar o Jukebox em dois dispositivos, cada um mantém a sua própria biblioteca.
 
 ## As três pesquisas
 
 Só três funcionalidades enviam alguma coisa sobre a sua música, e nenhuma faz nada até o pedir. Cada uma vai diretamente do seu dispositivo para o serviço indicado, sem passar pela UNI·SIM, e envia apenas o que está indicado.
 
-- **Pesquisa de letras** (não existe no iPhone nem no iPad; nos restantes, desligada até a ativar em Tune this app): envia o artista, o título, o álbum e a duração de uma música para o lrclib.net, para as músicas sem letra própria.
-- **About this track** (desligada até a ativar, em Tune this app ou no próprio painel): envia o título da música e o nome do artista para a Wikipedia, para mostrar o que a Wikipedia diz sobre eles. As respostas ficam guardadas no dispositivo durante 90 dias, e uma música sem artigo volta a ser consultada passados alguns dias.
-- **Find a picture**, num pedido: envia as palavras que escreveu para a pesquisa do iTunes, da Apple, apenas quando toca nele. A imagem que escolher fica guardada com o pedido.
+- **Pesquisa de letras** (não existe no iPhone nem no iPad; nos restantes, desligada até a ativar em Ajustar esta aplicação): envia o artista, o título, o álbum e a duração de uma música para o lrclib.net, para as músicas sem letra própria.
+- **Sobre esta música** (desligada até a ativar, em Ajustar esta aplicação ou no próprio painel): envia o título da música e o nome do artista para a Wikipedia, para mostrar o que a Wikipedia diz sobre eles. As respostas ficam guardadas no dispositivo durante 90 dias, e uma música sem artigo volta a ser consultada passados alguns dias.
+- **Encontrar uma imagem**, num pedido: envia as palavras que escreveu para a pesquisa do iTunes, da Apple, apenas quando toca nele. A imagem que escolher fica guardada com o pedido.
 
-As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cada música só é consultada uma vez. Tune this app mostra quantas existem e permite esquecê-las. Nenhum áudio sai alguma vez do seu dispositivo.
+As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cada música só é consultada uma vez. Ajustar esta aplicação mostra quantas existem e permite esquecê-las. Nenhum áudio sai alguma vez do seu dispositivo.
 
 ## Universal ID
 
-Iniciar sessão com um Universal ID é opcional. Mantém a sessão iniciada em todas as aplicações da UNI·SIM. Enquanto tiver a sessão iniciada, a aplicação regista um evento de «aberta» na sua conta sempre que é iniciada. Esse evento não diz nada sobre a sua música.
+Iniciar sessão com um Universal ID é opcional. Mantém a sessão iniciada em todas as aplicações da UNI·SIM e permite guardar uma cópia de segurança com a sua conta, se quiser. Enquanto tiver a sessão iniciada, a aplicação regista um evento de «aberta» na sua conta sempre que é iniciada. Esse evento não diz nada sobre a sua música.
 
 ## Autorizações
 
