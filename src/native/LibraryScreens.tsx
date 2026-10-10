@@ -1,14 +1,14 @@
 // LibraryScreens.tsx — the phone app's three library tabs: Artists, Albums and
-// Tracks. Each has the search box at its top, a Shuffle that plays what the
-// tab is showing, and the list options behind the sliders button beside it:
-// A–Z / Random / Genre, the jukebox shelf, and the tab's filter (Full albums,
-// Min. 3). They are the website's own settings (`libraryOrder`,
+// Tracks. Above each, folded away until you pull down from the top (or tap
+// the search button by the title): the search box, Shuffle, and the list
+// options — A–Z / Random / Genre, the jukebox shelf, and the tab's filter
+// (Full albums, Min. 3). They are the website's own settings (`libraryOrder`,
 // `libraryColumns`, `fullAlbumsOnly`, `artistsMin3`, `genresMin3`), so the two
 // agree, and the website's own components draw the shelf and the genre list —
 // on Albums the shelf is square covers in their sleeves, records only peeking
 // out (James, 2026-10-10). The plain A–Z / Random list is the phone's own.
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import AlbumGrid from '../components/AlbumGrid'
 import ArtistList from '../components/ArtistList'
 import Cover from '../components/Cover'
@@ -17,14 +17,15 @@ import TrackList from '../components/TrackList'
 import { compareBase } from '../lib/collate'
 import { plural } from '../lib/format'
 import { GENRE_MIN, libraryInGenre } from '../lib/genres'
-import { ARTIST_MIN, albumsOfBigArtists, isFullAlbum, nextOrder, seededOrder, type LibraryOrder } from '../lib/libraryView'
+import { ARTIST_MIN, albumsOfBigArtists, columnsLabel, isFullAlbum, nextColumns, nextOrder, seededOrder, type LibraryOrder } from '../lib/libraryView'
 import { navigate } from '../lib/route'
 import { matchAlbums, matchArtistNames, matchTracks } from '../lib/search'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
-import { DEFAULTS, useSettingsStore, type ListTab } from '../stores/settingsStore'
-import { IconBack, IconOptions, IconSearch, IconShuffle } from './icons'
+import { DEFAULTS, useSettingsStore, type LibraryColumns, type ListTab } from '../stores/settingsStore'
+import { IconBack, IconClose, IconSearch, IconShuffle } from './icons'
+import { PullDrawer } from './PullDrawer'
 
 /** Rows drawn before "Show more": a phone lays out a few hundred rows instantly, not ten thousand. */
 const PAGE = 300
@@ -39,14 +40,31 @@ export interface ListProps {
   genre?: string
 }
 
-export function SearchBox({ query, setQuery, label }: { query: string; setQuery(query: string): void; label: string }) {
+export function SearchBox({
+  query,
+  setQuery,
+  label,
+  input,
+  onClose,
+}: {
+  query: string
+  setQuery(query: string): void
+  label: string
+  input?: React.Ref<HTMLInputElement>
+  /** The ✕: clear the search and fold the drawer away. */
+  onClose?: () => void
+}) {
   return (
     <label className="jx-search">
       <IconSearch />
       <input
+        ref={input}
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose?.()
+        }}
         placeholder={label}
         aria-label={label}
         enterKeyHint="search"
@@ -54,6 +72,17 @@ export function SearchBox({ query, setQuery, label }: { query: string; setQuery(
         autoCapitalize="off"
         spellCheck={false}
       />
+      {onClose && (
+        <button
+          type="button"
+          className="jx-search-close"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onClose}
+          aria-label="Clear and close"
+        >
+          <IconClose />
+        </button>
+      )}
     </label>
   )
 }
@@ -68,10 +97,9 @@ function useLayout(tab: ListTab, order: LibraryOrder, genre?: string) {
   const effective: LibraryOrder = genre && order.kind === 'genre' ? { kind: 'az' } : order
   return {
     effective,
+    columns,
     shelf: columns === 'jukebox',
     genreList: order.kind === 'genre' && !genre,
-    /** Anything changed from the app's default — the dot on the options button. */
-    changed: order.kind !== DEFAULTS.libraryOrder[tab] || columns !== DEFAULTS.libraryColumns[tab],
   }
 }
 
@@ -92,29 +120,45 @@ function Screen({
   tab,
   order,
   setOrder,
-  changed,
   filter,
+  filterNote,
   children,
 }: {
   title: string
   count: string
   onShuffle?: () => void
   tab: ListTab
-  changed: boolean
   /** The tab's own filter pill (Full albums, Min. 3), if it has one. */
   filter?: ReactNode
+  /** What that filter is set to, when it isn't the default — said under the title while the drawer is shut. */
+  filterNote?: string | null
   children: ReactNode
 } & ListProps) {
-  const [open, setOpen] = useState(false)
+  // The drawer (PullDrawer): open by pulling down or the search button, and
+  // kept open while there is a search.
+  const [pulled, setPulled] = useState(false)
+  const shown = pulled || query.trim() !== ''
+  const input = useRef<HTMLInputElement>(null)
   const setSetting = useSettingsStore((s) => s.set)
   const columns = useSettingsStore((s) => s.libraryColumns)
   const genresMin3 = useSettingsStore((s) => s.genresMin3)
-  const shelf = columns[tab] === 'jukebox'
-  const flat = tab === 'albums' ? 'Grid' : 'List'
   const next = nextOrder(order)
   const orderLabel = (o: LibraryOrder) => (o.kind === 'az' ? 'A–Z' : o.kind === 'random' ? 'Random' : 'Genre')
-  /** Off the shelf goes back to the website's own layout for the tab, or a plain grid / list. */
-  const unshelved = DEFAULTS.libraryColumns[tab] === 'jukebox' ? 2 : DEFAULTS.libraryColumns[tab]
+  // The layout pill. Artists and Albums step through the website's cycle —
+  // 2, 3, 4 per row, the jukebox shelf, then 1, which on a phone is a list —
+  // and Tracks is the list or the shelf (James, 2026-10-10: "Artist should
+  // show the 3 per row view by default (I can't find the option?)").
+  const cols = columns[tab]
+  const nextCols: LibraryColumns = tab === 'tracks' ? (cols === 'jukebox' ? 2 : 'jukebox') : nextColumns(cols)
+  const layoutLabel = (c: LibraryColumns) => (c === 'jukebox' ? 'Jukebox' : tab === 'tracks' || c === 1 ? 'List' : columnsLabel(c))
+  // With the drawer shut, what's changed from the usual is said under the
+  // title, so a filtered or shuffled list never looks like a broken one.
+  const notes = [
+    order.kind !== DEFAULTS.libraryOrder[tab] ? orderLabel(order) : null,
+    cols !== DEFAULTS.libraryColumns[tab] ? layoutLabel(cols) : null,
+    filterNote ?? null,
+  ].filter(Boolean)
+  const openDrawer = useCallback(() => setPulled(true), [])
 
   return (
     <div className="jx-page">
@@ -127,28 +171,42 @@ function Screen({
       <div className="jx-heading">
         <div>
           <h1 className="jx-h1">{genre ?? title}</h1>
-          <p className="jx-sub">{count}</p>
+          <p className="jx-sub">{[count, ...(shown ? [] : notes)].join(' · ')}</p>
         </div>
-        <div className="jx-heading-buttons">
+        {!shown && (
           <button
             type="button"
-            className={`jx-round${open ? ' on' : ''}`}
-            onClick={() => setOpen((o) => !o)}
-            aria-expanded={open}
-            aria-label="List options"
+            className="jx-round"
+            onClick={() => {
+              setPulled(true)
+              // Focus in the same tap, or iOS won't raise the keyboard.
+              input.current?.focus({ preventScroll: true })
+            }}
+            aria-label={`Search, shuffle and list options for ${title.toLowerCase()}`}
+            title="Or pull down from the top"
           >
-            <IconOptions />
-            {changed && !open && <i className="jx-dot" aria-hidden />}
+            <IconSearch />
           </button>
+        )}
+      </div>
+      <PullDrawer shown={shown} onOpen={openDrawer}>
+        <SearchBox
+          input={input}
+          query={query}
+          setQuery={setQuery}
+          label={`Search ${(genre ? `${genre} ` : '') + title.toLowerCase()}`}
+          onClose={() => {
+            setQuery('')
+            setPulled(false)
+            input.current?.blur()
+          }}
+        />
+        <div className="jx-chips" role="group" aria-label="Play and list options">
           {onShuffle && (
-            <button type="button" className="jx-round" onClick={onShuffle} aria-label={`Shuffle ${title.toLowerCase()}`}>
-              <IconShuffle />
+            <button type="button" className="jx-chip play" onClick={onShuffle}>
+              <IconShuffle /> Shuffle
             </button>
           )}
-        </div>
-      </div>
-      {open && (
-        <div className="jx-chips" role="group" aria-label="List options">
           <button
             type="button"
             className={`jx-chip${order.kind !== DEFAULTS.libraryOrder[tab] ? ' on' : ''}`}
@@ -172,15 +230,14 @@ function Screen({
           {filter}
           <button
             type="button"
-            className={`jx-chip${columns[tab] !== DEFAULTS.libraryColumns[tab] ? ' on' : ''}`}
-            onClick={() => setSetting('libraryColumns', { ...columns, [tab]: shelf ? unshelved : 'jukebox' })}
-            aria-label={shelf ? `Jukebox shelf. Tap for the ${flat.toLowerCase()}` : `${flat}. Tap for the jukebox shelf`}
+            className={`jx-chip${cols !== DEFAULTS.libraryColumns[tab] ? ' on' : ''}`}
+            onClick={() => setSetting('libraryColumns', { ...columns, [tab]: nextCols })}
+            aria-label={`${layoutLabel(cols)}. Tap for ${layoutLabel(nextCols)}`}
           >
-            {shelf ? 'Jukebox' : flat}
+            {layoutLabel(cols)}
           </button>
         </div>
-      )}
-      <SearchBox query={query} setQuery={setQuery} label={`Search ${(genre ? `${genre} ` : '') + title.toLowerCase()}`} />
+      </PullDrawer>
       {children}
     </div>
   )
@@ -219,7 +276,7 @@ export function AlbumsScreen(props: ListProps) {
       title="Albums"
       count={plural(shown.length, 'album')}
       onShuffle={shown.length ? () => shuffleAlbums(shown) : undefined}
-      changed={layout.changed || fullOnly !== DEFAULTS.fullAlbumsOnly}
+      filterNote={fullOnly !== DEFAULTS.fullAlbumsOnly ? (fullOnly ? 'Full albums' : 'All albums') : null}
       filter={
         <FilterChip
           on={fullOnly}
@@ -237,17 +294,33 @@ export function AlbumsScreen(props: ListProps) {
       ) : (
         <>
           <Nothing query={shown.length === 0 ? query : ''} />
-          <ul className="jx-grid">
-            {shown.slice(0, limit).map((album) => (
-              <li key={album.id}>
-                <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
-                  <Cover album={album} className="jx-cover" />
-                  <b>{album.title}</b>
-                  <small>{album.artist}</small>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {layout.columns === 1 ? (
+            <ul className="jx-list">
+              {shown.slice(0, limit).map((album) => (
+                <li key={album.id}>
+                  <button type="button" className="jx-row" onClick={() => navigate({ view: 'album', albumId: album.id })}>
+                    <Cover album={album} className="jx-thumb" />
+                    <span>
+                      <b>{album.title}</b>
+                      <small>{[album.artist, album.year].filter(Boolean).join(' · ')}</small>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className={`jx-grid n${layout.columns}`}>
+              {shown.slice(0, limit).map((album) => (
+                <li key={album.id}>
+                  <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
+                    <Cover album={album} className="jx-cover" />
+                    <b>{album.title}</b>
+                    <small>{album.artist}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <More left={shown.length - limit} onMore={() => setLimit((n) => n + PAGE)} />
         </>
       )}
@@ -286,7 +359,7 @@ export function ArtistsScreen(props: ListProps) {
       title="Artists"
       count={plural(names.length, 'artist')}
       onShuffle={names.length ? () => shuffleArtists(names.flatMap((n) => byArtist.get(n) ?? [])) : undefined}
-      changed={layout.changed || min3 !== DEFAULTS.artistsMin3}
+      filterNote={min3 !== DEFAULTS.artistsMin3 ? (min3 ? `Min. ${ARTIST_MIN}` : 'All artists') : null}
       filter={
         <FilterChip
           on={min3}
@@ -304,18 +377,27 @@ export function ArtistsScreen(props: ListProps) {
       ) : (
         <>
           <Nothing query={names.length === 0 ? query : ''} />
-          <ul className="jx-list">
+          <ul className={layout.columns === 1 ? 'jx-list' : `jx-grid n${layout.columns} artists`}>
             {names.slice(0, limit).map((name) => {
               const theirs = byArtist.get(name) ?? []
+              const face = theirs.find((a) => a.cover) ?? theirs[0]
               return (
                 <li key={name}>
-                  <button type="button" className="jx-row" onClick={() => navigate({ view: 'artist', artist: name })}>
-                    <Cover album={theirs.find((a) => a.cover) ?? theirs[0]} className="jx-thumb round" />
-                    <span>
+                  {layout.columns === 1 ? (
+                    <button type="button" className="jx-row" onClick={() => navigate({ view: 'artist', artist: name })}>
+                      <Cover album={face} className="jx-thumb round" />
+                      <span>
+                        <b>{name}</b>
+                        <small>{plural(theirs.length, 'album')}</small>
+                      </span>
+                    </button>
+                  ) : (
+                    <button type="button" className="jx-tile" onClick={() => navigate({ view: 'artist', artist: name })}>
+                      <Cover album={face} className="jx-cover round" />
                       <b>{name}</b>
                       <small>{plural(theirs.length, 'album')}</small>
-                    </span>
-                  </button>
+                    </button>
+                  )}
                 </li>
               )
             })}
@@ -350,7 +432,6 @@ export function SongsScreen(props: ListProps) {
       title="Tracks"
       count={plural(shown.length, 'track')}
       onShuffle={shown.length ? () => shuffleSongs(shown) : undefined}
-      changed={layout.changed}
     >
       {layout.genreList ? (
         <GenreIndex tab="tracks" query={query} />

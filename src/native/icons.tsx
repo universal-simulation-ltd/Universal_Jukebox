@@ -64,14 +64,10 @@ export function IconTune() {
   )
 }
 
-/** List options: three sliders. */
-export function IconOptions() {
+export function IconClose() {
   return (
-    <svg {...base}>
-      <path d="M4 6h10M18 6h2M4 12h3M11 12h9M4 18h12" />
-      <circle cx="16" cy="6" r="2" />
-      <circle cx="9" cy="12" r="2" />
-      <circle cx="18" cy="18" r="2" />
+    <svg {...base} strokeWidth={2.2}>
+      <path d="M7 7l10 10M17 7 7 17" />
     </svg>
   )
 }

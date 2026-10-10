@@ -116,6 +116,22 @@ html.dark .jx {
 /* Covers: a grid that is two across on a phone and more on an iPad. */
 .jx-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 14px; }
 .jx-grid > li { content-visibility: auto; contain-intrinsic-size: auto 220px; }
+/* N per row (the layout pill): exactly N across a phone, two more on an iPad. */
+.jx-grid.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.jx-grid.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 10px; }
+.jx-grid.n4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+@media (min-width: 700px) {
+  .jx-grid.n2 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .jx-grid.n3 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .jx-grid.n4 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+.jx-grid.n3 .jx-tile b, .jx-grid.n4 .jx-tile b { font-size: 13px; }
+.jx-grid.n3 .jx-tile small, .jx-grid.n4 .jx-tile small { font-size: 11.5px; }
+.jx-grid.n4 .jx-tile small { display: none; }
+/* Artists: round faces, names centred under them. */
+.jx-grid.artists .jx-tile { align-items: center; text-align: center; }
+.jx-grid.artists .jx-tile b, .jx-grid.artists .jx-tile small { max-width: 100%; }
+.jx-cover.round { border-radius: 50% !important; }
 .jx-tile { display: flex; flex-direction: column; gap: 2px; width: 100%; border: 0; background: none; padding: 0; text-align: left; }
 .jx-tile .jx-cover { width: 100%; aspect-ratio: 1; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px -8px rgba(0, 0, 0, 0.35); }
 .jx-tile b, .jx-row b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -149,7 +165,21 @@ html.dark .jx {
 .jx-link { border: 0; background: none; padding: 4px 0; color: var(--jx-acc); font-size: 17px; font-weight: 500; text-align: left; }
 .jx-link.center { align-self: center; font-size: 15px; }
 
-/* The list options, behind the sliders button. */
+/* The drawer above a library tab: search, Shuffle, list options (PullDrawer). */
+.jx-drawer { height: 0; opacity: 0; overflow: hidden; margin-top: -14px; }
+.jx-drawer-inner { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; }
+.jx-search-close { display: grid; place-items: center; width: 32px; height: 32px; margin-right: -6px; border: 0; background: none; color: var(--jx-mute); flex: none; }
+.jx-search-close svg { width: 18px; height: 18px; }
+.jx-search input::-webkit-search-cancel-button { display: none; }
+.jx-chip { display: inline-flex; align-items: center; gap: 6px; }
+.jx-chip svg { width: 16px; height: 16px; }
+.jx-chip.play { background: var(--jx-fill); border-color: var(--jx-fill); color: #fff; }
+/* One line that scrolls sideways, edge to edge, rather than a second row. */
+.jx-drawer .jx-chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+.jx-drawer .jx-chips::-webkit-scrollbar { display: none; }
+.jx-drawer .jx-chip { flex: none; }
+
+/* The list options. */
 .jx-heading-buttons { display: flex; gap: 8px; flex: none; }
 .jx-round { position: relative; }
 .jx-round.on { background: var(--jx-fill); color: #fff; }
