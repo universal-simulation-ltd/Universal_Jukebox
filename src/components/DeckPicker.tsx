@@ -4,6 +4,7 @@ import { DECKS } from '../lib/decks'
 import { DECK_SETTINGS, useSettingsStore } from '../stores/settingsStore'
 import { DeckMiniature } from './Deck'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import { useT } from '../i18n'
 
 // A quick change of machine, from a long press on the one on Now Playing
 // (James, 2026-09-16: "a long-press on the player device on now playing to
@@ -21,6 +22,7 @@ import { useDialogFocus } from '../lib/useDialogFocus'
 // can be held for any length of time before it lifts.
 
 export default function DeckPicker({ onClose }: { onClose(): void }) {
+  const t = useT()
   const dialogRef = useDialogFocus()
   const deck = useSettingsStore((s) => s.deck)
   const set = useSettingsStore((s) => s.set)
@@ -58,7 +60,7 @@ export default function DeckPicker({ onClose }: { onClose(): void }) {
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label="Play on"
+      aria-label={t('decks.picker_title')}
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 select-none sm:items-center"
       // ⚠️ NOTHING HERE CAN BE SELECTED. The finger that opened the sheet is
       // still held down, and iOS carried that hold on into a text selection of
@@ -75,13 +77,13 @@ export default function DeckPicker({ onClose }: { onClose(): void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">Play on</p>
+          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{t('decks.picker_title')}</p>
           <button
             type="button"
             onClick={onClose}
             className="rounded-full px-3 py-1 text-[13px] font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
         <ul className="grid grid-cols-3 gap-2 px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CD_WELL, type DeckFaceProps } from './face'
 import { Scrubber } from './scrub'
+import { useT } from '../../i18n'
 import { slideInner, slideOuter } from './slide'
 
 // A portable CD player — the disc, the laser, and the machine around them.
@@ -68,6 +69,7 @@ const percent = (share: number) => `${Math.round(share * 1000) / 10}%`
 const WELL = { left: percent(CD_WELL.side), right: percent(CD_WELL.side), top: percent(CD_WELL.top) }
 
 export default function CdDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, controls }: DeckFaceProps) {
+  const t = useT()
   // While the sled is in a hand it goes where the hand puts it — see the
   // `Scrubber` at the end.
   const [held, setHeld] = useState<number | null>(null)
@@ -321,7 +323,7 @@ export default function CdDeck({ progress, engaged, spinning, reduced, url, hue,
             held={held}
             setHeld={setHeld}
             detents={10}
-            label="Laser — drag it along its rail to move through the song"
+            label={t('decks.scrub_laser')}
             className="cursor-grab rounded-full active:cursor-grabbing"
             style={{
               left: `${lens.x}%`,

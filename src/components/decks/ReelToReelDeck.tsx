@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type Mous
 import { outerTangent, packRadius, revolutionSeconds, sectorPath, type Point } from '../../lib/reels'
 import type { DeckFaceProps } from './face'
 import { Scrubber } from './scrub'
+import { useT } from '../../i18n'
 import { rotary, rotaryDetents, turnShare } from '../../lib/scrub'
 
 // The reel-to-reel — a home tape deck standing up, seen from the front: two
@@ -83,6 +84,7 @@ const CAPSTAN = { x: 71, y: TAPE_Y - TAPE / 2 - 1.5, r: 1.5 }
 const PINCH = { x: 71, y: TAPE_Y + TAPE / 2 + 3.1, r: 3.1 }
 
 export default function ReelToReelDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, controls }: DeckFaceProps) {
+  const t = useT()
   // ⚠️ `useId` gives ids with colons in them, which break `url(#…)` in some
   // engines — the cassette's note. Two decks on one page (the Settings
   // miniature beside the real one) must not share a mask.
@@ -361,10 +363,10 @@ export default function ReelToReelDeck({ progress, engaged, spinning, reduced, u
       {controls && (
         <>
           {/* Positions are the keys' own, as shares of the drawing's 100 × 90. */}
-          <KeyButton label="Previous track" x={KEY_X[0]} onPress={controls.previous} />
-          <KeyButton label="Play" x={KEY_X[1]} onPress={() => !controls.playing && controls.toggle()} />
-          <KeyButton label="Pause" x={KEY_X[2]} onPress={() => controls.playing && controls.toggle()} />
-          <KeyButton label="Next track" x={KEY_X[3]} onPress={controls.next} />
+          <KeyButton label={t('decks.previous_track')} x={KEY_X[0]} onPress={controls.previous} />
+          <KeyButton label={t('common.play')} x={KEY_X[1]} onPress={() => !controls.playing && controls.toggle()} />
+          <KeyButton label={t('common.pause')} x={KEY_X[2]} onPress={() => controls.playing && controls.toggle()} />
+          <KeyButton label={t('decks.next_track')} x={KEY_X[3]} onPress={controls.next} />
         </>
       )}
 
@@ -380,7 +382,7 @@ export default function ReelToReelDeck({ progress, engaged, spinning, reduced, u
             held={held}
             setHeld={setHeld}
             detents={rotaryDetents(controls.durationSec)}
-            label="Tape spool — circle it anticlockwise to wind on through the song, clockwise to wind back"
+            label={t('decks.scrub_reel')}
             className="aspect-square cursor-grab rounded-full active:cursor-grabbing"
             style={{
               left: `${reel.x}%`,

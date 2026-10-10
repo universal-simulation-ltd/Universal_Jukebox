@@ -79,9 +79,9 @@ describe('the deck tables', () => {
     expect(DECK_SETTINGS).toContain('reel')
     const reel = DECKS.reel
     for (const line of Object.values(reel)) expect(line.toLowerCase()).not.toContain('cassette')
-    // A sentence is built round `noun` ("a different ___ goes on"), so it has
-    // to be a bare noun rather than the machine's name.
-    expect(reel.noun).toBe('reel')
+    // "a different ___ goes on" names the medium, a bare noun, rather than the
+    // machine's name.
+    expect(reel.albumChangeHint).toContain('a different reel goes on')
   })
 
   it('keeps the reel-to-reel a deck you choose, never one automatic picks', () => {

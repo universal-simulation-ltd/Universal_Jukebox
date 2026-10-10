@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import type { DeckFaceProps } from './face'
 import { Scrubber } from './scrub'
+import { useT } from '../../i18n'
 import { rotary, rotaryDetents, turnShare } from '../../lib/scrub'
 
 // The cassette — a Walkman shell with the window facing you.
@@ -37,6 +38,7 @@ function pack(fraction: number): number {
 }
 
 export default function CassetteDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, controls }: DeckFaceProps) {
+  const t = useT()
   // Winding with a finger (James, 2026-09-29: "cassette doing circles at the
   // tape turning") — the pencil-in-the-hub trick. While wound, the packs show
   // where the finger has taken the tape and the reels turn with it; the song
@@ -176,7 +178,7 @@ export default function CassetteDeck({ progress, engaged, spinning, reduced, url
             held={held}
             setHeld={setHeld}
             detents={rotaryDetents(controls.durationSec)}
-            label="Cassette reel — circle it clockwise to wind on through the song, anticlockwise to wind back"
+            label={t('decks.scrub_cassette')}
             className="aspect-square cursor-grab rounded-full active:cursor-grabbing"
             style={{
               left: `${x}%`,

@@ -16,6 +16,8 @@ import ReelToReelDeck from './decks/ReelToReelDeck'
 import { coverUrl, fallbackHue } from '../lib/art'
 import { grooveRings } from '../lib/grooves'
 import { haptic } from '../lib/haptics'
+import { shownName } from '../lib/format'
+import { useT } from '../i18n'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
@@ -814,6 +816,7 @@ const Peek = forwardRef<
     onClick(): void
   }
 >(function Peek({ album, style, side, size, deck, grooves, top, motion, onClick }, ref) {
+  const t = useT()
   return (
     <button
       ref={ref}
@@ -822,7 +825,11 @@ const Peek = forwardRef<
         e.stopPropagation()
         onClick()
       }}
-      aria-label={`${side === 'left' ? 'Previous' : 'Next'}${album ? `: ${album.title}` : ''}`}
+      aria-label={
+        album
+          ? t(side === 'left' ? 'decks.peek_previous' : 'decks.peek_next', { album: shownName(album.title) })
+          : t(side === 'left' ? 'common.previous' : 'common.next')
+      }
       className="absolute hover:opacity-90 focus-visible:opacity-100 lg:hidden"
       style={rowStyle(side, size, top, motion)}
     >

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { DeckControls, DeckFaceProps } from './face'
 import type { ScrubMap } from '../../lib/scrub'
 import { Scrubber } from './scrub'
+import { useT } from '../../i18n'
 import { slideInner, slideOuter } from './slide'
 import { VinylRecordFace } from './VinylRecord'
 
@@ -201,6 +202,7 @@ function ArmGrab({
   setHeld(fraction: number | null): void
   controls: DeckControls
 }) {
+  const t = useT()
   const turn = (angle * Math.PI) / 180
   const head = {
     x: PIVOT.x + HEAD.x * Math.cos(turn) - HEAD.y * Math.sin(turn),
@@ -223,7 +225,7 @@ function ArmGrab({
       held={held}
       setHeld={setHeld}
       detents={10}
-      label="Tonearm — drag it across the record to move through the song"
+      label={t('decks.scrub_tonearm')}
       className="cursor-grab rounded-full active:cursor-grabbing"
       style={{
         left: `${head.x * 100}%`,

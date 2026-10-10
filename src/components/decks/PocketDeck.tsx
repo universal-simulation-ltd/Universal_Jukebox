@@ -1,6 +1,7 @@
 import { useId, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import type { DeckFaceProps } from './face'
 import { Scrubber } from './scrub'
+import { useT } from '../../i18n'
 import { rotary, rotaryDetents, turnShare } from '../../lib/scrub'
 
 // The pocket player (James, 2026-09-10: "a 'modern' device option, maybe an
@@ -33,6 +34,7 @@ import { rotary, rotaryDetents, turnShare } from '../../lib/scrub'
 // top.
 
 export default function PocketDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, controls }: DeckFaceProps) {
+  const t = useT()
   const [held, setHeld] = useState<number | null>(null)
   /** Where the thumb has taken the lit arc, while it goes round. */
   const [thumb, setThumb] = useState<number | null>(null)
@@ -102,7 +104,7 @@ export default function PocketDeck({ progress, engaged, spinning, reduced, url, 
         {/* The click wheel. */}
         <circle cx="50" cy="106" r="26" fill={`url(#${wheel})`} stroke="#cbd5e1" strokeWidth="0.8" />
         <g fill="#94a3b8" fontSize="5.5" fontWeight="600" textAnchor="middle">
-          <text x="50" y="87.5">MENU</text>
+          <text x="50" y="87.5">{t('decks.pocket_menu')}</text>
           <text x="31" y="108">⏮</text>
           <text x="69" y="108">⏭</text>
           <text x="50" y="128">⏯</text>
@@ -129,9 +131,9 @@ export default function PocketDeck({ progress, engaged, spinning, reduced, url, 
       {controls && (
         <>
           {/* Positions are the drawing's own, as shares of its 100 × 140. */}
-          <WheelButton label="Previous track" box={[23, 94, 17, 24]} onPress={controls.previous} />
-          <WheelButton label="Next track" box={[60, 94, 17, 24]} onPress={controls.next} />
-          <WheelButton label={controls.playing ? 'Pause' : 'Play'} box={[38, 117, 24, 15]} onPress={controls.toggle} />
+          <WheelButton label={t('decks.previous_track')} box={[23, 94, 17, 24]} onPress={controls.previous} />
+          <WheelButton label={t('decks.next_track')} box={[60, 94, 17, 24]} onPress={controls.next} />
+          <WheelButton label={t(controls.playing ? 'common.pause' : 'common.play')} box={[38, 117, 24, 15]} onPress={controls.toggle} />
           {engaged && controls.durationSec > 0 && (
             <Scrubber
               controls={controls}
@@ -139,7 +141,7 @@ export default function PocketDeck({ progress, engaged, spinning, reduced, url, 
               held={held}
               setHeld={setHeld}
               detents={rotaryDetents(controls.durationSec)}
-              label="Click wheel — go round it clockwise to move on through the song, anticlockwise to go back"
+              label={t('decks.scrub_click_wheel')}
               className="aspect-square rounded-full"
               style={{ left: '50%', top: `${(106 / 140) * 100}%`, width: '52%', transform: 'translate(-50%, -50%)' }}
               begin={(x0, y0, from, el) => {
@@ -161,7 +163,7 @@ export default function PocketDeck({ progress, engaged, spinning, reduced, url, 
             />
           )}
           {/* Above the ring, so it is always the centre button. */}
-          <WheelButton label={controls.playing ? 'Pause' : 'Play'} box={[40, 96, 20, 20]} onPress={controls.toggle} round />
+          <WheelButton label={t(controls.playing ? 'common.pause' : 'common.play')} box={[40, 96, 20, 20]} onPress={controls.toggle} round />
         </>
       )}
     </div>

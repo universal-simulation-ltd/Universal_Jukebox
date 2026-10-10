@@ -20,6 +20,8 @@ import { DeckSlideContext, slideInner, slideOuter } from './decks/slide'
 import { DeckOutlineContext } from './decks/outline'
 import { grooveRings } from '../lib/grooves'
 import { haptic } from '../lib/haptics'
+import { shownName } from '../lib/format'
+import { useT } from '../i18n'
 
 // The deck: whatever is turning on Now Playing, with the album's cover on it,
 // the pickup engaging when you put something on, and the pickup — or the reels
@@ -102,6 +104,7 @@ const LONG_PRESS_MS = 500
 const LONG_PRESS_SLOP = 8
 
 export default function Deck({ album, size, ceremonial = false, underArm, onLongPress }: DeckProps) {
+  const t = useT()
   const playing = usePlayerStore((s) => s.playing)
   const ceremony = usePlayerStore((s) => s.ceremony)
   const armDownState = usePlayerStore((s) => s.armDown)
@@ -291,7 +294,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
       <div
         role="button"
         tabIndex={0}
-        aria-label={album ? `Open ${album.title}` : 'Open album'}
+        aria-label={album ? t('decks.open_album_named', { album: shownName(album.title) }) : t('decks.open_album')}
         onClick={openAlbum}
         {...pressHandlers}
         onKeyDown={(e) => {
@@ -343,13 +346,13 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
         {spinning && !reduced && <Notes at={notes} />}
 
         {/* First run: "Tap here" on the record — tapping it opens the album. */}
-        {ceremonial && <Tip id="record" detail="to see the album" />}
+        {ceremonial && <Tip id="record" detail={t('app.tip_record')} />}
       </div>
 
       {/* The affordance, kept quiet: the deck is also the thing you are meant to
           just watch. */}
       <p className="mt-3 text-[11px] text-slate-400 opacity-0 transition-opacity group-hover:opacity-100 dark:text-slate-500">
-        Open album
+        {t('decks.open_album')}
       </p>
 
       {/* ⚠️ There is deliberately NO countdown rendered here. The numerals are

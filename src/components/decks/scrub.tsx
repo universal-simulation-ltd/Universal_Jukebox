@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { clock } from '../../lib/format'
+import { useT } from '../../i18n'
 import { haptic } from '../../lib/haptics'
 import type { ScrubMap } from '../../lib/scrub'
 import type { DeckControls } from './face'
@@ -70,6 +71,7 @@ export function Scrubber({
   bubble?: 'above' | 'inside'
   children?: ReactNode
 }) {
+  const t = useT()
   const press = useRef<{ x: number; y: number; map: ScrubMap | null; dragging: boolean; eat: boolean } | null>(null)
   const detent = useRef(-1)
   const eatClick = useRef(false)
@@ -106,7 +108,10 @@ export function Scrubber({
       aria-valuemin={0}
       aria-valuemax={Math.round(controls.durationSec)}
       aria-valuenow={Math.round((held ?? position) * controls.durationSec)}
-      aria-valuetext={`${clock((held ?? position) * controls.durationSec)} of ${clock(controls.durationSec)}`}
+      aria-valuetext={t('decks.scrub_position', {
+        position: clock((held ?? position) * controls.durationSec),
+        duration: clock(controls.durationSec),
+      })}
       className={`absolute z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E05504] ${className}`}
       style={{ touchAction: 'none', ...style }}
       onPointerDown={(e) => {

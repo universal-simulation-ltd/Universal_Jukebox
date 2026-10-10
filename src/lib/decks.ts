@@ -1,4 +1,5 @@
 import type { DeckSetting, DeckStyle } from '../stores/settingsStore'
+import { getT, type MessageKey } from '../i18n/runtime.ts'
 
 // The decks, as words.
 //
@@ -7,8 +8,9 @@ import type { DeckSetting, DeckStyle } from '../stores/settingsStore'
 // is not tidiness: this app's copy is FULL of vinyl — "the arm", "the needle",
 // "putting a record on" — and the failure mode of a skin setting is a cassette
 // on screen while the page still talks about a tonearm. One map means adding a
-// fifth deck is a row here plus a face in `components/decks/`, with nothing
-// anywhere else to hunt for.
+// machine is a row here, its sentences in `i18n/en/decks.ts` (the compiler
+// lists any it lacks) and a face in `components/decks/`, with nothing anywhere
+// else to hunt for.
 //
 // ⚠️ Only the strings that MUST change are in here. Plenty of the ceremony's
 // copy was reworded to be true of all of them instead ("a different album", "no
@@ -22,133 +24,122 @@ import type { DeckSetting, DeckStyle } from '../stores/settingsStore'
 
 export interface DeckCopy {
   /** The chooser's own option label. */
-  label: string
+  readonly label: string
   /** The line under it, saying what you would be looking at. */
-  hint: string
-  /** The medium, bare, for "a ___" and "___-changing": record, disc, cassette. */
-  noun: string
+  readonly hint: string
+  /** The heading over the animation controls. */
+  readonly startTitle: string
+  /** The line under that heading. */
+  readonly startNote: string
+  /** The start-up sound's settings row label. */
+  readonly soundLabel: string
+  /** What that sound actually is. */
+  readonly soundHint: string
   /**
-   * What pressing play does, following "…goes to the deck and".
+   * The "Every track" stop on the animation ladder: what any play does on this
+   * machine — the MACHINE's action, then what lands back on the medium (the
+   * needle, the laser, the tape head).
    *
    * ⚠️ Describe the MACHINE, not the user. "presses play" was the first draft
    * and it made the sentence eat its own tail: "any play … goes to the deck and
    * presses play".
    */
-  verb: string
-  /** The heading over the animation controls. */
-  startTitle: string
-  /** The line under that heading. */
-  startNote: string
-  /** The start-up sound's settings row label. */
-  soundLabel: string
-  /** What that sound actually is. */
-  soundHint: string
-  /**
-   * What lands on the medium: the needle, the laser, the tape head.
-   *
-   * ⚠️ A field rather than the `noun === 'record' ? 'needle' : 'pickup'` test
-   * this used to be, because that test asks the wrong question — it happens to
-   * be right for three decks, and the jukebox (whose noun IS 'record', and
-   * which does have a needle) would be right by luck too. A machine's pickup is
-   * a fact about the machine, so it belongs in the machine's row.
-   */
-  pickup: string
+  readonly everyTrackHint: string
+  /** The "When the album changes" stop: "Only when a different record goes on…". */
+  readonly albumChangeHint: string
+  /** The ladder's own label: "Show the record-changing animation". */
+  readonly animationLabel: string
+  /** The line under the ladder, naming this machine's sound. */
+  readonly animationHint: string
+  /** The tick box that silences the sound: "Mute the needle-drop sound". */
+  readonly muteLabel: string
+  /** The line under it: a lead-in, then `soundHint`. */
+  readonly muteHint: string
+  /** The loudness slider's label: "Needle-drop sound volume". */
+  readonly volumeLabel: string
+  /** That slider's line while the sound is muted. */
+  readonly volumeOffHint: string
+}
+
+// ⚠️ WHOLE SENTENCES, NOT FRAGMENTS. This map used to hold `noun` ("record"),
+// `verb` ("cues the arm") and `pickup` ("needle"), and the Settings page
+// slotted them into its own sentences: "a different ___ goes on", "Show the
+// ___-changing animation", "Mute the ${soundLabel.toLowerCase()}". That is
+// English-only — a translated noun needs its own article, gender and case, and
+// lower-casing a German noun is a spelling mistake — so every sentence that
+// mentions the machine is now one key per machine in `i18n/en/decks.ts`
+// (`decks.<deck>_<field>`), and nothing is assembled here or downstream.
+// Do not bring a fragment field back to build a sentence with.
+//
+// ⚠️ GETTERS, read at the moment of use, so the words follow a language change
+// in Tune this app; a value copied out at import time would stay English. The
+// map keeps its old shape (`DECKS[setting].label`) so its readers did not
+// change.
+const FIELDS = {
+  label: 'label',
+  hint: 'hint',
+  startTitle: 'start_title',
+  startNote: 'start_note',
+  soundLabel: 'sound_label',
+  soundHint: 'sound_hint',
+  everyTrackHint: 'every_track_hint',
+  albumChangeHint: 'album_change_hint',
+  animationLabel: 'animation_label',
+  animationHint: 'animation_hint',
+  muteLabel: 'mute_label',
+  volumeLabel: 'volume_label',
+  volumeOffHint: 'volume_off_hint',
+} as const satisfies Record<Exclude<keyof DeckCopy, 'muteHint'>, string>
+
+type Field = (typeof FIELDS)[keyof typeof FIELDS]
+
+/** `decks.<deck>_<field>` — a compile error if any machine is missing any field. */
+function key(deck: DeckSetting, field: Field | 'summary_off' | 'summary_on' | 'summary_at'): MessageKey {
+  return `decks.${deck}_${field}` as const
+}
+
+function copyFor(deck: DeckSetting): DeckCopy {
+  const copy = {} as DeckCopy
+  for (const [name, field] of Object.entries(FIELDS) as [keyof typeof FIELDS, Field][]) {
+    Object.defineProperty(copy, name, { enumerable: true, get: () => getT()(key(deck, field)) })
+  }
+  Object.defineProperty(copy, 'muteHint', {
+    enumerable: true,
+    get: () => getT()('decks.mute_hint', { sound_hint: copy.soundHint }),
+  })
+  return copy
 }
 
 export const DECKS: Record<DeckSetting, DeckCopy> = {
-  vinyl: {
-    label: 'Vinyl',
-    hint: 'A record turning at 33⅓ with the album art as its centre label, and a tonearm creeping in towards the middle as the track plays.',
-    noun: 'record',
-    verb: 'cues the arm',
-    startTitle: 'Putting a record on',
-    startNote: 'The turntable animation, the countdown, and the sound of the needle landing.',
-    soundLabel: 'Needle-drop sound',
-    soundHint:
-      'A low thunk and a second of surface noise as the arm lands — putting a record on, changing track, and previewing one. Rides your volume, and never plays on its own.',
-    pickup: 'needle',
-  },
-  cd: {
-    label: 'CD',
-    hint: 'A portable CD player with the lid open, the disc in its well, and the laser tracking outwards from the middle — the direction a CD is actually read.',
-    noun: 'disc',
-    verb: 'spins the disc up',
-    startTitle: 'Putting a disc in',
-    startNote: 'The disc animation, the countdown, and the sound of it spinning up.',
-    soundLabel: 'Disc spin-up sound',
-    soundHint:
-      'The lid click and the whirr of a disc coming up to speed — starting a disc, changing track, and previewing one. Rides your volume, and never plays on its own.',
-    pickup: 'laser',
-  },
-  cassette: {
-    label: 'Cassette',
-    hint: 'A Walkman-style shell with the tape spooling from the left reel to the right, so how far through you are is how full the reels are.',
-    noun: 'cassette',
-    verb: 'clunks the play key down',
-    startTitle: 'Putting a cassette in',
-    startNote: 'The cassette animation, the countdown, and the sound of the play key.',
-    soundLabel: 'Play-key sound',
-    soundHint:
-      'The clunk of the play key latching and a moment of tape hiss — putting a cassette in, changing track, and previewing one. Rides your volume, and never plays on its own.',
-    pickup: 'tape head',
-  },
+  vinyl: copyFor('vinyl'),
+  cd: copyFor('cd'),
+  cassette: copyFor('cassette'),
   // ⚠️ `reel`, the setting, is the reel-to-reel — not the row of records
   // waiting to go on, which the code also calls a reel (`UpNextReel`). The
   // stored word had to be short and one word like the others; the copy says
   // "reel-to-reel" wherever the two could be confused.
-  reel: {
-    label: 'Reel-to-reel',
-    hint: 'A tape deck with two open spools and the tape threaded across the heads — the left reel empties onto the right as the track plays, turning faster as it goes.',
-    noun: 'reel',
-    verb: 'swings the pinch roller up to the capstan',
-    startTitle: 'Threading a reel',
-    startNote: 'The reel-to-reel animation, the countdown, and the sound of the transport engaging.',
-    soundLabel: 'Transport sound',
-    soundHint:
-      'The solenoid thunk of the transport engaging, the reels taking up the slack, and a breath of tape hiss — threading a reel, changing track, and previewing one. Rides your volume, and never plays on its own.',
-    pickup: 'tape head',
-  },
-  jukebox: {
-    label: 'Jukebox',
-    hint: 'The cabinet the app is named after — the 45 swung out of the rack by the gripper, laid on the platter under the lit arch, and played.',
-    noun: 'record',
-    verb: 'sends the gripper out',
-    startTitle: 'Pulling a record from the rack',
-    startNote: 'The selection mechanism, the countdown, and the sound of the record being loaded.',
-    soundLabel: 'Loading-mechanism sound',
-    soundHint:
-      'The clack of the gripper, the swing of the record across to the platter, and the needle landing on it — selecting a record, changing track, and previewing one. Rides your volume, and never plays on its own.',
-    pickup: 'needle',
-  },
-  // ⚠️ The one entry that is not a machine. Every sentence here has to stay
-  // true whichever of the four is currently up, so none of them names a
-  // mechanism — `noun` is 'record' because that is what a jukebox holds and
-  // what two of the four play, and it is the least wrong word available for a
-  // sentence that has to be readable before you know what came up.
-  pocket: {
-    label: 'Pocket player',
-    hint: 'A pocket music player with the album art on its screen, a click wheel under it, and the progress bar filling as the track plays.',
-    noun: 'album',
-    verb: 'wakes the screen',
-    startTitle: 'Picking an album',
-    startNote: 'The player waking up, the countdown, and the click of the wheel.',
-    soundLabel: 'Click-wheel sound',
-    soundHint:
-      'The tick of the wheel and the centre button pressed — starting an album, changing track, and previewing one. Rides your volume, and never plays on its own.',
-    pickup: 'playhead',
-  },
-  automatic: {
-    label: 'Automatic',
-    hint: 'Each album on the machine of its day, by the year on the album — a jukebox for the oldest, then vinyl, cassette, CD and a pocket player. You choose the years each one takes over.',
-    noun: 'record',
-    verb: 'starts the machine of the album’s day',
-    startTitle: 'Putting something on',
-    startNote: 'The loading animation, the countdown, and the sound of whichever machine the album belongs to.',
-    soundLabel: 'Start-up sound',
-    soundHint:
-      'The machine starting: a jukebox gripper, a needle landing, a play key, a disc spinning up or a click wheel, depending on the album’s year. Rides your volume, and never plays on its own.',
-    pickup: 'pickup',
-  },
+  reel: copyFor('reel'),
+  jukebox: copyFor('jukebox'),
+  // The pocket player says "album" where the others say record, disc or reel:
+  // what changes on it is the album on its screen.
+  pocket: copyFor('pocket'),
+  // ⚠️ The one entry that is not a machine. Every sentence in its keys has to
+  // stay true whichever machine is currently up, so none of them names a
+  // mechanism — they say "record" because that is what a jukebox holds and
+  // what two of the machines play, the least wrong word for a sentence that has
+  // to be readable before you know what came up, and "pickup" for whatever
+  // lands on it.
+  automatic: copyFor('automatic'),
+}
+
+/**
+ * The start-up section's one-line summary when it is folded shut: the
+ * animation ladder's setting (`mode`, a label such as "Every track"), then the
+ * machine's sound — off, on at its usual level, or at `level` (a step such as
+ * "+2"). One sentence per machine and state, for the reason at `DECKS`.
+ */
+export function startSummary(setting: DeckSetting, mode: string, sound: 'off' | 'on' | 'at', level = ''): string {
+  return getT()(key(DECKS[setting] ? setting : 'vinyl', `summary_${sound}`), { mode, level })
 }
 
 /** The copy for a chosen setting. The store validates, so this always hits. */

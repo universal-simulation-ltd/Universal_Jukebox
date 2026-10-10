@@ -9,8 +9,9 @@ import SleepButton from './SleepButton'
 import { BedsideButton } from './Bedside'
 import PlayerButton from './PlayerButton'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
-import { useSettingsStore, type ModeKey } from '../stores/settingsStore'
+import { MODE_LABELS, useSettingsStore, type ModeKey } from '../stores/settingsStore'
 import { openSettingsAt } from '../lib/settingsSection'
+import { useT } from '../i18n'
 
 // The row of round buttons under the records waiting to go on: shuffle and the
 // two repeats (James, 2026-09-11: "repeat: add three buttons, centred, under
@@ -32,6 +33,7 @@ import { openSettingsAt } from '../lib/settingsSection'
 // in its queue popup.)
 
 export default function PlayModes() {
+  const t = useT()
   const queued = usePlayerStore((s) => s.queue.length)
   const track = usePlayerStore(currentTrack)
   const shuffle = usePlayerStore((s) => s.shuffle)
@@ -49,19 +51,19 @@ export default function PlayModes() {
   return (
     <div className="mt-5 flex flex-wrap justify-center gap-x-1 gap-y-3 sm:gap-x-5">
       {any('shuffle', 'repeatAll', 'repeatOne') && (
-        <div role="group" aria-label="Play order" className="flex gap-x-1 sm:gap-x-5">
+        <div role="group" aria-label={t('decks.group_play_order')} className="flex gap-x-1 sm:gap-x-5">
           {shows('shuffle') && (
-            <ModeButton label="Shuffle" on={shuffle} onClick={() => toggleShuffle()}>
+            <ModeButton label={MODE_LABELS.shuffle} on={shuffle} onClick={() => toggleShuffle()}>
               <ShuffleGlyph />
             </ModeButton>
           )}
           {shows('repeatAll') && (
-            <ModeButton label="Repeat all" on={repeat === 'all'} onClick={() => pick('all')}>
+            <ModeButton label={MODE_LABELS.repeatAll} on={repeat === 'all'} onClick={() => pick('all')}>
               <RepeatGlyph />
             </ModeButton>
           )}
           {shows('repeatOne') && (
-            <ModeButton label="Repeat one" on={repeat === 'one'} onClick={() => pick('one')}>
+            <ModeButton label={MODE_LABELS.repeatOne} on={repeat === 'one'} onClick={() => pick('one')}>
               <RepeatOneGlyph />
             </ModeButton>
           )}
@@ -80,7 +82,7 @@ export default function PlayModes() {
           ORDER nor about the SONG — it is about the room you are in. Absent
           entirely where the engine has no picker to show (`OutputButton`). */}
       {any('output', 'quiet', 'loud') && (
-        <div role="group" aria-label="Sound" className="flex gap-x-1 sm:gap-x-5">
+        <div role="group" aria-label={t('decks.group_sound')} className="flex gap-x-1 sm:gap-x-5">
           {shows('output') && <OutputButton />}
           {/* Quiet and Loud (2026-09-28) — also about the room: down for bed. */}
           {shows('quiet') && <LevelButton kind="quiet" />}
@@ -91,7 +93,7 @@ export default function PlayModes() {
           its own group: it is about the SCREEN, so the lyrics can be read along
           to without the phone locking (James, 2026-09-16). */}
       {any('player', 'keepAwake', 'sleep', 'bedside') && (
-        <div role="group" aria-label="Screen" className="flex gap-x-1 sm:gap-x-5">
+        <div role="group" aria-label={t('decks.group_screen')} className="flex gap-x-1 sm:gap-x-5">
           {/* The machine on the screen, one tap to the next (2026-10-03). */}
           {shows('player') && <PlayerButton />}
           {shows('keepAwake') && <KeepAwakeButton />}
@@ -107,8 +109,8 @@ export default function PlayModes() {
           of the row's own buttons, so it cannot be hidden from Settings. */}
       {!customiseSeen && (
         <ModeButton
-          label="Customise"
-          ariaLabel="Choose which buttons show here, in Tune this app"
+          label={t('decks.customise')}
+          ariaLabel={t('decks.customise_aria')}
           onClick={() => {
             setSetting('customiseSeen', true)
             openSettingsAt('buttons')
