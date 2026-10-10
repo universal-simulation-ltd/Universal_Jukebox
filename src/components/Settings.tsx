@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import {
   LANGUAGE_LABELS,
   SUPPORTED_LANGUAGES,
@@ -11,7 +11,7 @@ import {
 } from '@unisim/sdk'
 import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
-import { DECKS, deckCopy, resolveDeck, sanitiseEras, type DeckEras } from '../lib/decks'
+import { DECKS, deckCopy, resolveDeck, sanitiseEras, startSummary, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
 import { barsOnlineLyrics, isNativeShell, nativePlatform } from '../lib/nativeFile'
 import { nativeCommandLog } from '../lib/nowPlayingNative'
@@ -54,6 +54,7 @@ import {
 } from '../stores/settingsStore'
 import { useThemeStore, type ThemePref } from '../stores/themeStore'
 import { isDesktopApp } from '../lib/host'
+import { useT, type Translator } from '../i18n'
 
 // The settings page.
 //
@@ -69,6 +70,7 @@ import { isDesktopApp } from '../lib/host'
 // preferences is a thing to forget to press.
 
 export default function Settings() {
+  const t = useT()
   const s = useSettingsStore()
   // This app's override of the Global preference (null = follow it) — the same
   // four-way choice, on the same store, as the menu's App preferences.
@@ -115,9 +117,9 @@ export default function Settings() {
   // that needed this and measured not to be, so on a current iPhone these
   // sliders stay live. See the header of `lib/volumeSupport.ts`.
   const fadesBroken = !canSetElementVolume()
-  const FADE_HINT =
-    'This device doesn’t let an app set the playback volume — that belongs to the ' +
-    'hardware buttons — so a fade can’t be heard. Tracks change over cleanly instead.'
+  const FADE_HINT = t('settings.no_fades_hint')
+  const HOME_OPTIONS = homeOptions(t)
+  const THEME_OPTIONS = themeOptions(t)
 
   // Every string below that would otherwise say "record" at a cassette owner.
   const deck = deckCopy(s.deck)
@@ -126,26 +128,11 @@ export default function Settings() {
   // label the handle shows — a second copy of "Every track" is a copy that can
   // drift.
   const ladderCopy: Record<CeremonyMode, { label: string; hint: string }> = {
-    always: {
-      label: 'Every track',
-      hint: `Any play — a track, an album, a search result — goes to the deck and ${deck.verb}, and every track change gets the ${deck.pickup} put back.`,
-    },
-    album: {
-      label: 'When the album changes',
-      hint: `Only when a different ${deck.noun} goes on. Tracks within one album blend into each other quietly.`,
-    },
-    artist: {
-      label: 'When the artist changes',
-      hint: 'Only when somebody new comes on — a whole discography plays through without interruption.',
-    },
-    first: {
-      label: 'Once per visit',
-      hint: 'Only the first time you press play after opening the app.',
-    },
-    off: {
-      label: 'Never',
-      hint: 'Music starts immediately, every time. Tracks on one album still run into each other with no gap — that is the crossfade, not the animation.',
-    },
+    always: { label: t('settings.ladder_always'), hint: deck.everyTrackHint },
+    album: { label: t('settings.ladder_album'), hint: deck.albumChangeHint },
+    artist: { label: t('settings.ladder_artist'), hint: t('settings.ladder_artist_hint') },
+    first: { label: t('settings.ladder_first'), hint: t('settings.ladder_first_hint') },
+    off: { label: t('settings.ladder_off'), hint: t('settings.ladder_off_hint') },
   }
 
   // ⚠️ What each SHUT fold says it is set to. One hand-written line per
@@ -153,32 +140,45 @@ export default function Settings() {
   // labels and formatters the controls themselves display — so a fold can never
   // say "1.5s" over a slider reading 2.0s.
   const summaries = {
-    library: `Opens on ${labelOf(HOME_OPTIONS, s.homeTab)}`,
+    library: t(`settings.summary_opens_on_${s.homeTab}`),
     deck: DECKS[s.deck].label,
-    start: `${ladderCopy[s.ceremonyMode].label}, ${deck.soundLabel.toLowerCase()} ${
-      !s.needleDrop ? 'off' : levelToStep(s.needleDropLevel) === 0 ? 'on' : `at ${formatStep(levelToStep(s.needleDropLevel))}`
-    }`,
-    sound: sentence([
-      s.stableVolume ? 'stable volume' : 'original sound levels',
-      ...(s.levelDb !== 0 && !quietBroken ? [`${s.levelDb < 0 ? 'quiet' : 'loud'} ${formatLevel(s.levelDb)}`] : []),
-      boostBroken ? 'no boost on this device' : `boost ${formatBoost(s.volumeBoost).toLowerCase()}`,
-      fadesBroken ? 'no fades on this device' : describeFades(s.fadeInSec, s.fadeOutSec),
+    start: startSummary(
+      s.deck,
+      ladderCopy[s.ceremonyMode].label,
+      !s.needleDrop ? 'off' : levelToStep(s.needleDropLevel) === 0 ? 'on' : 'at',
+      formatStep(levelToStep(s.needleDropLevel)),
+    ),
+    sound: sentence(t, [
+      s.stableVolume ? t('settings.summary_stable') : t('settings.summary_original'),
+      ...(s.levelDb !== 0 && !quietBroken
+        ? [t(s.levelDb < 0 ? 'settings.summary_quiet' : 'settings.summary_loud', { level: formatLevel(t, s.levelDb) })]
+        : []),
+      boostBroken
+        ? t('settings.summary_no_boost_device')
+        : s.volumeBoost <= 1.001
+          ? t('settings.summary_boost_off')
+          : t('settings.summary_boost', { boost: formatBoost(t, s.volumeBoost) }),
+      fadesBroken ? t('settings.summary_no_fades_device') : describeFades(t, s.fadeInSec, s.fadeOutSec),
     ]),
     buttons:
       s.hiddenModes.length === 0
-        ? 'All shown'
-        : `${MODE_KEYS.length - s.hiddenModes.length} of ${MODE_KEYS.length} shown`,
-    lyrics: `${s.lyricsOnline && !barsOnlineLyrics() ? 'Your files, then lrclib.net' : 'Your files only'}${s.lyricsAround ? LYRICS_STYLE_SUMMARY[s.lyricsAroundStyle] : ''}${s.lockScreenLyrics ? ', on the lock screen' : ''}`,
-    about: s.aboutOnline ? 'Looks songs up on Wikipedia' : 'Off',
-    notifications: sentence([
-      s.trackNotifications ? 'a notification for each new song' : 'no song notifications',
-      s.hideErrors ? 'errors hidden' : 'errors shown',
+        ? t('settings.summary_buttons_all')
+        : t.plural('settings.summary_buttons_shown', MODE_KEYS.length - s.hiddenModes.length, { total: t.num(MODE_KEYS.length) }),
+    lyrics: [
+      s.lyricsOnline && !barsOnlineLyrics() ? t('settings.summary_lyrics_online') : t('settings.summary_lyrics_files'),
+      ...(s.lyricsAround ? [t(`settings.summary_style_${s.lyricsAroundStyle}`)] : []),
+      ...(s.lockScreenLyrics ? [t('settings.summary_lock_screen')] : []),
+    ].join(', '),
+    about: s.aboutOnline ? t('settings.summary_about_on') : t('common.off'),
+    notifications: sentence(t, [
+      s.trackNotifications ? t('settings.summary_notify_on') : t('settings.summary_notify_off'),
+      s.hideErrors ? t('settings.summary_errors_hidden') : t('settings.summary_errors_shown'),
     ]),
     appearance: !prefsSplit
       ? labelOf(THEME_OPTIONS, themeOverride ?? themeGlobal)
       : themeOverride
         ? labelOf(THEME_OPTIONS, themeOverride)
-        : `Following global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
+        : t('settings.summary_following_global', { value: labelOf(THEME_OPTIONS, themeGlobal) }),
   }
 
   return (
@@ -191,15 +191,15 @@ export default function Settings() {
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.42 10l4.3 4.3a1 1 0 1 1-1.42 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0Z" />
         </svg>
-        Back to your library
+        {t('settings.back_to_library')}
       </button>
 
       {/* The menu row's name — "Tune this app" for both (James, 2026-09-27). */}
       <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-slate-100">
-        Tune this app
+        {t('settings.title')}
       </h1>
       <p className="mt-2 text-[14px] text-slate-600 dark:text-slate-300">
-        Everything here is kept on this device, unless you back it up under Backup.
+        {t('settings.intro')}
       </p>
 
       {/* The seven folds, as a stack. Adjacent cards with a small gap
@@ -207,19 +207,19 @@ export default function Settings() {
           a list of what Settings CONTAINS. */}
       <div className="mt-8 space-y-3">
         <Section
-          title="Your library"
-          note="Where the app takes you, and what it opens on."
+          title={t('settings.library_title')}
+          note={t('settings.library_note')}
           summary={summaries.library}
         >
           <Choice<HomeTab>
-            label="Open my library on"
+            label={t('settings.open_library_on')}
             value={s.homeTab}
             onChange={(v) => s.set('homeTab', v)}
             options={HOME_OPTIONS}
           />
           <Toggle
-            label="Hide “Resume listening”"
-            hint="Tick to take away the card above your albums, artists and tracks that shows the song you were last playing, on its machine, so you can tap it to carry on where you left off."
+            label={t('settings.hide_resume')}
+            hint={t('settings.hide_resume_hint')}
             checked={!s.resumeCard}
             onChange={(v) => s.set('resumeCard', !v)}
           />
@@ -227,7 +227,7 @@ export default function Settings() {
               2026-09-11: "Appearance, tidy, show tips again should all go into
               settings"). */}
           {libraryReady && (
-            <Action label="Tidy up library" button="Open" onClick={() => navigate({ view: 'tidy' })} />
+            <Action label={t('settings.tidy_up')} button={t('common.open')} onClick={() => navigate({ view: 'tidy' })} />
           )}
           {/* ⚠️ THE EXAMPLE LIBRARY'S SECOND DOOR (backlog, 2026-09-29). The
               landing page was its only one, because loading it there REPLACES
@@ -241,9 +241,9 @@ export default function Settings() {
               and this is the library's section. */}
           {trying ? (
             <Action
-              label="Trying the example library"
-              hint="Your own music is set aside exactly as it was."
-              button="Back to my music"
+              label={t('settings.trying_example')}
+              hint={t('settings.trying_example_hint')}
+              button={t('settings.back_to_my_music')}
               onClick={() => {
                 leaveExample()
                 goHome()
@@ -252,9 +252,9 @@ export default function Settings() {
           ) : (
             libraryReady && !isExample && (
               <Action
-                label="Try the example library"
-                hint="Nine made-up records to explore. Your own library is set aside, untouched, until you come back."
-                button="Try it"
+                label={t('settings.try_example')}
+                hint={t('settings.try_example_hint')}
+                button={t('settings.try_it')}
                 onClick={() => setTryingExample(true)}
               />
             )
@@ -272,12 +272,12 @@ export default function Settings() {
             how theatrically it starts. It also means the section below is already
             talking about the right machine by the time you read it. */}
         <Section
-          title="What you’re playing on"
-          note="The deck on Now Playing. It changes the picture and the sound it makes starting up — never the music."
+          title={t('settings.deck_title')}
+          note={t('settings.deck_note')}
           summary={summaries.deck}
         >
           <Choice<DeckSetting>
-            label="Deck"
+            label={t('settings.deck_choice')}
             value={s.deck}
             onChange={(v) => s.set('deck', v)}
             // ⚠️ `DECK_SETTINGS` rather than `Object.keys(DECKS)`. Both hold the
@@ -309,8 +309,8 @@ export default function Settings() {
               option's sentence was visible at once; `<Ladder>` keeps that by
               showing the sentence for wherever the handle is. */}
           <Ladder
-            label={`Show the ${deck.noun}-changing animation`}
-            hint={`Also how often you hear the ${deck.soundLabel.toLowerCase()} — the two are the same event.`}
+            label={deck.animationLabel}
+            hint={deck.animationHint}
             value={s.ceremonyMode}
             onChange={(v) => s.set('ceremonyMode', v)}
             copy={ladderCopy}
@@ -318,8 +318,8 @@ export default function Settings() {
           {/* James, 2026-09-11: "crossfade with crackle by default … allow to
               change in settings". See `planHandover`. */}
           <Toggle
-            label="No crossfade between records"
-            hint="Tick and, when the next song is on a different record, the needle lifts, there’s a moment’s silence, and it drops on the next record. Unticked, the two play together while one machine slides out and the next slides in, counting 3, 2, 1 — with the start-up sound as it arrives."
+            label={t('settings.no_crossfade')}
+            hint={t('settings.no_crossfade_hint')}
             checked={!s.recordCrossfade}
             onChange={(v) => s.set('recordCrossfade', !v)}
           />
@@ -329,15 +329,19 @@ export default function Settings() {
               option and popup with these controls" — the lengths, the
               quiet-opening hold, the silent-ending skip and the shape. */}
           <Action
-            label="Crossfade timing"
-            hint={`${s.xfTrackSec.toFixed(1)} s within a record, ${s.xfRecordSec.toFixed(1)} s between records, ${s.xfSkipSec.toFixed(1)} s when you press Next.`}
-            button="Fine-tune…"
+            label={t('settings.crossfade_timing')}
+            hint={t('settings.crossfade_timing_hint', {
+              track: oneDecimal(t, s.xfTrackSec),
+              record: oneDecimal(t, s.xfRecordSec),
+              skip: oneDecimal(t, s.xfSkipSec),
+            })}
+            button={t('settings.fine_tune')}
             onClick={() => setCrossfadeOpen(true)}
           />
           {crossfadeOpen && <CrossfadeDialog onClose={() => setCrossfadeOpen(false)} />}
           <Toggle
-            label={`Mute the ${deck.soundLabel.toLowerCase()}`}
-            hint={`Tick to go without it. ${deck.soundHint}`}
+            label={deck.muteLabel}
+            hint={deck.muteHint}
             checked={!s.needleDrop}
             onChange={(v) => s.set('needleDrop', !v)}
           />
@@ -351,14 +355,14 @@ export default function Settings() {
               ⚠️ The slider speaks STEPS (-5…+5) and the store speaks multipliers;
               `stepToLevel` is the only crossing point. See `settingsStore`. */}
           <Slider
-            label={`${deck.soundLabel} volume`}
-            hint="0 is the level it has always been. Drag it to hear it — it still rides your main volume, so turning the music down turns this down with it."
+            label={deck.volumeLabel}
+            hint={t('settings.sound_volume_hint')}
             value={levelToStep(s.needleDropLevel)}
             min={NEEDLE_STEP_MIN}
             max={NEEDLE_STEP_MAX}
             step={1}
             disabled={!s.needleDrop}
-            disabledHint={`Turn the ${deck.soundLabel.toLowerCase()} on to set how loud it is.`}
+            disabledHint={deck.volumeOffHint}
             format={formatStep}
             onChange={(v) => s.set('needleDropLevel', stepToLevel(v))}
             // ⚠️ Resolved against the album on the deck, so under Automatic the
@@ -374,16 +378,16 @@ export default function Settings() {
         </Section>
 
         <Section
-          title="Sound"
-          note="Applied as the music plays. Nothing here changes your files."
+          title={t('settings.sound_title')}
+          note={t('settings.sound_note')}
           summary={summaries.sound}
         >
           {/* James, 2026-09-11: "an option for stable volume - keeps the volume
               at in a sensible min / max range so a track doesn't blast your
               ears off". See `lib/loudness.ts`. */}
           <Toggle
-            label="Original sound levels"
-            hint="Tick to play every song exactly as loud as it was made. Unticked, loud songs are turned down to meet the rest, so a track doesn’t blast your ears off — each song is measured once, on this device, the first time it plays, and quiet songs are left as they are."
+            label={t('settings.original_levels')}
+            hint={t('settings.original_levels_hint')}
             checked={!s.stableVolume}
             onChange={(v) => s.set('stableVolume', !v)}
           />
@@ -391,20 +395,20 @@ export default function Settings() {
               listening in bed, and louder too. On the iPhone this is an
               experiment — see `quietGraphAllowed` in lib/audioGraph.ts. */}
           <Slider
-            label="Quiet or loud"
-            hint="Left of centre turns the music down further than the phone’s lowest volume, for listening in bed. Right of centre turns it up; past +10 dB most songs will distort."
+            label={t('settings.quiet_loud')}
+            hint={t('settings.quiet_loud_hint')}
             value={s.levelDb}
             min={-MAX_LEVEL_DB}
             max={MAX_LEVEL_DB}
             step={5}
             disabled={quietBroken}
-            disabledHint={`${isDesktopApp() ? 'The app couldn’t get' : 'This browser wouldn’t give the app'} the audio graph this needs. Everything else still works.`}
-            format={formatLevel}
+            disabledHint={isDesktopApp() ? t('settings.no_graph_app') : t('settings.no_graph_browser')}
+            format={(v) => formatLevel(t, v)}
             onChange={(v) => s.set('levelDb', v)}
           />
           <Slider
-            label="Volume boost"
-            hint="Extra gain on top of the volume slider, for quietly-mastered albums. Above about 2× a loud record will start to distort — that is the recording clipping, not a fault."
+            label={t('settings.volume_boost')}
+            hint={t('settings.volume_boost_hint')}
             value={s.volumeBoost}
             min={1}
             max={MAX_BOOST}
@@ -412,34 +416,34 @@ export default function Settings() {
             disabled={boostBroken}
             disabledHint={
               graphAllowed()
-                ? `${isDesktopApp() ? 'The app couldn’t get' : 'This browser wouldn’t give the app'} the audio graph a boost needs. Everything else still works.`
-                : 'Not in the iPhone app — the boost would stop your music playing when the app is in the background.'
+                ? isDesktopApp() ? t('settings.no_boost_graph_app') : t('settings.no_boost_graph_browser')
+                : t('settings.no_boost_iphone')
             }
-            format={formatBoost}
+            format={(v) => formatBoost(t, v)}
             onChange={(v) => s.set('volumeBoost', v)}
           />
           <Slider
-            label="Fade in"
-            hint="Each track rises from silence when it starts."
+            label={t('settings.fade_in')}
+            hint={t('settings.fade_in_hint')}
             value={s.fadeInSec}
             min={0}
             max={MAX_FADE_SEC}
             step={0.5}
             disabled={fadesBroken}
             disabledHint={FADE_HINT}
-            format={formatFade}
+            format={(v) => formatFade(t, v)}
             onChange={(v) => s.set('fadeInSec', v)}
           />
           <Slider
-            label="Fade out"
-            hint="Each track falls away before it ends — including the last one of an album. Two tracks of the SAME record already blend into each other; this is for the ends of things."
+            label={t('settings.fade_out')}
+            hint={t('settings.fade_out_hint')}
             value={s.fadeOutSec}
             min={0}
             max={MAX_FADE_SEC}
             step={0.5}
             disabled={fadesBroken}
             disabledHint={FADE_HINT}
-            format={formatFade}
+            format={(v) => formatFade(t, v)}
             onChange={(v) => s.set('fadeOutSec', v)}
           />
         </Section>
@@ -447,10 +451,10 @@ export default function Settings() {
         {/* James, 2026-09-28: "have the hidden controls bar customisable in
             the settings, so they click each button they want to appear". */}
         <Section
-          title="Buttons under the song"
+          title={t('settings.buttons_title')}
           id="settings-buttons"
           open={openSection === 'buttons'}
-          note="Tap a button to show or hide it in the row under Now Playing."
+          note={t('settings.buttons_note')}
           summary={summaries.buttons}
         >
           <Row>
@@ -485,36 +489,36 @@ export default function Settings() {
         </Section>
 
         <Section
-          title="Lyrics"
-          note="Jukebox reads the lyrics your files were tagged with, and a .lrc file saved beside a song under the same name (rescan after adding them). Most files have neither."
+          title={t('settings.lyrics_title')}
+          note={t('settings.lyrics_note')}
           summary={summaries.lyrics}
         >
           {/* Not on iPhone or iPad — `barsOnlineLyrics` says why. */}
           {!barsOnlineLyrics() && (
             <Toggle
-              label="Look up missing lyrics online"
-              hint="When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once."
+              label={t('settings.lyrics_online')}
+              hint={t('settings.lyrics_online_hint')}
               checked={s.lyricsOnline}
               onChange={(v) => s.set('lyricsOnline', v)}
             />
           )}
           <Toggle
-            label="Lyrics around the record"
-            hint="On Now Playing, the words appear around the spinning record as they are sung — in one of three styles, chosen below. Needs lyrics with timings."
+            label={t('settings.lyrics_around')}
+            hint={t('settings.lyrics_around_hint')}
             checked={s.lyricsAround}
             onChange={(v) => s.set('lyricsAround', v)}
           />
           {s.lyricsAround && (
             <Choice<LyricsAroundStyle>
-              label="Style"
+              label={t('settings.lyrics_style')}
               value={s.lyricsAroundStyle}
               onChange={(v) => s.set('lyricsAroundStyle', v)}
-              options={LYRICS_STYLE_OPTIONS}
+              options={lyricsStyleOptions(t)}
             />
           )}
           <Toggle
-            label="Lyrics on the lock screen"
-            hint="While a song plays, the line being sung takes the artist’s place on the lock screen and in the phone’s music controls — the artist comes back between lines. Needs lyrics with timings. With this on, each song’s lyrics are found as it starts, even if you never open them."
+            label={t('settings.lock_lyrics')}
+            hint={t('settings.lock_lyrics_hint')}
             checked={s.lockScreenLyrics}
             onChange={(v) => s.set('lockScreenLyrics', v)}
           />
@@ -524,13 +528,13 @@ export default function Settings() {
         {/* James, 2026-09-13: "an about this track feature where you click it
             and it gives you some info". See `lib/aboutTrack.ts`. */}
         <Section
-          title="About this track"
-          note="The story of the song on the deck, and of who’s singing it, from Wikipedia."
+          title={t('settings.about_title')}
+          note={t('settings.about_note')}
           summary={summaries.about}
         >
           <Toggle
-            label="Look songs up on Wikipedia"
-            hint="When you open “About this track” on Now Playing, ask Wikipedia about the song and the artist. This sends the song’s title and the artist’s name — nothing else, and nothing at all while this is off. Answers are kept on this device, so each song is only looked up once."
+            label={t('settings.about_online')}
+            hint={t('settings.about_online_hint')}
             checked={s.aboutOnline}
             onChange={(v) => s.set('aboutOnline', v)}
           />
@@ -540,25 +544,25 @@ export default function Settings() {
         {/* James, 2026-09-13: "an option for a notification everytime a new
             song plays, replace each notification and don't stack them". */}
         <Section
-          title="Messages"
-          note="What’s playing as each song starts, and whether to hear about things that went wrong."
+          title={t('settings.messages_title')}
+          note={t('settings.messages_note')}
           summary={summaries.notifications}
         >
           <NotifyToggle />
           <Toggle
-            label="Show error messages"
-            hint="Tick to see banners about songs that couldn’t play, folders that couldn’t be opened and files that were skipped. Unticked, songs that can’t play are skipped quietly and nothing is said."
+            label={t('settings.show_errors')}
+            hint={t('settings.show_errors_hint')}
             checked={!s.hideErrors}
             onChange={(v) => s.set('hideErrors', !v)}
           />
           {isNativeShell() && <CopyPlaybackLog />}
         </Section>
 
-        <Section title="Appearance" summary={summaries.appearance}>
+        <Section title={t('settings.appearance_title')} summary={summaries.appearance}>
           <LanguageRow split={prefsSplit} />
           {!prefsSplit ? (
             <Choice<ThemePref>
-              label="Colour scheme"
+              label={t('settings.colour_scheme')}
               value={themeOverride ?? themeGlobal}
               onChange={(v) => {
                 setGlobalColorScheme(v)
@@ -568,14 +572,14 @@ export default function Settings() {
             />
           ) : (
             <Choice<ThemePref | typeof FOLLOW_GLOBAL>
-              label="Colour scheme"
+              label={t('settings.colour_scheme')}
               value={themeOverride ?? FOLLOW_GLOBAL}
               onChange={(v) => setThemeOverride(v === FOLLOW_GLOBAL ? null : v)}
               options={[
                 {
                   value: FOLLOW_GLOBAL,
-                  label: `Follow global: ${labelOf(THEME_OPTIONS, themeGlobal)}`,
-                  hint: 'Set once for every Universal App under Global Tuning, in the menu when signed in.',
+                  label: t('settings.follow_global', { value: labelOf(THEME_OPTIONS, themeGlobal) }),
+                  hint: t('settings.follow_global_hint'),
                 },
                 ...THEME_OPTIONS,
               ]}
@@ -583,13 +587,13 @@ export default function Settings() {
           )}
           {/* The first-run "Tap here" pointers (`components/Tip.tsx`), back. */}
           <Action
-            label="Show the tips again"
+            label={t('settings.show_tips')}
             hint={
               s.tipsSeen.length > 0
-                ? 'The “Tap here” pointers you have dismissed come back.'
-                : 'None of the “Tap here” pointers have been dismissed.'
+                ? t('settings.show_tips_hint')
+                : t('settings.show_tips_none_hint')
             }
-            button="Show them"
+            button={t('settings.show_them')}
             disabled={s.tipsSeen.length === 0}
             onClick={() => s.set('tipsSeen', [])}
           />
@@ -617,6 +621,7 @@ export default function Settings() {
  * playing, not how the app is tuned.
  */
 function ResetDefaults() {
+  const t = useT()
   const { language } = useUniversal()
   const reset = useSettingsStore((s) => s.reset)
   const resetKind = useRequestsStore((r) => r.resetDefaultKind)
@@ -657,8 +662,7 @@ function ResetDefaults() {
         </button>
       )}
       <p className="mt-1.5 text-[12px] text-slate-500 dark:text-slate-400">
-        Puts everything on this page back to its default, with the tab the library opens on and the kind
-        new requests start as. Your library, your requests, the volume and shuffle are left alone.
+        {t('settings.reset_note')}
       </p>
     </div>
   )
@@ -676,6 +680,7 @@ function ResetDefaults() {
  * shelves and requests it only adds to — see `lib/backup.ts`).
  */
 function BackupSection() {
+  const t = useT()
   const { supabase, session, noAccounts } = useUniversal()
   const userId = session?.user?.id ?? null
   const libraryReady = useLibraryStore((l) => l.status === 'ready')
@@ -684,7 +689,7 @@ function BackupSection() {
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
   const [signingIn, setSigningIn] = useState(false)
   /** The backup waiting on "Restore" to be confirmed, and where it came from. */
-  const [pending, setPending] = useState<{ backup: JukeboxBackup; from: string } | null>(null)
+  const [pending, setPending] = useState<{ backup: JukeboxBackup; from: 'file' | 'online' } | null>(null)
   /** When the account's backup was made: undefined while asking, null for none. */
   const [online, setOnline] = useState<number | null | undefined>(undefined)
 
@@ -712,7 +717,7 @@ function BackupSection() {
       const text = await work()
       if (text) setMessage({ text })
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : 'Something went wrong.', error: true })
+      setMessage({ text: err instanceof Error ? err.message : t('settings.something_wrong'), error: true })
     } finally {
       setBusy(false)
     }
@@ -721,46 +726,46 @@ function BackupSection() {
   const restore = (backup: JukeboxBackup) =>
     run(async () => {
       setPending(null)
-      return restoredSentence(await applyBackup(backup))
+      return restoredSentence(t, await applyBackup(backup))
     })
 
   const blocked = trying || !libraryReady
   const blockedHint = trying
-    ? 'Go back to your own music first — the example library is being tried.'
-    : 'Available once your library has loaded.'
+    ? t('settings.backup_blocked_trying')
+    : t('settings.backup_blocked_loading')
 
   return (
     <Section
-      title="Backup"
-      note="Keep your music in your own cloud. Back up your shelves, requests and settings here."
-      summary={online ? `Backed up ${formatWhen(online)}` : 'Your music stays on your devices'}
+      title={t('settings.backup_title')}
+      note={t('settings.backup_note')}
+      summary={online ? t('settings.summary_backed_up', { when: formatWhen(t, online) }) : t('settings.summary_backup_none')}
     >
       <Row>
         <Label
-          text="Your music"
-          hint="Jukebox never uploads your music, so keep a copy somewhere safe yourself: Proton Drive, iCloud Drive, Google Drive or OneDrive all work. Make the music folder available offline on your phone, then add it from Your complete library in the menu. On a new phone, do the same and restore a backup below to get your shelves back."
+          text={t('settings.your_music')}
+          hint={t('settings.your_music_hint')}
         />
       </Row>
       <Action
-        label="Save a backup file"
-        hint={blocked ? blockedHint : 'Your shelves, requests, settings and any lyrics you added, as one small file. Keep it wherever you like, Proton Drive included. No account needed.'}
-        button="Save"
+        label={t('settings.save_file')}
+        hint={blocked ? blockedHint : t('settings.save_file_hint')}
+        button={t('common.save')}
         disabled={busy || blocked}
         onClick={() =>
           void run(async () => {
             const name = await saveBackupFile(await gatherBackup())
             return isNativeShell()
-              ? `Saved as ${name} in the app’s Documents folder. You can move it from the Files app.`
-              : `Saved as ${name}.`
+              ? t('settings.saved_native', { name })
+              : t('settings.saved', { name })
           })
         }
       />
       <FileRestore
         disabled={busy || blocked}
-        hint={blocked ? blockedHint : 'Puts back the shelves and requests from a backup file, and its settings.'}
+        hint={blocked ? blockedHint : t('settings.restore_file_hint')}
         onFile={(file) =>
           void run(async () => {
-            setPending({ backup: await readBackupFile(file), from: 'the file' })
+            setPending({ backup: await readBackupFile(file), from: 'file' })
             return null
           })
         }
@@ -768,44 +773,50 @@ function BackupSection() {
       {!noAccounts && (userId ? (
         <>
           <Action
-            label="Back up to your Universal ID"
+            label={t('settings.backup_online')}
             hint={
               blocked
                 ? blockedHint
-                : `The same backup, kept with your account and replaced each time you tap Back up. It isn’t end-to-end encrypted: like your account details, UNI·SIM could see it. ${
-                    online === undefined ? '' : online ? `Last backed up ${formatWhen(online)}.` : 'Nothing backed up yet.'
+                : `${t('settings.backup_online_hint')} ${
+                    online === undefined
+                      ? ''
+                      : online
+                        ? t('settings.last_backed_up', { when: formatWhen(t, online) })
+                        : t('settings.nothing_backed_up')
                   }`
             }
-            button="Back up"
+            button={t('settings.back_up')}
             disabled={busy || blocked}
             onClick={() =>
               void run(async () => {
                 const saved = await saveOnline(supabase, userId, await gatherBackup())
                 if (!saved) {
-                  throw new Error('Your shelves are too big to keep with your account. Save a backup file instead — it has no limit.')
+                  throw new Error(t('settings.backup_too_big'))
                 }
                 setOnline(saved.savedAt)
                 const left = [
-                  saved.left.lyrics ? `${saved.left.lyrics} added lyrics` : '',
-                  saved.left.pictures ? `${saved.left.pictures} request pictures` : '',
+                  saved.left.lyrics ? t.plural('settings.left_lyrics', saved.left.lyrics) : '',
+                  saved.left.pictures ? t.plural('settings.left_pictures', saved.left.pictures) : '',
                 ].filter(Boolean)
                 return left.length
-                  ? `Backed up, except ${left.join(' and ')}, which didn’t fit. A backup file keeps everything.`
-                  : 'Backed up.'
+                  ? t('settings.backed_up_except', {
+                      list: left.length === 2 ? t('common.list_and', { a: left[0], b: left[1] }) : left[0],
+                    })
+                  : t('settings.backed_up')
               })
             }
           />
           {online ? (
             <Action
-              label="Restore from your Universal ID"
-              hint={blocked ? blockedHint : `From ${formatWhen(online)}.`}
-              button="Restore"
+              label={t('settings.restore_online')}
+              hint={blocked ? blockedHint : t('settings.restore_from_when', { when: formatWhen(t, online) })}
+              button={t('settings.restore')}
               disabled={busy || blocked}
               onClick={() =>
                 void run(async () => {
                   const backup = await loadOnline(supabase)
-                  if (!backup) throw new Error('There’s no backup on your account to restore.')
-                  setPending({ backup, from: 'your Universal ID' })
+                  if (!backup) throw new Error(t('settings.no_online_backup'))
+                  setPending({ backup, from: 'online' })
                   return null
                 })
               }
@@ -820,31 +831,33 @@ function BackupSection() {
                   void run(async () => {
                     await deleteOnline(supabase)
                     setOnline(null)
-                    return 'Your online backup has been deleted. Nothing on this device has changed.'
+                    return t('settings.deleted_online')
                   })
                 }
                 className="text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:opacity-50 dark:text-slate-400 dark:hover:text-orange-400"
               >
-                Delete the online backup
+                {t('settings.delete_online')}
               </button>
             </Row>
           ) : null}
         </>
       ) : (
         <Action
-          label="Back up to your Universal ID"
-          hint="Sign in to keep a backup with your account, ready for a new phone. Optional: a backup file works without one."
-          button="Sign in"
+          label={t('settings.backup_online')}
+          hint={t('settings.backup_sign_in_hint')}
+          button={t('settings.sign_in')}
           onClick={() => setSigningIn(true)}
         />
       ))}
       {pending && (
         <Row>
           <p className="text-[13.5px] text-slate-800 dark:text-slate-200">
-            Restore the backup from {pending.from}, made {formatWhen(pending.backup.savedAt)}?
+            {t(pending.from === 'file' ? 'settings.restore_confirm_file' : 'settings.restore_confirm_online', {
+              when: formatWhen(t, pending.backup.savedAt),
+            })}
           </p>
           <p className="mt-1 text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-            Its settings replace the ones here. Its shelves and requests are added to yours, and nothing you have now is removed. A song only goes back on a shelf if it’s in your library, so restore again after adding more music to bring back the rest.
+            {t('settings.restore_confirm_detail')}
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -853,14 +866,14 @@ function BackupSection() {
               onClick={() => void restore(pending.backup)}
               className="rounded-full bg-orange-600 px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-orange-700 disabled:opacity-50"
             >
-              Restore
+              {t('settings.restore')}
             </button>
             <button
               type="button"
               onClick={() => setPending(null)}
               className="rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] font-medium text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:text-orange-400"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </Row>
@@ -889,18 +902,19 @@ function BackupSection() {
  * that mattered.
  */
 function CopyPlaybackLog() {
+  const t = useT()
   const [state, setState] = useState<'idle' | 'copied' | 'shown'>('idle')
   const [text, setText] = useState('')
   return (
     <>
       <Action
-        label="Copy playback log"
+        label={t('settings.copy_log')}
         hint={
           state === 'copied'
-            ? 'Copied. Paste it into your message about what went wrong.'
-            : 'What happened to the music recently: plays, pauses, skips, the lock screen’s buttons and the song titles it was given. It goes only where you paste it.'
+            ? t('settings.copy_log_copied_hint')
+            : t('settings.copy_log_hint')
         }
-        button={state === 'copied' ? 'Copied' : 'Copy'}
+        button={state === 'copied' ? t('settings.copied') : t('settings.copy')}
         onClick={() =>
           void (async () => {
             const log = formatPlaybackLog({
@@ -923,7 +937,7 @@ function CopyPlaybackLog() {
       {state === 'shown' && (
         <Row>
           <p className="text-[12.5px] text-slate-600 dark:text-slate-300">
-            This device wouldn’t let the app copy it. Select it all below and copy it yourself.
+            {t('settings.copy_log_failed')}
           </p>
           <textarea
             readOnly
@@ -939,11 +953,12 @@ function CopyPlaybackLog() {
 
 /** "Restore from a file": an Action whose button is a file picker. */
 function FileRestore({ disabled, hint, onFile }: { disabled: boolean; hint: string; onFile(file: File): void }) {
+  const t = useT()
   return (
     <Row>
       <div className="flex items-center justify-between gap-4">
         <span className="min-w-0">
-          <Label text="Restore from a file" hint={hint} />
+          <Label text={t('settings.restore_file')} hint={hint} />
         </span>
         <label
           className={`shrink-0 rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] font-medium text-slate-700 transition dark:border-slate-600 dark:text-slate-200 ${
@@ -952,7 +967,7 @@ function FileRestore({ disabled, hint, onFile }: { disabled: boolean; hint: stri
               : 'cursor-pointer hover:border-orange-500 hover:text-orange-700 focus-within:outline-2 focus-within:outline-orange-600 dark:hover:text-orange-400'
           }`}
         >
-          Open
+          {t('common.open')}
           <input
             type="file"
             accept=".json,application/json"
@@ -971,23 +986,21 @@ function FileRestore({ disabled, hint, onFile }: { disabled: boolean; hint: stri
   )
 }
 
-function restoredSentence(r: RestoreResult): string {
+function restoredSentence(t: Translator, r: RestoreResult): string {
   const parts = [
-    'Settings restored',
-    r.found ? `${r.found === 1 ? '1 song' : `${r.found} songs`} back on your shelves` : '',
-    r.requests ? `${r.requests === 1 ? '1 request' : `${r.requests} requests`} added` : '',
-    r.lyrics ? `lyrics for ${r.lyrics === 1 ? '1 song' : `${r.lyrics} songs`}` : '',
+    t('settings.restored_settings'),
+    r.found ? t.plural('settings.restored_found', r.found) : '',
+    r.requests ? t.plural('settings.restored_requests', r.requests) : '',
+    r.lyrics ? t.plural('settings.restored_lyrics', r.lyrics) : '',
   ].filter(Boolean)
-  const missing = r.missing
-    ? ` ${r.missing === 1 ? '1 song isn’t' : `${r.missing} songs aren’t`} in your library yet: add the music, then restore again to put ${r.missing === 1 ? 'it' : 'them'} back.`
-    : ''
-  return `${sentence(parts)}.${missing}`
+  const missing = r.missing ? ` ${t.plural('settings.restored_missing', r.missing)}` : ''
+  return `${sentence(t, parts)}.${missing}`
 }
 
-/** "5 Oct 2026, 14:03", in the reader's own calendar. */
-function formatWhen(ms: number): string {
+/** "5 Oct 2026, 14:03", in the app's language. */
+function formatWhen(t: Translator, ms: number): string {
   try {
-    return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return new Date(ms).toLocaleString(t.locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   } catch {
     return new Date(ms).toISOString().slice(0, 16).replace('T', ' ')
   }
@@ -1004,6 +1017,7 @@ function formatWhen(ms: number): string {
  * number quietly wrong.
  */
 function DownloadedLyrics() {
+  const t = useT()
   const [count, setCount] = useState<number | null>(null)
   const forget = useLyricsStore((l) => l.forget)
 
@@ -1017,8 +1031,7 @@ function DownloadedLyrics() {
   return (
     <div className="px-1 py-3">
       <p className="text-[13px] text-slate-600 dark:text-slate-300">
-        {count === 1 ? '1 track has been looked up' : `${count} tracks have been looked up`} on
-        lrclib.net.
+        {t.plural('settings.lyrics_looked_up', count)}
       </p>
       <button
         type="button"
@@ -1031,7 +1044,7 @@ function DownloadedLyrics() {
         }}
         className="mt-1.5 text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
       >
-        Forget them
+        {t('settings.forget_them')}
       </button>
     </div>
   )
@@ -1051,6 +1064,7 @@ function DownloadedLyrics() {
  * phone's Settings and switching back is enough to bring the switch to life.
  */
 function NotifyToggle() {
+  const t = useT()
   const on = useSettingsStore((s) => s.trackNotifications)
   const set = useSettingsStore((s) => s.set)
   const support = notifySupport()
@@ -1075,18 +1089,18 @@ function NotifyToggle() {
 
   return (
     <Toggle
-      label="Notify me of each new song"
-      hint="The song, the artist and the cover, as each song starts — while Jukebox isn’t on screen, since when it is, the song is right in front of you. There’s only ever one: the next song’s takes its place, rather than a pile building up. It makes no sound of its own."
+      label={t('settings.notify')}
+      hint={t('settings.notify_hint')}
       checked={on && !blocked}
       disabled={support === 'none' || blocked}
       disabledHint={
         support === 'none'
-          ? 'This browser won’t let a web page show notifications. On an iPhone or iPad, add Jukebox to your Home Screen (Share, then Add to Home Screen) and turn this on from there.'
+          ? t('settings.notify_no_support')
           : support === 'native'
-            ? 'Notifications are off for Jukebox. Turn them on in your phone’s Settings, under Notifications, then come back here.'
+            ? t('settings.notify_off_native')
             : isDesktopApp()
-              ? 'Notifications are off for Universal Jukebox. Turn them on in Windows Settings, under System › Notifications, then come back here.'
-              : 'Notifications are blocked for this site. Allow them in your browser’s site settings, then come back here.'
+              ? t('settings.notify_off_desktop')
+              : t('settings.notify_blocked_site')
       }
       onChange={(v) => {
         if (!v) {
@@ -1108,6 +1122,7 @@ function NotifyToggle() {
  * cannot see or clear is worth very little.
  */
 function SavedAbout() {
+  const t = useT()
   const [count, setCount] = useState<number | null>(null)
   const forget = useAboutStore((a) => a.forget)
 
@@ -1121,7 +1136,7 @@ function SavedAbout() {
   return (
     <div className="px-5 py-4">
       <p className="text-[13px] text-slate-600 dark:text-slate-300">
-        {count === 1 ? '1 song has been looked up' : `${count} songs have been looked up`} on Wikipedia.
+        {t.plural('settings.songs_looked_up', count)}
       </p>
       <button
         type="button"
@@ -1133,7 +1148,7 @@ function SavedAbout() {
         }}
         className="mt-1.5 text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
       >
-        Forget them
+        {t('settings.forget_them')}
       </button>
     </div>
   )
@@ -1141,36 +1156,28 @@ function SavedAbout() {
 
 // ── Labels and formats, shared by the controls and the fold summaries ────────
 
-const HOME_OPTIONS: Option<HomeTab>[] = [
-  { value: 'artists', label: 'Artists' },
-  { value: 'albums', label: 'Albums' },
-  { value: 'tracks', label: 'Tracks' },
-  { value: 'jukebox', label: 'Jukebox' },
+// ⚠️ Functions of the translator, not constant arrays: a constant would be
+// built once, at import, in whatever language was active then.
+
+const homeOptions = (t: Translator): Option<HomeTab>[] => [
+  { value: 'artists', label: t('settings.home_artists') },
+  { value: 'albums', label: t('settings.home_albums') },
+  { value: 'tracks', label: t('settings.home_tracks') },
+  { value: 'jukebox', label: t('settings.home_jukebox') },
 ]
 
-const LYRICS_STYLE_OPTIONS: Option<LyricsAroundStyle>[] = [
-  { value: 'arc', label: 'First line, then around the record' },
-  { value: 'lines', label: 'Every line, word by word' },
-  {
-    value: 'orbit',
-    label: 'Turning around the record',
-    hint: 'The whole song written once around the record, turning anti-clockwise so the word being sung is at the top. Lines rise from the bottom, cross the top and go back down the other side, blurring away as they leave. Holds still and shows the arc instead if your device asks for less motion.',
-  },
+const lyricsStyleOptions = (t: Translator): Option<LyricsAroundStyle>[] => [
+  { value: 'arc', label: t('settings.style_arc') },
+  { value: 'lines', label: t('settings.style_lines') },
+  { value: 'orbit', label: t('settings.style_orbit'), hint: t('settings.style_orbit_hint') },
 ]
-
-/** How each style reads in the Lyrics fold's one-line summary. */
-const LYRICS_STYLE_SUMMARY: Record<LyricsAroundStyle, string> = {
-  arc: ', around the record',
-  lines: ', every line on the record',
-  orbit: ', turning around the record',
-}
 
 // The labels the SDK's App preferences uses for the same choice, so the two
 // places read alike.
-const THEME_OPTIONS: Option<ThemePref>[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System', hint: 'Matches your device.' },
+const themeOptions = (t: Translator): Option<ThemePref>[] => [
+  { value: 'light', label: t('settings.theme_light') },
+  { value: 'dark', label: t('settings.theme_dark') },
+  { value: 'system', label: t('settings.theme_system'), hint: t('settings.theme_system_hint') },
 ]
 
 /** The Colour scheme choice's "no override" value. Not a stored value: picking it removes the key. */
@@ -1185,38 +1192,43 @@ function formatStep(v: number): string {
   return v === 0 ? '0' : v > 0 ? `+${v}` : String(v)
 }
 
+/** One decimal place, in the language's own digits: "1.8", "1,8". */
+function oneDecimal(t: Translator, n: number): string {
+  return new Intl.NumberFormat(t.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)
+}
+
 /** The boost multiplier, as its slider shows it. */
-function formatBoost(v: number): string {
-  return v <= 1.001 ? 'Off' : `${v.toFixed(1)}×`
+function formatBoost(t: Translator, v: number): string {
+  return v <= 1.001 ? t('common.off') : t('settings.boost_value', { value: oneDecimal(t, v) })
 }
 
 /** The Quiet / Loud level, as its slider and button show it. */
-function formatLevel(v: number): string {
+function formatLevel(t: Translator, v: number): string {
   const db = Math.round(v)
-  return db === 0 ? 'Off' : db < 0 ? `−${-db} dB` : `+${db} dB`
+  return db === 0 ? t('common.off') : t(db < 0 ? 'settings.level_down' : 'settings.level_up', { db: t.num(Math.abs(db)) })
 }
 
 /** A fade length, as its slider shows it. */
-function formatFade(v: number): string {
-  return v === 0 ? 'Off' : `${v.toFixed(1)}s`
+function formatFade(t: Translator, v: number): string {
+  return v === 0 ? t('common.off') : t('settings.fade_value', { value: oneDecimal(t, v) })
 }
 
 /** "no fades", "1.5s fades", or the two named separately when they differ. */
-function describeFades(fadeIn: number, fadeOut: number): string {
-  if (fadeIn === 0 && fadeOut === 0) return 'no fades'
-  if (fadeIn === fadeOut) return `${formatFade(fadeIn)} fades`
+function describeFades(t: Translator, fadeIn: number, fadeOut: number): string {
+  if (fadeIn === 0 && fadeOut === 0) return t('settings.summary_no_fades')
+  if (fadeIn === fadeOut) return t('settings.summary_fades', { fade: formatFade(t, fadeIn) })
   return [
-    fadeIn > 0 ? `${formatFade(fadeIn)} fade in` : null,
-    fadeOut > 0 ? `${formatFade(fadeOut)} fade out` : null,
+    fadeIn > 0 ? t('settings.summary_fade_in', { fade: formatFade(t, fadeIn) }) : null,
+    fadeOut > 0 ? t('settings.summary_fade_out', { fade: formatFade(t, fadeOut) }) : null,
   ]
     .filter(Boolean)
     .join(', ')
 }
 
 /** Comma-joined, with the first letter raised: "Boost off, no fades". */
-function sentence(parts: string[]): string {
+function sentence(t: Translator, parts: string[]): string {
   const text = parts.join(', ')
-  return text.charAt(0).toUpperCase() + text.slice(1)
+  return text.charAt(0).toLocaleUpperCase(t.locale) + text.slice(1)
 }
 
 // ── The row kit ──────────────────────────────────────────────────────────────
@@ -1341,14 +1353,15 @@ interface Option<T> {
  * follow and it sets the global value; with more, it is this app's override.
  */
 function LanguageRow({ split }: { split: boolean }) {
+  const t = useT()
   const { globalLanguage, appLanguage, setGlobalLanguage, setAppLanguage } = useUniversal()
-  const follow = `Follow global: ${LANGUAGE_LABELS[globalLanguage] ?? globalLanguage}`
+  const follow = t('settings.follow_global', { value: LANGUAGE_LABELS[globalLanguage] ?? globalLanguage })
   return (
     <Row>
       <label className="block">
-        <span className="block text-[14px] font-medium text-slate-900 dark:text-slate-100">Language</span>
+        <span className="block text-[14px] font-medium text-slate-900 dark:text-slate-100">{t('settings.language')}</span>
         <span className="mt-0.5 block text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-          The menus and dialogs follow it. Jukebox’s own pages are in English for now.
+          {t('settings.language_hint')}
         </span>
         <select
           value={split ? (appLanguage ?? '') : (appLanguage ?? globalLanguage)}
@@ -1378,7 +1391,9 @@ function LanguageRow({ split }: { split: boolean }) {
 function Choice<T extends string>({
   label, value, options, onChange,
 }: { label: string; value: T; options: Option<T>[]; onChange(value: T): void }) {
-  const name = `choice-${label.replace(/\W+/g, '-')}`
+  // ⚠️ Not built from `label`, which is translated: two labels could fold to
+  // the same name in another language and join their radios into one group.
+  const name = useId()
   return (
     <Row>
       <fieldset>
@@ -1608,16 +1623,17 @@ function Slider({
  * be clamped and re-ordered under the cursor — the field would fight the typing.
  */
 function EraYears({ eras, onChange }: { eras: DeckEras; onChange(eras: DeckEras): void }) {
+  const t = useT()
   const rows: { key: keyof DeckEras; label: string }[] = [
-    { key: 'vinyl', label: 'Vinyl from' },
-    { key: 'cassette', label: 'Cassette from' },
-    { key: 'cd', label: 'CD from' },
-    { key: 'pocket', label: 'Pocket player from' },
+    { key: 'vinyl', label: t('settings.era_vinyl') },
+    { key: 'cassette', label: t('settings.era_cassette') },
+    { key: 'cd', label: t('settings.era_cd') },
+    { key: 'pocket', label: t('settings.era_pocket') },
   ]
   return (
     <div className="mt-4 rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-700">
       <p className="text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
-        Albums from before {eras.vinyl} go on the jukebox. An album with no year goes on vinyl.
+        {t('settings.eras_note', { year: String(eras.vinyl) })}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
         {rows.map((row) => (

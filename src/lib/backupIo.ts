@@ -14,6 +14,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { useRequestsStore } from '../stores/requestsStore'
 import { settingsBlob, useSettingsStore } from '../stores/settingsStore'
 import { useShelvesStore } from '../stores/shelvesStore'
+import { getT } from '../i18n/runtime.ts'
 
 /** The SDK's client, typed through the SDK rather than a package this app doesn't depend on. */
 type SupabaseClient = ReturnType<typeof useUniversal>['supabase']
@@ -25,7 +26,7 @@ export async function gatherBackup(): Promise<JukeboxBackup> {
   const library = useLibraryStore.getState()
   // ⚠️ Not while the example library is being tried: the shelves on screen are
   // the demo's, and a backup of them would overwrite the real ones' copy.
-  if (library.trying) throw new Error('Go back to your own music first — the example library is being tried.')
+  if (library.trying) throw new Error(getT()('settings.backup_blocked_trying'))
   return buildBackup({
     settings: { ...settingsBlob(useSettingsStore.getState()) },
     shelves: useShelvesStore.getState().shelves,
@@ -47,8 +48,8 @@ export interface RestoreResult {
 
 export async function applyBackup(backup: JukeboxBackup): Promise<RestoreResult> {
   const library = useLibraryStore.getState()
-  if (library.trying) throw new Error('Go back to your own music first — the example library is being tried.')
-  if (library.status !== 'ready') throw new Error('Wait for your library to finish loading, then restore.')
+  if (library.trying) throw new Error(getT()('settings.backup_blocked_trying'))
+  if (library.status !== 'ready') throw new Error(getT()('settings.restore_wait_loading'))
 
   useSettingsStore.getState().restore(backup.settings)
 
@@ -118,10 +119,10 @@ export async function readBackupFile(file: File): Promise<JukeboxBackup> {
   try {
     parsed = JSON.parse(await file.text())
   } catch {
-    throw new Error('That file isn’t a Jukebox backup.')
+    throw new Error(getT()('settings.not_a_backup'))
   }
   const backup = parseBackup(parsed)
-  if (!backup) throw new Error('That file isn’t a Jukebox backup, or it was made by a newer version of the app.')
+  if (!backup) throw new Error(getT()('settings.not_a_backup_or_newer'))
   return backup
 }
 
@@ -139,19 +140,19 @@ export async function saveOnline(supabase: SupabaseClient, userId: string, backu
   const { error } = await supabase
     .from('app_settings_backups')
     .upsert({ user_id: userId, app: APP, data: fitted.backup }, { onConflict: 'user_id,app' })
-  if (error) throw new Error(`Couldn’t back up: ${error.message}`)
+  if (error) throw new Error(getT()('settings.backup_failed', { message: error.message }))
   return { savedAt: fitted.backup.savedAt, left: fitted.left }
 }
 
 /** The account's backup, or null when it has none. */
 export async function loadOnline(supabase: SupabaseClient): Promise<JukeboxBackup | null> {
   const { data, error } = await supabase.from('app_settings_backups').select('data').eq('app', APP).maybeSingle()
-  if (error) throw new Error(`Couldn’t read your backup: ${error.message}`)
+  if (error) throw new Error(getT()('settings.read_failed', { message: error.message }))
   return data ? parseBackup((data as { data: unknown }).data) : null
 }
 
 /** Remove the account's backup — the honest answer to "delete what you hold". */
 export async function deleteOnline(supabase: SupabaseClient): Promise<void> {
   const { error } = await supabase.from('app_settings_backups').delete().eq('app', APP)
-  if (error) throw new Error(`Couldn’t delete your backup: ${error.message}`)
+  if (error) throw new Error(getT()('settings.delete_failed', { message: error.message }))
 }

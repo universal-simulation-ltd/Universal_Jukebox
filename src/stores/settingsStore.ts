@@ -2,6 +2,7 @@ import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
 import { create } from 'zustand'
 import { perTab } from '../lib/perTab'
 import { ORDER_KINDS, type OrderKind } from '../lib/order'
+import { getT, type MessageKey } from '../i18n/runtime.ts'
 
 // Everything on the Settings page, in one store, persisted to localStorage.
 //
@@ -405,21 +406,35 @@ export const MODE_KEYS = [
 ] as const
 export type ModeKey = (typeof MODE_KEYS)[number]
 
-/** Each button's word, as it reads under the button and in Settings. */
-export const MODE_LABELS: Record<ModeKey, string> = {
-  shuffle: 'Shuffle',
-  repeatAll: 'Repeat all',
-  repeatOne: 'Repeat one',
-  shelf: 'Add to shelf',
-  about: 'About',
-  output: 'Output',
-  quiet: 'Quiet',
-  loud: 'Loud',
-  player: 'Player',
-  keepAwake: 'Keep awake',
-  sleep: 'Sleep',
-  bedside: 'Bedside',
+const MODE_LABEL_KEYS: Record<ModeKey, MessageKey> = {
+  shuffle: 'settings.mode_shuffle',
+  repeatAll: 'settings.mode_repeat_all',
+  repeatOne: 'settings.mode_repeat_one',
+  shelf: 'settings.mode_shelf',
+  about: 'settings.mode_about',
+  output: 'settings.mode_output',
+  quiet: 'settings.mode_quiet',
+  loud: 'settings.mode_loud',
+  player: 'settings.mode_player',
+  keepAwake: 'settings.mode_keep_awake',
+  sleep: 'settings.mode_sleep',
+  bedside: 'settings.mode_bedside',
 }
+
+/**
+ * Each button's word, as it reads under the button and in Settings.
+ *
+ * ⚠️ GETTERS, not strings: each read asks `getT()` then, so the word follows a
+ * language change. A plain map would be frozen in the language active at
+ * import (always English). The component showing it must still call `useT()`
+ * to re-render on a switch.
+ */
+export const MODE_LABELS = Object.defineProperties(
+  {},
+  Object.fromEntries(
+    MODE_KEYS.map((key) => [key, { enumerable: true, get: () => getT()(MODE_LABEL_KEYS[key]) }]),
+  ),
+) as Readonly<Record<ModeKey, string>>
 
 function sanitiseModes(value: unknown): ModeKey[] {
   if (!Array.isArray(value)) return []

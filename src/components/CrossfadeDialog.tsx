@@ -7,6 +7,7 @@ import {
   type CrossfadeShape,
 } from '../stores/settingsStore'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import { useT, type Translator } from '../i18n'
 
 // Settings ▸ the crossfade's Fine-tune… sheet (the opener was "Advanced…" until
 // 2026-10-10; James, 2026-09-28: "these are
@@ -16,25 +17,22 @@ import { useDialogFocus } from '../lib/useDialogFocus'
 // three lengths, the quiet-opening hold, the silent-ending skip, and the shape.
 // The preview draws the same curves `audio.crossfade` plays (`fadeCurve.ts`).
 
-const SHAPE_COPY: Record<CrossfadeShape, { label: string; hint: string }> = {
-  staggered: {
-    label: 'Staggered',
-    hint: 'The next song waits a moment, then rises as the old one falls. Never both loud at once.',
-  },
-  'equal-power': {
-    label: 'Even',
-    hint: 'Both move together and stay as loud as one song all the way across.',
-  },
-  linear: {
-    label: 'Straight',
-    hint: 'A plain straight-line fade. Dips a little in the middle.',
-  },
+const shapeCopy = (t: Translator): Record<CrossfadeShape, { label: string; hint: string }> => ({
+  staggered: { label: t('settings.xf_staggered'), hint: t('settings.xf_staggered_hint') },
+  'equal-power': { label: t('settings.xf_even'), hint: t('settings.xf_even_hint') },
+  linear: { label: t('settings.xf_straight'), hint: t('settings.xf_straight_hint') },
+})
+
+/** Seconds to one decimal place, in the language's own digits: "1.8", "1,8". */
+function oneDecimal(t: Translator, n: number): string {
+  return new Intl.NumberFormat(t.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)
 }
 
 type Preview = 'track' | 'record' | 'skip'
 
 export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
   const dialogRef = useDialogFocus()
+  const t = useT()
   const s = useSettingsStore()
   const [preview, setPreview] = useState<Preview>('track')
 
@@ -57,6 +55,7 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
 
   const seconds = preview === 'track' ? s.xfTrackSec : preview === 'record' ? s.xfRecordSec : s.xfSkipSec
   const curve: FadeCurve = preview === 'skip' ? 'lead-out' : s.xfShape
+  const SHAPE_COPY = shapeCopy(t)
 
   return (
     <div
@@ -64,7 +63,7 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-label="Fine-tune crossfade"
+      aria-label={t('settings.xf_dialog_label')}
       className="outline-none fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 sm:items-center"
       onClick={onClose}
     >
@@ -72,17 +71,17 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
         className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">Crossfade</p>
+        <p className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">{t('settings.xf_title')}</p>
         <p className="mt-1 text-[12.5px] text-slate-500 dark:text-slate-400">
-          How one song hands over to the next. The preview shows the song ending and the song arriving.
+          {t('settings.xf_intro')}
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-1.5" role="group" aria-label="Preview">
+        <div className="mt-4 flex flex-wrap gap-1.5" role="group" aria-label={t('settings.xf_preview')}>
           {(
             [
-              ['track', 'Same record'],
-              ['record', 'New record'],
-              ['skip', 'Next pressed'],
+              ['track', t('settings.xf_same_record')],
+              ['record', t('settings.xf_new_record')],
+              ['skip', t('settings.xf_next_pressed')],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -105,8 +104,8 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
         <div className="mt-4 space-y-4">
           <SecondsSlider
             id="xf-track"
-            label="Same record"
-            hint="Between two songs on one album, at the end of a song."
+            label={t('settings.xf_same_record')}
+            hint={t('settings.xf_same_record_hint')}
             value={s.xfTrackSec}
             range={CROSSFADE_LIMITS.track}
             onChange={(v) => {
@@ -116,8 +115,8 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
           />
           <SecondsSlider
             id="xf-record"
-            label="New record"
-            hint="When the next song is on a different album. Unused if “No crossfade between records” is ticked."
+            label={t('settings.xf_new_record')}
+            hint={t('settings.xf_new_record_hint')}
             value={s.xfRecordSec}
             range={CROSSFADE_LIMITS.record}
             onChange={(v) => {
@@ -127,8 +126,8 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
           />
           <SecondsSlider
             id="xf-skip"
-            label="When you press Next"
-            hint="Starts the moment you press. A little longer across records."
+            label={t('settings.xf_skip')}
+            hint={t('settings.xf_skip_hint')}
             value={s.xfSkipSec}
             range={CROSSFADE_LIMITS.skip}
             onChange={(v) => {
@@ -138,8 +137,8 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
           />
           <SecondsSlider
             id="xf-intro"
-            label="Wait for a quiet opening"
-            hint="If the next song starts softly, the ending song keeps playing at full for up to this long, until the music arrives."
+            label={t('settings.xf_intro_wait')}
+            hint={t('settings.xf_intro_wait_hint')}
             value={s.xfIntroMax}
             range={CROSSFADE_LIMITS.intro}
             off
@@ -147,17 +146,17 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
           />
           <SecondsSlider
             id="xf-outro"
-            label="Skip silence at the end"
-            hint="If a song ends on silence, the crossfade starts up to this much earlier so the silence isn’t played."
+            label={t('settings.xf_outro_skip')}
+            hint={t('settings.xf_outro_skip_hint')}
             value={s.xfOutroMax}
             range={CROSSFADE_LIMITS.outro}
             off
             onChange={(v) => s.set('xfOutroMax', v)}
           />
           <fieldset>
-            <legend className="text-[14px] font-medium text-slate-900 dark:text-slate-100">Shape</legend>
+            <legend className="text-[14px] font-medium text-slate-900 dark:text-slate-100">{t('settings.xf_shape')}</legend>
             <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">
-              At the end of a song. Pressing Next always brings the next song in at once.
+              {t('settings.xf_shape_hint')}
             </p>
             <div className="mt-2 space-y-2">
               {CROSSFADE_SHAPES.map((shape) => (
@@ -183,19 +182,19 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
         </div>
 
         <p className="mt-4 text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
-          On iPhone the fades may not be heard yet: the phone ignores the app’s volume changes, so the two songs can overlap at full volume for this long.
+          {t('settings.xf_iphone_note')}
         </p>
 
         <div className="mt-5 flex items-center justify-between gap-2">
           <button type="button" onClick={reset} className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
-            Reset
+            {t('settings.xf_reset')}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-1.5 text-[14px] font-semibold text-white shadow-sm"
           >
-            Done
+            {t('common.done')}
           </button>
         </div>
       </div>
@@ -215,6 +214,8 @@ function SecondsSlider({
   off?: boolean
   onChange(value: number): void
 }) {
+  const t = useT()
+  const shown = oneDecimal(t, value)
   return (
     <div>
       <div className="flex items-baseline justify-between gap-4">
@@ -222,7 +223,7 @@ function SecondsSlider({
           {label}
         </label>
         <span className="shrink-0 text-[13px] tabular-nums text-slate-600 dark:text-slate-300">
-          {off && value === 0 ? 'Off' : `${value.toFixed(1)} s`}
+          {off && value === 0 ? t('common.off') : t('settings.seconds_value', { value: shown })}
         </span>
       </div>
       <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">{hint}</p>
@@ -233,7 +234,7 @@ function SecondsSlider({
         max={range[1]}
         step={0.1}
         value={value}
-        aria-valuetext={off && value === 0 ? 'Off' : `${value.toFixed(1)} seconds`}
+        aria-valuetext={off && value === 0 ? t('common.off') : t('settings.xf_seconds_aria', { value: shown })}
         onChange={(e) => onChange(Number(e.target.value))}
         className="mt-1.5 w-full accent-[#E05504]"
       />
@@ -243,6 +244,7 @@ function SecondsSlider({
 
 /** Both songs' levels across the blend, drawn from `fadeLevel` itself. */
 function CurvePreview({ seconds, curve }: { seconds: number; curve: FadeCurve }) {
+  const t = useT()
   const W = 320
   const H = 110
   const pad = { l: 6, r: 6, t: 8, b: 20 }
@@ -264,27 +266,27 @@ function CurvePreview({ seconds, curve }: { seconds: number; curve: FadeCurve })
   }
   const note =
     curve === 'staggered'
-      ? `next song silent for the first ${(seconds * STAGGER).toFixed(1)} s`
+      ? t('settings.xf_note_staggered', { value: oneDecimal(t, seconds * STAGGER) })
       : curve === 'lead-out'
-        ? `old song gone after ${(seconds * (1 - LEAD_OUT)).toFixed(1)} s`
+        ? t('settings.xf_note_lead_out', { value: oneDecimal(t, seconds * (1 - LEAD_OUT)) })
         : null
   return (
     <figure className="mt-3">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`A ${seconds.toFixed(1)} second crossfade`}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('settings.xf_curve_label', { value: oneDecimal(t, seconds) })}>
         <rect x={x(before)} y={pad.t} width={x(before + seconds) - x(before)} height={H - pad.t - pad.b} className="fill-orange-500/10" />
         <line x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} className="stroke-slate-300 dark:stroke-slate-700" />
         <path d={a} fill="none" strokeWidth={2.2} className="stroke-slate-500 dark:stroke-slate-300" />
         <path d={b} fill="none" strokeWidth={2.2} className="stroke-orange-600 dark:stroke-orange-400" />
         <text x={x(before)} y={H - 6} textAnchor="middle" className="fill-slate-500 text-[10px] dark:fill-slate-400">
-          start
+          {t('settings.xf_curve_start')}
         </text>
         <text x={x(before + seconds)} y={H - 6} textAnchor="middle" className="fill-slate-500 text-[10px] dark:fill-slate-400">
-          {seconds.toFixed(1)} s
+          {t('settings.seconds_value', { value: oneDecimal(t, seconds) })}
         </text>
       </svg>
       <figcaption className="mt-1 flex flex-wrap gap-x-4 text-[11.5px] text-slate-500 dark:text-slate-400">
-        <span><span className="mr-1 inline-block h-0.5 w-3 bg-slate-500 align-middle dark:bg-slate-300" />Song ending</span>
-        <span><span className="mr-1 inline-block h-0.5 w-3 bg-orange-600 align-middle dark:bg-orange-400" />Next song</span>
+        <span><span className="mr-1 inline-block h-0.5 w-3 bg-slate-500 align-middle dark:bg-slate-300" />{t('settings.xf_song_ending')}</span>
+        <span><span className="mr-1 inline-block h-0.5 w-3 bg-orange-600 align-middle dark:bg-orange-400" />{t('settings.xf_next_song')}</span>
         {note && <span>{note}</span>}
       </figcaption>
     </figure>
