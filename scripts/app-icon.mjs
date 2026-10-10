@@ -40,6 +40,16 @@ const { chromium } = await import(process.env.PLAYWRIGHT ? pathToFileURL(process
 /** The phone app's warm paper (native.css `--jx-bg`): the splash ground. */
 const PAPER = '#f6f2ec'
 
+/**
+ * Where the touch of UNI·SIM orange goes (James, 2026-10-10: "a little bit of
+ * the unisim orange, the center dot of the disc, or the arm"): 'spindle' (the
+ * centre dot), 'headshell' (the tip of the arm), 'pivot' (the arm's bearing),
+ * or 'none'. `ACCENT=… node scripts/app-icon.mjs` to try another;
+ * `PREVIEW=<dir>` renders just the 1024 icon there and touches nothing else.
+ */
+const ACCENT = process.env.ACCENT ?? 'headshell'
+const ORANGE = 'url(#orange)'
+
 const pt = (cx, cy, r, deg) => {
   const a = (deg * Math.PI) / 180
   return [(cx + r * Math.cos(a)).toFixed(1), (cy + r * Math.sin(a)).toFixed(1)]
@@ -72,19 +82,20 @@ function svg({ wide = false, back = true, arm = true } = {}) {
     <path d="${wedge(cx, cy, r - 6, 30, 68)}" fill="#fff" fill-opacity="0.05"/>
     <circle cx="${cx}" cy="${cy}" r="${label}" fill="#b42318"/>
     <circle cx="${cx}" cy="${cy}" r="${label - 30}" fill="none" stroke="#f6f2ec" stroke-opacity="0.28" stroke-width="3"/>
-    <circle cx="${cx}" cy="${cy}" r="${label * 0.11}" fill="#f6f2ec"/>`
+    <circle cx="${cx}" cy="${cy}" r="${ACCENT === 'spindle' ? label * 0.17 : label * 0.11}" fill="${ACCENT === 'spindle' ? ORANGE : '#f6f2ec'}"/>`
   const toneArm = `
     <circle cx="880" cy="250" r="86" fill="#000" fill-opacity="0.25" transform="translate(6 10)"/>
     <line x1="938" y1="196" x2="996" y2="142" stroke="url(#arm)" stroke-width="58" stroke-linecap="round"/>
     <line x1="880" y1="250" x2="648" y2="472" stroke="#000" stroke-opacity="0.25" stroke-width="34" stroke-linecap="round" transform="translate(8 12)"/>
     <line x1="880" y1="250" x2="648" y2="472" stroke="url(#arm)" stroke-width="34" stroke-linecap="round"/>
     <circle cx="880" cy="250" r="86" fill="url(#arm)"/>
-    <circle cx="880" cy="250" r="34" fill="#b9a68c"/>
-    <rect x="-42" y="-64" width="84" height="128" rx="18" fill="url(#arm)" transform="translate(632 494) rotate(44)"/>`
+    <circle cx="880" cy="250" r="34" fill="${ACCENT === 'pivot' ? ORANGE : '#b9a68c'}"/>
+    <rect x="-42" y="-64" width="84" height="128" rx="18" fill="${ACCENT === 'headshell' ? ORANGE : 'url(#arm)'}" transform="translate(632 494) rotate(44)"/>`
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box}" width="100%" height="100%">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d23a24"/><stop offset="1" stop-color="#8a1a10"/></linearGradient>
     <linearGradient id="arm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf6ee"/><stop offset="1" stop-color="#d9cbb6"/></linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fe8c01"/><stop offset="1" stop-color="#e05504"/></linearGradient>
     <radialGradient id="disc" cx="50%" cy="50%" r="50%"><stop offset="0.35" stop-color="#1c1815"/><stop offset="1" stop-color="#0a0807"/></radialGradient>
   </defs>
   ${back ? ground : ''}
@@ -112,6 +123,14 @@ async function png(size, art, { inset = 1, radius = '0', ground = null } = {}) {
   const buf = await page.screenshot({ omitBackground: ground === null })
   await page.close()
   return buf
+}
+
+if (process.env.PREVIEW) {
+  mkdirSync(process.env.PREVIEW, { recursive: true })
+  writeFileSync(path.join(process.env.PREVIEW, `icon-${ACCENT}.png`), await png(1024, svg(), { ground: '#8a1a10' }))
+  await browser.close()
+  console.log(`Preview: ${path.join(process.env.PREVIEW, `icon-${ACCENT}.png`)}`)
+  process.exit(0)
 }
 
 const written = []
