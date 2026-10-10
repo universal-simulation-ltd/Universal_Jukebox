@@ -204,9 +204,6 @@ html.dark .jx {
 .jx-preview svg { width: 21px; height: 21px; }
 .jx-preview.on { color: var(--jx-acc); }
 .jx-preview.on svg { width: 16px; height: 16px; }
-/* The top bar's search on an album or artist page. */
-.jx-bar-search { margin-left: auto; justify-content: center; padding: 0; }
-.jx-bar-search svg { width: 23px; height: 23px; }
 /* Matches on a tab while searching. */
 .jx-count {
   position: absolute; top: 4px; left: calc(50% + 6px);

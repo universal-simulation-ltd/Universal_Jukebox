@@ -1,6 +1,7 @@
 // LibraryScreens.tsx — the phone app's three library tabs: Artists, Albums and
-// Tracks. Above each, folded away until you pull down from the top (or tap
-// the search button by the title): the search box, Shuffle, and the list
+// Tracks. Above each, folded away until you pull down from the top (no
+// button for it: the screen stays clean, James 2026-10-10): the search box,
+// Shuffle, and the list
 // options — A–Z / Random / Genre, the jukebox shelf, and the tab's filter
 // (Full albums, Min. 3). They are the website's own settings (`libraryOrder`,
 // `libraryColumns`, `fullAlbumsOnly`, `artistsMin3`, `genresMin3`), so the two
@@ -138,8 +139,8 @@ function Screen({
   filterNote?: string | null
   children: ReactNode
 } & ListProps) {
-  // The drawer (PullDrawer): open by pulling down or the search button, and
-  // kept open while there is a search.
+  // The drawer (PullDrawer): opened by pulling down from the top, and kept
+  // open while there is a search.
   const [pulled, setPulled] = useState(false)
   const shown = pulled || query.trim() !== ''
   const input = useRef<HTMLInputElement>(null)
@@ -178,21 +179,6 @@ function Screen({
           <h1 className="jx-h1">{genre ?? title}</h1>
           <p className="jx-sub">{[count, ...(shown ? [] : notes)].join(' · ')}</p>
         </div>
-        {!shown && (
-          <button
-            type="button"
-            className="jx-round"
-            onClick={() => {
-              setPulled(true)
-              // Focus in the same tap, or iOS won't raise the keyboard.
-              input.current?.focus({ preventScroll: true })
-            }}
-            aria-label={`Search, shuffle and list options for ${title.toLowerCase()}`}
-            title="Or pull down from the top"
-          >
-            <IconSearch />
-          </button>
-        )}
       </div>
       <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer}>
         <SearchBox

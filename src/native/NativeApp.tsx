@@ -39,8 +39,8 @@ import { useSettingsStore, type HomeTab, type ListTab } from '../stores/settings
 import { albumsOfBigArtists, isFullAlbum, orderFrom, type LibraryOrder } from '../lib/libraryView'
 import { libraryInGenre } from '../lib/genres'
 import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
-import { AlbumScreen, ArtistScreen, FIND_EVENT } from './DetailScreens'
-import { IconAlbums, IconArtists, IconBack, IconDown, IconSearch, IconShelves, IconSongs, IconTune } from './icons'
+import { AlbumScreen, ArtistScreen } from './DetailScreens'
+import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, IconTune } from './icons'
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
@@ -337,17 +337,6 @@ function TopBar({ view, route }: { view: View; route: Route }) {
           <span>{up.label}</span>
         </button>
         {route.artist && view === 'artist' ? <span className="jx-bar-title">{route.artist}</span> : null}
-        {/* Search inside the album or artist (DetailScreens' FindWithin). */}
-        {(view === 'album' || view === 'artist') && (
-          <button
-            type="button"
-            className="jx-back jx-bar-search"
-            onClick={() => window.dispatchEvent(new Event(FIND_EVENT))}
-            aria-label={view === 'album' ? 'Search this album' : `Search ${route.artist}`}
-          >
-            <IconSearch />
-          </button>
-        )}
       </div>
     )
   }

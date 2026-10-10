@@ -2,7 +2,7 @@
 // and Shuffle under it, then the songs. Play puts the record on, and the
 // player store takes you to the deck (`showTheDeck`), as on the website.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import Tip from '../components/Tip'
 import { markTipSeen } from '../lib/tips'
 import { matchTracks } from '../lib/search'
@@ -36,27 +36,16 @@ function usePlayShuffle() {
 
 /** Play and Shuffle, then the website's own "add all of these" buttons: to a
  *  shelf, and to the queue (that one only once something is playing). */
-/** The top bar's search button on these pages (NativeApp's TopBar) asks for this. */
-export const FIND_EVENT = 'jukebox:find-within'
-
 /**
  * Search inside the page — the website's FindWithin. Folded away like the
- * library's drawer: pull down from the top, or the search button in the top
- * bar. Returns the box, and the tracks that match (all of them while empty).
+ * library's drawer, and opened the same way: pull down from the top. Returns
+ * the box, and the tracks that match (all of them while empty).
  */
 function useFindWithin(tracks: Track[], label: string) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const shown = open || query.trim() !== ''
-  useEffect(() => {
-    const onFind = () => {
-      setOpen(true)
-      input.current?.focus({ preventScroll: true })
-    }
-    window.addEventListener(FIND_EVENT, onFind)
-    return () => window.removeEventListener(FIND_EVENT, onFind)
-  }, [])
   const openDrawer = useCallback(() => setOpen(true), [])
   const closeDrawer = useCallback(() => setOpen(false), [])
   const found = useMemo(() => matchTracks(tracks, query), [tracks, query])

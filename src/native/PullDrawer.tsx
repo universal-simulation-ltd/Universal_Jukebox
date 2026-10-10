@@ -1,7 +1,8 @@
 // PullDrawer.tsx — the search box, Shuffle and the list options, folded away
 // above a library tab until you pull down from the top of the page (James,
 // 2026-10-10: "don't show the search bar until you scroll down and it pops
-// out", and the same for the playing options). The same gesture as the
+// out", and the same for the playing options). Pulling is the only way in —
+// no search button, to keep the screen clean (James, same day). The same gesture as the
 // website's phone search (`components/PhoneSearch.tsx`, which has the long
 // version of every rule below): only from the very top, only a mostly
 // vertical pull, and not one that starts on a sideways swiper (`data-swipe-x`,
