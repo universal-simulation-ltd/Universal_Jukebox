@@ -29,7 +29,7 @@ La aplicación no tiene decodificadores propios: se apoya en la reproducción de
 
 ## Ver el motivo
 
-De forma predeterminada, las canciones que no se pueden reproducir se omiten sin avisar. Si prefiere saber por qué, marque **Show error messages** en Tune this app, apartado Messages, y la aplicación indicará cada archivo que no pudo reproducir y qué le ocurría.`,
+De forma predeterminada, las canciones que no se pueden reproducir se omiten sin avisar. Si prefiere saber por qué, marque **Mostrar los mensajes de error** en Ajustar esta app, apartado Mensajes, y la aplicación indicará cada archivo que no pudo reproducir y qué le ocurría.`,
   },
   {
     id: 'tags-and-artwork',
@@ -47,12 +47,12 @@ La aplicación lee los tipos de etiquetas habituales en archivos MP3, M4A, FLAC 
 ## Cuando las etiquetas faltan o son incorrectas
 
 - **Un archivo sin etiquetas** se muestra con su nombre de archivo, sin el número de pista que pueda llevar al principio. La aplicación no adivina el artista a partir del nombre del archivo, porque una suposición equivocada es peor que un campo vacío.
-- **Un álbum partido en dos** suele indicar que sus pistas se etiquetaron de forma incoherente; por ejemplo, con el nombre del artista escrito de dos maneras.
+- **Un disco partido en dos** suele indicar que sus pistas se etiquetaron de forma incoherente; por ejemplo, con el nombre del artista escrito de dos maneras.
 - **Una carátula que falta** puede deberse a que la imagen nunca se guardó en los archivos, o a que se guardó en una pista posterior en lugar de en la primera.
 
 ## Poner orden
 
-**Tidy up library**, en Tune this app, apartado Your library, busca dos cosas: carátulas que ya están en su dispositivo pero no se usaron (una imagen con nombre de carátula, como cover.jpg, junto a las pistas, o una imagen guardada en una pista posterior) y álbumes que unas etiquetas incoherentes han partido en dos. Le muestra cada sugerencia, con la imagen que usaría, y nada cambia hasta que usted pulse el botón.
+**Ordenar la biblioteca**, en Ajustar esta app, apartado Tu biblioteca, busca dos cosas: carátulas que ya están en su dispositivo pero no se usaron (una imagen con nombre de carátula, como cover.jpg, junto a las pistas, o una imagen guardada en una pista posterior) y álbumes que unas etiquetas incoherentes han partido en dos. Le muestra cada sugerencia, con la imagen que usaría, y nada cambia hasta que usted pulse el botón.
 
 Rechaza a propósito todo aquello de lo que no pueda estar seguro. Dos álbumes con el mismo nombre en carpetas distintas, o una carpeta con dos álbumes diferentes, se dejan como están.
 
@@ -69,7 +69,7 @@ Poner orden corrige solo la biblioteca dentro de la aplicación. No reescribe et
 
 ## Añadir música
 
-Abra el menú y elija **Your complete library**. Desde ahí puede añadir una carpeta, volver a analizar o quitar una carpeta. Añadir una carpeta amplía su biblioteca en lugar de sustituirla, y quitar una elimina solo las canciones de esa carpeta. El funcionamiento de las carpetas depende de dónde use la aplicación:
+Abra el menú y elija **Tu biblioteca completa**. Desde ahí puede añadir una carpeta, volver a analizar o quitar una carpeta. Añadir una carpeta amplía su biblioteca en lugar de sustituirla, y quitar una elimina solo las canciones de esa carpeta. El funcionamiento de las carpetas depende de dónde use la aplicación:
 
 - **Chrome y Edge** pueden recordar la carpeta que eligió. Al volver, puede que se le pida confirmar el acceso una vez, con un solo toque.
 - **Firefox y Safari** no pueden conservar el permiso para leer una carpeta entre visitas, así que tendrá que elegir la carpeta cada vez. Su biblioteca, sus carátulas y sus ajustes se siguen recordando, de modo que no hay que volver a leer nada.
@@ -78,7 +78,7 @@ Abra el menú y elija **Your complete library**. Desde ahí puede añadir una ca
 
 ## Volver a analizar
 
-La aplicación no detecta por sí sola cuándo aparecen o desaparecen archivos. Después de añadir o borrar música fuera de la aplicación, elija **Rescan**. Un nuevo análisis incorpora las canciones nuevas, quita las que ya no están y conserva las correcciones que haya hecho al poner orden.
+La aplicación no detecta por sí sola cuándo aparecen o desaparecen archivos. Después de añadir o borrar música fuera de la aplicación, elija **Volver a escanear**. Un nuevo análisis incorpora las canciones nuevas, quita las que ya no están y conserva las correcciones que haya hecho al poner orden.
 
 ## Canciones de la biblioteca de Música del iPhone
 
@@ -106,9 +106,9 @@ La aplicación guarda en su dispositivo un catálogo de su biblioteca —título
 
 **Las canciones de un mismo álbum** se enlazan directamente con un fundido encadenado corto y suave. La canción que llega solo sube a medida que baja la que se va, así que la unión es fluida y no suenan dos canciones fuertes a la vez.
 
-**Cuando la siguiente canción es de otro disco**, las dos también se funden de forma predeterminada, mientras en la imagen un reproductor sale deslizándose y entra el siguiente. Si prefiere un corte limpio, marque **No crossfade between records** en Tune this app: la aguja se levanta, hay un momento de silencio y cae sobre el siguiente disco.
+**Cuando la siguiente canción es de otro disco**, las dos también se funden de forma predeterminada, mientras en la imagen un reproductor sale deslizándose y entra el siguiente. Si prefiere un corte limpio, marque **Sin fundido encadenado entre discos** en Ajustar esta app: la aguja se levanta, hay un momento de silencio y cae sobre el siguiente disco.
 
-**Fade in** y **Fade out**, en Tune this app, apartado Sound, añaden un fundido de hasta ocho segundos al principio o al final de cada pista, incluida la última canción de un álbum. Ambos están desactivados hasta que usted los ajuste. En un dispositivo que no permite a la aplicación controlar el volumen, los fundidos no están disponibles, y Tune this app lo indica.
+**Fundido de entrada** y **Fundido de salida**, en Ajustar esta app, apartado Sonido, añaden un fundido de hasta ocho segundos al principio o al final de cada pista, incluida la última canción de un álbum. Ambos están desactivados hasta que usted los ajuste. En un dispositivo que no permite a la aplicación controlar el volumen, los fundidos no están disponibles, y la página Ajustar esta app lo indica.
 
 ## La animación es independiente
 
@@ -119,7 +119,7 @@ La animación de cambio de disco, y la frecuencia con que aparece, afecta a la i
     title: 'Letras: de dónde salen las palabras',
     summary: 'Primero las letras de sus archivos o guardadas junto a ellos, y una búsqueda en línea opcional.',
     group: 'Cómo funciona',
-    body: `Pulse **Lyrics** en Now Playing para ver la letra de la canción que está sonando. Puede venir de dos sitios, siempre en este orden.
+    body: `Pulse **Mostrar la letra** en la pantalla Reproduciendo para ver la letra de la canción que está sonando. Puede venir de dos sitios, siempre en este orden.
 
 ## 1. Su propio archivo
 
@@ -133,9 +133,9 @@ Si sus archivos no tienen letras, un programa gratuito para ordenador llamado **
 
 ## 2. Una búsqueda en línea, solo si la activa
 
-En iPhone y iPad no hay búsqueda en línea: añada archivos de letras como se explica arriba. En los demás casos, si una canción no tiene letra propia, la aplicación puede consultar lrclib.net, una colección de letras gratuita mantenida por una comunidad. Esta opción está **desactivada** hasta que marque **Look up missing lyrics online** en Tune this app, apartado Lyrics.
+En iPhone y iPad no hay búsqueda en línea: añada archivos de letras como se explica arriba. En los demás casos, si una canción no tiene letra propia, la aplicación puede consultar lrclib.net, una colección de letras gratuita mantenida por una comunidad. Esta opción está **desactivada** hasta que marque **Buscar en internet las letras que falten** en Ajustar esta app, apartado Letras.
 
-Cuando está activada, buscar una canción envía solo su artista, título, álbum y duración, directamente desde su dispositivo a lrclib.net. No se envía nada más sobre usted, su dispositivo o su biblioteca, y la solicitud no pasa por UNI·SIM. La respuesta se guarda en su dispositivo, de modo que cada canción se consulta una sola vez. Si no se encontró letra, la aplicación puede volver a intentarlo al cabo de unos días. Tune this app muestra cuántas canciones se han consultado, con un botón para olvidarlas todas.
+Cuando está activada, buscar una canción envía solo su artista, título, álbum y duración, directamente desde su dispositivo a lrclib.net. No se envía nada más sobre usted, su dispositivo o su biblioteca, y la solicitud no pasa por UNI·SIM. La respuesta se guarda en su dispositivo, de modo que cada canción se consulta una sola vez. Si no se encontró letra, la aplicación puede volver a intentarlo al cabo de unos días. La página Ajustar esta app muestra cuántas canciones se han consultado, con un botón para olvidarlas todas.
 
 Como la colección la escriben voluntarios, alguna letra puede ser inexacta o ir algo desfasada.
 
@@ -143,7 +143,7 @@ Como la colección la escriben voluntarios, alguna letra puede ser inexacta o ir
 
 Algunas letras incluyen una marca de tiempo al principio de cada línea. Se llaman letras sincronizadas y suelen estar en un formato llamado LRC. Con ellas, el panel de letras sigue la canción mientras suena, y al tocar una línea se salta a ese momento de la canción. Las letras sin marcas de tiempo se muestran como texto normal.
 
-Las letras sincronizadas permiten además dos opciones, ambas en Tune this app, apartado Lyrics: **Lyrics around the record**, que escribe las palabras alrededor del disco que gira a medida que se cantan, y **Lyrics on the lock screen**, que muestra la línea que se está cantando en los controles de música del teléfono.`,
+Las letras sincronizadas permiten además dos opciones, ambas en Ajustar esta app, apartado Letras: **Letra alrededor del disco**, que escribe las palabras alrededor del disco que gira a medida que se cantan, y **Letra en la pantalla de bloqueo**, que muestra la línea que se está cantando en los controles de música del teléfono.`,
   },
   {
     id: 'playing-in-the-background',
@@ -165,7 +165,7 @@ En un navegador, la canción suele aparecer en los controles multimedia del orde
 
 ## El temporizador
 
-**Sleep**, entre los botones redondos de Now Playing, detiene la música por usted:
+**Dormir**, entre los botones redondos de la pantalla Reproduciendo, detiene la música por usted:
 
 1. Tóquelo para pasar por 15, 30, 45 y 60 minutos y, después, desactivarlo.
 2. O manténgalo pulsado para elegir cualquier duración, hasta 12 horas.
@@ -175,11 +175,11 @@ El temporizador sigue funcionando con el teléfono bloqueado.
 
 ## Mantener la pantalla encendida
 
-Si le gusta ver girar el disco, **Keep awake** impide que la pantalla se atenúe o se bloquee mientras Now Playing está abierto.
+Si le gusta ver girar el disco, **No apagar** impide que la pantalla se atenúe o se bloquee mientras la pantalla Reproduciendo está abierta.
 
 ## Una notificación por canción
 
-**Notify me of each new song**, en Tune this app, muestra la canción, el artista y la carátula cuando empieza cada canción nueva mientras la aplicación no está en pantalla. Solo se muestra una cada vez, sustituida por la siguiente, y no hace ningún sonido. Está desactivada hasta que la active, y es entonces cuando su dispositivo le pide permiso.`,
+**Avisarme de cada canción nueva**, en Ajustar esta app, muestra la canción, el artista y la carátula cuando empieza cada canción nueva mientras la aplicación no está en pantalla. Solo se muestra una cada vez, sustituida por la siguiente, y no hace ningún sonido. Está desactivada hasta que la active, y es entonces cuando su dispositivo le pide permiso.`,
   },
   {
     id: 'privacy',
@@ -200,11 +200,11 @@ La aplicación no hace copia de seguridad ni sincroniza nada de esto. Si usa Juk
 
 Solo tres funciones envían algo sobre su música, y ninguna hace nada hasta que usted lo pide. Cada una va directamente de su dispositivo al servicio indicado, sin pasar por UNI·SIM, y envía solo lo que se detalla.
 
-- **Búsqueda de letras** (no disponible en iPhone ni iPad; en los demás, desactivada hasta que la active en Tune this app): envía el artista, el título, el álbum y la duración de una canción a lrclib.net, para las canciones que no tienen letra propia.
-- **About this track** (desactivada hasta que la active, en Tune this app o en el propio panel): envía el título de la canción y el nombre del artista a Wikipedia, para mostrar lo que Wikipedia dice de ellos. Las respuestas se guardan en el dispositivo durante 90 días, y una canción sin artículo se vuelve a consultar al cabo de unos días.
-- **Find a picture**, en una petición: envía las palabras que escribió a la búsqueda de iTunes de Apple, solo cuando lo toca. La imagen que elija se guarda con la petición.
+- **Búsqueda de letras** (no disponible en iPhone ni iPad; en los demás, desactivada hasta que la active en Ajustar esta app): envía el artista, el título, el álbum y la duración de una canción a lrclib.net, para las canciones que no tienen letra propia.
+- **Acerca de esta canción** (desactivada hasta que la active, en Ajustar esta app o en el propio panel): envía el título de la canción y el nombre del artista a Wikipedia, para mostrar lo que Wikipedia dice de ellos. Las respuestas se guardan en el dispositivo durante 90 días, y una canción sin artículo se vuelve a consultar al cabo de unos días.
+- **Buscar una imagen**, en una petición: envía las palabras que escribió a la búsqueda de iTunes de Apple, solo cuando lo toca. La imagen que elija se guarda con la petición.
 
-Las respuestas de las dos primeras se guardan en su dispositivo, así que cada canción se consulta una sola vez. Tune this app muestra cuántas hay y le permite olvidarlas. Ningún audio sale nunca de su dispositivo.
+Las respuestas de las dos primeras se guardan en su dispositivo, así que cada canción se consulta una sola vez. La página Ajustar esta app muestra cuántas hay y le permite olvidarlas. Ningún audio sale nunca de su dispositivo.
 
 ## Universal ID
 

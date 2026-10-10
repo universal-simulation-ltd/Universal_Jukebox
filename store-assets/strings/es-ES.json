@@ -1,0 +1,98 @@
+{
+ "01-turntable": {
+  "headline": [
+   "Tu música,",
+   "*en el tocadiscos*"
+  ],
+  "label": "Universal Jukebox · 33⅓ · Cara A ·"
+ },
+ "02-shelf": {
+  "headline": [
+   "Cada álbum",
+   "en su estante"
+  ],
+  "sub": "Hecho en el Reino Unido por\nJames Markey MBE y UNI·SIM"
+ },
+ "03-machines": {
+  "headline": [
+   "Elige tu",
+   "*aparato*"
+  ],
+  "caption": "Vinilo, CD, casete, magnetófono de bobinas, jukebox o reproductor de bolsillo",
+  "chips": [
+   "Tocadiscos",
+   "CD",
+   "Casete",
+   "Magnetófono",
+   "Jukebox",
+   "De bolsillo"
+  ]
+ },
+ "04-lyrics": {
+  "headline": [
+   "La letra gira",
+   "*con el disco*"
+  ],
+  "caption": "Letras sincronizadas de tus propios archivos, cantadas mientras gira",
+  "chips": [
+   "Alrededor del disco",
+   "Pantalla de bloqueo",
+   "Tus archivos .lrc"
+  ]
+ },
+ "05-artists": {
+  "headline": [
+   "Cada artista,",
+   "*de un vistazo*"
+  ],
+  "caption": "Artistas, álbumes y pistas, unos pocos por fila o en el estante",
+  "chips": [
+   "3 por fila",
+   "A–Z",
+   "Aleatorio",
+   "Género"
+  ]
+ },
+ "06-album": {
+  "headline": [
+   "Cada álbum,",
+   "*con su carátula*"
+  ],
+  "caption": "Reprodúcelo, ponlo en aleatorio o escucha antes diez segundos de cualquier canción",
+  "chips": [
+   "Reproducir",
+   "Aleatorio",
+   "Escucha previa",
+   "Añadir al estante"
+  ]
+ },
+ "07-drawer": {
+  "headline": [
+   "Desliza abajo",
+   "*para ver más*"
+  ],
+  "caption": "Búsqueda, aleatorio y las opciones de la lista, ocultos hasta que los necesites",
+  "chips": [
+   "Buscar",
+   "Aleatorio",
+   "A–Z o aleatorio",
+   "Estante Jukebox"
+  ]
+ },
+ "08-tune": {
+  "headline": [
+   "Ajústala",
+   "*a tu manera*"
+  ],
+  "caption": "Fundido encadenado, fundidos, Volumen estable y un temporizador de apagado que baja la música poco a poco",
+  "chips": [
+   "Fundido encadenado",
+   "Volumen estable",
+   "Temporizador",
+   "Fundidos"
+  ]
+ },
+ "feature-graphic": {
+  "tagline": "Tu música, en el tocadiscos"
+ }
+}

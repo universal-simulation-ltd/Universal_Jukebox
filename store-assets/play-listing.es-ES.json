@@ -1,0 +1,51 @@
+{
+  "language": "es-ES",
+  "details": {
+    "defaultLanguage": "en-GB",
+    "contactEmail": "inbox@unisim.co.uk",
+    "contactWebsite": "https://www.unisim.co.uk"
+  },
+  "listing": {
+    "title": "Universal Jukebox: Tocadiscos",
+    "shortDescription": "Tu propia música en un tocadiscos, Walkman o jukebox, con la letra girando.",
+    "fullDescription": [
+      "Tus discos ya están en tu móvil. Universal Jukebox los pone en un tocadiscos.",
+      "",
+      "Elige una carpeta de archivos MP3, M4A, FLAC o WAV de tu móvil, y Jukebox lee las etiquetas, las carátulas y las letras que llevan dentro y coloca cada álbum en su estante. Toca uno y cae la aguja.",
+      "",
+      "Elige en qué suena: un tocadiscos, un reproductor de CD portátil, un Walkman de casete, un magnetófono de bobinas, un jukebox o un reproductor de bolsillo. O deja que cada álbum suene en el aparato de su año, para que un disco de 1979 gire en vinilo y uno de 2003 vaya al reproductor de CD.",
+      "",
+      "La letra gira con el disco",
+      "Cuando tus canciones llevan letras sincronizadas, las líneas giran alrededor del disco a medida que se cantan, se siguen en el panel de letras y pueden aparecer en la pantalla de bloqueo. También se lee un archivo de letra guardado junto a una canción (Cancion.lrc al lado de Cancion.mp3), y puedes añadir uno tú mismo a cualquier canción. Para las canciones que no tienen, puedes activar una búsqueda en internet; está desactivada hasta que lo hagas.",
+      "",
+      "Hecho para escuchar",
+      "• Fundido encadenado y fundidos entre canciones, y Volumen estable, que baja una pista muy alta para igualarla con las demás.",
+      "• Aleatorio, repetir, reproducir a continuación y una cola que puedes ver.",
+      "• Un temporizador de apagado que baja la música poco a poco.",
+      "• Controles en la pantalla de bloqueo, y elección entre altavoz o auriculares.",
+      "• Artistas, álbumes o pistas, por orden de la A a la Z, aleatorio o por género, en cuadrícula, en lista o en un estante de jukebox.",
+      "• Estantes que se reproducen como listas, y una lista de la música que aún quieres conseguir.",
+      "",
+      "Tuya, y solo tuya",
+      "No se sube nada y no hay que crear ninguna cuenta. Sin anuncios, sin rastreo y sin analíticas de terceros. Para verla antes de añadir tu propia música, prueba la biblioteca de ejemplo: nueve discos inventados, creados en tu móvil.",
+      "",
+      "Universal Jukebox es de código abierto (AGPL-3.0). El código está en GitHub: github.com/universal-simulation-ltd/Universal_Jukebox",
+      "",
+      "Hecho en el Reino Unido por James Markey MBE y UNI·SIM."
+    ]
+  },
+  "images": {
+    "icon": "out/play/icon-512.png",
+    "featureGraphic": "out/es-ES/play/feature-graphic.png",
+    "phoneScreenshots": [
+      "out/es-ES/android/01-turntable.png",
+      "out/es-ES/android/02-shelf.png",
+      "out/es-ES/android/03-machines.png",
+      "out/es-ES/android/04-lyrics.png",
+      "out/es-ES/android/05-artists.png",
+      "out/es-ES/android/06-album.png",
+      "out/es-ES/android/07-drawer.png",
+      "out/es-ES/android/08-tune.png"
+    ]
+  }
+}
