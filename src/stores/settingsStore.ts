@@ -258,6 +258,14 @@ export interface Settings {
   libraryOrder: Record<ListTab, OrderKind>
   /** Albums per row, or the jukebox shelf — see `COLUMN_CYCLE`. */
   libraryColumns: Record<ListTab, LibraryColumns>
+  /**
+   * What the phone app's lists open with (James, 2026-10-11: "long press any
+   * option to set that as the default … open with that setting next launch").
+   * Tapping a list option changes it for now; holding it makes it one of these
+   * (`native/listDefaults.ts`). null until the phone app first opens, when it
+   * adopts the settings above as its defaults. Reset to defaults clears it.
+   */
+  listDefaults: ListDefaults | null
   /** "Resume listening" above the library lists (`ResumeCard`). */
   resumeCard: boolean
   /**
@@ -358,6 +366,7 @@ export const DEFAULTS: Settings = {
   // list") — moved once onto existing devices, see `read`. Tracks has only two
   // looks, and the list is any number (the toggle writes 2).
   libraryColumns: { artists: 3, albums: 'jukebox', tracks: 2 },
+  listDefaults: null,
   resumeCard: true,
   recordCrossfade: true,
   xfTrackSec: 1.8,
@@ -641,6 +650,7 @@ function readStored(given?: Record<string, unknown>): Settings {
       (v): v is LibraryColumns => COLUMN_CYCLE.includes(v as LibraryColumns),
       DEFAULTS.libraryColumns,
     ),
+    listDefaults: readListDefaults(stored.listDefaults),
     resumeCard: stored.resumeCard !== false,
     recordCrossfade: stored.recordCrossfade !== false,
     xfTrackSec: clamp(stored.xfTrackSec, ...CROSSFADE_LIMITS.track, DEFAULTS.xfTrackSec),
@@ -732,6 +742,28 @@ function persist(state: Settings) {
 }
 
 /** Exactly the fields that are stored — what `persist` writes and a backup carries. */
+/** The list options the phone app opens with — see `Settings.listDefaults`. */
+export interface ListDefaults {
+  libraryOrder: Record<ListTab, OrderKind>
+  libraryColumns: Record<ListTab, LibraryColumns>
+  fullAlbumsOnly: boolean
+  artistsMin3: boolean
+  genresMin3: boolean
+}
+
+/** A stored `listDefaults`, checked field by field; null if there is none. */
+function readListDefaults(stored: unknown): ListDefaults | null {
+  if (!stored || typeof stored !== 'object') return null
+  const d = stored as Partial<Record<keyof ListDefaults, unknown>>
+  return {
+    libraryOrder: perTab(d.libraryOrder, (v): v is OrderKind => ORDER_KINDS.includes(v as OrderKind), DEFAULTS.libraryOrder),
+    libraryColumns: perTab(d.libraryColumns, (v): v is LibraryColumns => COLUMN_CYCLE.includes(v as LibraryColumns), DEFAULTS.libraryColumns),
+    fullAlbumsOnly: typeof d.fullAlbumsOnly === 'boolean' ? d.fullAlbumsOnly : DEFAULTS.fullAlbumsOnly,
+    artistsMin3: typeof d.artistsMin3 === 'boolean' ? d.artistsMin3 : DEFAULTS.artistsMin3,
+    genresMin3: typeof d.genresMin3 === 'boolean' ? d.genresMin3 : DEFAULTS.genresMin3,
+  }
+}
+
 export function settingsBlob(state: Settings): Settings {
   return {
     ceremonyMode: state.ceremonyMode,
@@ -756,6 +788,7 @@ export function settingsBlob(state: Settings): Settings {
     stableVolume: state.stableVolume,
     libraryOrder: state.libraryOrder,
     libraryColumns: state.libraryColumns,
+    listDefaults: state.listDefaults,
     resumeCard: state.resumeCard,
     recordCrossfade: state.recordCrossfade,
     xfTrackSec: state.xfTrackSec,

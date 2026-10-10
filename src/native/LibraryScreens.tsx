@@ -9,7 +9,7 @@
 // on Albums the shelf is square covers in their sleeves, records only peeking
 // out (James, 2026-10-10). The plain A–Z / Random list is the phone's own.
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import AlbumGrid from '../components/AlbumGrid'
 import ArtistList from '../components/ArtistList'
 import Cover from '../components/Cover'
@@ -25,13 +25,14 @@ import { matchAlbums, matchArtistNames, matchTracks } from '../lib/search'
 import type { Album, Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
-import { DEFAULTS, useSettingsStore, type LibraryColumns, type ListTab } from '../stores/settingsStore'
+import { useSettingsStore, type LibraryColumns, type ListTab } from '../stores/settingsStore'
 import { IconBack, IconClose, IconMore, IconPreview, IconSearch, IconShuffle, IconStop } from './icons'
 import { PREVIEW_RUN_SEC, PREVIEW_START_SEC } from '../lib/audio'
 import TrackOptions from '../components/TrackOptions'
 import ResumeCard from '../components/ResumeCard'
 import { haptic } from '../lib/haptics'
 import { PullDrawer } from './PullDrawer'
+import { makeDefault, useHold, useListDefaults } from './listDefaults'
 
 /** Rows drawn before "Show more": a phone lays out a few hundred rows instantly, not ten thousand. */
 const PAGE = 300
@@ -138,8 +139,8 @@ function Screen({
   count: string
   onShuffle?: () => void
   tab: ListTab
-  /** The tab's own filter pill (Full albums, Min. 3), if it has one. */
-  filter?: ReactNode
+  /** The tab's own filter pill (Full albums, Min. 3), if it has one: handed the hold, so it can be made a default too. */
+  filter?: (hold: ReturnType<typeof useHold>, setAsDefault: (label: string, patch: Parameters<typeof makeDefault>[0]) => void) => ReactNode
   /** What that filter is set to, when it isn't the default — said under the title while the drawer is shut. */
   filterNote?: string | null
   children: ReactNode
@@ -150,6 +151,23 @@ function Screen({
   const [pulled, setPulled] = useState(false)
   const shown = pulled || query.trim() !== ''
   const input = useRef<HTMLInputElement>(null)
+  // Tap an option for now; hold it to make it what the app opens with
+  // (`listDefaults.ts`). A chip is lit when it differs from those defaults.
+  const defaults = useListDefaults()
+  const hold = useHold()
+  const [madeDefault, setMadeDefault] = useState<{ label: string; n: number } | null>(null)
+  useEffect(() => {
+    if (!madeDefault) return
+    const timer = window.setTimeout(() => setMadeDefault(null), 2400)
+    return () => window.clearTimeout(timer)
+  }, [madeDefault])
+  const [holdLearnt, setHoldLearnt] = useState(readHoldLearnt)
+  const setAsDefault = (label: string, patch: Parameters<typeof makeDefault>[0]) => {
+    makeDefault(patch)
+    learnHold()
+    setHoldLearnt(true)
+    setMadeDefault({ label, n: Date.now() })
+  }
   const setSetting = useSettingsStore((s) => s.set)
   const columns = useSettingsStore((s) => s.libraryColumns)
   const genresMin3 = useSettingsStore((s) => s.genresMin3)
@@ -165,12 +183,14 @@ function Screen({
   // With the drawer shut, what's changed from the usual is said under the
   // title, so a filtered or shuffled list never looks like a broken one.
   const notes = [
-    order.kind !== DEFAULTS.libraryOrder[tab] ? orderLabel(order) : null,
-    cols !== DEFAULTS.libraryColumns[tab] ? layoutLabel(cols) : null,
+    order.kind !== defaults.libraryOrder[tab] ? orderLabel(order) : null,
+    cols !== defaults.libraryColumns[tab] ? layoutLabel(cols) : null,
     filterNote ?? null,
   ].filter(Boolean)
   const openDrawer = useCallback(() => setPulled(true), [])
   const closeDrawer = useCallback(() => setPulled(false), [])
+  // A second pull while it's open: straight into the search box, keyboard up.
+  const typeIntoSearch = useCallback(() => input.current?.focus({ preventScroll: true }), [])
 
   return (
     <div className="jx-page">
@@ -186,7 +206,7 @@ function Screen({
           <p className="jx-sub">{[count, ...(shown ? [] : notes)].join(' · ')}</p>
         </div>
       </div>
-      <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer}>
+      <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer} onPullAgain={typeIntoSearch}>
         <SearchBox
           input={input}
           query={query}
@@ -206,8 +226,10 @@ function Screen({
           )}
           <button
             type="button"
-            className={`jx-chip${order.kind !== DEFAULTS.libraryOrder[tab] ? ' on' : ''}`}
+            className={`jx-chip${order.kind !== defaults.libraryOrder[tab] ? ' on' : ''}`}
+            {...hold.bind(() => setAsDefault(orderLabel(order), { libraryOrder: { ...defaults.libraryOrder, [tab]: order.kind } }))}
             onClick={() => {
+              if (hold.consumed()) return
               setOrder(next)
               setSetting('libraryOrder', { ...useSettingsStore.getState().libraryOrder, [tab]: next.kind })
             }}
@@ -218,34 +240,58 @@ function Screen({
           {order.kind === 'genre' && !genre && (
             <button
               type="button"
-              className={`jx-chip${genresMin3 !== DEFAULTS.genresMin3 ? ' on' : ''}`}
-              onClick={() => setSetting('genresMin3', !genresMin3)}
+              className={`jx-chip${genresMin3 !== defaults.genresMin3 ? ' on' : ''}`}
+              {...hold.bind(() => setAsDefault(genresMin3 ? t('native.chip_min', { n: t.num(GENRE_MIN) }) : t('native.chip_all_genres'), { genresMin3 }))}
+              onClick={() => { if (!hold.consumed()) setSetting('genresMin3', !genresMin3) }}
             >
               {genresMin3 ? t('native.chip_min', { n: t.num(GENRE_MIN) }) : t('native.chip_all_genres')}
             </button>
           )}
-          {filter}
+          {filter?.(hold, setAsDefault)}
           <button
             type="button"
-            className={`jx-chip${cols !== DEFAULTS.libraryColumns[tab] ? ' on' : ''}`}
-            onClick={() => setSetting('libraryColumns', { ...columns, [tab]: nextCols })}
+            className={`jx-chip${cols !== defaults.libraryColumns[tab] ? ' on' : ''}`}
+            {...hold.bind(() => setAsDefault(layoutLabel(cols), { libraryColumns: { ...defaults.libraryColumns, [tab]: cols } }))}
+            onClick={() => { if (!hold.consumed()) setSetting('libraryColumns', { ...columns, [tab]: nextCols }) }}
             aria-label={t('native.chip_tap_for', { now: layoutLabel(cols), next: layoutLabel(nextCols) })}
           >
             {layoutLabel(cols)}
           </button>
         </div>
+        {madeDefault ? (
+          <p key={madeDefault.n} className="jx-made-default" role="status">{t('native.default_set', { value: madeDefault.label })}</p>
+        ) : !holdLearnt ? (
+          <p className="jx-hold-hint">{t('native.hold_hint')}</p>
+        ) : null}
       </PullDrawer>
       {children}
     </div>
   )
 }
 
-function FilterChip({ on, isDefault, label, offLabel, onToggle }: { on: boolean; isDefault: boolean; label: string; offLabel: string; onToggle(): void }) {
+function FilterChip({ on, isDefault, label, offLabel, onToggle, hold, onHold }: {
+  on: boolean; isDefault: boolean; label: string; offLabel: string; onToggle(): void
+  hold: ReturnType<typeof useHold>; onHold(): void
+}) {
   return (
-    <button type="button" className={`jx-chip${isDefault ? '' : ' on'}`} onClick={onToggle}>
+    <button
+      type="button"
+      className={`jx-chip${isDefault ? '' : ' on'}`}
+      {...hold.bind(onHold)}
+      onClick={() => { if (!hold.consumed()) onToggle() }}
+    >
       {on ? label : offLabel}
     </button>
   )
+}
+
+/** Whether the hold has been used once — then the hint under the chips goes. */
+const HOLD_KEY = 'jukebox:hold-default-learnt'
+function readHoldLearnt(): boolean {
+  try { return localStorage.getItem(HOLD_KEY) === '1' } catch { return false }
+}
+function learnHold(): void {
+  try { localStorage.setItem(HOLD_KEY, '1') } catch { /* the hint just stays */ }
 }
 
 function Nothing({ query }: { query: string }) {
@@ -258,6 +304,7 @@ export function AlbumsScreen(props: ListProps) {
   const { query, order, genre } = props
   const seen = useSeen(genre)
   const fullOnly = useSettingsStore((s) => s.fullAlbumsOnly)
+  const defaults = useListDefaults()
   const setSetting = useSettingsStore((s) => s.set)
   const shuffleAlbums = usePlayerStore((s) => s.shuffleAlbums)
   const layout = useLayout('albums', order, genre)
@@ -276,16 +323,18 @@ export function AlbumsScreen(props: ListProps) {
       searchLabel={genre ? t('native.search_genre_albums', { genre : shownGenre(genre) }) : t('native.search_albums')}
       count={t.plural('common.albums', shown.length)}
       onShuffle={shown.length ? () => shuffleAlbums(shown) : undefined}
-      filterNote={fullOnly !== DEFAULTS.fullAlbumsOnly ? (fullOnly ? t('native.chip_full_albums') : t('native.chip_all_albums')) : null}
-      filter={
+      filterNote={fullOnly !== defaults.fullAlbumsOnly ? (fullOnly ? t('native.chip_full_albums') : t('native.chip_all_albums')) : null}
+      filter={(hold, setAsDefault) => (
         <FilterChip
           on={fullOnly}
-          isDefault={fullOnly === DEFAULTS.fullAlbumsOnly}
+          isDefault={fullOnly === defaults.fullAlbumsOnly}
           label={t('native.chip_full_albums')}
           offLabel={t('native.chip_all_albums')}
           onToggle={() => setSetting('fullAlbumsOnly', !fullOnly)}
+          hold={hold}
+          onHold={() => setAsDefault(fullOnly ? t('native.chip_full_albums') : t('native.chip_all_albums'), { fullAlbumsOnly: fullOnly })}
         />
-      }
+      )}
     >
       {layout.genreList ? (
         <GenreIndex tab="albums" query={query} />
@@ -336,6 +385,7 @@ export function ArtistsScreen(props: ListProps) {
   const { query, order, genre } = props
   const seen = useSeen(genre)
   const min3 = useSettingsStore((s) => s.artistsMin3)
+  const defaults = useListDefaults()
   const setSetting = useSettingsStore((s) => s.set)
   const shuffleArtists = usePlayerStore((s) => s.shuffleArtists)
   const layout = useLayout('artists', order, genre)
@@ -364,16 +414,18 @@ export function ArtistsScreen(props: ListProps) {
       searchLabel={genre ? t('native.search_genre_artists', { genre : shownGenre(genre) }) : t('native.search_artists')}
       count={t.plural('common.artists', names.length)}
       onShuffle={names.length ? () => shuffleArtists(names.flatMap((n) => byArtist.get(n) ?? [])) : undefined}
-      filterNote={min3 !== DEFAULTS.artistsMin3 ? (min3 ? t('native.chip_min', { n: t.num(ARTIST_MIN) }) : t('native.chip_all_artists')) : null}
-      filter={
+      filterNote={min3 !== defaults.artistsMin3 ? (min3 ? t('native.chip_min', { n: t.num(ARTIST_MIN) }) : t('native.chip_all_artists')) : null}
+      filter={(hold, setAsDefault) => (
         <FilterChip
           on={min3}
-          isDefault={min3 === DEFAULTS.artistsMin3}
+          isDefault={min3 === defaults.artistsMin3}
           label={t('native.chip_min', { n: t.num(ARTIST_MIN) })}
           offLabel={t('native.chip_all_artists')}
           onToggle={() => setSetting('artistsMin3', !min3)}
+          hold={hold}
+          onHold={() => setAsDefault(min3 ? t('native.chip_min', { n: t.num(ARTIST_MIN) }) : t('native.chip_all_artists'), { artistsMin3: min3 })}
         />
-      }
+      )}
     >
       {layout.genreList ? (
         <GenreIndex tab="artists" query={query} />

@@ -49,9 +49,10 @@ function useFindWithin(tracks: Track[], label: string) {
   const shown = open || query.trim() !== ''
   const openDrawer = useCallback(() => setOpen(true), [])
   const closeDrawer = useCallback(() => setOpen(false), [])
+  const typeIntoSearch = useCallback(() => input.current?.focus({ preventScroll: true }), [])
   const found = useMemo(() => matchTracks(tracks, query), [tracks, query])
   const box = (
-    <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer}>
+    <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer} onPullAgain={typeIntoSearch}>
       <SearchBox
         input={input}
         query={query}

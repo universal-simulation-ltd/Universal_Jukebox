@@ -49,6 +49,12 @@ import { WelcomeScreen } from './WelcomeScreen'
 import { AboutAndHelp, YourMusic } from './TuneExtras'
 import { useT, type MessageKey } from '../i18n'
 import './native.css'
+import { applyListDefaults } from './listDefaults'
+
+// The lists open with their defaults (a tap on a list option lasts until the
+// app is next opened; holding one makes it the default — `listDefaults.ts`).
+// Here, at load, so the first render already reads them.
+applyListDefaults()
 
 type TabView = HomeTab | 'settings'
 

@@ -59,6 +59,8 @@ export default {
   'layout_jukebox': 'Jukebox', // chip: the shelf layout. Stays "Jukebox" in every language (GLOSSARY)
   'layout_list': 'List', // chip: a plain list of rows
   'chip_tap_for': '{now}. Tap for {next}', // screen reader on a chip: {now} and {next} are chip names ("A–Z. Tap for Random")
+  'default_set': 'The app now opens with {value}', // shown for a moment after holding a chip: {value} is the chip's name ("Random", "3 per row", "Full albums")
+  'hold_hint': 'Hold an option to make it what the app opens with', // small line under the chips until someone has held one; keep short
   'nothing_matches': 'Nothing in your library matches “{query}”.', // {query} is what was typed
   'options_for': 'Options for {title}', // screen reader: the ⋯ on a song's row; {title} is the song
   'stop_preview': 'Stop previewing {title}', // screen reader: the headphones while a preview is playing

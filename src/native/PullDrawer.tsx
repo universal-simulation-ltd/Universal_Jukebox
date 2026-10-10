@@ -26,6 +26,7 @@ export function PullDrawer({
   shown,
   onOpen,
   onScrolledAway,
+  onPullAgain,
   children,
 }: {
   shown: boolean
@@ -33,6 +34,13 @@ export function PullDrawer({
   /** It has scrolled out of sight under the top bar. Left out while it must
    *  stay (a search is typed in), and then it never folds itself. */
   onScrolledAway?: () => void
+  /**
+   * Pulled down AGAIN while open (James, 2026-10-11: "allow the user to swipe
+   * down again to open the keyboard to type directly into it"). Called from
+   * the finger's release itself, so focusing the search box there brings the
+   * keyboard up — iOS only raises it for a focus made inside a touch.
+   */
+  onPullAgain?: () => void
   children: ReactNode
 }) {
   const box = useRef<HTMLDivElement>(null)
@@ -95,7 +103,7 @@ export function PullDrawer({
   }, [shown, onScrolledAway])
 
   useEffect(() => {
-    if (shown) return
+    if (shown && !onPullAgain) return
     let startY: number | null = null
     let startX = 0
     let pulled = 0
@@ -121,6 +129,8 @@ export function PullDrawer({
         }
       }
       pulled = dy
+      // Already open, the drawer stays put; the pull only asks for the keyboard.
+      if (shown) return
       const peek = Math.max(0, Math.min(full(), pulled * RESIST))
       el.style.transition = 'none'
       el.style.height = `${peek}px`
@@ -129,6 +139,10 @@ export function PullDrawer({
     const end = () => {
       if (startY === null) return
       startY = null
+      if (shown) {
+        if (pulled > PULL_TO_OPEN) onPullAgain?.()
+        return
+      }
       if (pulled > PULL_TO_OPEN) onOpen()
       else settle(0)
     }
@@ -142,7 +156,7 @@ export function PullDrawer({
       window.removeEventListener('touchend', end)
       window.removeEventListener('touchcancel', end)
     }
-  }, [shown, onOpen, settle])
+  }, [shown, onOpen, onPullAgain, settle])
 
   return (
     <div

@@ -232,6 +232,15 @@ html.dark .jx {
 .jx-drawer .jx-chips::-webkit-scrollbar { display: none; }
 .jx-drawer .jx-chip { flex: none; }
 
+/* After holding a chip: what the app now opens with; and, until someone has
+   held one, the hint that holding does that (LibraryScreens, listDefaults). */
+.jx-made-default, .jx-hold-hint { margin: -4px 0 0; font-size: 13px; text-align: center; }
+.jx-made-default { color: var(--jx-acc); font-weight: 600; animation: jx-made 2.4s ease-out forwards; }
+.jx-hold-hint { color: var(--jx-mute); }
+@keyframes jx-made { 0% { opacity: 0; transform: translateY(4px); } 10%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.jx-chip { -webkit-touch-callout: none; user-select: none; touch-action: manipulation; }
+.jx-chip:active { transform: scale(0.96); }
+
 /* The list options. */
 .jx-heading-buttons { display: flex; gap: 8px; flex: none; }
 .jx-round { position: relative; }
