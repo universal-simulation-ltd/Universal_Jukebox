@@ -8,6 +8,7 @@ import { markTipSeen } from '../lib/tips'
 import { matchTracks } from '../lib/search'
 import { PullDrawer } from './PullDrawer'
 import Cover from '../components/Cover'
+import { VinylRecord } from '../components/decks/VinylRecord'
 import { compareBase } from '../lib/collate'
 import { shownName, totalTime } from '../lib/format'
 import { useT } from '../i18n'
@@ -114,7 +115,7 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
             your place by tapping the picture of what is playing). */}
         <button
           type="button"
-          className="jx-hero-open"
+          className="jx-hero-open jx-sleeve"
           onClick={() => {
             markTipSeen('cover')
             if (onTheDeck) showTheDeck()
@@ -122,8 +123,16 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
           }}
           aria-label={onTheDeck ? t('native.go_to_record') : t('native.play_on_jukebox', { title: shownName(album.title) })}
         >
-          <Cover album={album} className="jx-hero-cover" />
-          <Tip id="cover" detail={t('app.tip_cover')} />
+          {/* The sleeve as it is, with its record half out of it behind
+              (James, 2026-10-11: "show the album sleeve (as is) with a vinyl
+              disc coming out of it"). The two are centred together. */}
+          <span className="jx-sleeve-disc" aria-hidden>
+            <VinylRecord album={album} />
+          </span>
+          <span className="jx-sleeve-front">
+            <Cover album={album} className="jx-hero-cover" />
+            <Tip id="cover" detail={t('app.tip_cover')} />
+          </span>
         </button>
         <h1 className="jx-h1">{shownName(album.title)}</h1>
         <button type="button" className="jx-link" onClick={() => navigate({ view: 'artist', artist: album.artist })}>

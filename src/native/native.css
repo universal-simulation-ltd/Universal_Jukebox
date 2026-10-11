@@ -311,6 +311,22 @@ html.dark .jx {
 .jx-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding-top: 4px; }
 .jx-hero-cover { width: min(68vw, 300px); aspect-ratio: 1; margin-bottom: 14px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 18px 40px -16px rgba(0, 0, 0, 0.5); }
 .jx-hero .jx-h1 { font-size: 24px; }
+/* An album's sleeve with its record half out to the right, behind it
+   (AlbumScreen). --s is the sleeve's own size, unchanged; the disc is a touch
+   smaller than the sleeve, as a record in its sleeve is, and slides out as
+   the page opens. */
+.jx-sleeve { --s: min(68vw, 300px); display: block; width: calc(var(--s) * 1.32); height: var(--s); margin-bottom: 14px; }
+.jx-sleeve-front { position: absolute; left: 0; top: 0; z-index: 1; display: block; width: var(--s); height: var(--s); }
+.jx-sleeve .jx-hero-cover { width: var(--s); margin-bottom: 0; }
+.jx-sleeve-disc {
+  position: absolute; top: calc(var(--s) * 0.03); left: calc(var(--s) * 0.38);
+  width: calc(var(--s) * 0.94); height: calc(var(--s) * 0.94);
+  animation: jx-disc-out 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}
+@keyframes jx-disc-out { from { transform: translateX(calc(var(--s) * -0.34)) rotate(-40deg); } }
+@media (prefers-reduced-motion: reduce) { .jx-sleeve-disc { animation: none; } }
+.jx-hero-open.jx-sleeve:active .jx-hero-cover { transform: none; }
+.jx-hero-open.jx-sleeve:active .jx-sleeve-front { transform: scale(0.98); }
 .jx-hero .jx-link { text-align: center; }
 
 /* First run. */
