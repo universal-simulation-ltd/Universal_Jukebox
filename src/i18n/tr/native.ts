@@ -10,6 +10,7 @@ const native: Draft['native'] = {
   'tab_tune': 'Ayarla',
   'tab_count_found_one': '{count} bulundu',
   'tab_count_found_other': '{count} bulundu',
+  'found_in': 'Sekmelere göre sonuçlar',
   'tab_home_artists': 'Sanatçılar: uygulama burada açılır',
   'tab_home_albums': 'Albümler: uygulama burada açılır',
   'tab_home_tracks': 'Parçalar: uygulama burada açılır',

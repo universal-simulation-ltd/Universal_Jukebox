@@ -127,6 +127,7 @@ export default function NativeApp() {
     order: orders[tab],
     setOrder: (order: LibraryOrder) => setOrders((all) => ({ ...all, [tab]: order })),
     genre: route.home ? undefined : route.genre,
+    counts,
   })
   const lastTap = useRef<{ view: TabView; at: number } | null>(null)
   const [homeFlash, setHomeFlash] = useState<TabView | null>(null)

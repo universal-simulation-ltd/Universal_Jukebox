@@ -175,7 +175,9 @@ html.dark .jx {
 .jx-search input::placeholder { color: var(--jx-mute); }
 /* The field shows focus as a whole, not the input's own box inside it. */
 .jx-search input:focus-visible { outline: none; }
-.jx-search:focus-within { box-shadow: 0 0 0 2px var(--jx-acc); }
+/* Inside the box: the drawer clips anything outside its edges, and a ring
+   drawn outside lost its sides and bottom (James, 2026-10-11). */
+.jx-search:focus-within { box-shadow: inset 0 0 0 2px var(--jx-acc); }
 
 /* Covers: a grid that is two across on a phone and more on an iPad. */
 .jx-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 14px; }
@@ -236,6 +238,14 @@ html.dark .jx {
 .jx-search-close svg { width: 18px; height: 18px; }
 .jx-search input::-webkit-search-cancel-button { display: none; }
 .jx-chip { display: inline-flex; align-items: center; gap: 6px; }
+/* While searching: how many on each tab, right under the box (FoundIn) —
+   the tab bar says it too, but the keyboard covers that. */
+.jx-found { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 3px; margin-top: 10px; border-radius: 12px; background: var(--jx-line); }
+.jx-found-tab { display: flex; align-items: baseline; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 4px; border: 0; border-radius: 9px; background: none; font-size: 14px; font-weight: 550; white-space: nowrap; }
+.jx-found-tab b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.jx-found-tab.on { background: var(--jx-bg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.jx-found-tab.on b { color: var(--jx-acc); }
+.jx-found-tab.none { color: var(--jx-mute); }
 .jx-chip svg { width: 16px; height: 16px; }
 .jx-chip.play { background: var(--jx-fill); border-color: var(--jx-fill); color: #fff; }
 /* One line that scrolls sideways, edge to edge, rather than a second row. */

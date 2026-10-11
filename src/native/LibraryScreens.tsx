@@ -45,6 +45,41 @@ export interface ListProps {
   setOrder(order: LibraryOrder): void
   /** A genre opened from the genre list (`#/albums/genre/Blues`). */
   genre?: string
+  /** While searching, how many each library tab has (the tab bar's counts, held by NativeApp). */
+  counts?: Record<ListTab, number> | null
+}
+
+const FOUND_TABS: { tab: ListTab; label: 'native.tab_artists' | 'native.tab_albums' | 'native.tab_tracks' }[] = [
+  { tab: 'artists', label: 'native.tab_artists' },
+  { tab: 'albums', label: 'native.tab_albums' },
+  { tab: 'tracks', label: 'native.tab_tracks' },
+]
+
+/**
+ * While searching: Artists 3 · Albums 5 · Tracks 12, right under the box. The
+ * same counts are on the tab bar, but the keyboard covers that (James,
+ * 2026-10-11: "it's covered by the keyboard. What can we do?"). A tap goes to
+ * that tab with the same search.
+ */
+function FoundIn({ tab, counts, genre }: { tab: ListTab; counts: Record<ListTab, number>; genre?: string }) {
+  const t = useT()
+  return (
+    <div className="jx-found" role="group" aria-label={t('native.found_in')}>
+      {FOUND_TABS.map(({ tab: target, label }) => (
+        <button
+          key={target}
+          type="button"
+          className={`jx-found-tab${target === tab ? ' on' : ''}${counts[target] === 0 ? ' none' : ''}`}
+          aria-current={target === tab ? 'page' : undefined}
+          aria-label={`${t(label)}, ${t.plural('native.tab_count_found', counts[target])}`}
+          onClick={() => { if (target !== tab) navigate(genre ? { view: target, genre } : { view: target }) }}
+        >
+          <span>{t(label)}</span>
+          <b>{t.num(counts[target])}</b>
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export function SearchBox({
@@ -131,6 +166,7 @@ function Screen({
   setOrder,
   filter,
   filterNote,
+  counts,
   children,
 }: {
   title: string
@@ -218,6 +254,7 @@ function Screen({
             input.current?.blur()
           }}
         />
+        {counts && query.trim() !== '' && <FoundIn tab={tab} counts={counts} genre={genre} />}
         <div className="jx-chips" role="group" aria-label={t('native.options_group')}>
           {onShuffle && (
             <button type="button" className="jx-chip play" onClick={onShuffle}>

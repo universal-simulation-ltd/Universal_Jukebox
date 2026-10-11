@@ -16,6 +16,7 @@ export default {
   'tab_tune': 'Tune', // tab label, keep to ~8 characters: short for "Tune this app", the settings; also the back button on About and Tidy up
   'tab_count_found_one': '{count} found', // screen reader: the small number on a tab while searching
   'tab_count_found_other': '{count} found',
+  'found_in': 'Results on each tab', // screen reader: the row under the search box with how many artists, albums and tracks match
   'tab_home_artists': 'Artists: the app opens here', // hover on the tab the app opens on ("Artists" is the tab name)
   'tab_home_albums': 'Albums: the app opens here',
   'tab_home_tracks': 'Tracks: the app opens here',

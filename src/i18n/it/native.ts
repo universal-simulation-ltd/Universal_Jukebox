@@ -10,6 +10,7 @@ const native: Draft['native'] = {
   'tab_tune': 'Regola',
   'tab_count_found_one': '{count} trovato',
   'tab_count_found_other': '{count} trovati',
+  'found_in': 'Risultati per scheda',
   'tab_home_artists': 'Artisti: l’app si apre qui',
   'tab_home_albums': 'Album: l’app si apre qui',
   'tab_home_tracks': 'Brani: l’app si apre qui',
