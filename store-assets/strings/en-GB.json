@@ -13,7 +13,19 @@
   ],
   "sub": "Made in the UK by\nJames Markey MBE and UNI·SIM"
  },
- "03-machines": {
+ "03-lyrics": {
+  "headline": [
+   "The words go",
+   "*round the record*"
+  ],
+  "caption": "Timed lyrics from your own files, sung as it turns",
+  "chips": [
+   "Around the record",
+   "On the lock screen",
+   "Your .lrc files"
+  ]
+ },
+ "04-machines": {
   "headline": [
    "Pick your",
    "*machine*"
@@ -28,32 +40,7 @@
    "Pocket player"
   ]
  },
- "04-lyrics": {
-  "headline": [
-   "The words go",
-   "*round the record*"
-  ],
-  "caption": "Timed lyrics from your own files, sung as it turns",
-  "chips": [
-   "Around the record",
-   "On the lock screen",
-   "Your .lrc files"
-  ]
- },
- "05-artists": {
-  "headline": [
-   "Every artist,",
-   "*at a glance*"
-  ],
-  "caption": "Artists, albums and tracks, a few to a row or on the shelf",
-  "chips": [
-   "3 per row",
-   "A–Z",
-   "Random",
-   "Genre"
-  ]
- },
- "06-album": {
+ "05-album": {
   "headline": [
    "Each album,",
    "*its own sleeve*"
@@ -64,32 +51,6 @@
    "Shuffle",
    "Preview",
    "Add to shelf"
-  ]
- },
- "07-drawer": {
-  "headline": [
-   "Pull down",
-   "*for more*"
-  ],
-  "caption": "Search, shuffle and the list options, out of sight until you want them",
-  "chips": [
-   "Search",
-   "Shuffle",
-   "A–Z or random",
-   "Jukebox shelf"
-  ]
- },
- "08-tune": {
-  "headline": [
-   "Tune it",
-   "*your way*"
-  ],
-  "caption": "Crossfade, fades, Stable volume and a sleep timer that fades out",
-  "chips": [
-   "Crossfade",
-   "Stable volume",
-   "Sleep timer",
-   "Fades"
   ]
  },
  "feature-graphic": {

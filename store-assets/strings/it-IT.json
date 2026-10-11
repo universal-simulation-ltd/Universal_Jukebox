@@ -13,7 +13,19 @@
   ],
   "sub": "Realizzato nel Regno Unito da\nJames Markey MBE e UNI·SIM"
  },
- "03-machines": {
+ "03-lyrics": {
+  "headline": [
+   "Le parole girano",
+   "*intorno al disco*"
+  ],
+  "caption": "Testi sincronizzati dai tuoi file, cantati mentre il disco gira",
+  "chips": [
+   "Intorno al disco",
+   "Sulla schermata di blocco",
+   "I tuoi file .lrc"
+  ]
+ },
+ "04-machines": {
   "headline": [
    "Scegli il tuo",
    "*apparecchio*"
@@ -28,32 +40,7 @@
    "Tascabile"
   ]
  },
- "04-lyrics": {
-  "headline": [
-   "Le parole girano",
-   "*intorno al disco*"
-  ],
-  "caption": "Testi sincronizzati dai tuoi file, cantati mentre il disco gira",
-  "chips": [
-   "Intorno al disco",
-   "Sulla schermata di blocco",
-   "I tuoi file .lrc"
-  ]
- },
- "05-artists": {
-  "headline": [
-   "Ogni artista,",
-   "*a colpo d’occhio*"
-  ],
-  "caption": "Artisti, album e brani, pochi per riga o sullo scaffale",
-  "chips": [
-   "3 per riga",
-   "A–Z",
-   "Casuale",
-   "Genere"
-  ]
- },
- "06-album": {
+ "05-album": {
   "headline": [
    "Ogni album,",
    "*la sua copertina*"
@@ -64,32 +51,6 @@
    "Casuale",
    "Anteprima",
    "Allo scaffale"
-  ]
- },
- "07-drawer": {
-  "headline": [
-   "Trascina giù",
-   "*per vedere altro*"
-  ],
-  "caption": "Ricerca, ordine casuale e opzioni elenco, nascoste finché non ti servono",
-  "chips": [
-   "Cerca",
-   "Casuale",
-   "A–Z o casuale",
-   "Scaffale Jukebox"
-  ]
- },
- "08-tune": {
-  "headline": [
-   "Regolalo",
-   "*a modo tuo*"
-  ],
-  "caption": "Dissolvenza incrociata, dissolvenze, Volume stabile e un timer di spegnimento che sfuma",
-  "chips": [
-   "Dissolvenza incrociata",
-   "Volume stabile",
-   "Timer di spegnimento",
-   "Dissolvenze"
   ]
  },
  "feature-graphic": {

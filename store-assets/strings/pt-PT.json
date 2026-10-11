@@ -13,7 +13,19 @@
   ],
   "sub": "Feito no Reino Unido por\nJames Markey MBE e UNI·SIM"
  },
- "03-machines": {
+ "03-lyrics": {
+  "headline": [
+   "A letra gira",
+   "*à volta do disco*"
+  ],
+  "caption": "Letras sincronizadas dos seus ficheiros, cantadas enquanto o disco gira",
+  "chips": [
+   "À volta do disco",
+   "No ecrã de bloqueio",
+   "Os seus ficheiros .lrc"
+  ]
+ },
+ "04-machines": {
   "headline": [
    "Escolha a sua",
    "*aparelhagem*"
@@ -28,32 +40,7 @@
    "Leitor de bolso"
   ]
  },
- "04-lyrics": {
-  "headline": [
-   "A letra gira",
-   "*à volta do disco*"
-  ],
-  "caption": "Letras sincronizadas dos seus ficheiros, cantadas enquanto o disco gira",
-  "chips": [
-   "À volta do disco",
-   "No ecrã de bloqueio",
-   "Os seus ficheiros .lrc"
-  ]
- },
- "05-artists": {
-  "headline": [
-   "Cada artista,",
-   "*num relance*"
-  ],
-  "caption": "Artistas, álbuns e faixas, alguns por fila ou na prateleira",
-  "chips": [
-   "3 por fila",
-   "A–Z",
-   "Aleatória",
-   "Género"
-  ]
- },
- "06-album": {
+ "05-album": {
   "headline": [
    "Cada álbum,",
    "*a sua capa*"
@@ -64,32 +51,6 @@
    "Aleatório",
    "Pré-audição",
    "Adicionar à prateleira"
-  ]
- },
- "07-drawer": {
-  "headline": [
-   "Puxe para baixo",
-   "*e há mais*"
-  ],
-  "caption": "Pesquisa, aleatório e opções da lista, escondidos até precisar deles",
-  "chips": [
-   "Pesquisar",
-   "Aleatório",
-   "A–Z ou aleatória",
-   "Prateleira Jukebox"
-  ]
- },
- "08-tune": {
-  "headline": [
-   "Ajuste-o",
-   "*à sua maneira*"
-  ],
-  "caption": "Transição cruzada, desvanecimentos, Volume estável e um temporizador que desvanece",
-  "chips": [
-   "Transição cruzada",
-   "Volume estável",
-   "Temporizador",
-   "Desvanecimentos"
   ]
  },
  "feature-graphic": {

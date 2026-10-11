@@ -142,13 +142,6 @@ const CAPTURES = {
       await page.waitForTimeout(800)
     },
   },
-  artists: {
-    settings: settings(),
-    async run(page) {
-      await tab(page, 'artists')
-      await top(page)
-    },
-  },
   'now-cassette': {
     settings: settings({ deck: 'cassette' }),
     async run(page) {
@@ -165,6 +158,30 @@ const CAPTURES = {
       await top(page)
     },
   },
+  // 03: the words going round a turning record, and a close-up of them for
+  // the lens (James, 2026-10-11: "use a vinyl and zoom in to see the
+  // lyrics"). The close-up is cut from the same screen at full resolution:
+  // the record's frame (the orbit's parent), with room for the words round it.
+  'lyrics-vinyl': {
+    settings: settings({ deck: 'vinyl', lyricsAroundStyle: 'orbit' }),
+    async run(page, ctx, save) {
+      await play(page, 'The Long Way Round')
+      await page.waitForTimeout(16000)
+      await top(page)
+      await page.waitForTimeout(400)
+      const box = await page.evaluate(() => {
+        const frame = document.querySelector('[data-lyrics-around="orbit"]')?.parentElement
+        if (!frame) return null
+        const r = frame.getBoundingClientRect()
+        const side = Math.min(r.width * 1.4, window.innerWidth)
+        const x = Math.max(0, Math.min(window.innerWidth - side, r.left + r.width / 2 - side / 2))
+        const y = Math.max(0, r.top + r.height / 2 - side / 2)
+        return { x, y, width: side, height: side }
+      })
+      if (!box) throw new Error('no lyrics round the record to zoom in on')
+      await save('lyrics-zoom', await page.screenshot({ clip: box }))
+    },
+  },
   // One record's page: Play, Shuffle, the songs with their preview and ⋯.
   album: {
     settings: settings(),
@@ -177,16 +194,6 @@ const CAPTURES = {
       await page.locator('.jx-tile', { hasText: 'Second Pressing' }).first().click()
       await page.waitForTimeout(900)
       await top(page)
-    },
-  },
-  // The drawer pulled down: search, Shuffle and the list options.
-  'tracks-drawer': {
-    settings: settings(),
-    async run(page, ctx) {
-      await tab(page, 'tracks')
-      await top(page)
-      await pullDown(page, ctx)
-      await page.evaluate(() => document.activeElement?.blur())
     },
   },
   // Tune this app, the machines open (its third card, in every language).
@@ -251,7 +258,10 @@ for (const dev of devices) {
     await page.waitForTimeout(1200)
     try {
       await exampleLibrary(page)
-      await capture.run(page, ctx)
+      await capture.run(page, ctx, async (extra, buf) => {
+        await writeFile(path.join(here, rawDir(dev.dir), `${extra}.png`), buf)
+        console.log(`OK  ${rawDir(dev.dir)}/${extra}.png (close-up)`)
+      })
     } catch (err) {
       console.error(`FAIL ${rawDir(dev.dir)}/${name}: ${err.message.split('\n')[0]}`)
       bad++

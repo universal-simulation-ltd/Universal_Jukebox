@@ -36,40 +36,25 @@
       "raw": "albums"
     },
     {
-      "id": "03-machines",
-      "layout": "sleeve-dark",
-      "raw": "now-cassette",
-      "hot": 2
-    },
-    {
-      "id": "04-lyrics",
-      "layout": "sleeve-paper",
-      "raw": "now-jukebox",
+      "id": "03-lyrics",
+      "layout": "sleeve-lens-paper",
+      "raw": [
+        "lyrics-vinyl",
+        "lyrics-zoom"
+      ],
       "hot": 0
     },
     {
-      "id": "05-artists",
+      "id": "04-machines",
       "layout": "sleeve-dark",
-      "raw": "artists",
+      "raw": "tune",
       "hot": 0
     },
     {
-      "id": "06-album",
+      "id": "05-album",
       "layout": "sleeve-paper",
       "raw": "album",
       "hot": 2
-    },
-    {
-      "id": "07-drawer",
-      "layout": "sleeve-dark",
-      "raw": "tracks-drawer",
-      "hot": 0
-    },
-    {
-      "id": "08-tune",
-      "layout": "sleeve-paper",
-      "raw": "tune",
-      "hot": 1
     }
   ]
 }

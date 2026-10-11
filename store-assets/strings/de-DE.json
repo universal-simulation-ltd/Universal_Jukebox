@@ -13,7 +13,19 @@
   ],
   "sub": "Entwickelt in Großbritannien von\nJames Markey MBE und UNI·SIM"
  },
- "03-machines": {
+ "03-lyrics": {
+  "headline": [
+   "Der Text kreist",
+   "*um die Platte*"
+  ],
+  "caption": "Synchronisierte Songtexte aus deinen eigenen Dateien, passend zur drehenden Platte",
+  "chips": [
+   "Rund um die Platte",
+   "Auf dem Sperrbildschirm",
+   "Deine .lrc-Dateien"
+  ]
+ },
+ "04-machines": {
   "headline": [
    "Wähl dein",
    "*Abspielgerät*"
@@ -28,32 +40,7 @@
    "Taschenplayer"
   ]
  },
- "04-lyrics": {
-  "headline": [
-   "Der Text kreist",
-   "*um die Platte*"
-  ],
-  "caption": "Synchronisierte Songtexte aus deinen eigenen Dateien, passend zur drehenden Platte",
-  "chips": [
-   "Rund um die Platte",
-   "Auf dem Sperrbildschirm",
-   "Deine .lrc-Dateien"
-  ]
- },
- "05-artists": {
-  "headline": [
-   "Jeder Interpret",
-   "*auf einen Blick*"
-  ],
-  "caption": "Interpreten, Alben und Titel, ein paar pro Reihe oder im Regal",
-  "chips": [
-   "3 pro Reihe",
-   "A–Z",
-   "Zufällig",
-   "Genre"
-  ]
- },
- "06-album": {
+ "05-album": {
   "headline": [
    "Jedes Album",
    "*in seiner Hülle*"
@@ -64,32 +51,6 @@
    "Zufällig",
    "Vorhören",
    "Ins Regal"
-  ]
- },
- "07-drawer": {
-  "headline": [
-   "Runterziehen",
-   "*für mehr*"
-  ],
-  "caption": "Suche, Zufallswiedergabe und Listenoptionen – unsichtbar, bis du sie brauchst",
-  "chips": [
-   "Suchen",
-   "Zufällig",
-   "A–Z oder zufällig",
-   "Jukebox-Regal"
-  ]
- },
- "08-tune": {
-  "headline": [
-   "Ganz nach",
-   "*deinem Ohr*"
-  ],
-  "caption": "Überblendung, Ein- und Ausblenden, Gleichmäßige Lautstärke und ein Sleep-Timer, der sanft ausblendet",
-  "chips": [
-   "Überblendung",
-   "Gleichmäßige Lautstärke",
-   "Sleep-Timer",
-   "Ein-/Ausblenden"
   ]
  },
  "feature-graphic": {

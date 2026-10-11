@@ -40,12 +40,9 @@
     "phoneScreenshots": [
       "out/fr-FR/android/01-turntable.png",
       "out/fr-FR/android/02-shelf.png",
-      "out/fr-FR/android/03-machines.png",
-      "out/fr-FR/android/04-lyrics.png",
-      "out/fr-FR/android/05-artists.png",
-      "out/fr-FR/android/06-album.png",
-      "out/fr-FR/android/07-drawer.png",
-      "out/fr-FR/android/08-tune.png"
+      "out/fr-FR/android/03-lyrics.png",
+      "out/fr-FR/android/04-machines.png",
+      "out/fr-FR/android/05-album.png"
     ]
   }
 }

@@ -13,7 +13,19 @@
   ],
   "sub": "James Markey MBE ve UNI·SIM\ntarafından Birleşik Krallık’ta yapıldı"
  },
- "03-machines": {
+ "03-lyrics": {
+  "headline": [
+   "Sözler plağın",
+   "*çevresinde döner*"
+  ],
+  "caption": "Kendi dosyalarınızdan zamanlamalı sözler, plak dönerken söylenir",
+  "chips": [
+   "Plağın çevresinde",
+   "Kilit ekranında",
+   ".lrc dosyalarınız"
+  ]
+ },
+ "04-machines": {
   "headline": [
    "Çalarınızı",
    "*seçin*"
@@ -28,32 +40,7 @@
    "Cep müzik çalar"
   ]
  },
- "04-lyrics": {
-  "headline": [
-   "Sözler plağın",
-   "*çevresinde döner*"
-  ],
-  "caption": "Kendi dosyalarınızdan zamanlamalı sözler, plak dönerken söylenir",
-  "chips": [
-   "Plağın çevresinde",
-   "Kilit ekranında",
-   ".lrc dosyalarınız"
-  ]
- },
- "05-artists": {
-  "headline": [
-   "Her sanatçı,",
-   "*bir bakışta*"
-  ],
-  "caption": "Sanatçılar, albümler ve parçalar; sırada birkaç tane ya da rafta",
-  "chips": [
-   "Sırada 3",
-   "A–Z",
-   "Rastgele",
-   "Tür"
-  ]
- },
- "06-album": {
+ "05-album": {
   "headline": [
    "Her albüm,",
    "*kendi kapağıyla*"
@@ -64,32 +51,6 @@
    "Karıştır",
    "Ön dinleme",
    "Rafa ekle"
-  ]
- },
- "07-drawer": {
-  "headline": [
-   "Aşağı çekin,",
-   "*dahası gelsin*"
-  ],
-  "caption": "Arama, karıştırma ve liste seçenekleri; istediğiniz ana kadar gözden uzak",
-  "chips": [
-   "Ara",
-   "Karıştır",
-   "A–Z ya da rastgele",
-   "Jukebox rafı"
-  ]
- },
- "08-tune": {
-  "headline": [
-   "İstediğiniz gibi",
-   "*ayarlayın*"
-  ],
-  "caption": "Çapraz geçiş, yavaş açılma ve kapanma, sabit ses düzeyi ve müziği yavaşça kısan uyku zamanlayıcısı",
-  "chips": [
-   "Çapraz geçiş",
-   "Sabit ses düzeyi",
-   "Uyku zamanlayıcısı",
-   "Yavaş açılma/kapanma"
   ]
  },
  "feature-graphic": {
