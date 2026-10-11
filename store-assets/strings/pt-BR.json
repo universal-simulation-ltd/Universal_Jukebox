@@ -6,10 +6,10 @@
   ],
   "label": "Universal Jukebox · 33⅓ · Lado A ·"
  },
- "02-shelf": {
+ "02-album": {
   "headline": [
-   "Cada álbum",
-   "na sua estante"
+   "Cada álbum,",
+   "*com sua capa*"
   ],
   "sub": "Feito no Reino Unido por\nJames Markey MBE e UNI·SIM"
  },
@@ -38,19 +38,6 @@
    "Gravador de rolo",
    "Jukebox",
    "Player de bolso"
-  ]
- },
- "05-album": {
-  "headline": [
-   "Cada álbum,",
-   "*com sua capa*"
-  ],
-  "caption": "Toque, embaralhe ou ouça antes dez segundos de qualquer música",
-  "chips": [
-   "Tocar",
-   "Aleatório",
-   "Prévia",
-   "Pôr na estante"
   ]
  },
  "feature-graphic": {

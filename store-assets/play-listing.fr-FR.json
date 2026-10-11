@@ -39,10 +39,9 @@
     "featureGraphic": "out/fr-FR/play/feature-graphic.png",
     "phoneScreenshots": [
       "out/fr-FR/android/01-turntable.png",
-      "out/fr-FR/android/02-shelf.png",
+      "out/fr-FR/android/02-album.png",
       "out/fr-FR/android/03-lyrics.png",
-      "out/fr-FR/android/04-machines.png",
-      "out/fr-FR/android/05-album.png"
+      "out/fr-FR/android/04-machines.png"
     ]
   }
 }

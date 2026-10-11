@@ -6,10 +6,10 @@
   ],
   "label": "Universal Jukebox · 33⅓ · Lato A ·"
  },
- "02-shelf": {
+ "02-album": {
   "headline": [
-   "Ogni album",
-   "sul suo scaffale"
+   "Ogni album,",
+   "*la sua copertina*"
   ],
   "sub": "Realizzato nel Regno Unito da\nJames Markey MBE e UNI·SIM"
  },
@@ -38,19 +38,6 @@
    "Bobine",
    "Jukebox",
    "Tascabile"
-  ]
- },
- "05-album": {
-  "headline": [
-   "Ogni album,",
-   "*la sua copertina*"
-  ],
-  "caption": "Riproducilo, ascoltalo in ordine casuale o senti prima dieci secondi di ogni brano",
-  "chips": [
-   "Riproduci",
-   "Casuale",
-   "Anteprima",
-   "Allo scaffale"
   ]
  },
  "feature-graphic": {

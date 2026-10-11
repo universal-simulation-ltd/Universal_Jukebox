@@ -6,10 +6,10 @@
   ],
   "label": "Universal Jukebox · 33⅓ · Cara A ·"
  },
- "02-shelf": {
+ "02-album": {
   "headline": [
-   "Cada álbum",
-   "en su estante"
+   "Cada álbum,",
+   "*con su carátula*"
   ],
   "sub": "Hecho en el Reino Unido por\nJames Markey MBE y UNI·SIM"
  },
@@ -38,19 +38,6 @@
    "Magnetófono",
    "Jukebox",
    "De bolsillo"
-  ]
- },
- "05-album": {
-  "headline": [
-   "Cada álbum,",
-   "*con su carátula*"
-  ],
-  "caption": "Reprodúcelo, ponlo en aleatorio o escucha antes diez segundos de cualquier canción",
-  "chips": [
-   "Reproducir",
-   "Aleatorio",
-   "Escucha previa",
-   "Añadir al estante"
   ]
  },
  "feature-graphic": {

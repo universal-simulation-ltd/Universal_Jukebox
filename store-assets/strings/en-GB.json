@@ -6,10 +6,10 @@
   ],
   "label": "Universal Jukebox · 33⅓ · Side A ·"
  },
- "02-shelf": {
+ "02-album": {
   "headline": [
-   "Every album",
-   "on its shelf"
+   "Each album,",
+   "*its own sleeve*"
   ],
   "sub": "Made in the UK by\nJames Markey MBE and UNI·SIM"
  },
@@ -38,19 +38,6 @@
    "Reel-to-reel",
    "Jukebox",
    "Pocket player"
-  ]
- },
- "05-album": {
-  "headline": [
-   "Each album,",
-   "*its own sleeve*"
-  ],
-  "caption": "Play it, shuffle it, or hear ten seconds of any song first",
-  "chips": [
-   "Play",
-   "Shuffle",
-   "Preview",
-   "Add to shelf"
   ]
  },
  "feature-graphic": {

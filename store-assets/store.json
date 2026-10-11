@@ -31,9 +31,9 @@
       "raw": "now-vinyl"
     },
     {
-      "id": "02-shelf",
+      "id": "02-album",
       "layout": "sleeve-close",
-      "raw": "albums"
+      "raw": "album"
     },
     {
       "id": "03-lyrics",
@@ -49,12 +49,6 @@
       "layout": "sleeve-dark",
       "raw": "tune",
       "hot": 0
-    },
-    {
-      "id": "05-album",
-      "layout": "sleeve-paper",
-      "raw": "album",
-      "hot": 2
     }
   ]
 }

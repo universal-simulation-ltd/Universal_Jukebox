@@ -6,10 +6,10 @@
   ],
   "label": "Universal Jukebox · 33⅓ · Face A ·"
  },
- "02-shelf": {
+ "02-album": {
   "headline": [
-   "Chaque album",
-   "sur son étagère"
+   "Chaque album,",
+   "*sa pochette*"
   ],
   "sub": "Créé au Royaume-Uni par\nJames Markey MBE et UNI·SIM"
  },
@@ -38,19 +38,6 @@
    "Magnétophone",
    "Juke-box",
    "Baladeur"
-  ]
- },
- "05-album": {
-  "headline": [
-   "Chaque album,",
-   "*sa pochette*"
-  ],
-  "caption": "Lisez-le en entier ou en aléatoire, ou écoutez d’abord dix secondes d’un morceau",
-  "chips": [
-   "Lire",
-   "Aléatoire",
-   "Pré-écoute",
-   "Sur étagère"
   ]
  },
  "feature-graphic": {

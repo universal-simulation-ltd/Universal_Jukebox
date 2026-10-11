@@ -6,10 +6,10 @@
   ],
   "label": "Universal Jukebox · 33⅓ · A Yüzü ·"
  },
- "02-shelf": {
+ "02-album": {
   "headline": [
-   "Her albüm",
-   "kendi rafında"
+   "Her albüm,",
+   "*kendi kapağıyla*"
   ],
   "sub": "James Markey MBE ve UNI·SIM\ntarafından Birleşik Krallık’ta yapıldı"
  },
@@ -38,19 +38,6 @@
    "Makaralı teyp",
    "Jukebox",
    "Cep müzik çalar"
-  ]
- },
- "05-album": {
-  "headline": [
-   "Her albüm,",
-   "*kendi kapağıyla*"
-  ],
-  "caption": "Çalın, karıştırın ya da önce herhangi bir şarkının on saniyesini dinleyin",
-  "chips": [
-   "Çal",
-   "Karıştır",
-   "Ön dinleme",
-   "Rafa ekle"
   ]
  },
  "feature-graphic": {

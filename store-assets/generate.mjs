@@ -133,15 +133,6 @@ const CAPTURES = {
       await top(page)
     },
   },
-  // 02: the Albums shelf (the shared default layout).
-  albums: {
-    settings: settings(),
-    async run(page) {
-      await tab(page, 'albums')
-      await top(page)
-      await page.waitForTimeout(800)
-    },
-  },
   'now-cassette': {
     settings: settings({ deck: 'cassette' }),
     async run(page) {
@@ -182,7 +173,8 @@ const CAPTURES = {
       await save('lyrics-zoom', await page.screenshot({ clip: box }))
     },
   },
-  // One record's page: Play, Shuffle, the songs with their preview and ⋯.
+  // 02: one record's page — Play, Shuffle, the songs with their preview and
+  // ⋯ — under "Each album, its own sleeve" (James, 2026-10-11).
   album: {
     settings: settings(),
     async run(page) {

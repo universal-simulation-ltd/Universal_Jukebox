@@ -6,10 +6,10 @@
   ],
   "label": "Universal Jukebox · 33⅓ · Seite A ·"
  },
- "02-shelf": {
+ "02-album": {
   "headline": [
    "Jedes Album",
-   "im Regal"
+   "*in seiner Hülle*"
   ],
   "sub": "Entwickelt in Großbritannien von\nJames Markey MBE und UNI·SIM"
  },
@@ -38,19 +38,6 @@
    "Tonbandgerät",
    "Jukebox",
    "Taschenplayer"
-  ]
- },
- "05-album": {
-  "headline": [
-   "Jedes Album",
-   "*in seiner Hülle*"
-  ],
-  "caption": "Abspielen, zufällig mischen oder vorher zehn Sekunden eines Songs hören",
-  "chips": [
-   "Abspielen",
-   "Zufällig",
-   "Vorhören",
-   "Ins Regal"
   ]
  },
  "feature-graphic": {
