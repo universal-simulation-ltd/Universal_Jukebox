@@ -89,6 +89,33 @@ Se pueden reproducir las canciones sincronizadas con el iPhone desde un ordenado
 La aplicación guarda en su dispositivo un catálogo de su biblioteca —títulos, artistas, álbumes y copias pequeñas de las carátulas— para abrirse rápido la próxima vez. Ese catálogo no se comparte entre dispositivos: cada dispositivo crea el suyo. Borrar los datos de este sitio en un navegador borra el catálogo, pero nunca su música. Puede hacer una copia de seguridad de sus estantes, peticiones y ajustes: consulte «Mantener su música a salvo».`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Música en la nube o en un servicio de streaming',
+    summary: 'Sus propios archivos en la nube, sí. Spotify, Apple Music y similares, no.',
+    group: 'Lo básico',
+    body: `Universal Jukebox reproduce archivos de música que usted tiene. Que pueda reproducir música en la nube depende de quién sea el dueño de esos archivos.
+
+## Servicios de streaming: no
+
+Spotify, Apple Music, YouTube Music, Amazon Music, Tidal y Deezer no se pueden reproducir en Universal Jukebox, ni tampoco en ningún otro reproductor. Sus canciones, incluso las descargadas para escucharlas sin conexión, están bloqueadas para que solo la propia app del servicio pueda abrirlas. Forma parte del acuerdo del servicio con las discográficas, y ninguna aplicación puede saltárselo.
+
+Las canciones que compró como archivos son otra cosa. La música comprada en el iTunes Store, Bandcamp o Qobuz, o copiada de sus propios CD, es suya y puede reproducirla en cualquier parte, también en Universal Jukebox.
+
+## Sus propios archivos en la nube: sí
+
+Si sus archivos de música están en iCloud Drive, Proton Drive, Google Drive, Dropbox u OneDrive, Universal Jukebox puede reproducirlos:
+
+1. En un iPhone o iPad, el servicio en la nube tiene que aparecer en la app Archivos. En Android, tiene que aparecer en el selector de carpetas.
+2. En la primera pantalla, elija **Una carpeta de música**, o **Añadir una carpeta** en Ajustar esta app, y seleccione su carpeta de música en la nube.
+3. Después de añadir o quitar canciones allí, vuelva a explorar su música en Ajustar esta app.
+
+Las canciones que solo están en la nube tienen que descargarse en su dispositivo antes de poder sonar, así que mantenga la carpeta descargada si quiere escuchar sin conexión. En la app Archivos, mantenga pulsada la carpeta y elija **Mantener descargado**, si su servicio en la nube lo ofrece.
+
+## Música en un ordenador
+
+Sincronícela con su iPhone o iPad desde el Finder o la app Música del ordenador y, después, elija **Mi biblioteca de Apple Music**. O copie los archivos en la carpeta Jukebox: Archivos › En mi iPhone › Jukebox. En Android, cópielos en una carpeta del teléfono y elija esa carpeta.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Mantener su música a salvo',
     summary: 'Su música en su propia nube, y una copia de seguridad de sus estantes.',

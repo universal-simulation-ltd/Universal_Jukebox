@@ -89,6 +89,33 @@ As músicas sincronizadas com o iPhone a partir de um computador podem ser tocad
 O app guarda no seu dispositivo um catálogo da sua biblioteca — títulos, artistas, álbuns e cópias pequenas das capas — para abrir rápido da próxima vez. Esse catálogo não é compartilhado entre dispositivos: cada dispositivo monta o seu. Apagar os dados deste site em um navegador apaga o catálogo, mas nunca a sua música. Suas estantes, pedidos e ajustes podem ter backup: veja Mantendo a sua música segura.`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Música na nuvem ou em um serviço de streaming',
+    summary: 'Seus próprios arquivos na nuvem, sim. Spotify, Apple Music e parecidos, não.',
+    group: 'O básico',
+    body: `O Universal Jukebox toca arquivos de música que você tem. Se ele consegue tocar música na nuvem depende de quem são os arquivos.
+
+## Serviços de streaming: não
+
+Spotify, Apple Music, YouTube Music, Amazon Music, Tidal e Deezer não podem ser tocados no Universal Jukebox, nem em nenhum outro player. As músicas deles, mesmo as baixadas para ouvir offline, são bloqueadas para que só o app do próprio serviço consiga abri-las. Isso faz parte do acordo do serviço com as gravadoras, e nenhum app consegue contornar isso.
+
+Músicas que você comprou como arquivos são diferentes. Música comprada na iTunes Store, no Bandcamp ou no Qobuz, ou copiada dos seus próprios CDs, é sua para tocar em qualquer lugar, inclusive no Universal Jukebox.
+
+## Seus próprios arquivos na nuvem: sim
+
+Se os seus arquivos de música estão no iCloud Drive, Proton Drive, Google Drive, Dropbox ou OneDrive, o Universal Jukebox consegue tocá-los:
+
+1. No iPhone ou iPad, o serviço de nuvem precisa aparecer no app Arquivos. No Android, ele precisa aparecer no seletor de pastas.
+2. Na primeira tela, escolha **Uma pasta de músicas**, ou **Adicionar uma pasta** em Ajustar este app, e selecione a sua pasta de música na nuvem.
+3. Depois de adicionar ou remover músicas lá, verifique a sua música de novo em Ajustar este app.
+
+Músicas que estão só na nuvem precisam ser baixadas para o seu dispositivo antes de tocar, então mantenha a pasta baixada se quiser ouvir sem conexão. No app Arquivos, toque e segure a pasta e escolha **Manter Baixado**, se o seu serviço de nuvem oferecer essa opção.
+
+## Música em um computador
+
+Sincronize-a com o seu iPhone ou iPad pelo Finder ou pelo app Música no computador e depois escolha **Minha biblioteca do Apple Music**. Ou copie os arquivos para a pasta Jukebox: Arquivos › No Meu iPhone › Jukebox. No Android, copie-os para uma pasta no celular e escolha essa pasta.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Mantendo a sua música segura',
     summary: 'Sua música na sua própria nuvem, e um backup das suas estantes.',

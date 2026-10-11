@@ -89,6 +89,33 @@ I brani sincronizzati sull’iPhone da un computer si possono riprodurre. La pri
 L’app conserva sul tuo dispositivo un catalogo della libreria (titoli, artisti, album e piccole copie delle copertine), così la volta successiva si apre in fretta. Questo catalogo non viene condiviso tra dispositivi: ogni dispositivo crea il proprio. Cancellare i dati di questo sito in un browser cancella il catalogo, ma mai la tua musica. Di scaffali, richieste e impostazioni puoi fare un backup: vedi Tenere al sicuro la tua musica.`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Musica nel cloud o su un servizio di streaming',
+    summary: 'I tuoi file in un archivio cloud sì. Spotify, Apple Music e simili no.',
+    group: 'Le basi',
+    body: `Universal Jukebox riproduce i file musicali che possiedi. Per la musica nel cloud, tutto dipende da chi sono i file.
+
+## Servizi di streaming: no
+
+Spotify, Apple Music, YouTube Music, Amazon Music, Tidal e Deezer non si possono riprodurre in Universal Jukebox, e nemmeno in nessun altro lettore. I loro brani, anche quelli scaricati per l’ascolto offline, sono bloccati in modo che solo l’app del servizio possa aprirli. Fa parte dell’accordo tra il servizio e le case discografiche, e nessuna app può aggirarlo.
+
+I brani che hai acquistato come file sono un’altra cosa. La musica acquistata sull’iTunes Store, su Bandcamp o su Qobuz, o copiata dai tuoi CD, è tua e puoi riprodurla ovunque, anche in Universal Jukebox.
+
+## I tuoi file in un archivio cloud: sì
+
+Se i tuoi file musicali sono su iCloud Drive, Proton Drive, Google Drive, Dropbox o OneDrive, Universal Jukebox può riprodurli:
+
+1. Su iPhone o iPad, il servizio cloud deve comparire nell’app File. Su Android, deve comparire nel selettore delle cartelle.
+2. Nella prima schermata, scegli **Una cartella di musica**, oppure **Aggiungi una cartella** in Regola questa app, e seleziona la tua cartella di musica nel cloud.
+3. Dopo aver aggiunto o rimosso dei brani lì, ripeti la scansione della musica in Regola questa app.
+
+I brani che si trovano solo nel cloud devono essere scaricati sul dispositivo prima di poter essere riprodotti, quindi tieni la cartella scaricata se vuoi ascoltare senza connessione. Nell’app File, tieni premuta la cartella e scegli **Mantieni scaricato**, se il tuo servizio cloud lo offre.
+
+## Musica su un computer
+
+Sincronizzala sull’iPhone o sull’iPad con il Finder o l’app Musica del computer, poi scegli **La mia libreria di Apple Music**. Oppure copia i file nella cartella Jukebox: File › Su iPhone › Jukebox. Su Android, copiali in una cartella del telefono e scegli quella cartella.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Tenere al sicuro la tua musica',
     summary: 'La tua musica nel tuo cloud, e un backup dei tuoi scaffali.',

@@ -22,7 +22,6 @@ export function WelcomeScreen() {
   const addFiles = useLibraryStore((s) => s.addFiles)
   const canPersist = useLibraryStore((s) => s.canPersistFolder)
   const loadExample = useLibraryStore((s) => s.loadExample)
-  const scanNativeFolder = useLibraryStore((s) => s.scanNativeFolder)
   const addNativeFolder = useLibraryStore((s) => s.addNativeFolder)
   const importNativeFiles = useLibraryStore((s) => s.importNativeFiles)
   const importMusicLibrary = useLibraryStore((s) => s.importMusicLibrary)
@@ -56,9 +55,9 @@ export function WelcomeScreen() {
   if (!native || chosen) {
     ways.push({ label: t('native.way_folder'), sub: t('native.way_folder_sub'), run: chooseFolder })
   }
-  if (own) {
-    ways.push({ label: t('native.way_jukebox_folder'), sub: t('native.way_jukebox_folder_sub'), run: () => void scanNativeFolder() })
-  }
+  // No separate "The Jukebox folder" row (James, 2026-10-11): the folder
+  // picker opens IN it on the iPhone (MusicFolderPlugin, `startInOwnFolder`),
+  // so choosing it is one tap from "A folder of music".
   if (!chosen || own) {
     ways.push({ label: t('native.way_pick'), sub: t('native.way_pick_sub'), run: pickSongs })
   }
@@ -100,8 +99,9 @@ export function WelcomeScreen() {
       <p className="jx-fine">{t('native.made_up')}</p>
 
       {/* The website's Landing explains music in the cloud and on streaming
-          services; here that is the knowledge base, one tap away. */}
-      <HelpLink label={t('native.cloud_help')} />
+          services; here it is that one help article, one tap away (James,
+          2026-10-11: not the whole knowledge base). */}
+      <HelpLink label={t('native.cloud_help')} article="cloud-and-streaming" />
       <button type="button" className="jx-link center" onClick={() => navigate({ view: 'settings' })}>
         {t('native.tune_title')}
       </button>

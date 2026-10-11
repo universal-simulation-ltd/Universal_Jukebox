@@ -89,6 +89,33 @@ Titel, die Sie von einem Computer auf das iPhone synchronisieren, können abgesp
 Die App speichert auf Ihrem Gerät einen Katalog Ihrer Mediathek – Titel, Interpreten, Alben und kleine Kopien der Cover –, damit sie beim nächsten Mal schnell startet. Dieser Katalog wird weder gesichert noch zwischen Geräten geteilt: Jedes Gerät erstellt seinen eigenen. Wenn Sie in einem Browser die Daten dieser Website löschen, wird der Katalog gelöscht, aber nie Ihre Musik. Ihre Regale, Wünsche und Einstellungen lassen sich sichern: siehe „Ihre Musik sicher aufbewahren“.`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Musik in der Cloud oder bei einem Streamingdienst',
+    summary: 'Ihre eigenen Dateien im Cloud-Speicher: ja. Spotify, Apple Music und Co.: nein.',
+    group: 'Grundlagen',
+    body: `Universal Jukebox spielt Musikdateien ab, die Sie besitzen. Ob die App Musik aus der Cloud abspielen kann, hängt davon ab, wem die Dateien gehören.
+
+## Streamingdienste: nein
+
+Spotify, Apple Music, YouTube Music, Amazon Music, Tidal und Deezer lassen sich in Universal Jukebox nicht abspielen – und auch in keinem anderen Player. Ihre Songs, selbst die zum Offline-Hören heruntergeladenen, sind so gesperrt, dass nur die eigene App des Dienstes sie öffnen kann. Das ist Teil der Vereinbarung des Dienstes mit den Plattenfirmen, und keine App kann das umgehen.
+
+Songs, die Sie als Dateien gekauft haben, sind etwas anderes. Musik aus dem iTunes Store, von Bandcamp oder Qobuz oder von Ihren eigenen CDs kopierte Musik gehört Ihnen, und Sie können sie überall abspielen, auch in Universal Jukebox.
+
+## Ihre eigenen Dateien im Cloud-Speicher: ja
+
+Liegen Ihre Musikdateien in iCloud Drive, Proton Drive, Google Drive, Dropbox oder OneDrive, kann Universal Jukebox sie abspielen:
+
+1. Auf einem iPhone oder iPad muss der Cloud-Dienst in der Dateien-App erscheinen. Unter Android muss er in der Ordnerauswahl erscheinen.
+2. Wählen Sie auf dem ersten Bildschirm **Ein Musikordner** oder in „Diese App anpassen“ **Ordner hinzufügen**, und wählen Sie Ihren Musikordner in der Cloud aus.
+3. Nachdem Sie dort Songs hinzugefügt oder entfernt haben, durchsuchen Sie Ihre Musik in „Diese App anpassen“ erneut.
+
+Songs, die nur in der Cloud liegen, müssen erst auf Ihr Gerät geladen werden, bevor sie abgespielt werden können. Sorgen Sie also dafür, dass der Ordner geladen bleibt, wenn Sie ohne Verbindung hören möchten. Legen Sie dazu in der Dateien-App den Finger auf den Ordner und wählen Sie **Geladen lassen**, sofern Ihr Cloud-Dienst das anbietet.
+
+## Musik auf einem Computer
+
+Synchronisieren Sie sie mit dem Finder oder der Musik-App auf dem Computer auf Ihr iPhone oder iPad, und wählen Sie dann **Meine Apple Music-Mediathek**. Oder kopieren Sie die Dateien in den Jukebox-Ordner: Dateien › Auf meinem iPhone › Jukebox. Unter Android kopieren Sie sie in einen Ordner auf dem Smartphone und wählen diesen Ordner.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Ihre Musik sicher aufbewahren',
     summary: 'Ihre Musik in Ihrer eigenen Cloud und eine Sicherung Ihrer Regale.',

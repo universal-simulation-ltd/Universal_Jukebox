@@ -32,6 +32,7 @@ import SkippedBanner from '../components/SkippedBanner'
 import About from '../components/About'
 import Tidy from '../components/Tidy'
 import { useBooting } from '../lib/boot'
+import { haptic } from '../lib/haptics'
 import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -73,6 +74,8 @@ const TABS: { view: TabView; label: MessageKey; home?: MessageKey; doubleTap?: M
 
 /** Two taps on one tab within this long are a double tap. */
 const DOUBLE_TAP_MS = 350
+/** A hold on a tab, before "Set as default" shows. */
+const TAB_HOLD_MS = 500
 
 /** Screens of their own, which open at their top. */
 const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'about', 'tidy', 'help'])
@@ -132,6 +135,37 @@ export default function NativeApp() {
   })
   const lastTap = useRef<{ view: TabView; at: number } | null>(null)
   const openTabAtTop = useRef(false)
+  // Hold a tab for "Set as default" (James, 2026-10-11: "Allow long tap on the
+  // navigation icons to give the choice to 'Set default'") — the double tap's
+  // job, said out loud. `tabHold` swallows the tap that ends the hold.
+  const [tabMenu, setTabMenu] = useState<TabView | null>(null)
+  const tabHold = useRef<{ timer: number; fired: boolean } | null>(null)
+  const startTabHold = (target: TabView) => {
+    if (tabHold.current) window.clearTimeout(tabHold.current.timer)
+    if (target === 'settings') return
+    const h = { timer: 0, fired: false }
+    h.timer = window.setTimeout(() => {
+      h.fired = true
+      haptic('thunk')
+      setTabMenu(target)
+    }, TAB_HOLD_MS)
+    tabHold.current = h
+  }
+  const cancelTabHold = () => {
+    if (tabHold.current) window.clearTimeout(tabHold.current.timer)
+  }
+  // Any tap elsewhere puts the bubble away.
+  useEffect(() => {
+    if (!tabMenu) return
+    const away = (e: PointerEvent) => {
+      if (!(e.target instanceof Element && e.target.closest('.jx-tab-pop'))) setTabMenu(null)
+    }
+    const timer = window.setTimeout(() => document.addEventListener('pointerdown', away), 0)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('pointerdown', away)
+    }
+  }, [tabMenu])
   const [homeFlash, setHomeFlash] = useState<TabView | null>(null)
 
   const view: View = route.home ? homeTab : route.view
@@ -234,6 +268,10 @@ export default function NativeApp() {
   const showTabs = !playing && !welcome
 
   const tapTab = (target: TabView) => {
+    if (tabHold.current?.fired) {
+      tabHold.current = null
+      return
+    }
     const now = performance.now()
     const last = lastTap.current
     lastTap.current = { view: target, at: now }
@@ -321,6 +359,11 @@ export default function NativeApp() {
                 className={`jx-tab${homeFlash === target ? ' flash' : ''}`}
                 aria-current={tab === target ? 'page' : undefined}
                 onClick={() => tapTab(target)}
+                onPointerDown={(e) => { if (e.button <= 0) startTabHold(target) }}
+                onPointerUp={cancelTabHold}
+                onPointerLeave={cancelTabHold}
+                onPointerCancel={cancelTabHold}
+                onContextMenu={(e) => e.preventDefault()}
                 title={!home || !doubleTap ? undefined : homeTab === target ? t(home) : t(doubleTap)}
               >
                 <Icon />
@@ -333,6 +376,34 @@ export default function NativeApp() {
                 {homeTab === target && <i className="jx-home-dot" aria-hidden />}
               </button>
             ))}
+            {tabMenu && (() => {
+              const at = TABS.findIndex((tab) => tab.view === tabMenu)
+              const isHome = homeTab === tabMenu
+              return (
+                // The first tab's bubble keeps to the screen: pinned left, its arrow still on the tab.
+                <div
+                  className={`jx-tab-pop${at === 0 ? ' edge' : ''}`}
+                  style={at === 0
+                    ? ({ left: '8px', '--jx-pop-arrow': `calc(${(0.5 / TABS.length) * 100}vw - 8px)` } as React.CSSProperties)
+                    : { left: `${((at + 0.5) / TABS.length) * 100}%` }}
+                >
+                  {isHome ? (
+                    <span>{t('native.tab_is_default')}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSetting('homeTab', tabMenu as HomeTab)
+                        setHomeFlash(tabMenu)
+                        setTabMenu(null)
+                      }}
+                    >
+                      {t('native.tab_set_default')}
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
           </nav>
         </div>
       )}

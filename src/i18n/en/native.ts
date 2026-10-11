@@ -26,6 +26,8 @@ export default {
   'tab_double_tap_tracks': 'Double-tap to open the app on Tracks',
   'tab_double_tap_shelves': 'Double-tap to open the app on Shelves',
   'tab_now_home_artists': 'The app now opens on Artists', // screen reader, after a double tap on a tab
+  'tab_set_default': 'Set as default', // bubble over a held tab: makes it the tab the app opens on
+  'tab_is_default': 'The app opens here', // the same bubble, on the tab it already opens on
   'tab_now_home_albums': 'The app now opens on Albums',
   'tab_now_home_tracks': 'The app now opens on Tracks',
   'tab_now_home_shelves': 'The app now opens on Shelves',
@@ -107,12 +109,10 @@ export default {
   'welcome_body': 'Jukebox plays the music already on your phone: a record turning, the words going round it. Nothing is uploaded and there is no account.',
   'copying': 'Copying {done} of {total}: {name}', // while picked songs are copied in; {name} is the file
   'where_is_music': 'Where is your music?', // small label over the list of places
-  'way_music_library': 'My Music library', // the songs synced to the phone, in Apple's Music app
+  'way_music_library': 'My Apple Music library', // the songs synced to the phone, in Apple's Music app (not Apple Music streaming downloads — the second line says so)
   'way_music_library_sub': 'Songs synced to this phone from a computer',
   'way_folder': 'A folder of music',
   'way_folder_sub': 'In Files, iCloud Drive or on a drive you plug in', // "Files" is the iPhone's Files app
-  'way_jukebox_folder': 'The Jukebox folder',
-  'way_jukebox_folder_sub': 'Files › On My iPhone › Jukebox', // the path in the iPhone's Files app: use the words iOS itself shows in your language
   'way_pick': 'Pick songs',
   'way_pick_sub': 'Choose files one at a time',
   'try_example': 'Try it with the example library', // big button

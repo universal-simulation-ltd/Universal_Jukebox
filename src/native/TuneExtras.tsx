@@ -196,10 +196,10 @@ export function AboutAndHelp() {
   )
 }
 
-/** The knowledge base on its own, for the first-run screen's "Where is my music?" — its own page, as from Tune. */
-export function HelpLink({ label }: { label: string }) {
+/** A link into the knowledge base — one article, or the list — from the first-run screen. */
+export function HelpLink({ label, article }: { label: string; article?: string }) {
   return (
-    <button type="button" className="jx-link center" onClick={() => navigate({ view: 'help' })}>
+    <button type="button" className="jx-link center" onClick={() => navigate(article ? { view: 'help', article } : { view: 'help' })}>
       {label}
     </button>
   )

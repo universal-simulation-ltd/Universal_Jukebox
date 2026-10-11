@@ -89,6 +89,33 @@ As músicas sincronizadas com o iPhone a partir de um computador podem ser repro
 A aplicação guarda no seu dispositivo um catálogo da sua biblioteca — títulos, artistas, álbuns e cópias pequenas das capas — para abrir rapidamente da próxima vez. Esse catálogo não é partilhado entre dispositivos: cada dispositivo cria o seu. Apagar os dados deste site num navegador apaga o catálogo, mas nunca a sua música. As prateleiras, os pedidos e as definições podem ter cópia de segurança: consulte Manter a sua música em segurança.`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Música na nuvem ou num serviço de streaming',
+    summary: 'Os seus próprios ficheiros na nuvem, sim. Spotify, Apple Music e afins, não.',
+    group: 'O essencial',
+    body: `O Universal Jukebox reproduz ficheiros de música que tem. Se consegue reproduzir música na nuvem depende de quem são os ficheiros.
+
+## Serviços de streaming: não
+
+O Spotify, o Apple Music, o YouTube Music, o Amazon Music, o Tidal e o Deezer não podem ser reproduzidos no Universal Jukebox, nem em nenhum outro leitor. As músicas destes serviços, mesmo as transferidas para ouvir offline, estão bloqueadas para que só a aplicação do próprio serviço as consiga abrir. Isto faz parte do acordo do serviço com as editoras discográficas, e nenhuma aplicação o consegue contornar.
+
+As músicas que comprou como ficheiros são diferentes. A música comprada na iTunes Store, no Bandcamp ou no Qobuz, ou copiada dos seus próprios CD, é sua para reproduzir em qualquer lado, incluindo no Universal Jukebox.
+
+## Os seus próprios ficheiros na nuvem: sim
+
+Se os seus ficheiros de música estiverem no iCloud Drive, Proton Drive, Google Drive, Dropbox ou OneDrive, o Universal Jukebox consegue reproduzi-los:
+
+1. Num iPhone ou iPad, o serviço de nuvem tem de aparecer na aplicação Ficheiros. No Android, tem de aparecer no seletor de pastas.
+2. No primeiro ecrã, escolha **Uma pasta de música**, ou **Adicionar uma pasta** em Ajustar esta aplicação, e selecione a sua pasta de música na nuvem.
+3. Depois de adicionar ou remover músicas lá, volte a analisar a sua música em Ajustar esta aplicação.
+
+As músicas que estão apenas na nuvem têm de ser transferidas para o seu dispositivo antes de poderem tocar, por isso mantenha a pasta transferida se quiser ouvir sem ligação. Na aplicação Ficheiros, mantenha o dedo sobre a pasta e escolha **Manter descarregado**, se o seu serviço de nuvem o permitir.
+
+## Música num computador
+
+Sincronize-a com o seu iPhone ou iPad através do Finder ou da aplicação Música no computador e, depois, escolha **A minha biblioteca do Apple Music**. Ou copie os ficheiros para a pasta Jukebox: Ficheiros › No meu iPhone › Jukebox. No Android, copie-os para uma pasta no telemóvel e escolha essa pasta.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Manter a sua música em segurança',
     summary: 'A sua música na sua própria nuvem, e uma cópia de segurança das suas prateleiras.',

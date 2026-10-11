@@ -89,6 +89,33 @@ Les morceaux synchronisés sur l’iPhone depuis un ordinateur peuvent être lus
 L’application conserve sur votre appareil un catalogue de votre bibliothèque — titres, artistes, albums et petites copies des pochettes — pour s’ouvrir rapidement la fois suivante. Ce catalogue n’est pas partagé entre appareils : chaque appareil construit le sien. Effacer les données de ce site dans un navigateur efface le catalogue, mais jamais votre musique. Vos étagères, vos demandes et vos réglages peuvent être sauvegardés : voir Protéger votre musique.`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Musique dans le cloud ou sur un service de streaming',
+    summary: 'Vos propres fichiers dans un stockage en ligne, oui. Spotify, Apple Music et consorts, non.',
+    group: 'Les bases',
+    body: `Universal Jukebox lit les fichiers musicaux que vous possédez. Pour la musique dans le cloud, tout dépend de qui possède les fichiers.
+
+## Services de streaming : non
+
+Spotify, Apple Music, YouTube Music, Amazon Music, Tidal et Deezer ne peuvent pas être lus dans Universal Jukebox, ni d’ailleurs dans aucun autre lecteur. Leurs morceaux, même ceux téléchargés pour une écoute hors connexion, sont verrouillés pour que seule l’app du service puisse les ouvrir. Cela fait partie de l’accord entre le service et les maisons de disques, et aucune application ne peut le contourner.
+
+Les morceaux achetés sous forme de fichiers, c’est différent. La musique achetée sur l’iTunes Store, Bandcamp ou Qobuz, ou copiée depuis vos propres CD, vous appartient et se lit partout, Universal Jukebox compris.
+
+## Vos propres fichiers dans un stockage en ligne : oui
+
+Si vos fichiers musicaux sont dans iCloud Drive, Proton Drive, Google Drive, Dropbox ou OneDrive, Universal Jukebox peut les lire :
+
+1. Sur iPhone ou iPad, le service de cloud doit apparaître dans l’app Fichiers. Sur Android, il doit apparaître dans le sélecteur de dossiers.
+2. Sur le premier écran, choisissez **Un dossier de musique**, ou **Ajouter un dossier** dans Régler cette application, puis sélectionnez votre dossier de musique dans le cloud.
+3. Après y avoir ajouté ou supprimé des morceaux, relancez l’analyse de votre musique dans Régler cette application.
+
+Les morceaux qui se trouvent uniquement dans le cloud doivent être téléchargés sur votre appareil avant de pouvoir être lus : gardez donc le dossier téléchargé si vous voulez écouter sans connexion. Dans l’app Fichiers, maintenez le doigt sur le dossier et choisissez **Garder téléchargé**, si votre service de cloud le propose.
+
+## Musique sur un ordinateur
+
+Synchronisez-la avec votre iPhone ou iPad depuis le Finder ou l’app Musique de l’ordinateur, puis choisissez **Ma bibliothèque Apple Music**. Ou copiez les fichiers dans le dossier Jukebox : Fichiers › Sur mon iPhone › Jukebox. Sur Android, copiez-les dans un dossier du téléphone et choisissez ce dossier.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Protéger votre musique',
     summary: 'Votre musique dans votre propre cloud, et une sauvegarde de vos étagères.',

@@ -89,6 +89,33 @@ Bir bilgisayardan iPhone’a eşzamanladığınız şarkılar çalınabilir. Bun
 Uygulama, bir sonraki açılışta hızlı başlamak için kitaplığınızın bir kataloğunu (şarkı adları, sanatçılar, albümler ve kapakların küçük kopyaları) cihazınızda saklar. Bu katalog cihazlar arasında paylaşılmaz: her cihaz kendi kataloğunu oluşturur. Bir tarayıcıda bu sitenin verilerini temizlemek kataloğu siler, ama müziğinizi asla silmez. Raflarınız, istekleriniz ve ayarlarınız yedeklenebilir: “Müziğinizi güvende tutmak” makalesine bakın.`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Buluttaki ya da bir akış hizmetindeki müzik',
+    summary: 'Bulut depolamadaki kendi dosyalarınız: evet. Spotify, Apple Music ve benzerleri: hayır.',
+    group: 'Temel bilgiler',
+    body: `Universal Jukebox sahip olduğunuz müzik dosyalarını çalar. Buluttaki müziği çalıp çalamayacağı, dosyaların kime ait olduğuna bağlıdır.
+
+## Akış hizmetleri: hayır
+
+Spotify, Apple Music, YouTube Music, Amazon Music, Tidal ve Deezer Universal Jukebox’ta çalınamaz; başka hiçbir müzik çalar da bunları çalamaz. Bu hizmetlerin şarkıları, çevrimdışı dinlemek için indirilenler bile, yalnızca hizmetin kendi uygulaması açabilsin diye kilitlidir. Bu, hizmetin plak şirketleriyle yaptığı anlaşmanın bir parçasıdır ve hiçbir uygulama bunu aşamaz.
+
+Dosya olarak satın aldığınız şarkılar farklıdır. iTunes Store’dan, Bandcamp’ten ya da Qobuz’dan satın alınan veya kendi CD’lerinizden kopyalanan müzik sizindir; Universal Jukebox dahil her yerde çalabilirsiniz.
+
+## Bulut depolamadaki kendi dosyalarınız: evet
+
+Müzik dosyalarınız iCloud Drive, Proton Drive, Google Drive, Dropbox ya da OneDrive’daysa Universal Jukebox bunları çalabilir:
+
+1. iPhone ya da iPad’de bulut hizmetinin Dosyalar uygulamasında görünmesi gerekir. Android’de klasör seçicide görünmesi gerekir.
+2. İlk ekranda **Bir müzik klasörü** seçeneğini ya da **Bu uygulamayı ayarla** sayfasındaki **Klasör ekle** düğmesini seçin, ardından buluttaki müzik klasörünüzü belirleyin.
+3. Orada şarkı ekledikten ya da kaldırdıktan sonra **Bu uygulamayı ayarla** sayfasında müziğinizi yeniden taratın.
+
+Yalnızca bulutta bulunan şarkıların çalınabilmesi için önce cihazınıza indirilmesi gerekir; bu yüzden bağlantı olmadan dinlemek istiyorsanız klasörü indirilmiş olarak tutun. Bulut hizmetiniz bu seçeneği sunuyorsa Dosyalar uygulamasında klasöre dokunup basılı tutun ve **İndirilmiş Olarak Tut** seçeneğini seçin.
+
+## Bilgisayardaki müzik
+
+Müziğinizi bilgisayardaki Finder ya da Müzik uygulamasıyla iPhone’unuza veya iPad’inize eşzamanlayın, ardından **Apple Music arşivim** seçeneğini seçin. Ya da dosyaları Jukebox klasörüne kopyalayın: Dosyalar › iPhone’umda › Jukebox. Android’de dosyaları telefondaki bir klasöre kopyalayın ve o klasörü seçin.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Müziğinizi güvende tutmak',
     summary: 'Müziğiniz kendi bulutunuzda, raflarınızın da bir yedeği.',

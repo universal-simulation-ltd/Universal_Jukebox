@@ -89,6 +89,33 @@ Songs you sync to the iPhone from a computer can be played. The first time one p
 The app keeps a catalogue of your library — titles, artists, albums and small copies of the covers — on your device, so it opens quickly next time. That catalogue isn’t shared between devices: each device builds its own. Clearing a browser’s data for this site clears the catalogue, but never your music. Your shelves, requests and settings can be backed up: see Keeping your music safe.`,
   },
   {
+    id: 'cloud-and-streaming',
+    title: 'Music in the cloud or on a streaming service',
+    summary: 'Your own files in cloud storage, yes. Spotify, Apple Music and the like, no.',
+    group: 'The basics',
+    body: `Universal Jukebox plays music files you have. Whether it can play music in the cloud depends on whose files they are.
+
+## Streaming services: no
+
+Spotify, Apple Music, YouTube Music, Amazon Music, Tidal and Deezer can’t be played in Universal Jukebox, and no other player can play them either. Their songs, even the ones downloaded for listening offline, are locked so that only the service’s own app can open them. That is part of the service’s agreement with the record labels, and no app can get around it.
+
+Songs you bought as files are different. Music bought from the iTunes Store, Bandcamp or Qobuz, or copied from your own CDs, is yours to play anywhere, Universal Jukebox included.
+
+## Your own files in cloud storage: yes
+
+If your music files are in iCloud Drive, Proton Drive, Google Drive, Dropbox or OneDrive, Universal Jukebox can play them:
+
+1. On an iPhone or iPad, the cloud service needs to appear in the Files app. On Android, it needs to appear in the folder picker.
+2. On the first screen, choose **A folder of music**, or **Add a folder** in Tune this app, and pick your music folder in the cloud.
+3. After adding or removing songs there, rescan your music in Tune this app.
+
+Songs that are only in the cloud have to be downloaded to your device before they can play, so keep the folder downloaded if you want to listen without a connection. In the Files app, touch and hold the folder and choose **Keep Downloaded**, where your cloud service offers it.
+
+## Music on a computer
+
+Sync it to your iPhone or iPad with Finder or the Apple Music app on the computer, then choose **My Apple Music library**. Or copy the files into the Jukebox folder: Files › On My iPhone › Jukebox. On Android, copy them to a folder on the phone and choose that folder.`,
+  },
+  {
     id: 'keeping-your-music-safe',
     title: 'Keeping your music safe',
     summary: 'Your music in your own cloud, and a backup of your shelves.',

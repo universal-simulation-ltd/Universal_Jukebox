@@ -404,6 +404,17 @@ html.dark .jx {
    reads as a badge). */
 .jx-home-dot { position: absolute; bottom: 2px; left: calc(50% - 7px); width: 14px; height: 2px; border-radius: 1px; background: currentColor; opacity: 0.55; }
 .jx-tab.flash svg { animation: jx-home-pop 480ms ease-out; }
+/* "Set as default", over a held tab. */
+.jx-tabs { position: relative; }
+.jx-tab-pop.edge { transform: none; }
+.jx-tab-pop {
+  position: absolute; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 5;
+  padding: 0; border-radius: 12px; background: var(--jx-fg); color: var(--jx-bg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); white-space: nowrap; font-size: 14px; font-weight: 600;
+}
+.jx-tab-pop::after { content: ''; position: absolute; top: 100%; left: var(--jx-pop-arrow, 50%); margin-left: -6px; border: 6px solid transparent; border-top-color: var(--jx-fg); }
+.jx-tab-pop > * { display: block; padding: 10px 14px; }
+.jx .jx-tab-pop button { border: 0; background: none; color: var(--jx-bg); font-weight: 650; }
 @keyframes jx-home-pop { 40% { transform: scale(1.3); } }
 
 /* The knowledge base as pages (HelpScreens): a card of articles per group,
