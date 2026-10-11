@@ -14,7 +14,7 @@ import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
-import { compareBase } from '../lib/collate'
+import { compareName } from '../lib/collate'
 import { useT } from '../i18n'
 
 // Every track, in one list.
@@ -257,7 +257,7 @@ export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () 
 }
 
 function byTitle(a: Track, b: Track): number {
-  const title = compareBase(a.title, b.title)
+  const title = compareName(a.title, b.title)
   if (title !== 0) return title
-  return compareBase(a.artist ?? '', b.artist ?? '')
+  return compareName(a.artist ?? '', b.artist ?? '')
 }

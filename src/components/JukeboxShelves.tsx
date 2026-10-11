@@ -14,7 +14,7 @@ import { mostPlayed, usePlayCounts } from '../lib/playCounts'
 import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
 import type { Album, Track } from '../lib/types'
-import { compareBaseNumeric } from '../lib/collate'
+import { compareNameNumeric } from '../lib/collate'
 import { useDialogFocus } from '../lib/useDialogFocus'
 
 // The Jukebox tab: shelves you fill yourself, each one a playlist of songs
@@ -363,7 +363,7 @@ function SongPicker({ shelfId, name, onClose }: { shelfId: string; name: string;
   const [query, setQuery] = useState('')
   const onShelf = new Set(shelves.find((s) => s.id === target)?.trackIds ?? [])
   const found = useMemo(
-    () => [...matchTracks(tracks, query)].sort((a, b) => compareBaseNumeric(a.title, b.title)),
+    () => [...matchTracks(tracks, query)].sort((a, b) => compareNameNumeric(a.title, b.title)),
     [tracks, query],
   )
   const shown = found.slice(0, PICKER_CAP)

@@ -12,7 +12,7 @@ import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import type { Album } from '../lib/types'
-import { compareBase, compareBaseNumeric } from '../lib/collate'
+import { compareName, compareNameNumeric } from '../lib/collate'
 import { shownName } from '../lib/format'
 import { useT } from '../i18n'
 
@@ -161,9 +161,9 @@ export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridPro
  * the year, only break a tie between two albums of the same name.
  */
 function byTitle(a: Album, b: Album): number {
-  const title = compareBaseNumeric(a.title, b.title)
+  const title = compareNameNumeric(a.title, b.title)
   if (title !== 0) return title
-  const artist = compareBase(a.artist, b.artist)
+  const artist = compareName(a.artist, b.artist)
   if (artist !== 0) return artist
   return (a.year ?? 9999) - (b.year ?? 9999)
 }

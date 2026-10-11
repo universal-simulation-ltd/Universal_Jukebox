@@ -15,7 +15,7 @@ import ArtistList from '../components/ArtistList'
 import Cover from '../components/Cover'
 import GenreIndex from '../components/GenreIndex'
 import TrackList from '../components/TrackList'
-import { compareBase } from '../lib/collate'
+import { compareName } from '../lib/collate'
 import { shownName } from '../lib/format'
 import { useT } from '../i18n'
 import { GENRE_MIN, libraryInGenre, shownGenre } from '../lib/genres'
@@ -350,7 +350,7 @@ export function AlbumsScreen(props: ListProps) {
   const held = useCollectionHold()
   const shown = useMemo(() => {
     const pool = fullOnly ? seen.albums.filter(isFullAlbum) : seen.albums
-    const ordered = layout.effective.kind === 'random' ? seededOrder(pool, (a) => a.id, layout.effective.seed) : [...pool].sort((a, b) => compareBase(a.title, b.title))
+    const ordered = layout.effective.kind === 'random' ? seededOrder(pool, (a) => a.id, layout.effective.seed) : [...pool].sort((a, b) => compareName(a.title, b.title))
     return matchAlbums(ordered, query)
   }, [seen.albums, fullOnly, layout.effective, query])
   const [limit, setLimit] = useState(PAGE)
@@ -451,7 +451,7 @@ export function ArtistsScreen(props: ListProps) {
   }, [pool])
   const names = useMemo(() => {
     const matched = matchArtistNames(pool, query)
-    return layout.effective.kind === 'random' ? seededOrder(matched, (n) => n, layout.effective.seed) : matched.sort(compareBase)
+    return layout.effective.kind === 'random' ? seededOrder(matched, (n) => n, layout.effective.seed) : matched.sort(compareName)
   }, [pool, query, layout.effective])
   const [limit, setLimit] = useState(PAGE)
 
@@ -530,7 +530,7 @@ export function SongsScreen(props: ListProps) {
     const ordered =
       layout.effective.kind === 'random'
         ? seededOrder(seen.tracks, (t) => t.id, layout.effective.seed)
-        : [...seen.tracks].sort((a, b) => compareBase(a.title, b.title))
+        : [...seen.tracks].sort((a, b) => compareName(a.title, b.title))
     return matchTracks(ordered, query)
   }, [seen.tracks, layout.effective, query])
   const [limit, setLimit] = useState(PAGE)

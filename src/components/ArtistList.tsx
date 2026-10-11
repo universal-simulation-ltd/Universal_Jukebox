@@ -17,7 +17,7 @@ import GenreHeading, { GenreFootnote } from './GenreHeading'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Album } from '../lib/types'
-import { compareBase } from '../lib/collate'
+import { compareName } from '../lib/collate'
 
 // Artists, each with their records under them.
 //
@@ -86,7 +86,7 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
     const ordered =
       order.kind === 'random'
         ? seededOrder(entries, ([name]) => name, order.seed)
-        : entries.sort((a, b) => compareBase(a[0], b[0]))
+        : entries.sort((a, b) => compareName(a[0], b[0]))
     return ordered.map(([name, list]) => ({
       name,
       albums: [...list].sort((x, y) => (x.year ?? 9999) - (y.year ?? 9999)),

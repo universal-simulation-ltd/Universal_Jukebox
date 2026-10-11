@@ -15,3 +15,24 @@ export const compareBase = base.compare
 export const compareBaseNumeric = baseNumeric.compare
 /** Digits as numbers, case and accents significant — file paths. */
 export const compareNumeric = numeric.compare
+
+// Apple's rule for names (James, 2026-10-12: "organise like Apple so that The
+// Beatles is organised under b"): a leading "The", "A" or "An" is skipped when
+// sorting, so The Beatles files under B and A Tribe Called Quest under T. The
+// name shown is untouched. A name that is ONLY the article ("The", the band
+// "A") keeps it, and the full name breaks a tie, so "The Band" and "Band"
+// still sit in a fixed order.
+const ARTICLE = /^(?:the|a|an)\s+(?=\S)/i
+
+/** The name as it sorts: without a leading English article. */
+export function sortName(name: string): string {
+  return name.replace(ARTICLE, '')
+}
+/** As `compareBase`, ignoring a leading "The", "A" or "An" — artists, albums, songs. */
+export function compareName(a: string, b: string): number {
+  return base.compare(sortName(a), sortName(b)) || base.compare(a, b)
+}
+/** As `compareName`, with digits compared as numbers. */
+export function compareNameNumeric(a: string, b: string): number {
+  return baseNumeric.compare(sortName(a), sortName(b)) || baseNumeric.compare(a, b)
+}
