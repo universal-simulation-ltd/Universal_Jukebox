@@ -30,6 +30,8 @@ const lyrics: Draft['lyrics'] = {
   'free_scroll_title': 'Desplazamiento libre: bloquea para volver a seguir la canción',
 
   'add_file_hint': '¿Tienes tú la letra? Un archivo .lrc sincronizado sigue la canción; el texto sin formato se muestra como letra.',
+
+  'lrcget_link': 'Cómo conseguir la letra de toda tu biblioteca',
   'add_file': 'Añadir un archivo de letra',
   'replace': 'Sustituir la letra',
   'not_lyrics': 'Eso no parece una letra. Hace falta un archivo de texto sin formato o un archivo .lrc.',

@@ -102,3 +102,22 @@ describe('a genre opened from the genre list', () => {
     expect(planNavigation([TRACKS, ROCK], TRACKS)).toEqual({ back: 1, then: 'none' })
   })
 })
+
+describe('the knowledge base as pages', () => {
+  it('reads the list and an article', () => {
+    expect(routeFromHash('#/help')).toEqual({ view: 'help' })
+    expect(routeFromHash('#/help/lyrics-with-lrcget')).toEqual({ view: 'help', article: 'lyrics-with-lrcget' })
+  })
+
+  it('puts an article a page below the list, and both below Now Playing', () => {
+    expect(levelOf('#/help')).toBe(1.25)
+    expect(levelOf('#/help')).toBeGreaterThan(levelOf('#/settings'))
+    expect(levelOf('#/help/lyrics')).toBe(1.5)
+    expect(levelOf('#/help/lyrics')).toBeLessThan(levelOf('#/playing'))
+  })
+
+  it('opens on top of Tune, and goes back from an article to the list', () => {
+    expect(planNavigation(['#/', '#/settings'], '#/help')).toEqual({ back: 0, then: 'push' })
+    expect(planNavigation(['#/', '#/settings', '#/help', '#/help/lyrics'], '#/help')).toEqual({ back: 1, then: 'none' })
+  })
+})

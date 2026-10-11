@@ -40,6 +40,7 @@ export default {
 
   // Adding or replacing a lyrics file
   'add_file_hint': 'Got the words yourself? A timed .lrc file follows along with the song; plain text shows as the words.',
+  'lrcget_link': 'How to get lyrics for your whole library', // link to the help article on LRCGET, in the lyrics panel and in Tune this app ▸ Lyrics
   'add_file': 'Add a lyrics file', // button
   'replace': 'Replace lyrics', // small link: pick a different lyrics file for this song
   'not_lyrics': 'That doesn’t look like lyrics. A plain text file or an .lrc file is what’s needed.',

@@ -159,7 +159,7 @@ Viene letto anche un file di testo salvato accanto a un brano, purché abbia il 
 
 ## Testi per tutta la libreria
 
-Se i tuoi file non hanno testi, un programma gratuito per computer chiamato **LRCGET** può scaricarli per un’intera cartella in una volta. Scegli la cartella della musica e poi **Download all lyrics**: salva un file .lrc accanto a ogni brano di cui trova il testo e lascia invariati i file musicali. Poi ripeti la scansione della cartella in Universal Jukebox. LRCGET è realizzato da chi gestisce lrclib.net, la raccolta descritta più sotto, non da UNI·SIM.
+Se i tuoi file non hanno testi, un programma gratuito per computer chiamato **LRCGET** può scaricarli per un’intera cartella in una volta, come file .lrc accanto ai brani oppure scritti direttamente dentro i brani. L’articolo **Testi per tutta la libreria, con LRCGET** spiega come fare, passo dopo passo.
 
 ## 2. Una ricerca online, solo se la attivi
 
@@ -174,6 +174,31 @@ Poiché la raccolta è scritta da volontari, può capitare che un testo sia impr
 Alcuni testi hanno un’indicazione di tempo all’inizio di ogni riga. Si chiamano testi sincronizzati, spesso in un formato noto come LRC. Con questi, il pannello dei testi segue il brano durante la riproduzione, e toccando una riga si salta a quel punto del brano. I testi senza indicazioni di tempo vengono mostrati come testo semplice.
 
 I testi sincronizzati rendono possibili anche due opzioni, entrambe in Regola questa app, nella sezione Testi: **Testo intorno al disco**, che scrive le parole intorno al disco che gira mentre vengono cantate, e **Testo sulla schermata di blocco**, che mostra la riga cantata nei controlli musicali del telefono.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'Testi per tutta la libreria, con LRCGET',
+    summary: 'Un programma gratuito per il computer che trova in una volta i testi di tutti i brani.',
+    group: 'Come funziona',
+    body: `**LRCGET** è un programma gratuito per Windows, Mac e Linux che cerca in un colpo solo i testi di tutti i brani di una cartella musicale. È realizzato da chi gestisce lrclib.net, una raccolta di testi gratuita gestita da una comunità, non da UNI·SIM. Scaricalo da **github.com/tranxuanthang/lrcget/releases**.
+
+## Scaricare i testi
+
+1. Apri LRCGET e scegli la cartella in cui si trova la tua musica. Il programma legge la cartella ed elenca i tuoi brani.
+2. Fai clic su **Download all lyrics** (scarica tutti i testi), scegli per quali brani cercarli e lascia spuntato **Synced lyrics (.lrc)**.
+3. Fai clic su **Download**. LRCGET salva un file .lrc accanto a ogni brano di cui trova il testo: *Brano.mp3* e *Brano.lrc*.
+
+Se Universal Jukebox riproduce direttamente quella cartella, ripeti la scansione della musica in Regola questa app e i testi ci sono.
+
+## Mettere i testi dentro i brani
+
+Un file .lrc accompagna un brano solo se viene copiata tutta la cartella. Quando la tua musica arriva sull’iPhone o sull’iPad tramite l’app Musica o il Finder, vengono copiati solo i file musicali, quindi i testi devono trovarsi al loro interno.
+
+1. In LRCGET, apri **Settings** e, sotto Experimental, spunta **Enable embed lyrics option**. LRCGET avverte che questo potrebbe danneggiare i file musicali, quindi prima fai un backup della libreria.
+2. Fai di nuovo clic su **Download all lyrics**, spunta anche **Embed into track** e poi fai clic su **Download**.
+3. Sincronizza la musica sul telefono o sul tablet come fai di solito. In Universal Jukebox, premi **Aggiorna la libreria di Musica del telefono** (su un iPad, **Aggiorna la libreria di Musica dell’iPad**) in Regola questa app, oppure ripeti la scansione della cartella.
+
+I brani acquistati su Apple Music o ascoltati in streaming da lì sono protetti e le altre app non possono modificarli né riprodurli, quindi questo funziona solo con i tuoi file.`,
   },
   {
     id: 'playing-in-the-background',

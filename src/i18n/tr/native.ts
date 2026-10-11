@@ -87,6 +87,8 @@ const native: Draft['native'] = {
   'add_library_ipad': 'iPad’imdeki Müzik arşivini ekle',
   'about_and_help': 'Hakkında ve yardım',
   'knowledge_base': 'Bilgi bankası',
+  'help_sources': 'Kaynaklar',
+  'help_missing': 'Bu makale artık bilgi bankasında yok.',
   'about_detail': 'Neyi çalar, neyi çalamaz ve neden',
 
   'welcome_title': 'Müziğiniz pikapta',

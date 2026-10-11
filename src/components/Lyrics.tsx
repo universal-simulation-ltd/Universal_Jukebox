@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import HelpArticleLink from './HelpArticleLink'
 import { ChipToggle } from '@unisim/sdk'
 import SingingMic from './SingingMic'
 import SingAlong from './SingAlong'
@@ -498,6 +499,9 @@ function AddLyricsFile({ compact = false }: { compact?: boolean }) {
       </button>
       {fileInput}
       {problem && <p className="mt-2 text-[12.5px] text-red-700 dark:text-red-300">{problem}</p>}
+      <div className="mt-2">
+        <HelpArticleLink article="lyrics-with-lrcget">{t('lyrics.lrcget_link')}</HelpArticleLink>
+      </div>
     </div>
   )
 }

@@ -159,7 +159,7 @@ También lee un archivo de letra guardado junto a una canción, siempre que teng
 
 ## Letras para toda su biblioteca
 
-Si sus archivos no tienen letras, un programa gratuito para ordenador llamado **LRCGET** puede descargarlas para una carpeta entera de una vez. Elija su carpeta de música y pulse **Download all lyrics**: guarda un archivo .lrc junto a cada canción para la que encuentra letra y deja los archivos de música como están. Después, vuelva a explorar la carpeta en Universal Jukebox. LRCGET lo hacen los responsables de lrclib.net, la colección que se describe más abajo, no UNI·SIM.
+Si sus archivos no tienen letras, un programa gratuito para ordenador llamado **LRCGET** puede descargarlas para una carpeta entera de una vez, ya sea como archivos .lrc junto a sus canciones o escritas dentro de las propias canciones. El artículo **Letras para toda su biblioteca, con LRCGET** explica cómo hacerlo, paso a paso.
 
 ## 2. Una búsqueda en línea, solo si la activa
 
@@ -174,6 +174,31 @@ Como la colección la escriben voluntarios, alguna letra puede ser inexacta o ir
 Algunas letras incluyen una marca de tiempo al principio de cada línea. Se llaman letras sincronizadas y suelen estar en un formato llamado LRC. Con ellas, el panel de letras sigue la canción mientras suena, y al tocar una línea se salta a ese momento de la canción. Las letras sin marcas de tiempo se muestran como texto normal.
 
 Las letras sincronizadas permiten además dos opciones, ambas en Ajustar esta app, apartado Letras: **Letra alrededor del disco**, que escribe las palabras alrededor del disco que gira a medida que se cantan, y **Letra en la pantalla de bloqueo**, que muestra la línea que se está cantando en los controles de música del teléfono.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'Letras para toda su biblioteca, con LRCGET',
+    summary: 'Un programa gratuito para su ordenador que encuentra de una vez la letra de todas sus canciones.',
+    group: 'Cómo funciona',
+    body: `**LRCGET** es un programa gratuito para Windows, Mac y Linux que busca de una sola vez la letra de todas las canciones de una carpeta de música. Lo hacen los responsables de lrclib.net, una colección de letras gratuita mantenida por una comunidad, no UNI·SIM. Descárguelo de **github.com/tranxuanthang/lrcget/releases**.
+
+## Descargar las letras
+
+1. Abra LRCGET y elija la carpeta donde está su música. El programa lee la carpeta y muestra la lista de sus canciones.
+2. Haga clic en **Download all lyrics** (descargar todas las letras), elija para qué canciones quiere buscarlas y deje marcada la opción **Synced lyrics (.lrc)**.
+3. Haga clic en **Download**. LRCGET guarda un archivo .lrc junto a cada canción para la que encuentra letra: *Cancion.mp3* y *Cancion.lrc*.
+
+Si Universal Jukebox reproduce esa carpeta directamente, vuelva a explorar su música en Ajustar esta app y ya tendrá las letras.
+
+## Poner las letras dentro de las canciones
+
+Un archivo .lrc solo acompaña a una canción si se copia la carpeta entera. Cuando su música llega al iPhone o al iPad a través de la aplicación Música o del Finder, solo se copian los archivos de música, así que las letras tienen que ir dentro de ellos.
+
+1. En LRCGET, abra **Settings** y, en el apartado Experimental, marque **Enable embed lyrics option**. LRCGET advierte de que esto podría dañar sus archivos de música, así que haga antes una copia de seguridad de su biblioteca.
+2. Vuelva a hacer clic en **Download all lyrics**, marque también **Embed into track** y, después, haga clic en **Download**.
+3. Sincronice su música con el teléfono o la tableta como de costumbre. En Universal Jukebox, pulse **Actualizar la biblioteca de Música del móvil** (en un iPad, **Actualizar la biblioteca de Música del iPad**) en Ajustar esta app, o vuelva a explorar su carpeta.
+
+Las canciones compradas en Apple Music o escuchadas en streaming desde allí están protegidas y ninguna otra aplicación puede modificarlas ni reproducirlas, así que esto solo funciona con sus propios archivos.`,
   },
   {
     id: 'playing-in-the-background',

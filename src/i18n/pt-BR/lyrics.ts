@@ -35,6 +35,7 @@ const lyrics: Draft['lyrics'] = {
 
   // Adding or replacing a lyrics file
   'add_file_hint': 'Tem a letra? Um arquivo .lrc sincronizado acompanha a música; texto simples aparece como a letra.',
+  'lrcget_link': 'Como conseguir letras para toda a sua biblioteca',
   'add_file': 'Adicionar um arquivo de letra',
   'replace': 'Substituir a letra',
   'not_lyrics': 'Isso não parece uma letra. É preciso um arquivo de texto simples ou um arquivo .lrc.',

@@ -159,7 +159,7 @@ Bir şarkının yanına kaydedilmiş söz dosyası da okunur; yeter ki şarkıyl
 
 ## Tüm kitaplığınız için sözler
 
-Dosyalarınızda söz yoksa, bilgisayarlar için ücretsiz bir program olan **LRCGET** bütün bir klasörün sözlerini tek seferde indirebilir. Müzik klasörünüzü seçip **Download all lyrics** düğmesine basın: sözünü bulduğu her şarkının yanına bir .lrc dosyası kaydeder ve müzik dosyalarına dokunmaz. Ardından klasörü Universal Jukebox’ta yeniden taratın. LRCGET’i UNI·SIM değil, aşağıda anlatılan lrclib.net koleksiyonunun ekibi yapar.
+Dosyalarınızda söz yoksa, bilgisayarlar için ücretsiz bir program olan **LRCGET** bütün bir klasörün sözlerini tek seferde indirebilir; sözleri şarkılarınızın yanına .lrc dosyaları olarak kaydeder ya da doğrudan şarkıların içine yazar. **LRCGET ile tüm kitaplığınız için şarkı sözleri** makalesi bunu adım adım anlatır.
 
 ## 2. Çevrimiçi arama, yalnızca siz açarsanız
 
@@ -174,6 +174,31 @@ Koleksiyon gönüllüler tarafından yazıldığı için ara sıra bir söz metn
 Bazı sözlerde her satırın başında bir zaman damgası bulunur. Bunlara eşzamanlı sözler denir ve genellikle LRC adlı bir biçimdedir. Bu sözlerle, sözler paneli şarkıyı çalarken takip eder ve bir satıra dokunmak şarkının o noktasına atlar. Zaman damgası olmayan sözler düz metin olarak gösterilir.
 
 Eşzamanlı sözler, ikisi de **Bu uygulamayı ayarla** sayfasında Şarkı sözleri bölümünde bulunan iki isteğe bağlı özelliği de mümkün kılar: sözleri söylendikçe dönen plağın çevresine yazan **Plağın çevresinde şarkı sözleri** ve söylenen satırı telefonunuzun müzik denetimlerinde gösteren **Kilit ekranında şarkı sözleri**.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'LRCGET ile tüm kitaplığınız için şarkı sözleri',
+    summary: 'Tüm şarkılarınızın sözlerini tek seferde bulan, bilgisayarınız için ücretsiz bir program.',
+    group: 'Nasıl çalışır',
+    body: `**LRCGET**, Windows, Mac ve Linux için ücretsiz bir programdır ve bir müzik klasöründeki tüm şarkıların sözlerini tek seferde arar. Programı UNI·SIM değil, topluluk tarafından yürütülen ücretsiz bir söz koleksiyonu olan lrclib.net’in ekibi yapar. Programı **github.com/tranxuanthang/lrcget/releases** adresinden indirebilirsiniz.
+
+## Sözleri indirmek
+
+1. LRCGET’i açın ve müziğinizin bulunduğu klasörü seçin. Program klasörü okur ve şarkılarınızı listeler.
+2. **Download all lyrics** (tüm sözleri indir) düğmesine tıklayın, hangi şarkıların sözlerinin indirileceğini seçin ve **Synced lyrics (.lrc)** seçeneğini işaretli bırakın.
+3. **Download** düğmesine tıklayın. LRCGET, sözünü bulduğu her şarkının yanına bir .lrc dosyası kaydeder: *Sarki.mp3* ve *Sarki.lrc*.
+
+Universal Jukebox bu klasörü doğrudan çalıyorsa, **Bu uygulamayı ayarla** sayfasında müziğinizi yeniden taratın; sözler hazırdır.
+
+## Sözleri şarkıların içine yazmak
+
+Bir .lrc dosyası, şarkıyla birlikte ancak bütün klasör taşındığında gider. Müziğiniz iPhone’unuza ya da iPad’inize Müzik uygulaması veya Finder üzerinden geldiğinde yalnızca müzik dosyaları kopyalanır; bu yüzden sözlerin dosyaların içinde olması gerekir.
+
+1. LRCGET’te **Settings** bölümünü açın ve Experimental altında **Enable embed lyrics option** seçeneğini işaretleyin. LRCGET bunun müzik dosyalarınıza zarar verebileceği konusunda uyarır; bu yüzden önce kitaplığınızı yedekleyin.
+2. **Download all lyrics** düğmesine yeniden tıklayın, **Embed into track** seçeneğini de işaretleyin ve ardından **Download** düğmesine tıklayın.
+3. Müziğinizi her zamanki gibi telefonunuza ya da tabletinize eşzamanlayın. Universal Jukebox’ta **Bu uygulamayı ayarla** sayfasındaki **Telefonumdaki Müzik arşivini yenile** düğmesine (iPad’de **iPad’imdeki Müzik arşivini yenile** düğmesine) dokunun ya da klasörünüzü yeniden taratın.
+
+Apple Music’ten satın alınan ya da oradan akışla dinlenen şarkılar korumalıdır; başka uygulamalar bunları değiştiremez ya da çalamaz. Bu yüzden bu yöntem yalnızca kendi dosyalarınızda işe yarar.`,
   },
   {
     id: 'playing-in-the-background',

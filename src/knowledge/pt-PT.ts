@@ -159,7 +159,7 @@ Um ficheiro de letra guardado junto a uma música também é lido, desde que ten
 
 ## Letras para toda a sua biblioteca
 
-Se os seus ficheiros não têm letras, um programa gratuito para computador chamado **LRCGET** pode obtê-las para uma pasta inteira de uma só vez. Escolha a sua pasta de música e depois **Download all lyrics**: guarda um ficheiro .lrc junto a cada música para a qual encontra letra e deixa os ficheiros de música como estão. Depois, volte a analisar a pasta no Universal Jukebox. O LRCGET é feito pelos responsáveis do lrclib.net, a coleção descrita abaixo, e não pela UNI·SIM.
+Se os seus ficheiros não têm letras, um programa gratuito para computador chamado **LRCGET** pode obtê-las para uma pasta inteira de uma só vez, quer como ficheiros .lrc junto às suas músicas, quer gravadas dentro das próprias músicas. O artigo **Letras para toda a sua biblioteca, com o LRCGET** explica como, passo a passo.
 
 ## 2. Uma pesquisa online, só se a ativar
 
@@ -174,6 +174,31 @@ Como a coleção é escrita por voluntários, uma ou outra letra pode estar impr
 Algumas letras têm uma marca de tempo no início de cada linha. Chamam-se letras sincronizadas e estão muitas vezes num formato conhecido como LRC. Com elas, o painel de letras acompanha a música enquanto toca, e tocar numa linha salta para esse momento da música. As letras sem marcas de tempo aparecem como texto simples.
 
 As letras sincronizadas permitem ainda dois extras opcionais, ambos em Ajustar esta aplicação, na secção Letras: **Letra à volta do disco**, que escreve as palavras à volta do disco a girar à medida que são cantadas, e **Letra no ecrã de bloqueio**, que mostra a linha que está a ser cantada nos controlos de música do telemóvel.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'Letras para toda a sua biblioteca, com o LRCGET',
+    summary: 'Um programa gratuito para o seu computador que encontra de uma só vez a letra de todas as músicas.',
+    group: 'Como funciona',
+    body: `O **LRCGET** é um programa gratuito para Windows, Mac e Linux que procura de uma só vez a letra de todas as músicas de uma pasta. É feito pelos responsáveis do lrclib.net, uma coleção de letras gratuita mantida por uma comunidade, e não pela UNI·SIM. Transfira-o em **github.com/tranxuanthang/lrcget/releases**.
+
+## Obter as letras
+
+1. Abra o LRCGET e escolha a pasta onde está a sua música. O programa lê a pasta e apresenta a lista das suas músicas.
+2. Clique em **Download all lyrics** (transferir todas as letras), escolha as músicas para as quais quer obter letras e mantenha **Synced lyrics (.lrc)** assinalado.
+3. Clique em **Download**. O LRCGET guarda um ficheiro .lrc junto a cada música para a qual encontra letra: *Musica.mp3* e *Musica.lrc*.
+
+Se o Universal Jukebox reproduz essa pasta diretamente, volte a analisar a sua música em Ajustar esta aplicação e as letras passam a aparecer.
+
+## Pôr as letras dentro das músicas
+
+Um ficheiro .lrc só acompanha uma música se a pasta inteira for copiada. Quando a sua música chega ao iPhone ou ao iPad através da aplicação Música ou do Finder, só os ficheiros de música são copiados, por isso as letras têm de estar dentro deles.
+
+1. No LRCGET, abra **Settings** e, em Experimental, assinale **Enable embed lyrics option**. O LRCGET avisa que isto pode danificar os ficheiros de música, por isso faça primeiro uma cópia de segurança da sua biblioteca.
+2. Clique novamente em **Download all lyrics**, assinale também **Embed into track** e depois clique em **Download**.
+3. Sincronize a sua música com o telemóvel ou o tablet, como faz habitualmente. No Universal Jukebox, toque em **Atualizar a biblioteca de Música do telemóvel** (num iPad, **Atualizar a biblioteca de Música do iPad**) em Ajustar esta aplicação, ou volte a analisar a sua pasta.
+
+As músicas compradas no Apple Music ou ouvidas em streaming a partir dele estão protegidas e não podem ser alteradas nem reproduzidas por outras aplicações, por isso isto só funciona com os seus próprios ficheiros.`,
   },
   {
     id: 'playing-in-the-background',

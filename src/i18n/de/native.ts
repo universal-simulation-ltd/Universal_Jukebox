@@ -87,6 +87,8 @@ const native: Draft['native'] = {
   'add_library_ipad': 'Musik-Mediathek meines iPad hinzufügen',
   'about_and_help': 'Info und Hilfe',
   'knowledge_base': 'Wissensdatenbank',
+  'help_sources': 'Quellen',
+  'help_missing': 'Diesen Artikel gibt es in der Wissensdatenbank nicht mehr.',
   'about_detail': 'Was die App abspielt, was nicht und warum',
 
   'welcome_title': 'Deine Musik auf dem Plattenspieler',

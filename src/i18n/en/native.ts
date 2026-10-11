@@ -98,6 +98,8 @@ export default {
   'add_library_ipad': 'Add my iPad’s Music library',
   'about_and_help': 'About and help', // screen reader: the section's name
   'knowledge_base': 'Knowledge base', // row: opens the help articles
+  'help_sources': 'Sources', // heading over the papers and standards a help article draws on
+  'help_missing': 'This article isn’t in the knowledge base any more.', // a help page opened from an old link
   'about_detail': 'What it plays, what it can’t, and why', // second line under "About Universal Jukebox"
 
   // First screen, before there is a library (WelcomeScreen)

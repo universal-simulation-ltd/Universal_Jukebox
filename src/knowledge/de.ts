@@ -159,7 +159,7 @@ Eine Textdatei neben einem Song wird ebenfalls gelesen, wenn sie den Namen des S
 
 ## Songtexte für die ganze Mediathek
 
-Haben Ihre Dateien keine Texte, kann ein kostenloses Programm für Computer namens **LRCGET** sie für einen ganzen Ordner auf einmal holen. Wählen Sie Ihren Musikordner und dann **Download all lyrics**: Es speichert neben jedem Song, für den es einen Text findet, eine .lrc-Datei und lässt die Musikdateien unverändert. Durchsuchen Sie den Ordner danach in Universal Jukebox erneut. LRCGET stammt von den Machern von lrclib.net, der unten beschriebenen Sammlung, nicht von UNI·SIM.
+Haben Ihre Dateien keine Texte, kann ein kostenloses Programm für Computer namens **LRCGET** sie für einen ganzen Ordner auf einmal holen, entweder als .lrc-Dateien neben Ihren Songs oder direkt in die Songs geschrieben. Der Artikel **Songtexte für die ganze Mediathek mit LRCGET** zeigt Schritt für Schritt, wie es geht.
 
 ## 2. Eine Online-Suche, nur wenn Sie sie einschalten
 
@@ -174,6 +174,31 @@ Da die Sammlung von Freiwilligen erstellt wird, kann ein Text gelegentlich ungen
 Manche Songtexte haben am Anfang jeder Zeile eine Zeitmarke. Man spricht von synchronisierten Songtexten, oft in einem Format namens LRC. Damit folgt die Textanzeige dem Song während der Wiedergabe, und ein Tippen auf eine Zeile springt an diese Stelle im Song. Texte ohne Zeitmarken werden als normaler Text angezeigt.
 
 Synchronisierte Texte ermöglichen außerdem zwei optionale Extras, beide in „Diese App anpassen“ unter „Songtexte“: **Songtext rund um die Platte** schreibt die Worte beim Singen rund um die sich drehende Platte, und **Songtext auf dem Sperrbildschirm** zeigt die gerade gesungene Zeile in den Musiksteuerelementen Ihres Smartphones.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'Songtexte für die ganze Mediathek mit LRCGET',
+    summary: 'Ein kostenloses Programm für Ihren Computer, das die Texte für alle Songs auf einmal findet.',
+    group: 'So funktioniert es',
+    body: `**LRCGET** ist ein kostenloses Programm für Windows, Mac und Linux, das die Texte für alle Songs in einem Musikordner in einem Durchgang sucht. Es stammt von den Machern von lrclib.net, einer kostenlosen, von einer Community gepflegten Sammlung von Songtexten, nicht von UNI·SIM. Laden Sie es unter **github.com/tranxuanthang/lrcget/releases** herunter.
+
+## Die Texte holen
+
+1. Öffnen Sie LRCGET und wählen Sie den Ordner, in dem Ihre Musik liegt. Das Programm liest den Ordner ein und listet Ihre Songs auf.
+2. Klicken Sie auf **Download all lyrics** (alle Texte herunterladen), wählen Sie die Songs aus, für die Texte geholt werden sollen, und lassen Sie das Häkchen bei **Synced lyrics (.lrc)** gesetzt.
+3. Klicken Sie auf **Download**. LRCGET speichert neben jedem Song, für den es einen Text findet, eine .lrc-Datei: *Song.mp3* und *Song.lrc*.
+
+Spielt Universal Jukebox diesen Ordner direkt ab, durchsuchen Sie Ihre Musik in „Diese App anpassen“ erneut, und die Texte sind da.
+
+## Die Texte in die Songs schreiben
+
+Eine .lrc-Datei reist nur mit einem Song mit, wenn der ganze Ordner mitkommt. Gelangt Ihre Musik über die Musik-App oder den Finder auf Ihr iPhone oder iPad, werden nur die Musikdateien kopiert. Die Texte müssen also in den Dateien selbst stecken.
+
+1. Öffnen Sie in LRCGET die **Settings** und setzen Sie unter Experimental ein Häkchen bei **Enable embed lyrics option**. LRCGET warnt, dass dies Ihre Musikdateien beschädigen könnte. Sichern Sie Ihre Mediathek deshalb vorher.
+2. Klicken Sie erneut auf **Download all lyrics**, setzen Sie zusätzlich ein Häkchen bei **Embed into track** und klicken Sie dann auf **Download**.
+3. Synchronisieren Sie Ihre Musik wie gewohnt auf Ihr Smartphone oder Tablet. Tippen Sie in Universal Jukebox in „Diese App anpassen“ auf **Musik-Mediathek meines iPhone aktualisieren** (auf einem iPad auf **Musik-Mediathek meines iPad aktualisieren**), oder durchsuchen Sie Ihren Ordner erneut.
+
+Songs, die bei Apple Music gekauft oder von dort gestreamt werden, sind geschützt und können von anderen Apps weder verändert noch abgespielt werden. Das funktioniert daher nur mit Ihren eigenen Dateien.`,
   },
   {
     id: 'playing-in-the-background',

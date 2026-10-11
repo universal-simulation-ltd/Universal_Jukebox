@@ -402,3 +402,27 @@ html.dark .jx {
 .jx-home-dot { position: absolute; bottom: 2px; left: calc(50% - 7px); width: 14px; height: 2px; border-radius: 1px; background: currentColor; opacity: 0.55; }
 .jx-tab.flash svg { animation: jx-home-pop 480ms ease-out; }
 @keyframes jx-home-pop { 40% { transform: scale(1.3); } }
+
+/* The knowledge base as pages (HelpScreens): a card of articles per group,
+   then each article set for reading on a phone. */
+.jx-help-group { display: flex; flex-direction: column; gap: 8px; }
+.jx-help-card { padding: 0 14px; }
+.jx-help-card > li:last-child { border-bottom: 0; }
+.jx-help-card .jx-row { padding: 12px 0; }
+.jx-help-card .jx-row b { white-space: normal; }
+.jx-help-card .jx-row small { white-space: normal; line-height: 1.35; margin-top: 2px; }
+.jx-article { gap: 10px; padding-bottom: 32px; }
+.jx-article .jx-h1 { font-size: 26px; }
+.jx-article-body { font-size: 16.5px; line-height: 1.55; }
+.jx-article-body p { margin: 0 0 14px; }
+.jx-article-body h2 { margin: 22px 0 8px; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; }
+.jx-article-body ul, .jx-article-body ol { margin: 0 0 14px; padding-left: 24px; }
+.jx-article-body ul { list-style: disc; }
+.jx-article-body ol { list-style: decimal; }
+.jx-article-body li { margin-bottom: 6px; padding-left: 2px; }
+.jx-article-body li::marker { color: var(--jx-acc); font-weight: 700; }
+.jx-article-body strong { font-weight: 650; }
+.jx-article-sources { border-top: 1px solid var(--jx-line); padding-top: 8px; }
+.jx-article-sources ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.jx-article-sources a { color: var(--jx-acc); font-size: 14px; font-weight: 550; text-decoration: none; }
+.jx-article-sources small { display: block; color: var(--jx-mute); font-size: 12.5px; margin-top: 1px; }

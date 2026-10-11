@@ -159,7 +159,7 @@ Un fichier de paroles enregistré à côté d’un morceau est lu lui aussi, à 
 
 ## Des paroles pour toute votre bibliothèque
 
-Si vos fichiers n’ont pas de paroles, un programme gratuit pour ordinateur appelé **LRCGET** peut les récupérer pour tout un dossier d’un coup. Choisissez votre dossier de musique, puis **Download all lyrics** : il enregistre un fichier .lrc à côté de chaque morceau dont il trouve les paroles, sans modifier les fichiers musicaux. Relancez ensuite l’analyse du dossier dans Universal Jukebox. LRCGET est conçu par l’équipe de lrclib.net, la collection décrite ci-dessous, et non par UNI·SIM.
+Si vos fichiers n’ont pas de paroles, un programme gratuit pour ordinateur appelé **LRCGET** peut les récupérer pour tout un dossier d’un coup, soit sous forme de fichiers .lrc à côté de vos morceaux, soit directement à l’intérieur des morceaux. L’article **Des paroles pour toute votre bibliothèque, avec LRCGET** explique comment faire, étape par étape.
 
 ## 2. Une recherche en ligne, seulement si vous l’activez
 
@@ -174,6 +174,31 @@ Comme la collection est rédigée par des bénévoles, il arrive qu’un texte s
 Certaines paroles comportent un repère temporel au début de chaque ligne. On parle de paroles synchronisées, souvent dans un format appelé LRC. Avec elles, le panneau des paroles suit le morceau pendant la lecture, et toucher une ligne fait sauter à ce moment du morceau. Les paroles sans repères s’affichent comme du texte simple.
 
 Les paroles synchronisées permettent aussi deux options, toutes deux dans Régler cette application, rubrique Paroles : **Paroles autour du disque**, qui écrit les mots autour du disque qui tourne à mesure qu’ils sont chantés, et **Paroles sur l’écran verrouillé**, qui affiche la ligne chantée dans les commandes de musique de votre téléphone.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'Des paroles pour toute votre bibliothèque, avec LRCGET',
+    summary: 'Un programme gratuit pour votre ordinateur qui trouve d’un coup les paroles de tous vos morceaux.',
+    group: 'Fonctionnement',
+    body: `**LRCGET** est un programme gratuit pour Windows, Mac et Linux qui recherche en une seule fois les paroles de tous les morceaux d’un dossier de musique. Il est conçu par l’équipe de lrclib.net, une collection de paroles gratuite et gérée par une communauté, et non par UNI·SIM. Téléchargez-le sur **github.com/tranxuanthang/lrcget/releases**.
+
+## Récupérer les paroles
+
+1. Ouvrez LRCGET et choisissez le dossier où se trouve votre musique. Il lit le dossier et affiche la liste de vos morceaux.
+2. Cliquez sur **Download all lyrics** (télécharger toutes les paroles), choisissez les morceaux concernés et laissez **Synced lyrics (.lrc)** coché.
+3. Cliquez sur **Download**. LRCGET enregistre un fichier .lrc à côté de chaque morceau dont il trouve les paroles : *Morceau.mp3* et *Morceau.lrc*.
+
+Si Universal Jukebox lit ce dossier directement, relancez l’analyse de votre musique dans Régler cette application : les paroles sont là.
+
+## Mettre les paroles dans les morceaux
+
+Un fichier .lrc n’accompagne un morceau que si tout le dossier est copié avec lui. Quand votre musique arrive sur votre iPhone ou votre iPad par l’app Musique ou le Finder, seuls les fichiers musicaux sont copiés : les paroles doivent donc se trouver à l’intérieur.
+
+1. Dans LRCGET, ouvrez **Settings** et, sous Experimental, cochez **Enable embed lyrics option**. LRCGET prévient que cela pourrait endommager vos fichiers musicaux : sauvegardez d’abord votre bibliothèque.
+2. Cliquez de nouveau sur **Download all lyrics**, cochez aussi **Embed into track**, puis cliquez sur **Download**.
+3. Synchronisez votre musique avec votre téléphone ou votre tablette comme d’habitude. Dans Universal Jukebox, appuyez sur **Actualiser la bibliothèque musicale de mon téléphone** (sur un iPad, **Actualiser la bibliothèque musicale de mon iPad**) dans Régler cette application, ou relancez l’analyse de votre dossier.
+
+Les morceaux achetés sur Apple Music ou écoutés en streaming depuis ce service sont protégés : les autres applications ne peuvent ni les modifier ni les lire. Cela ne fonctionne donc qu’avec vos propres fichiers.`,
   },
   {
     id: 'playing-in-the-background',

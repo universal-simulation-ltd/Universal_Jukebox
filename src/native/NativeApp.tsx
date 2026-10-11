@@ -47,6 +47,7 @@ import { goBack } from './shell'
 import { shownName } from '../lib/format'
 import { WelcomeScreen } from './WelcomeScreen'
 import { AboutAndHelp, YourMusic } from './TuneExtras'
+import { ArticleScreen, HelpScreen } from './HelpScreens'
 import { useT, type MessageKey } from '../i18n'
 import './native.css'
 import { applyListDefaults } from './listDefaults'
@@ -74,7 +75,7 @@ const TABS: { view: TabView; label: MessageKey; home?: MessageKey; doubleTap?: M
 const DOUBLE_TAP_MS = 350
 
 /** Screens of their own, which open at their top. */
-const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'about', 'tidy'])
+const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'about', 'tidy', 'help'])
 /** Where each screen was scrolled to, put back when you come back to it. */
 const scrollMemory = new Map<string, number>()
 const hashKey = () => location.hash || '#/'
@@ -101,7 +102,7 @@ function useRoute(): Route {
 function tabOf(view: View): TabView | null {
   if (view === 'album') return 'albums'
   if (view === 'artist') return 'artists'
-  if (view === 'about' || view === 'tidy') return 'settings'
+  if (view === 'about' || view === 'tidy' || view === 'help') return 'settings'
   if (view === 'playing') return null
   return view as TabView
 }
@@ -177,7 +178,7 @@ export default function NativeApp() {
       return
     }
     if (PAGE_VIEWS.has(route.view)) window.scrollTo(0, 0)
-  }, [route.view, route.albumId, route.artist])
+  }, [route.view, route.albumId, route.artist, route.article])
 
   useEffect(() => {
     try {
@@ -259,6 +260,8 @@ export default function NativeApp() {
           </div>
         ) : view === 'about' ? (
           <div className="jx-page jx-tune"><About /></div>
+        ) : view === 'help' ? (
+          route.article ? <ArticleScreen key={route.article} id={route.article} /> : <HelpScreen />
         ) : view === 'tidy' ? (
           <div className="jx-page jx-tune"><Tidy /></div>
         ) : welcome ? (
@@ -344,9 +347,11 @@ function TopBar({ view, route }: { view: View; route: Route }) {
       ? { label: t('native.tab_albums'), to: () => navigate({ view: 'albums' }) }
       : view === 'artist'
         ? { label: t('native.tab_artists'), to: () => navigate({ view: 'artists' }) }
-        : view === 'about' || view === 'tidy'
+        : view === 'about' || view === 'tidy' || (view === 'help' && !route.article)
           ? { label: t('native.tab_tune'), to: () => navigate({ view: 'settings' }) }
-          : null
+          : view === 'help'
+            ? { label: t('native.knowledge_base'), to: () => navigate({ view: 'help' }) }
+            : null
   if (up) {
     return (
       <div className="jx-bar">

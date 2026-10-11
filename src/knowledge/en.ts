@@ -159,7 +159,7 @@ A lyrics file saved next to a song is read too, as long as it has the song's nam
 
 ## Getting lyrics for your whole library
 
-If your files have no lyrics, a free program for computers called **LRCGET** can fetch them for a whole folder at once. Point it at your music folder and choose **Download all lyrics**: it saves a .lrc file next to each song it finds words for, and leaves the music files as they are. Then rescan the folder in Universal Jukebox. LRCGET is made by the people behind lrclib.net, the collection described below, not by UNI·SIM.
+If your files have no lyrics, a free program for computers called **LRCGET** can fetch them for a whole folder at once, either as .lrc files beside your songs or written into the songs themselves. The article **Lyrics for your whole library, with LRCGET** shows how, step by step.
 
 ## 2. An online lookup, only if you turn it on
 
@@ -174,6 +174,31 @@ Because the collection is written by volunteers, an occasional sheet may be inac
 Some lyrics include a timestamp at the start of every line. These are called synced lyrics, often in a format known as LRC. With them, the lyrics panel follows the song as it plays, and tapping a line jumps to that point in the song. Lyrics without timestamps are shown as plain text.
 
 Synced lyrics also make two optional extras possible, both in Tune this app under Lyrics: **Lyrics around the record**, which writes the words around the spinning record as they are sung, and **Lyrics on the lock screen**, which shows the line being sung in your phone’s music controls.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'Lyrics for your whole library, with LRCGET',
+    summary: 'A free program for your computer that finds lyrics for every song at once.',
+    group: 'How it works',
+    body: `**LRCGET** is a free program for Windows, Mac and Linux that looks up the lyrics for every song in a music folder in one go. It is made by the people behind lrclib.net, a free, community-run collection of lyrics, not by UNI·SIM. Download it from **github.com/tranxuanthang/lrcget/releases**.
+
+## Fetch the lyrics
+
+1. Open LRCGET and choose the folder your music is in. It reads the folder and lists your songs.
+2. Press **Download all lyrics**, choose which songs to fetch for, and keep **Synced lyrics (.lrc)** ticked.
+3. Press **Download**. LRCGET saves a .lrc file next to each song it finds words for: *Song.mp3* and *Song.lrc*.
+
+If Universal Jukebox plays that folder directly, rescan your music in Tune this app and the words are there.
+
+## Put the lyrics inside the songs
+
+A .lrc file only travels with a song if the whole folder does. When your music reaches your iPhone or iPad through the Music app or Finder, only the music files are copied, so the lyrics need to be inside them.
+
+1. In LRCGET, open **Settings** and, under Experimental, tick **Enable embed lyrics option**. LRCGET warns that this could damage your music files, so back up your library first.
+2. Press **Download all lyrics** again and tick **Embed into track** as well, then **Download**.
+3. Sync your music to your phone or tablet as you usually do. In Universal Jukebox, press **Refresh my phone’s Music library** (on an iPad, **Refresh my iPad’s Music library**) in Tune this app, or rescan your folder.
+
+Songs bought from Apple Music or streamed from it are protected and can’t be changed or played by other apps, so this works only for your own files.`,
   },
   {
     id: 'playing-in-the-background',

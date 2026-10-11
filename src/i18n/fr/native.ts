@@ -93,6 +93,8 @@ const native: Draft['native'] = {
   'add_library_ipad': 'Ajouter la bibliothèque musicale de mon iPad',
   'about_and_help': 'À propos et aide',
   'knowledge_base': 'Base de connaissances',
+  'help_sources': 'Sources',
+  'help_missing': 'Cet article ne figure plus dans la base de connaissances.',
   'about_detail': 'Ce qu’il lit, ce qu’il ne peut pas lire, et pourquoi',
 
   // First screen, before there is a library (WelcomeScreen)

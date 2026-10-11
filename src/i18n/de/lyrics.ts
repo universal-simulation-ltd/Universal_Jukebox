@@ -30,6 +30,8 @@ const lyrics: Draft['lyrics'] = {
   'free_scroll_title': 'Freies Scrollen – sperren, um wieder dem Song zu folgen',
 
   'add_file_hint': 'Hast du den Text selbst? Eine .lrc-Datei mit Zeitangaben läuft mit dem Song mit; einfacher Text wird als Songtext angezeigt.',
+
+  'lrcget_link': 'So bekommst du Liedtexte für deine ganze Bibliothek',
   'add_file': 'Songtext-Datei hinzufügen',
   'replace': 'Songtext ersetzen',
   'not_lyrics': 'Das sieht nicht nach einem Songtext aus. Gebraucht wird eine einfache Textdatei oder eine .lrc-Datei.',

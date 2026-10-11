@@ -87,6 +87,8 @@ const native: Draft['native'] = {
   'add_library_ipad': 'Aggiungi la libreria di Musica dell’iPad',
   'about_and_help': 'Informazioni e aiuto',
   'knowledge_base': 'Knowledge base',
+  'help_sources': 'Fonti',
+  'help_missing': 'Questo articolo non è più nella Knowledge base.',
   'about_detail': 'Cosa riproduce, cosa non può riprodurre e perché',
 
   'welcome_title': 'La tua musica, sul giradischi',

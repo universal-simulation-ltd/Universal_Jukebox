@@ -35,6 +35,7 @@ const lyrics: Draft['lyrics'] = {
 
   // Adding or replacing a lyrics file
   'add_file_hint': 'Vous avez les paroles ? Un fichier .lrc synchronisé suit le morceau ; un texte brut s’affiche tel quel.',
+  'lrcget_link': 'Obtenir les paroles de toute votre bibliothèque',
   'add_file': 'Ajouter un fichier de paroles',
   'replace': 'Remplacer les paroles',
   'not_lyrics': 'Cela ne ressemble pas à des paroles. Il faut un fichier texte brut ou un fichier .lrc.',

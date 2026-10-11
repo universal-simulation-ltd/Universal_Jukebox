@@ -159,7 +159,7 @@ Um arquivo de letra salvo ao lado de uma música também é lido, desde que tenh
 
 ## Letras para toda a sua biblioteca
 
-Se os seus arquivos não têm letras, um programa gratuito para computador chamado **LRCGET** pode buscá-las para uma pasta inteira de uma vez. Escolha a sua pasta de música e depois **Download all lyrics**: ele salva um arquivo .lrc ao lado de cada música para a qual encontra letra e não altera os arquivos de música. Depois, verifique a pasta de novo no Universal Jukebox. O LRCGET é feito pelos criadores do lrclib.net, a coleção descrita abaixo, não pela UNI·SIM.
+Se os seus arquivos não têm letras, um programa gratuito para computador chamado **LRCGET** pode buscá-las para uma pasta inteira de uma vez, seja como arquivos .lrc ao lado das músicas, seja gravadas dentro das próprias músicas. O artigo **Letras para toda a sua biblioteca, com o LRCGET** mostra como fazer, passo a passo.
 
 ## 2. Uma busca on-line, só se você ativar
 
@@ -174,6 +174,31 @@ Como a coleção é escrita por voluntários, de vez em quando uma letra pode es
 Algumas letras têm uma marcação de tempo no começo de cada linha. Elas se chamam letras sincronizadas e costumam estar em um formato chamado LRC. Com elas, o painel de letras acompanha a música enquanto ela toca, e tocar em uma linha pula para aquele trecho da música. Letras sem marcações de tempo aparecem como texto simples.
 
 As letras sincronizadas também permitem dois extras opcionais, ambos em Ajustar este app, na seção Letra: **Letra em volta do disco**, que escreve as palavras ao redor do disco girando à medida que são cantadas, e **Letra na tela de bloqueio**, que mostra a linha sendo cantada nos controles de música do celular.`,
+  },
+  {
+    id: 'lyrics-with-lrcget',
+    title: 'Letras para toda a sua biblioteca, com o LRCGET',
+    summary: 'Um programa gratuito para o seu computador que encontra a letra de todas as músicas de uma vez.',
+    group: 'Como funciona',
+    body: `O **LRCGET** é um programa gratuito para Windows, Mac e Linux que procura de uma só vez a letra de todas as músicas de uma pasta. Ele é feito pelos criadores do lrclib.net, uma coleção de letras gratuita mantida por uma comunidade, não pela UNI·SIM. Baixe-o em **github.com/tranxuanthang/lrcget/releases**.
+
+## Baixar as letras
+
+1. Abra o LRCGET e escolha a pasta onde está a sua música. Ele lê a pasta e lista as suas músicas.
+2. Clique em **Download all lyrics** (baixar todas as letras), escolha para quais músicas buscar e deixe **Synced lyrics (.lrc)** marcado.
+3. Clique em **Download**. O LRCGET salva um arquivo .lrc ao lado de cada música para a qual encontra letra: *Musica.mp3* e *Musica.lrc*.
+
+Se o Universal Jukebox toca essa pasta diretamente, verifique a sua música de novo em Ajustar este app e as letras vão estar lá.
+
+## Colocar as letras dentro das músicas
+
+Um arquivo .lrc só acompanha uma música se a pasta inteira for junto. Quando a sua música chega ao iPhone ou ao iPad pelo app Música ou pelo Finder, só os arquivos de música são copiados, então as letras precisam estar dentro deles.
+
+1. No LRCGET, abra **Settings** e, em Experimental, marque **Enable embed lyrics option**. O LRCGET avisa que isso pode danificar os seus arquivos de música, então faça antes um backup da sua biblioteca.
+2. Clique de novo em **Download all lyrics**, marque também **Embed into track** e depois clique em **Download**.
+3. Sincronize a sua música com o celular ou o tablet como você costuma fazer. No Universal Jukebox, toque em **Atualizar a biblioteca do Música do celular** (no iPad, **Atualizar a biblioteca do Música do iPad**) em Ajustar este app, ou verifique a sua pasta de novo.
+
+Músicas compradas no Apple Music ou ouvidas por streaming nele são protegidas e não podem ser alteradas nem tocadas por outros apps, então isso só funciona com os seus próprios arquivos.`,
   },
   {
     id: 'playing-in-the-background',

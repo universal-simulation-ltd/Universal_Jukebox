@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useState } from 'react'
+import HelpArticleLink from './HelpArticleLink'
 import {
   LANGUAGE_LABELS,
   SUPPORTED_LANGUAGES,
@@ -523,6 +524,10 @@ export default function Settings() {
             onChange={(v) => s.set('lockScreenLyrics', v)}
           />
           <DownloadedLyrics />
+          {/* Lyrics for a whole library at once, with LRCGET (James, 2026-10-11). */}
+          <div className="pt-1">
+            <HelpArticleLink article="lyrics-with-lrcget">{t('lyrics.lrcget_link')}</HelpArticleLink>
+          </div>
         </Section>
 
         {/* James, 2026-09-13: "an about this track feature where you click it

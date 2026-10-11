@@ -30,6 +30,8 @@ const lyrics: Draft['lyrics'] = {
   'free_scroll_title': 'Serbest kaydırma — şarkıyı yeniden takip etmek için kilitleyin',
 
   'add_file_hint': 'Sözler sizde mi var? Zamanlamalı bir .lrc dosyası şarkıyla birlikte ilerler; düz metin ise sözler olarak gösterilir.',
+
+  'lrcget_link': 'Tüm kitaplığınız için şarkı sözleri nasıl alınır',
   'add_file': 'Şarkı sözü dosyası ekle',
   'replace': 'Sözleri değiştir',
   'not_lyrics': 'Bu, şarkı sözüne benzemiyor. Düz metin dosyası ya da .lrc dosyası gerekiyor.',

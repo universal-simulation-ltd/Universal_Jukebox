@@ -6,7 +6,7 @@
 // this file needing to know about it, and makes an album a link somebody can
 // send to themselves. `Universal_Video/src/lib/route.ts` is the same shape.
 
-export type View = 'albums' | 'artists' | 'tracks' | 'jukebox' | 'album' | 'artist' | 'playing' | 'about' | 'settings' | 'tidy'
+export type View = 'albums' | 'artists' | 'tracks' | 'jukebox' | 'album' | 'artist' | 'playing' | 'about' | 'settings' | 'tidy' | 'help'
 
 export interface Route {
   view: View
@@ -36,6 +36,13 @@ export interface Route {
    * that tells those two apart is whether a view was named.
    */
   home?: boolean
+  /**
+   * One knowledge-base article, when `view` is 'help' — `#/help/<id>`. The
+   * phone shows the knowledge base as pages of its own, not the website's
+   * dialog (James, 2026-10-11: "more like its native mobile as opposed to a
+   * popup"). Without it, 'help' is the list of articles.
+   */
+  article?: string
 }
 
 /**
@@ -63,6 +70,8 @@ export function routeFromHash(rawHash: string): Route {
     if (rest.endsWith('/songs')) return { view: 'artist', artist: safeDecode(rest.slice(0, -'/songs'.length)), songs: true }
     return { view: 'artist', artist: safeDecode(rest) }
   }
+  if (hash === 'help') return { view: 'help' }
+  if (hash.startsWith('help/')) return { view: 'help', article: safeDecode(hash.slice('help/'.length)) }
   const inGenre = /^(albums|artists|tracks)\/genre\/(.+)$/.exec(hash)
   if (inGenre) return { view: inGenre[1] as 'albums' | 'artists' | 'tracks', genre: safeDecode(inGenre[2]) }
   if (hash === 'albums') return { view: 'albums' }
@@ -95,7 +104,9 @@ export function navigate(route: Route): void {
       ? `#/album/${encodeURIComponent(route.albumId)}`
       : route.view === 'artist' && route.artist
         ? `#/artist/${encodeURIComponent(route.artist)}${route.songs ? '/songs' : ''}`
-        : route.genre && GENRE_VIEWS.has(route.view)
+        : route.view === 'help' && route.article
+          ? `#/help/${encodeURIComponent(route.article)}`
+          : route.genre && GENRE_VIEWS.has(route.view)
           ? `#/${route.view}/genre/${encodeURIComponent(route.genre)}`
           : `#/${route.view}`
   go(hash)
@@ -149,8 +160,11 @@ export function goHome(): void {
 export type Level = number
 
 export function levelOf(hash: string): Level {
-  const { view, genre } = routeFromHash(hash)
+  const { view, genre, article } = routeFromHash(hash)
   if (view === 'playing') return 2
+  // The knowledge base is a page off Tune (1.25, so back from it is Tune, not
+  // the library); an article is a page off that.
+  if (view === 'help') return article ? 1.5 : 1.25
   if (genre) return 0.25
   if (view === 'artist') return 0.5
   if (view === 'album' || view === 'settings' || view === 'about' || view === 'tidy') return 1

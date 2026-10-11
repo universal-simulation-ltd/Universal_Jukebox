@@ -11,8 +11,6 @@
 // for both in a dev browser.
 
 import { useRef, useState } from 'react'
-import { KnowledgeBaseDialog } from '@unisim/sdk'
-import { KNOWLEDGE_BASE } from '../knowledge'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { useT } from '../i18n'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
@@ -20,7 +18,6 @@ import { hasNativeImporter } from '../lib/nativeImport'
 import { goHome, navigate } from '../lib/route'
 import { shownRootLabel, trackCountFor } from '../lib/roots'
 import { useLibraryStore } from '../stores/libraryStore'
-import { useThemeStore } from '../stores/themeStore'
 
 function deviceWord(): 'phone' | 'iPad' {
   if (typeof navigator === 'undefined') return 'phone'
@@ -177,11 +174,9 @@ export function YourMusic() {
 /** About Universal Jukebox and the knowledge base — the website's Advanced menu. */
 export function AboutAndHelp() {
   const t = useT()
-  const [kb, setKb] = useState(false)
-  const theme = useThemeStore((s) => s.effective)
   return (
     <section className="jx-card jx-tune-card" aria-label={t('native.about_and_help')}>
-      <button type="button" className="jx-row" onClick={() => setKb(true)}>
+      <button type="button" className="jx-row" onClick={() => navigate({ view: 'help' })}>
         <span>
           <b>{t('native.knowledge_base')}</b>
           <small>{t('app.knowledge_base_detail')}</small>
@@ -195,21 +190,15 @@ export function AboutAndHelp() {
         </span>
         <span className="jx-chev" aria-hidden>›</span>
       </button>
-      <KnowledgeBaseDialog {...KNOWLEDGE_BASE} open={kb} onClose={() => setKb(false)} theme={theme} />
     </section>
   )
 }
 
-/** The knowledge base on its own, for the first-run screen's "Where is my music?" */
+/** The knowledge base on its own, for the first-run screen's "Where is my music?" — its own page, as from Tune. */
 export function HelpLink({ label }: { label: string }) {
-  const [kb, setKb] = useState(false)
-  const theme = useThemeStore((s) => s.effective)
   return (
-    <>
-      <button type="button" className="jx-link center" onClick={() => setKb(true)}>
-        {label}
-      </button>
-      <KnowledgeBaseDialog {...KNOWLEDGE_BASE} open={kb} onClose={() => setKb(false)} theme={theme} />
-    </>
+    <button type="button" className="jx-link center" onClick={() => navigate({ view: 'help' })}>
+      {label}
+    </button>
   )
 }
