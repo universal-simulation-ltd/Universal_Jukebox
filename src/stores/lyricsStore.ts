@@ -8,6 +8,7 @@ import { exampleLyrics } from '../lib/exampleLibrary'
 import { useLibraryStore } from './libraryStore'
 import { settings } from './settingsStore'
 import { barsOnlineLyrics } from '../lib/nativeFile'
+import { isMusicLibraryTrack, musicLibraryLyrics } from '../lib/appleMusic'
 import type { Track } from '../lib/types'
 
 // Finding the words for the track on the deck.
@@ -177,6 +178,15 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
       // fall through and let the online half have a go.
       if (mine !== token) return
     }
+  }
+
+  // A Music-library song: the lyrics the library holds for it, which is where
+  // an MP3's embedded lyrics survive (its playback copy has no tags).
+  if (isMusicLibraryTrack(library.roots, track)) {
+    const raw = await musicLibraryLyrics(track).catch(() => null)
+    if (mine !== token) return
+    const sheet = raw ? parseLyrics(raw) : null
+    if (sheet) return set({ status: 'ready', sheet, message: null })
   }
 
   const allowNetwork = settings().lyricsOnline && !barsOnlineLyrics()

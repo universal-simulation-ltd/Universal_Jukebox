@@ -67,6 +67,7 @@ interface MusicLibraryPlugin {
   songs(): Promise<{ songs: MusicLibrarySong[]; total: number; cloudOnly: number; protected: number }>
   artwork(options: { albumId: string; size?: number }): Promise<{ mime?: string; data?: string }>
   prepare(options: { id: string }): Promise<{ uri: string; size: number }>
+  lyrics(options: { id: string }): Promise<{ text?: string }>
 }
 
 let plugin: MusicLibraryPlugin | null = null
@@ -356,4 +357,17 @@ export async function prepareSong(track: Track): Promise<NativeFile> {
   } finally {
     inflight.delete(id)
   }
+}
+
+/**
+ * A Music-library song's lyrics as the library holds them (what Apple Music
+ * shows), or null. The copy made for playback can't be trusted for these: an
+ * MP3's copy carries no tags at all (`AppleMusicPlugin.lyrics`).
+ */
+export async function musicLibraryLyrics(track: Track): Promise<string | null> {
+  const id = songIdOf(track.path)
+  if (!id || !hasMusicLibrary()) return null
+  await load()
+  const { text } = await plugin!.lyrics({ id })
+  return text?.trim() ? text : null
 }

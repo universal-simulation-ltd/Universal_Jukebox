@@ -39,7 +39,8 @@ public class AppleMusicPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "requestAccess", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "songs", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "artwork", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "prepare", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "prepare", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "lyrics", returnType: CAPPluginReturnPromise)
     ]
 
     /// The cache's ceiling. Played songs are copies, and a whole library played
@@ -186,6 +187,29 @@ public class AppleMusicPlugin: CAPPlugin, CAPBridgedPlugin {
                     }
                 }
             }
+        }
+    }
+
+    /// The song's lyrics as the Music library holds them — the text Apple
+    /// Music shows. ⚠️ Read HERE, not from the copy `prepare` makes: an MP3 is
+    /// remuxed into QuickTime and comes out with no tags at all (checked on
+    /// iPhone JPM, 2026-10-12: no udta, not even the title), so its embedded
+    /// lyrics never reached the page. Resolves `{}` when it has none.
+    @objc func lyrics(_ call: CAPPluginCall) {
+        guard let key = call.getString("id"), let id = UInt64(key) else {
+            call.reject("No song was named.", "NO_SONG")
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let query = MPMediaQuery.songs()
+            query.addFilterPredicate(MPMediaPropertyPredicate(
+                value: NSNumber(value: id), forProperty: MPMediaItemPropertyPersistentID))
+            guard let text = query.items?.first?.lyrics,
+                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                call.resolve([:])
+                return
+            }
+            call.resolve(["text": text])
         }
     }
 
