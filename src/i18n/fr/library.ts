@@ -87,6 +87,7 @@ const library: Draft['library'] = {
 
   // A song's options (TrackOptions)
   'options_for': 'Options pour {title}',
+  'track_length': 'Durée {length}',
   'plays_next': 'Sera lu ensuite',
   'play_now': 'Lire maintenant',
   'play_next': 'Lire ensuite',

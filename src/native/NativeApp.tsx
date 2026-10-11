@@ -131,6 +131,7 @@ export default function NativeApp() {
     counts,
   })
   const lastTap = useRef<{ view: TabView; at: number } | null>(null)
+  const openTabAtTop = useRef(false)
   const [homeFlash, setHomeFlash] = useState<TabView | null>(null)
 
   const view: View = route.home ? homeTab : route.view
@@ -168,7 +169,18 @@ export default function NativeApp() {
   }, [hydrate])
 
   // A new screen opens at its top; one you go back to is as you left it.
+  // ⚠️ A TAB TAP IS ALWAYS NEW, though it may travel by history (tabs step
+  // back to the library level first, `planNavigation`), which would put the
+  // old scroll back (James, 2026-10-11: "If I scroll down on albums then
+  // switch to tunes it is at the same scroll position but it should open at
+  // the top"). `openTabAtTop` is set by the tap and spent here.
   useLayoutEffect(() => {
+    if (openTabAtTop.current) {
+      openTabAtTop.current = false
+      window.scrollTo(0, 0)
+      requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, 0)))
+      return
+    }
     if (arrivedByHistory()) {
       const y = scrollMemory.get(hashKey())
       if (y !== undefined) {
@@ -231,7 +243,15 @@ export default function NativeApp() {
       setHomeFlash(target)
     }
     if (tab === target && route.view === target) window.scrollTo({ top: 0, behavior: 'smooth' })
-    else navigate({ view: target })
+    else {
+      openTabAtTop.current = true
+      // A flick still gliding on the iPhone carries on after a scrollTo, so
+      // the new tab would open part-way down: stop it first, for a frame.
+      const root = document.documentElement
+      root.style.overflow = 'hidden'
+      requestAnimationFrame(() => { root.style.overflow = '' })
+      navigate({ view: target })
+    }
   }
 
   return (

@@ -77,6 +77,8 @@ const library: Draft['library'] = {
   'shuffle_songs_these': 'Diese Songs zufällig abspielen',
 
   'options_for': 'Optionen für {title}',
+
+  'track_length': 'Länge {length}',
   'plays_next': 'Wird als Nächstes gespielt',
   'play_now': 'Jetzt abspielen',
   'play_next': 'Als Nächstes spielen',

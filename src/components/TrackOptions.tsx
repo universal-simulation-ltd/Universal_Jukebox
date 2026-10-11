@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useT } from '../i18n'
 import { navigate } from '../lib/route'
+import { clock } from '../lib/format'
 import { usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
 import { ShelfSheet } from './AddToShelf'
@@ -60,7 +61,17 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-3 pt-1 pb-2">
-          <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-slate-100">{track.title}</p>
+          {/* The song's length beside its name (James, 2026-10-11: "is it
+              possible to see the track length?") — only once it is known;
+              `clock` explains why a length can be missing. */}
+          <p className="flex items-baseline gap-3 text-[15px] font-semibold text-slate-900 dark:text-slate-100">
+            <span className="min-w-0 flex-1 truncate">{track.title}</span>
+            {track.durationSec ? (
+              <span className="shrink-0 text-[13px] font-medium tabular-nums text-slate-500 dark:text-slate-400" aria-label={t('library.track_length', { length: clock(track.durationSec) })}>
+                {clock(track.durationSec)}
+              </span>
+            ) : null}
+          </p>
           <p className="truncate text-[12.5px] text-slate-500 dark:text-slate-400">
             {[track.artist ?? track.albumArtist, track.album].filter(Boolean).join(' — ') || t('common.unknown_artist')}
           </p>

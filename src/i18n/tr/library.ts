@@ -77,6 +77,8 @@ const library: Draft['library'] = {
   'shuffle_songs_these': 'Bu şarkıları karıştır',
 
   'options_for': '{title} için seçenekler',
+
+  'track_length': 'Süre {length}',
   'plays_next': 'Sonra çalacak',
   'play_now': 'Şimdi çal',
   'play_next': 'Sonra çal',

@@ -96,6 +96,7 @@ export default {
 
   // A song's options, from a tap and hold on its record (TrackOptions)
   'options_for': 'Options for {title}', // the sheet, for a screen reader; {title} is the song's
+  'track_length': 'Length {length}', // screen reader: the song's length beside its name in the ⋯ sheet; {length} is like 2:23
   'plays_next': 'Plays next', // confirmation after “Play next”
   'play_now': 'Play now',
   'play_next': 'Play next',
