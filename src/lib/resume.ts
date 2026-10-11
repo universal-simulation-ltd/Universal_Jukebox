@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { create } from 'zustand'
 import { readSession, type SavedSession } from './session'
 import type { Album, Track } from './types'
-import { useLibraryStore } from '../stores/libraryStore'
+import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -64,4 +64,45 @@ export function leadWith<T>(items: readonly T[], lead: ((item: T) => boolean) | 
   const at = lead ? items.findIndex(lead) : -1
   if (at <= 0) return [...items]
   return [items[at], ...items.slice(0, at), ...items.slice(at + 1)]
+}
+
+// ── "Listen to this" ─────────────────────────────────────────────────────────
+// With nothing to resume, the card offers a song at random instead (James,
+// 2026-10-11: "If there's no resume listening, show 'Listen to this' with a
+// random song"). One pick for the life of the app, so it doesn't change under
+// your thumb as the lists re-render; from an album with a cover where there
+// is one. Hidden and "Don't show again" are the resume card's own.
+let suggestedId: string | null = null
+
+export interface Suggestion {
+  track: Track
+  album: Album | undefined
+  /** The song's album, in order, to play on from it. */
+  albumTracks: Track[]
+}
+
+export function useSuggestion(): Suggestion | null {
+  const enabled = useSettingsStore((s) => s.resumeCard)
+  const hidden = useHidden((s) => s.hidden)
+  const queued = usePlayerStore((s) => s.queue.length)
+  const tracks = useLibraryStore((s) => s.tracks)
+  const albums = useLibraryStore((s) => s.albums)
+  const resumable = useResumable()
+  return useMemo(() => {
+    if (!enabled || hidden || queued > 0 || resumable || tracks.length === 0) return null
+    let track = suggestedId ? tracks.find((t) => t.id === suggestedId) : undefined
+    if (!track) {
+      const covered = new Set(albums.filter((a) => a.cover).map((a) => a.id))
+      const pool = tracks.filter((t) => covered.has(t.albumId))
+      const from = pool.length > 0 ? pool : tracks
+      track = from[Math.floor(Math.random() * from.length)]
+      suggestedId = track.id
+    }
+    const albumId = track.albumId
+    return {
+      track,
+      album: albums.find((a) => a.id === albumId),
+      albumTracks: sortAlbumTracks(tracks.filter((t) => t.albumId === albumId)),
+    }
+  }, [enabled, hidden, queued, resumable, tracks, albums])
 }

@@ -66,6 +66,8 @@ const library: Draft['library'] = {
   'clear_and_close': 'Temizle ve kapat',
 
   'resume_listening': 'Dinlemeye devam et',
+
+  'listen_to_this': 'Bunu dinleyin',
   'hide': 'Gizle',
   'dont_show_again': 'Bir daha gösterme',
 

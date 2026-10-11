@@ -66,6 +66,8 @@ const library: Draft['library'] = {
   'clear_and_close': 'Limpar e fechar',
 
   'resume_listening': 'Continuar a ouvir',
+
+  'listen_to_this': 'Ouça esta',
   'hide': 'Ocultar',
   'dont_show_again': 'Não mostrar novamente',
 

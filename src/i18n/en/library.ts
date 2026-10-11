@@ -82,6 +82,7 @@ export default {
 
   // Resume listening (ResumeCard)
   'resume_listening': 'Resume listening', // a card naming the last song played; shown in capitals
+  'listen_to_this': 'Listen to this', // the card's heading when there is nothing to resume: a song picked at random
   'hide': 'Hide', // hides the card until the app is next opened
   'dont_show_again': 'Don’t show again',
 

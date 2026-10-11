@@ -74,6 +74,7 @@ const library: Draft['library'] = {
 
   // Resume listening (ResumeCard)
   'resume_listening': 'Reprendre l’écoute',
+  'listen_to_this': 'À écouter',
   'hide': 'Masquer',
   'dont_show_again': 'Ne plus afficher',
 

@@ -5,7 +5,7 @@ import { resolveDeck } from '../lib/decks'
 import { clock, shownName } from '../lib/format'
 import { useT } from '../i18n'
 import { lockArt } from '../lib/lockArt'
-import { hideResume, useResumable } from '../lib/resume'
+import { hideResume, useResumable, useSuggestion } from '../lib/resume'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -25,8 +25,15 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
   const eras = useSettingsStore((s) => s.deckEras)
   const resume = usePlayerStore((s) => s.resume)
   const resumable = useResumable()
-  const track = resumable?.track
-  const album = resumable?.album
+  // Nothing to resume: a song at random, "Listen to this" (`useSuggestion`).
+  const suggestion = useSuggestion()
+  const playTracks = usePlayerStore((s) => s.playTracks)
+  const track = resumable?.track ?? suggestion?.track
+  const album = resumable ? resumable.album : suggestion?.album
+  const play = () => {
+    if (resumable) resume()
+    else if (suggestion) playTracks(suggestion.albumTracks, Math.max(0, suggestion.albumTracks.findIndex((t) => t.id === suggestion.track.id)))
+  }
   const [art, setArt] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,8 +53,9 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
     }
   }, [track, album, deckSetting, eras])
 
-  if (!resumable || !track) return null
-  const { session } = resumable
+  if (!track) return null
+  const session = resumable?.session
+  const label = resumable ? t('library.resume_listening') : t('library.listen_to_this')
 
   // ⚠️ THE TRACK AND ITS ARTIST, not the album (James, 2026-09-11: "in the
   // resume listening art show the track with the artist"). The album is the
@@ -56,7 +64,7 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
   // beside them, which on a phone left the title about ten letters.
   const card = (
     <section
-      aria-label={t('library.resume_listening')}
+      aria-label={label}
       className="flex items-center gap-3.5 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-900 dark:ring-white/10"
     >
       {/* The art resumes too; the words below are the button a screen reader
@@ -65,7 +73,7 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
         type="button"
         tabIndex={-1}
         aria-hidden
-        onClick={() => resume()}
+        onClick={play}
         className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-slate-900/10 dark:ring-white/10"
       >
         {art ? <img src={art} alt="" className="h-full w-full object-cover" /> : <Cover album={album} className="h-full w-full" />}
@@ -83,11 +91,11 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
       <div className="min-w-0 flex-1">
         <button
           type="button"
-          onClick={() => resume()}
+          onClick={play}
           className="block w-full text-left focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
           <span className="block text-[11px] font-semibold tracking-wide text-orange-700 uppercase dark:text-orange-400">
-            {t('library.resume_listening')}{session.sec > 5 ? ` · ${clock(session.sec)}` : ''}
+            {label}{session && session.sec > 5 ? ` · ${clock(session.sec)}` : ''}
           </span>
           <span className="mt-0.5 line-clamp-2 text-[15px] leading-snug font-medium text-slate-900 dark:text-slate-100">{track.title}</span>
           <span className="block truncate text-[13px] text-slate-600 dark:text-slate-300">
