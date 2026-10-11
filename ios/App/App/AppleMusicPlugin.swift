@@ -204,13 +204,54 @@ public class AppleMusicPlugin: CAPPlugin, CAPBridgedPlugin {
             let query = MPMediaQuery.songs()
             query.addFilterPredicate(MPMediaPropertyPredicate(
                 value: NSNumber(value: id), forProperty: MPMediaItemPropertyPersistentID))
-            guard let text = query.items?.first?.lyrics,
-                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                call.resolve([:])
+            guard let item = query.items?.first else {
+                NSLog("[jukebox:native] lyrics id=%@ not in the library", key)
+                call.resolve(["from": "missing"])
                 return
             }
-            call.resolve(["text": text])
+            // ⚠️ THREE PLACES, IN ORDER. `MPMediaItem.lyrics` is often empty
+            // for a song that has them (a long-standing iOS quirk), so the
+            // song's own file in the library is read next — `AVAsset.lyrics`,
+            // then every metadata format it carries, for an ID3 USLT frame
+            // (MP3) or an iTunes ©lyr atom (M4A). James's LRCGET-embedded MP3s
+            // showed none on 2026-10-12 with the first alone.
+            if let text = Self.nonEmpty(item.lyrics) {
+                NSLog("[jukebox:native] lyrics id=%@ from=item chars=%d", key, text.count)
+                call.resolve(["text": text, "from": "item"])
+                return
+            }
+            guard let url = item.assetURL else {
+                NSLog("[jukebox:native] lyrics id=%@ none (no asset URL; protected=%d)", key, item.hasProtectedAsset ? 1 : 0)
+                call.resolve(["from": "no-asset"])
+                return
+            }
+            let asset = AVURLAsset(url: url)
+            if let text = Self.nonEmpty(asset.lyrics) {
+                NSLog("[jukebox:native] lyrics id=%@ from=asset chars=%d", key, text.count)
+                call.resolve(["text": text, "from": "asset"])
+                return
+            }
+            let lyricIds: Set<AVMetadataIdentifier> = [.id3MetadataUnsynchronizedLyric, .iTunesMetadataLyrics]
+            var seen: [String] = []
+            for format in asset.availableMetadataFormats {
+                let items = asset.metadata(forFormat: format)
+                seen.append("\(format.rawValue):\(items.count)")
+                for meta in items where meta.identifier.map(lyricIds.contains) == true {
+                    if let text = Self.nonEmpty(meta.stringValue) {
+                        NSLog("[jukebox:native] lyrics id=%@ from=%@ chars=%d", key, format.rawValue, text.count)
+                        call.resolve(["text": text, "from": format.rawValue])
+                        return
+                    }
+                }
+            }
+            NSLog("[jukebox:native] lyrics id=%@ none (ext=%@ formats=%@)", key, url.pathExtension, seen.joined(separator: ","))
+            call.resolve(["from": "none", "formats": seen.joined(separator: ",")])
         }
+    }
+
+    private static func nonEmpty(_ text: String?) -> String? {
+        guard let text = text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return text
     }
 
     private func export(id: UInt64, key: String, done: @escaping (Result<URL, Error>) -> Void) {

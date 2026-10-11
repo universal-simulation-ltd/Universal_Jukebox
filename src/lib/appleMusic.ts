@@ -67,7 +67,7 @@ interface MusicLibraryPlugin {
   songs(): Promise<{ songs: MusicLibrarySong[]; total: number; cloudOnly: number; protected: number }>
   artwork(options: { albumId: string; size?: number }): Promise<{ mime?: string; data?: string }>
   prepare(options: { id: string }): Promise<{ uri: string; size: number }>
-  lyrics(options: { id: string }): Promise<{ text?: string }>
+  lyrics(options: { id: string }): Promise<{ text?: string; from?: string; formats?: string }>
 }
 
 let plugin: MusicLibraryPlugin | null = null
@@ -368,6 +368,8 @@ export async function musicLibraryLyrics(track: Track): Promise<string | null> {
   const id = songIdOf(track.path)
   if (!id || !hasMusicLibrary()) return null
   await load()
-  const { text } = await plugin!.lyrics({ id })
+  const { text, from, formats } = await plugin!.lyrics({ id })
+  // Where they came from, or which tags the file had when there were none.
+  console.info(`[jukebox] library lyrics “${track.title}”: ${from ?? '?'}${formats ? ` (${formats})` : ''}`)
   return text?.trim() ? text : null
 }
