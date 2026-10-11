@@ -73,6 +73,11 @@ export function leadWith<T>(items: readonly T[], lead: ((item: T) => boolean) | 
 // your thumb as the lists re-render; from an album with a cover where there
 // is one. Hidden and "Don't show again" are the resume card's own.
 let suggestedId: string | null = null
+/** Which showing of the card the pick is for: a new visit to the page, or the card's shuffle, picks again. */
+let suggestedFor = -1
+let visits = 0
+/** A number for this showing of the card — call once per mount (`useState(nextVisit)`). */
+export const nextVisit = (): number => ++visits
 
 export interface Suggestion {
   track: Track
@@ -81,7 +86,14 @@ export interface Suggestion {
   albumTracks: Track[]
 }
 
-export function useSuggestion(): Suggestion | null {
+/**
+ * `showing` is the card's own number for this visit (`nextVisit`), bumped by
+ * its shuffle button: a different number picks a different song (James,
+ * 2026-10-11: "Have a shuffle button on the card to be able to see another
+ * random choice and if going off the page e.g. now playing and coming back
+ * show a different song").
+ */
+export function useSuggestion(showing: number): Suggestion | null {
   const enabled = useSettingsStore((s) => s.resumeCard)
   const hidden = useHidden((s) => s.hidden)
   const tracks = useLibraryStore((s) => s.tracks)
@@ -94,20 +106,23 @@ export function useSuggestion(): Suggestion | null {
   const playingId = usePlayerStore((s) => currentTrack(s)?.id ?? null)
   return useMemo(() => {
     if (!enabled || hidden || resumable || tracks.length === 0) return null
-    let track = suggestedId && suggestedId !== playingId ? tracks.find((t) => t.id === suggestedId) : undefined
+    const fresh = showing !== suggestedFor
+    const previous = suggestedId
+    let track = !fresh && suggestedId && suggestedId !== playingId ? tracks.find((t) => t.id === suggestedId) : undefined
     if (!track) {
       const covered = new Set(albums.filter((a) => a.cover).map((a) => a.id))
-      const pool = tracks.filter((t) => covered.has(t.albumId) && t.id !== playingId)
-      const others = tracks.filter((t) => t.id !== playingId)
+      const pool = tracks.filter((t) => covered.has(t.albumId) && t.id !== playingId && t.id !== previous)
+      const others = tracks.filter((t) => t.id !== playingId && t.id !== previous)
       const from = pool.length > 0 ? pool : others.length > 0 ? others : tracks
       track = from[Math.floor(Math.random() * from.length)]
       suggestedId = track.id
     }
+    suggestedFor = showing
     const albumId = track.albumId
     return {
       track,
       album: albums.find((a) => a.id === albumId),
       albumTracks: sortAlbumTracks(tracks.filter((t) => t.albumId === albumId)),
     }
-  }, [enabled, hidden, resumable, tracks, albums, playingId])
+  }, [enabled, hidden, resumable, tracks, albums, playingId, showing])
 }

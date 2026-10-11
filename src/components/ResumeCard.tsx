@@ -5,7 +5,7 @@ import { resolveDeck } from '../lib/decks'
 import { clock, shownName } from '../lib/format'
 import { useT } from '../i18n'
 import { lockArt } from '../lib/lockArt'
-import { hideResume, useResumable, useSuggestion } from '../lib/resume'
+import { hideResume, nextVisit, useResumable, useSuggestion } from '../lib/resume'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -26,7 +26,9 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
   const resume = usePlayerStore((s) => s.resume)
   const resumable = useResumable()
   // Nothing to resume: a song at random, "Listen to this" (`useSuggestion`).
-  const suggestion = useSuggestion()
+  // A new song each visit to the page, and another from the card's shuffle.
+  const [showing, setShowing] = useState(nextVisit)
+  const suggestion = useSuggestion(showing)
   const playTracks = usePlayerStore((s) => s.playTracks)
   const track = resumable?.track ?? suggestion?.track
   const album = resumable ? resumable.album : suggestion?.album
@@ -103,6 +105,20 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
           </span>
         </button>
         <div className="-ml-2.5 mt-1 flex flex-wrap">
+          {!resumable && (
+            <button
+              type="button"
+              onClick={() => setShowing(nextVisit())}
+              aria-label={t('library.another_song')}
+              title={t('library.another_song')}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium text-orange-700 hover:bg-slate-100 dark:text-orange-400 dark:hover:bg-slate-800"
+            >
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 6h3.5c1.6 0 2.6.8 3.5 2.2l1.2 1.8c.9 1.4 1.9 2.2 3.5 2.2H17M14.5 9.5 17 12l-2.5 2.5M3 14h3.5c1 0 1.7-.3 2.3-.9M11.2 6.9c.6-.6 1.3-.9 2.3-.9H17M14.5 3.5 17 6l-2.5 2.5" />
+              </svg>
+              {t('library.another')}
+            </button>
+          )}
           <button
             type="button"
             onClick={hideResume}
