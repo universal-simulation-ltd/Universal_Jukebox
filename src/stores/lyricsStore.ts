@@ -157,7 +157,16 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
   const example = exampleLyrics(track)
   if (example) return set({ status: 'ready', sheet: example, message: null })
 
-  const file = useLibraryStore.getState().fileFor(track)
+  // ⚠️ WAIT FOR A MUSIC-LIBRARY SONG'S COPY. Its file only exists once it has
+  // been copied out of the library (`lib/appleMusic.ts`), and the song becomes
+  // the current one BEFORE that (`playAt` moves the cursor first). Asking
+  // `fileFor` at once answered "no file" for every song not copied ahead, so
+  // its embedded lyrics never showed and nothing asked again (James,
+  // 2026-10-12: "lost my lyrics which were embedded into tracks on Apple
+  // library"). `prepare` shares the copy the player is already making.
+  const library = useLibraryStore.getState()
+  const file = library.needsPreparing(track) ? await library.prepare(track) : library.fileFor(track)
+  if (mine !== token) return
   if (file) {
     try {
       const sheet = await lyricsFromFile(file)
