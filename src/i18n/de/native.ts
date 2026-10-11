@@ -101,6 +101,7 @@ const native: Draft['native'] = {
   'way_music_library_sub': 'Songs, die von einem Computer auf dieses Handy synchronisiert wurden',
   'way_folder': 'Ein Musikordner',
   'way_folder_sub': 'In „Dateien“, in iCloud Drive oder auf einem angeschlossenen Laufwerk',
+  'way_folder_sub_android': 'Auf diesem Telefon, einer SD-Karte oder einem USB-Stick',
   'way_pick': 'Songs auswählen',
   'way_pick_sub': 'Dateien einzeln auswählen',
   'try_example': 'Mit der Beispiel-Mediathek ausprobieren',

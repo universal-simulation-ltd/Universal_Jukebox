@@ -113,6 +113,7 @@ export default {
   'way_music_library_sub': 'Songs synced to this phone from a computer',
   'way_folder': 'A folder of music',
   'way_folder_sub': 'In Files, iCloud Drive or on a drive you plug in', // "Files" is the iPhone's Files app
+  'way_folder_sub_android': 'On this phone, an SD card or a USB drive', // Android's line under "A folder of music": no Files app or iCloud there
   'way_pick': 'Pick songs',
   'way_pick_sub': 'Choose files one at a time',
   'try_example': 'Try it with the example library', // big button

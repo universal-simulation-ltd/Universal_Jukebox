@@ -8,7 +8,7 @@
 
 import { useRef, useState } from 'react'
 import { hasMusicLibrary } from '../lib/appleMusic'
-import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
+import { hasOwnMusicFolder, isNativeShell, nativePlatform, usesChosenFolder } from '../lib/nativeFile'
 import { hasNativeImporter } from '../lib/nativeImport'
 import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -53,7 +53,9 @@ export function WelcomeScreen() {
     ways.push({ label: t('native.way_music_library'), sub: t('native.way_music_library_sub'), run: () => void importMusicLibrary() })
   }
   if (!native || chosen) {
-    ways.push({ label: t('native.way_folder'), sub: t('native.way_folder_sub'), run: chooseFolder })
+    // Android has no Files app or iCloud Drive to name.
+    const folderSub = native && nativePlatform() === 'android' ? t('native.way_folder_sub_android') : t('native.way_folder_sub')
+    ways.push({ label: t('native.way_folder'), sub: folderSub, run: chooseFolder })
   }
   // No separate "The Jukebox folder" row (James, 2026-10-11): the folder
   // picker opens IN it on the iPhone (MusicFolderPlugin, `startInOwnFolder`),

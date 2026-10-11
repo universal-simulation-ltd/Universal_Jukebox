@@ -101,6 +101,7 @@ const native: Draft['native'] = {
   'way_music_library_sub': 'Bir bilgisayardan bu telefona eşzamanlanan şarkılar',
   'way_folder': 'Bir müzik klasörü',
   'way_folder_sub': 'Dosyalar’da, iCloud Drive’da ya da taktığınız bir sürücüde',
+  'way_folder_sub_android': 'Bu telefonda, bir SD kartta ya da USB bellekte',
   'way_pick': 'Şarkı seç',
   'way_pick_sub': 'Dosyaları tek tek seçin',
   'try_example': 'Örnek kitaplıkla deneyin',
