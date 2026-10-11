@@ -9,6 +9,7 @@
 
 import { goHome, navigate } from '../lib/route'
 import { useT } from '../i18n'
+import { isNativeShell, nativePlatform } from '../lib/nativeFile'
 // Generated — `npm run credits` after any dependency change. Never edit by hand.
 import credits from '../generated/credits.json'
 
@@ -16,6 +17,11 @@ const NOTICES = 'https://github.com/universal-simulation-ltd/Universal_Jukebox/b
 
 export default function About() {
   const t = useT()
+  // The phone app says what is true on the phone: no sign-in (Play Data safety
+  // and the privacy policy both say no account), no browser talk, and no link
+  // to another app (store-listings §7). The website keeps its own wording.
+  const phone = isNativeShell()
+  const android = phone && nativePlatform() === 'android'
   return (
     <div className="mx-auto max-w-2xl">
       {/* ⚠️ The way back, and it is not optional. This page is reached from a
@@ -41,11 +47,12 @@ export default function About() {
       <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
         <p>{t('about.app_intro')}</p>
         <p>
-          {t.rich('about.app_privacy', {
+          {t.rich(phone ? 'about.app_privacy_phone' : 'about.app_privacy', {
             nothing_uploaded: (
               <strong className="font-semibold text-slate-900 dark:text-slate-100">{t('about.app_nothing_uploaded')}</strong>
             ),
           })}
+          {android && <> {t('about.app_privacy_lyrics_android')}</>}
         </p>
         <p>
           {t.rich('about.app_not', {
@@ -58,7 +65,7 @@ export default function About() {
         {t('about.app_plays_heading')}
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
-        {t('about.app_plays')}
+        {t(phone ? 'about.app_plays_phone' : 'about.app_plays')}
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -71,7 +78,9 @@ export default function About() {
         <li>
           {/* The format names and the other app's name are names, the same in
               every language — only the sentence round them is translated. */}
-          {t.rich('about.app_codecs', {
+          {phone ? t.rich('about.app_codecs_phone', {
+            formats: <strong className="font-medium">WMA, Monkey’s Audio, WavPack</strong>,
+          }) : t.rich('about.app_codecs', {
             formats: <strong className="font-medium">WMA, Monkey’s Audio, WavPack</strong>,
             converter: (
               <a
@@ -92,7 +101,7 @@ export default function About() {
         {t('about.app_folder_heading')}
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
-        {t('about.app_folder')}
+        {t(phone ? 'about.app_folder_phone' : 'about.app_folder')}
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
