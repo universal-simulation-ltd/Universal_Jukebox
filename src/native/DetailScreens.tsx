@@ -180,11 +180,12 @@ export function ArtistScreen({ name }: { name: string }) {
         <h1 className="jx-h1">{shownName(name)}</h1>
         <p className="jx-sub">{[t.plural('common.albums', albums.length), t.plural('common.tracks', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
       </div>
-      <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       {held.sheet}
       {/* Their albums as ONE shelf you swipe along, not a grid (James,
-          2026-10-11); hold a record for the album's sheet. */}
+          2026-10-11); hold a record for the album's sheet. Play and Shuffle
+          sit under it (James, 2026-10-12). */}
       <div className="jx-web"><AlbumRow albums={albums} hold={(album) => held.open({ kind: 'album', album })} /></div>
+      <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       </>
       )}
       {/* Every song of theirs, album by album — the website's "All songs by …"
