@@ -66,7 +66,22 @@ export function PullDrawer({
     }
   }, [])
 
+  // Open from the start — a search carried over from the tab before — it is
+  // simply open: no sliding out, which pushed the list down and faded the
+  // box on every tab switch mid-search (James, 2026-10-11: "the juttering
+  // when going from artist album tracks during a search").
+  const mounted = useRef(false)
   useLayoutEffect(() => {
+    const el = box.current
+    if (!mounted.current) {
+      mounted.current = true
+      if (shown && el) {
+        el.style.transition = 'none'
+        el.style.height = 'auto'
+        el.style.opacity = '1'
+        return
+      }
+    }
     settle(shown ? full() : 0)
   }, [shown, settle])
 
