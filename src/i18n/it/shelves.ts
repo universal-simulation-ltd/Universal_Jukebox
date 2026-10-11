@@ -26,7 +26,6 @@ const shelves: Draft['shelves'] = {
   'starter_name': 'Qualcuno per iniziare',
   'starter_hint': 'Uno scaffale è la tua playlist. Tocca + per aggiungere un brano, Sistema per toglierli, o il nome per cambiarlo.',
   'most_played': 'I più ascoltati',
-  'most_played_empty': 'I brani che ascolti due volte o più si raccolgono qui, i più ascoltati per primi.',
   'most_played_remove': 'Rimuovi',
   'most_played_remove_label': 'Rimuovi lo scaffale I più ascoltati',
   'most_played_removed': 'I più ascoltati è stato rimosso. Puoi rimetterlo in Regola questa app, in La tua libreria.',

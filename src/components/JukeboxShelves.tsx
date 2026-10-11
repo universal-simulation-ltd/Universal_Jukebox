@@ -147,17 +147,8 @@ function MostPlayedShelf({ byId, albumOf, onRemove }: { byId: ReadonlyMap<string
       {t('shelves.most_played_remove')}
     </button>
   )
-  if (songs.length === 0) {
-    return (
-      <div className="rounded-2xl border-2 border-dashed border-slate-300 px-4 py-3.5 dark:border-slate-700">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">{name}</p>
-          {remove}
-        </div>
-        <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{t('shelves.most_played_empty')}</p>
-      </div>
-    )
-  }
+  // Nothing at all until a song has been played twice (James, 2026-10-11).
+  if (songs.length === 0) return null
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">

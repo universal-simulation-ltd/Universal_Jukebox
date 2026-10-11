@@ -26,7 +26,6 @@ const shelves: Draft['shelves'] = {
   'starter_name': 'Başlamak için birkaç şarkı',
   'starter_hint': 'Raf, kendi çalma listenizdir. Şarkı eklemek için + simgesine, bunları kaldırmak için İnce ayar’a, adını değiştirmek için ada dokunun.',
   'most_played': 'En çok çalınanlar',
-  'most_played_empty': 'İki ya da daha fazla dinlediğiniz şarkılar burada toplanır; en çok çalınanlar başta.',
   'most_played_remove': 'Kaldır',
   'most_played_remove_label': 'En çok çalınanlar rafını kaldır',
   'most_played_removed': 'En çok çalınanlar kaldırıldı. Bu uygulamayı ayarla › Kitaplığınız bölümünden geri getirebilirsiniz.',

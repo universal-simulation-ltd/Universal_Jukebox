@@ -26,7 +26,6 @@ const shelves: Draft['shelves'] = {
   'starter_name': 'Unas cuantas para empezar',
   'starter_hint': 'Un estante es tu propia lista. Toca + para añadir una canción, Afinar para quitar estas o el nombre para cambiarlo.',
   'most_played': 'Lo más escuchado',
-  'most_played_empty': 'Las canciones que escuches dos veces o más se juntan aquí, las más escuchadas primero.',
   'most_played_remove': 'Quitar',
   'most_played_remove_label': 'Quitar el estante Lo más escuchado',
   'most_played_removed': 'Lo más escuchado ya no está. Puedes recuperarlo en Ajustar esta app, en Tu biblioteca.',

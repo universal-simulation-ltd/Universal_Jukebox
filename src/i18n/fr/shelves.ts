@@ -28,7 +28,6 @@ const shelves: Draft['shelves'] = {
   'starter_name': 'Quelques-uns pour commencer',
   'starter_hint': 'Une étagère est votre propre playlist. Touchez + pour ajouter un morceau, Peaufiner pour retirer ceux-ci, ou le nom pour le changer.',
   'most_played': 'Les plus écoutés',
-  'most_played_empty': 'Les morceaux que vous écoutez deux fois ou plus se rangent ici, les plus écoutés d’abord.',
   'most_played_remove': 'Retirer',
   'most_played_remove_label': 'Retirer l’étagère Les plus écoutés',
   'most_played_removed': 'L’étagère Les plus écoutés a disparu. Vous pouvez la remettre dans Régler cette application, sous Votre bibliothèque.',

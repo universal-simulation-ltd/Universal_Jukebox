@@ -26,7 +26,6 @@ const shelves: Draft['shelves'] = {
   'starter_name': 'Ein paar zum Start',
   'starter_hint': 'Ein Regal ist deine eigene Playlist. Tippe auf +, um einen Song hinzuzufügen, auf „Bearbeiten“, um diese herauszunehmen, oder auf den Namen, um ihn zu ändern.',
   'most_played': 'Meistgespielt',
-  'most_played_empty': 'Songs, die du zweimal oder öfter hörst, landen hier – die meistgespielten zuerst.',
   'most_played_remove': 'Entfernen',
   'most_played_remove_label': 'Regal „Meistgespielt“ entfernen',
   'most_played_removed': '„Meistgespielt“ ist weg. Unter „Diese App anpassen“ › „Deine Mediathek“ holst du es zurück.',

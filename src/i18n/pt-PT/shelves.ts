@@ -26,7 +26,6 @@ const shelves: Draft['shelves'] = {
   'starter_name': 'Algumas para começar',
   'starter_hint': 'Uma prateleira é a sua própria playlist. Toque em + para adicionar uma música, em Afinar para tirar estas ou no nome para o mudar.',
   'most_played': 'Mais tocadas',
-  'most_played_empty': 'As músicas que ouvir duas vezes ou mais ficam aqui, as mais tocadas primeiro.',
   'most_played_remove': 'Remover',
   'most_played_remove_label': 'Remover a prateleira Mais tocadas',
   'most_played_removed': 'Mais tocadas foi removida. Pode repô-la em Ajustar esta aplicação, em A sua biblioteca.',
