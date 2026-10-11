@@ -31,12 +31,18 @@ import type { Album, Track } from '../lib/types'
 // has the phone's own momentum and feel, and keyboard, trackpad and screen
 // reader all work for free. The middle is measured on scroll.
 
-/** An album, as it stands on the shelf: the sleeve, its record half out behind. */
+/**
+ * An album, as it stands on the shelf: the sleeve, and — for the one in the
+ * middle only — its record sliding up out of it (James, 2026-10-11: "have the
+ * disc come out animation on the currently selected album, the others
+ * shouldn't show a track coming out"). The rest keep theirs inside; index.css,
+ * `.jb-sleeve-disc`, moves it by the shelf item's `aria-current`.
+ */
 function Sleeve({ album }: { album: Album | undefined }) {
   return (
     <>
       <span
-        className="absolute inset-x-[9%] -top-[16%] aspect-square rounded-full bg-slate-900 shadow-md dark:bg-[#12192b]"
+        className="jb-sleeve-disc absolute inset-x-[9%] -top-[16%] aspect-square rounded-full bg-slate-900 shadow-md dark:bg-[#12192b]"
         style={{ background: 'repeating-radial-gradient(circle at 50% 50%, #0f172a 0 3px, #1e293b 3px 4px)' }}
         aria-hidden
       />
