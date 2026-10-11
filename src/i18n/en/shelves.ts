@@ -32,6 +32,15 @@ export default {
   'shelf_n': 'Shelf {n}', // an unnamed shelf, by its place: "Shelf 3"
   'jukebox_intro': 'Your jukebox. Tap + to put a song on the shelf — each shelf plays as a playlist.',
   'start_another_shelf': 'Start another shelf',
+  'starter_name': 'A few to start with', // the name of the shelf the app fills with five songs the first time, to show what a shelf is
+  'starter_hint': 'A shelf is your own playlist. Tap + to add a song, Fine-tune to take these off, or tap the name to rename it.', // under that shelf; “Fine-tune” is the shelf's button
+  'most_played': 'Most played', // the shelf that fills itself with the songs played most
+  'most_played_empty': 'Songs you play twice or more gather here, the most played first.', // that shelf while nothing has been played twice
+  'most_played_remove': 'Remove', // small button on that shelf; short
+  'most_played_remove_label': 'Remove the Most played shelf', // screen reader for that button
+  'most_played_removed': 'Most played is gone. Bring it back in Tune this app, under Your library.', // said after removing it
+  'played_times_one': 'Played once',
+  'played_times_other': 'Played {count} times', // under a record on the Most played shelf
   'name_for_shelf': 'Name for {name}', // screen-reader name of the box for renaming a shelf
   'tap_to_rename': 'Tap to rename', // tooltip on a shelf's name
   'shelf_empty': 'empty', // lower case, after the shelf's name where its song count would be

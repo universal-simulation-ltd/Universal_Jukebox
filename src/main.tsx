@@ -11,6 +11,8 @@ import './index.css'
 import { installShortcuts } from './lib/shortcuts'
 import { followThemeWithStatusBar } from './lib/systemBars'
 import { phoneScreens } from './native/shell'
+// Counts plays for the Most played shelf from the first song on (`lib/playCounts.ts`).
+import './lib/playCounts'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
 // mount <UniversalProvider> so the shared navbar works and, when the visitor is

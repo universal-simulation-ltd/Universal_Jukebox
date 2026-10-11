@@ -22,6 +22,8 @@ const settings: Draft['settings'] = {
   'home_jukebox': 'Jukebox',
   'hide_resume': 'Nascondi «Riprendi l’ascolto»',
   'hide_resume_hint': 'Spunta per togliere la scheda sopra album, artisti e brani che mostra l’ultimo brano che stavi ascoltando, sul suo apparecchio, da toccare per riprendere da dove avevi lasciato.',
+  'hide_most_played': 'Nascondi lo scaffale I più ascoltati',
+  'hide_most_played_hint': 'Spunta per togliere lo scaffale in cima a Scaffali che si riempie da solo con i brani che ascolti di più. Gli ascolti si contano solo su questo dispositivo.',
   'tidy_up': 'Riordina la libreria',
   'trying_example': 'Stai provando la libreria di esempio',
   'trying_example_hint': 'La tua musica è messa da parte esattamente com’era.',

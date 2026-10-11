@@ -21,6 +21,8 @@ const settings: Draft['settings'] = {
   'home_jukebox': 'Jukebox',
   'hide_resume': '“Dinlemeye devam et” kartını gizle',
   'hide_resume_hint': 'Albümlerinizin, sanatçılarınızın ve parçalarınızın üstünde en son çaldığınız şarkıyı kendi çalarında gösteren kartı kaldırmak için işaretleyin; bu kart, kaldığınız yerden devam etmek için dokunmanıza yarar.',
+  'hide_most_played': 'En çok çalınanlar rafını gizle',
+  'hide_most_played_hint': 'Raflar’ın en üstünde, en çok dinlediğiniz şarkılarla kendiliğinden dolan rafı kaldırmak için işaretleyin. Dinlemeler yalnızca bu cihazda sayılır.',
   'tidy_up': 'Kitaplığı düzenle',
   'trying_example': 'Örnek kitaplık deneniyor',
   'trying_example_hint': 'Kendi müziğiniz olduğu gibi kenara ayrıldı.',

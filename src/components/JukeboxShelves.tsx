@@ -9,7 +9,8 @@ import { matchTracks } from '../lib/search'
 import { NAME_MAX, NEW_SHELF, shelfName, shelvesToShow } from '../lib/shelves'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
-import { useShelvesStore } from '../stores/shelvesStore'
+import { starterShelfId, useShelvesStore } from '../stores/shelvesStore'
+import { mostPlayed, usePlayCounts } from '../lib/playCounts'
 import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
 import type { Album, Track } from '../lib/types'
@@ -43,9 +44,23 @@ export default function JukeboxShelves() {
   // The shelf's place, not its name: an unnamed shelf's "Shelf N" is written
   // at display time, so the picker's heading follows a language switch.
   const [picking, setPicking] = useState<{ shelfId: string; index: number } | null>(null)
+  const showMostPlayed = useSettingsStore((s) => s.mostPlayedShelf)
+  const setSetting = useSettingsStore((s) => s.set)
+  const [removed, setRemoved] = useState(false)
+  useEffect(() => {
+    if (!removed) return
+    const timer = window.setTimeout(() => setRemoved(false), 5000)
+    return () => window.clearTimeout(timer)
+  }, [removed])
+  const starterId = starterShelfId()
 
   return (
     <div className="space-y-12">
+      {showMostPlayed ? (
+        <MostPlayedShelf byId={byId} albumOf={albumOf} onRemove={() => { setSetting('mostPlayedShelf', false); setRemoved(true) }} />
+      ) : removed ? (
+        <p role="status" className="text-center text-[13px] text-slate-500 dark:text-slate-400">{t('shelves.most_played_removed')}</p>
+      ) : null}
       {shelves.length === 0 && (
         <p className="text-center text-[13px] text-slate-500 dark:text-slate-400">
           {t('shelves.jukebox_intro')}
@@ -83,15 +98,20 @@ export default function JukeboxShelves() {
           )
         }
         return (
-          <JukeboxShelfRow
-            key={shelf.id}
-            shelfId={shelf.id}
-            name={name}
-            named={shelf.id !== NEW_SHELF}
-            songs={songs}
-            albumOf={albumOf}
-            onAdd={() => setPicking({ shelfId: shelf.id, index: i })}
-          />
+          <div key={shelf.id}>
+            <JukeboxShelfRow
+              shelfId={shelf.id}
+              name={name}
+              named={shelf.id !== NEW_SHELF}
+              songs={songs}
+              albumOf={albumOf}
+              onAdd={() => setPicking({ shelfId: shelf.id, index: i })}
+            />
+            {/* The shelf the app filled to show what a shelf is says so. */}
+            {shelf.id === starterId && (
+              <p className="mt-2 text-center text-[13px] text-slate-500 dark:text-slate-400">{t('shelves.starter_hint')}</p>
+            )}
+          </div>
         )
       })}
       {/* Music to get, ticked off when the library has it (James, 2026-09-26). */}
@@ -103,6 +123,81 @@ export default function JukeboxShelves() {
           onClose={() => setPicking(null)}
         />
       )}
+    </div>
+  )
+}
+
+/**
+ * The shelf that fills itself: the songs played most, from `lib/playCounts`
+ * (James, 2026-10-11). Not edited by hand — no +, no Fine-tune, no new name —
+ * and removed with its own button; Tune this app ▸ Your library brings it back.
+ */
+function MostPlayedShelf({ byId, albumOf, onRemove }: { byId: ReadonlyMap<string, Track>; albumOf(t: Track): Album | undefined; onRemove(): void }) {
+  const t = useT()
+  const counts = usePlayCounts((s) => s.counts)
+  const songs = useMemo(() => mostPlayed(counts, byId), [counts, byId])
+  const playTracks = usePlayerStore((s) => s.playTracks)
+  const shuffle = usePlayerStore((s) => s.shuffle)
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
+  const name = t('shelves.most_played')
+  const pill =
+    'inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1 text-[12.5px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400'
+  const remove = (
+    <button type="button" onClick={onRemove} aria-label={t('shelves.most_played_remove_label')} className={pill}>
+      {t('shelves.most_played_remove')}
+    </button>
+  )
+  if (songs.length === 0) {
+    return (
+      <div className="rounded-2xl border-2 border-dashed border-slate-300 px-4 py-3.5 dark:border-slate-700">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">{name}</p>
+          {remove}
+        </div>
+        <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{t('shelves.most_played_empty')}</p>
+      </div>
+    )
+  }
+  return (
+    <div>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+          {name}
+          <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">{t.plural('common.songs', songs.length)}</span>
+        </p>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={() => playTracks(songs, 0)} className={pill}>
+            ▶ {t('common.play')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!shuffle) toggleShuffle()
+              playTracks(songs, Math.floor(Math.random() * songs.length))
+            }}
+            className={pill}
+          >
+            <ShuffleGlyph />
+            {t('common.shuffle')}
+          </button>
+          {remove}
+        </div>
+      </div>
+      <ShelfRow<Track>
+        items={songs}
+        label={name}
+        size="record"
+        verb="play_from"
+        keyOf={(s) => s.id}
+        nameOf={(s) => s.title}
+        artOf={(s) => albumOf(s)}
+        render={(s) => <Record45 album={albumOf(s)} grooves={grooveRings(s.durationSec)} />}
+        open={(_, i) => playTracks(songs, i)}
+        caption={(s) => ({
+          title: s.title,
+          detail: `${s.artist ?? s.albumArtist ?? t('common.unknown_artist')} · ${t.plural('shelves.played_times', counts[s.id]?.n ?? 0)}`,
+        })}
+      />
     </div>
   )
 }

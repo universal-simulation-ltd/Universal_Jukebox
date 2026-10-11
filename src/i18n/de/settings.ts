@@ -21,6 +21,8 @@ const settings: Draft['settings'] = {
   'home_jukebox': 'Jukebox',
   'hide_resume': '„Weiterhören“ ausblenden',
   'hide_resume_hint': 'Ankreuzen, um die Karte über deinen Alben, Interpreten und Titeln auszublenden, die den zuletzt gespielten Song auf seinem Abspielgerät zeigt, damit du per Tippen dort weitermachen kannst, wo du aufgehört hast.',
+  'hide_most_played': 'Regal „Meistgespielt“ ausblenden',
+  'hide_most_played_hint': 'Anhaken, um das Regal oben unter „Regale“ auszublenden, das sich selbst mit deinen meistgespielten Songs füllt. Gezählt wird nur auf diesem Gerät.',
   'tidy_up': 'Mediathek aufräumen',
   'trying_example': 'Beispiel-Mediathek wird ausprobiert',
   'trying_example_hint': 'Deine eigene Musik bleibt genau so beiseitegelegt, wie sie war.',

@@ -23,6 +23,8 @@ const settings: Draft['settings'] = {
   'home_jukebox': 'Jukebox',
   'hide_resume': 'Masquer « Reprendre l’écoute »',
   'hide_resume_hint': 'Cochez pour retirer la carte, au-dessus de vos albums, artistes et morceaux, qui montre le dernier morceau écouté sur sa platine, et que vous touchez pour reprendre là où vous en étiez.',
+  'hide_most_played': 'Masquer l’étagère Les plus écoutés',
+  'hide_most_played_hint': 'Cochez pour retirer l’étagère en haut d’Étagères qui se remplit toute seule avec les morceaux que vous écoutez le plus. Les écoutes ne sont comptées que sur cet appareil.',
   'tidy_up': 'Ranger la bibliothèque',
   'trying_example': 'Essai de la bibliothèque d’exemple',
   'trying_example_hint': 'Votre propre musique est mise de côté telle quelle.',

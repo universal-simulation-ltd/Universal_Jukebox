@@ -268,6 +268,8 @@ export interface Settings {
   listDefaults: ListDefaults | null
   /** "Resume listening" above the library lists (`ResumeCard`). */
   resumeCard: boolean
+  /** The Most played shelf at the top of Shelves (`lib/playCounts.ts`); removed from there, back from Tune. */
+  mostPlayedShelf: boolean
   /**
    * A change of RECORD crossfades too — both play while one machine slides out
    * and the next slides in, counting 3, 2, 1 (James, 2026-09-11). Off, it is
@@ -371,6 +373,7 @@ export const DEFAULTS: Settings = {
   libraryColumns: { artists: 3, albums: 'jukebox', tracks: 2 },
   listDefaults: null,
   resumeCard: true,
+  mostPlayedShelf: true,
   recordCrossfade: true,
   xfTrackSec: 1.8,
   xfRecordSec: 4.5,
@@ -664,6 +667,7 @@ function readStored(given?: Record<string, unknown>): Settings {
     ),
     listDefaults: readListDefaults(stored.listDefaults),
     resumeCard: stored.resumeCard !== false,
+    mostPlayedShelf: stored.mostPlayedShelf !== false,
     recordCrossfade: stored.recordCrossfade !== false,
     xfTrackSec: clamp(stored.xfTrackSec, ...CROSSFADE_LIMITS.track, DEFAULTS.xfTrackSec),
     xfRecordSec: clamp(stored.xfRecordSec, ...CROSSFADE_LIMITS.record, DEFAULTS.xfRecordSec),
@@ -802,6 +806,7 @@ export function settingsBlob(state: Settings): Settings {
     libraryColumns: state.libraryColumns,
     listDefaults: state.listDefaults,
     resumeCard: state.resumeCard,
+    mostPlayedShelf: state.mostPlayedShelf,
     recordCrossfade: state.recordCrossfade,
     xfTrackSec: state.xfTrackSec,
     xfRecordSec: state.xfRecordSec,

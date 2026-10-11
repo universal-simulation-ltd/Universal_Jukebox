@@ -21,6 +21,8 @@ const settings: Draft['settings'] = {
   'home_jukebox': 'Jukebox',
   'hide_resume': 'Ocultar «Seguir escuchando»',
   'hide_resume_hint': 'Márcalo para quitar la tarjeta que aparece encima de tus álbumes, artistas y pistas con la última canción que estabas escuchando, en su aparato, para que la toques y sigas donde lo dejaste.',
+  'hide_most_played': 'Ocultar el estante Lo más escuchado',
+  'hide_most_played_hint': 'Márcalo para quitar el estante de arriba de Estantes que se llena solo con las canciones que más escuchas. Las escuchas se cuentan solo en este dispositivo.',
   'tidy_up': 'Ordenar la biblioteca',
   'trying_example': 'Probando la biblioteca de ejemplo',
   'trying_example_hint': 'Tu propia música queda apartada tal como estaba.',

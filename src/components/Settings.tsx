@@ -224,6 +224,12 @@ export default function Settings() {
             checked={!s.resumeCard}
             onChange={(v) => s.set('resumeCard', !v)}
           />
+          <Toggle
+            label={t('settings.hide_most_played')}
+            hint={t('settings.hide_most_played_hint')}
+            checked={!s.mostPlayedShelf}
+            onChange={(v) => s.set('mostPlayedShelf', !v)}
+          />
           {/* This, the theme and the tips were in the Actions menu (James,
               2026-09-11: "Appearance, tidy, show tips again should all go into
               settings"). */}

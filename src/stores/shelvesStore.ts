@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { useLibraryStore } from './libraryStore'
 import { haptic } from '../lib/haptics'
-import { addToShelf, moveOnShelf, parseShelves, renameShelf, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
+import { addToShelf, moveOnShelf, parseShelves, renameShelf, starterPicks, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
+import { getT } from '../i18n/runtime.ts'
+import type { Album, Track } from '../lib/types'
 
 // The Jukebox tab's shelves, kept on the device — see `lib/shelves.ts`.
 
@@ -102,6 +104,7 @@ useLibraryStore.subscribe((now, before) => {
   if (now.trying) return
   if (now.status !== 'ready' || now.tracks.length === 0) return
   if (before.status === 'ready' && now.tracks === before.tracks) return
+  seedStarterShelf(now.tracks, now.albums)
   const have = new Set(now.tracks.map((t) => t.id))
   const { shelves } = useShelvesStore.getState()
   const kept = shelves.filter((s) => s.trackIds.some((id) => have.has(id)))
@@ -109,3 +112,40 @@ useLibraryStore.subscribe((now, before) => {
   useShelvesStore.setState({ shelves: kept })
   persist(kept)
 })
+
+// ⚠️ ONE SHELF ALREADY FILLED, ONCE (James, 2026-10-11: "I would like one
+// shelf to already have a few tracks on it to show the purpose of the
+// shelves"). The first time a library is ready and there are no shelves,
+// five songs from different artists go on a shelf of their own, so the page
+// shows what a shelf is before anyone has made one. Remembered, so it never
+// comes back after it's emptied, renamed or deleted.
+const STARTER_KEY = 'jukebox:starter-shelf'
+function seedStarterShelf(tracks: readonly Track[], albums: readonly Album[]): void {
+  try {
+    if (localStorage.getItem(STARTER_KEY)) return
+  } catch {
+    return
+  }
+  const { shelves } = useShelvesStore.getState()
+  if (shelves.length > 0) {
+    try { localStorage.setItem(STARTER_KEY, 'had-shelves') } catch { /* ignore */ }
+    return
+  }
+  const picks = starterPicks(tracks, albums)
+  if (picks.length < 3) return
+  const starter: JukeboxShelf = { id: newId(), trackIds: picks, name: getT()('shelves.starter_name') }
+  useShelvesStore.setState({ shelves: [starter] })
+  persist([starter])
+  // The shelf's id, so Shelves can say what a shelf is under this one (`starterShelfId`).
+  try { localStorage.setItem(STARTER_KEY, starter.id) } catch { /* ignore */ }
+}
+
+/** The starter shelf's id, while there is one — Shelves puts a line under it saying what a shelf is. */
+export function starterShelfId(): string | null {
+  try {
+    const id = localStorage.getItem(STARTER_KEY)
+    return id && id !== 'had-shelves' ? id : null
+  } catch {
+    return null
+  }
+}

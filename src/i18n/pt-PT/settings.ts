@@ -21,6 +21,8 @@ const settings: Draft['settings'] = {
   'home_jukebox': 'Jukebox',
   'hide_resume': 'Ocultar «Continuar a ouvir»',
   'hide_resume_hint': 'Marque para retirar o cartão por cima dos álbuns, artistas e faixas que mostra a última música que estava a ouvir, na sua aparelhagem, para lhe tocar e continuar onde parou.',
+  'hide_most_played': 'Ocultar a prateleira Mais tocadas',
+  'hide_most_played_hint': 'Assinale para tirar a prateleira no topo de Prateleiras que se enche sozinha com as músicas que mais ouve. As reproduções são contadas só neste dispositivo.',
   'tidy_up': 'Arrumar a biblioteca',
   'trying_example': 'A experimentar a biblioteca de exemplo',
   'trying_example_hint': 'A sua música fica guardada exatamente como estava.',
