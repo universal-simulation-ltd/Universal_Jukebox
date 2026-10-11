@@ -91,7 +91,17 @@ html.dark .jx {
   --jx-fill: #b42318;
   --jx-bar: rgba(20, 17, 15, 0.94);
 }
-.jx button { font: inherit; color: inherit; cursor: pointer; }
+/* ⚠️ IN TAILWIND'S BASE LAYER, so a button's own text colour wins. Unlayered,
+   this `color: inherit` beat every Tailwind class on every button: the
+   website's white-on-red buttons (the swipe-up hint, Sleep timer, Add to
+   shelf, the lyrics buttons…) read black on red (James, 2026-10-11). */
+@layer base {
+  .jx button { font: inherit; color: inherit; cursor: pointer; }
+}
+/* The phone's own buttons (`jx-…`) keep inheriting exactly as they always
+   have — `:where` keeps the old (0,1,1) specificity, so nothing that used to
+   beat it, or lose to it, changes. */
+.jx button:where([class*="jx-"]) { color: inherit; }
 .jx :focus-visible { outline: 2px solid var(--jx-acc); outline-offset: 2px; }
 .jx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 

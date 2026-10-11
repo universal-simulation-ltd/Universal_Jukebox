@@ -361,7 +361,13 @@ export function AlbumsScreen(props: ListProps) {
               ))}
             </ul>
           ) : (
-            <ul className={`jx-grid n${layout.columns}`}>
+            // ⚠️ KEYED BY THE LAYOUT: a new list on every layout change. The
+            // tiles are `content-visibility: auto`, and on the iPhone a tile
+            // re-laid from one layout to another stayed unpainted — a blank
+            // screen with the grid far below it, right until the page was
+            // left and opened again (James, 2026-10-11: "gets to 2 per row and
+            // then breaks").
+            <ul key={layout.columns} className={`jx-grid n${layout.columns}`}>
               {shown.slice(0, limit).map((album) => (
                 <li key={album.id}>
                   <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
@@ -435,7 +441,8 @@ export function ArtistsScreen(props: ListProps) {
         <>
           {!query.trim() && <ResumeCard />}
           <Nothing query={names.length === 0 ? query : ''} />
-          <ul className={layout.columns === 1 ? 'jx-list' : `jx-grid n${layout.columns} artists`}>
+          {/* Keyed by the layout, as the albums grid is (see there). */}
+          <ul key={layout.columns} className={layout.columns === 1 ? 'jx-list' : `jx-grid n${layout.columns} artists`}>
             {names.slice(0, limit).map((name) => {
               const theirs = byArtist.get(name) ?? []
               const face = theirs.find((a) => a.cover) ?? theirs[0]
