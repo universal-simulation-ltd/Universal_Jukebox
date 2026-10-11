@@ -104,22 +104,34 @@ useLibraryStore.subscribe((now, before) => {
   if (now.trying) return
   if (now.status !== 'ready' || now.tracks.length === 0) return
   if (before.status === 'ready' && now.tracks === before.tracks) return
-  seedStarterShelf(now.tracks, now.albums)
   const have = new Set(now.tracks.map((t) => t.id))
   const { shelves } = useShelvesStore.getState()
   const kept = shelves.filter((s) => s.trackIds.some((id) => have.has(id)))
-  if (kept.length === shelves.length) return
-  useShelvesStore.setState({ shelves: kept })
-  persist(kept)
+  if (kept.length !== shelves.length) {
+    // The starter shelf going with its library (the example swapped for your
+    // own music) is not you deleting it: the new library gets one of its own.
+    const starter = starterShelfId()
+    if (starter && !kept.some((s) => s.id === starter)) {
+      try { localStorage.removeItem(STARTER_KEY) } catch { /* ignore */ }
+    }
+    useShelvesStore.setState({ shelves: kept })
+    persist(kept)
+  }
+  // After the sweep, so shelves that just went don't count as yours.
+  seedStarterShelf(now.tracks, now.albums)
 })
 
-// ⚠️ ONE SHELF ALREADY FILLED, ONCE (James, 2026-10-11: "I would like one
-// shelf to already have a few tracks on it to show the purpose of the
-// shelves"). The first time a library is ready and there are no shelves,
-// five songs from different artists go on a shelf of their own, so the page
-// shows what a shelf is before anyone has made one. Remembered, so it never
-// comes back after it's emptied, renamed or deleted.
-const STARTER_KEY = 'jukebox:starter-shelf'
+// ⚠️ ONE SHELF ALREADY FILLED (James, 2026-10-11: "I would like one shelf to
+// already have a few tracks on it to show the purpose of the shelves", then
+// "an example shelf of some of my music. Maybe just 1-3 random songs chosen at
+// import"). When a library is ready and there are no shelves, three random
+// songs from different artists go on a shelf of their own, so the page shows
+// what a shelf is before anyone has made one. Remembered, so it never comes
+// back after you empty or delete it — but a new library gets a new one when
+// the old starter shelf went with the old library (the sweep above).
+// "-v2": the first version kept the flag when the example library's starter
+// shelf was swept away, so your own music never got one.
+const STARTER_KEY = 'jukebox:starter-shelf-v2'
 function seedStarterShelf(tracks: readonly Track[], albums: readonly Album[]): void {
   try {
     if (localStorage.getItem(STARTER_KEY)) return
@@ -132,7 +144,7 @@ function seedStarterShelf(tracks: readonly Track[], albums: readonly Album[]): v
     return
   }
   const picks = starterPicks(tracks, albums)
-  if (picks.length < 3) return
+  if (picks.length === 0) return
   const starter: JukeboxShelf = { id: newId(), trackIds: picks, name: getT()('shelves.starter_name') }
   useShelvesStore.setState({ shelves: [starter] })
   persist([starter])

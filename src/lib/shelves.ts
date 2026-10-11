@@ -128,12 +128,16 @@ export function addToShelf(
 }
 
 /**
- * The starter shelf's songs (`shelvesStore`, seedStarterShelf): up to five,
- * one each from different artists, from albums with a cover where there are
- * any, so the shelf shows five different sleeves. The same library gives the
- * same five. Pure.
+ * The starter shelf's songs (`shelvesStore`, seedStarterShelf): three, at
+ * random, one each from different artists and albums, from albums with a
+ * cover where there are any. Pure but for `random`.
  */
-export function starterPicks(tracks: readonly { id: string; albumId: string; artist?: string; albumArtist?: string; trackNo?: number }[], albums: readonly { id: string; cover?: unknown }[], count = 5): string[] {
+export function starterPicks(
+  tracks: readonly { id: string; albumId: string; artist?: string; albumArtist?: string }[],
+  albums: readonly { id: string; cover?: unknown }[],
+  count = 3,
+  random: () => number = Math.random,
+): string[] {
   const covered = new Set(albums.filter((a) => a.cover).map((a) => a.id))
   const byArtist = new Map<string, { id: string; albumId: string }[]>()
   for (const track of tracks) {
@@ -142,13 +146,20 @@ export function starterPicks(tracks: readonly { id: string; albumId: string; art
     list.push(track)
     byArtist.set(artist, list)
   }
-  // A spread through the library rather than its first few artists A–Z.
-  const artists = [...byArtist.keys()].sort()
-  const step = Math.max(1, Math.floor(artists.length / count))
+  // Artists in a random order, and a random song of each.
+  const shuffled = <T,>(list: T[]): T[] => {
+    const out = [...list]
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1))
+      ;[out[i], out[j]] = [out[j], out[i]]
+    }
+    return out
+  }
+  const artists = shuffled([...byArtist.keys()])
   const picks: string[] = []
   const usedAlbums = new Set<string>()
-  for (let i = 0; i < artists.length && picks.length < count; i += step) {
-    const theirs = byArtist.get(artists[i]) ?? []
+  for (let i = 0; i < artists.length && picks.length < count; i++) {
+    const theirs = shuffled(byArtist.get(artists[i]) ?? [])
     const pick = theirs.find((t) => covered.has(t.albumId) && !usedAlbums.has(t.albumId)) ?? theirs.find((t) => !usedAlbums.has(t.albumId))
     if (pick) {
       picks.push(pick.id)

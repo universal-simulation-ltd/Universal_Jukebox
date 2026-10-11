@@ -325,6 +325,9 @@ html.dark .jx {
 .jx-confirm { display: flex; gap: 14px; flex: none; }
 .jx-link.quiet { color: var(--jx-mute); font-size: 14px; flex: none; }
 .jx-link.danger { font-size: 14px; font-weight: 650; flex: none; }
+/* Red for the second tap that deletes (James, 2026-10-11). Above `.jx button`'s
+   inherit, which every jx- link's own colour otherwise loses to. */
+.jx .jx-link.danger { color: var(--jx-acc); }
 .jx-fine.left { text-align: left; margin: 0; }
 
 /* One album or artist. */

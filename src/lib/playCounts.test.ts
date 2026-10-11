@@ -31,11 +31,12 @@ describe('the starter shelf', () => {
   it('picks one song each from different artists and albums', () => {
     const tracks = ['p', 'q', 'r', 's', 't', 'u'].flatMap((artist) => [track(`${artist}1`, `${artist}-al`, artist), track(`${artist}2`, `${artist}-al`, artist)])
     const picks = starterPicks(tracks, [])
-    expect(picks).toHaveLength(5)
-    expect(new Set(picks.map((id) => id[0])).size).toBe(5)
+    expect(picks).toHaveLength(3)
+    expect(new Set(picks.map((id) => id[0])).size).toBe(3)
+    expect(new Set(starterPicks(tracks, [], 5).map((id) => id[0])).size).toBe(5)
   })
   it('fills from other albums when there are few artists', () => {
     const tracks = [track('a1', 'A1', 'a'), track('a2', 'A2', 'a'), track('b1', 'B1', 'b'), track('b2', 'B2', 'b'), track('b3', 'B3', 'b')]
-    expect(starterPicks(tracks, [])).toHaveLength(5)
+    expect(starterPicks(tracks, [], 5)).toHaveLength(5)
   })
 })
