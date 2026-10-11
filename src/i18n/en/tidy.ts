@@ -9,7 +9,10 @@ export default {
   'intro': 'Missing covers found on your own disk, and records that have been split in two by inconsistent tags. Nothing is looked up online and {strong} — this only corrects the library here.', // {strong} is intro_strong, in bold
   'intro_strong': 'your music files are never changed',
   'looking': 'Looking through your library…',
-  'unavailable': 'The tidy-up reads your files to find artwork, so it needs access to your music folder. Choose it again from the banner on your library and come back.',
+  'covers_access': 'Missing covers are looked for in your music files, which need your folder again.', // above the tidy-up's results on the website, before the button
+  'allow_access': 'Allow access', // button: asks the browser for the music folder again, then looks for covers
+  'covers_phone': 'On the phone, the tidy-up looks for records split in two. Covers come from your files when they are scanned.', // the tidy-up on iPhone and Android
+  'nothing_split': 'Nothing to do — no records look like they have been split in two.',
   'applied_one': 'Done — {count} change applied. They will survive rescanning, because they are stored separately from the library.', // followed by the "Look again" button
   'applied_other': 'Done — {count} changes applied. They will survive rescanning, because they are stored separately from the library.',
   'look_again': 'Look again', // button

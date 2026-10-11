@@ -136,7 +136,7 @@ Depois de adicionar ou remover músicas na nuvem, escolha **Analisar novamente**
 
 As suas prateleiras, os seus pedidos, as suas definições e os ficheiros de letras que adicionou existem apenas na aplicação. Para os guardar, abra **Ajustar esta aplicação** e depois **Cópia de segurança**:
 
-- **Guardar um ficheiro de cópia de segurança** cria um único ficheiro pequeno que pode guardar onde quiser, incluindo no Proton Drive. Não é necessária nenhuma conta. Nas aplicações para telemóvel, é guardado na pasta Documentos da aplicação, e pode movê-lo a partir da aplicação Ficheiros.
+- **Guardar um ficheiro de cópia de segurança** cria um único ficheiro pequeno que pode guardar onde quiser. Não é necessária nenhuma conta. Nas aplicações para telemóvel, é guardado na pasta Documentos da aplicação, e pode movê-lo a partir da aplicação Ficheiros.
 - **Cópia de segurança no seu Universal ID** guarda a mesma cópia de segurança com a sua conta, se tiver a sessão iniciada. É substituída sempre que faz uma cópia, e pode eliminá-la. Não tem encriptação ponto a ponto. Se for demasiado grande para a sua conta, a aplicação indica o que deixou de fora, e um ficheiro de cópia de segurança guarda tudo.
 
 ## Num telemóvel novo

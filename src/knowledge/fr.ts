@@ -136,7 +136,7 @@ Après avoir ajouté ou supprimé des morceaux dans le cloud, choisissez **Réan
 
 Vos étagères, vos demandes, vos réglages et les fichiers de paroles que vous avez ajoutés n’existent que dans l’application. Pour les conserver, ouvrez **Régler cette application**, puis **Sauvegarde** :
 
-- **Enregistrer un fichier de sauvegarde** crée un petit fichier unique que vous pouvez garder n’importe où, y compris sur Proton Drive. Aucun compte n’est nécessaire. Dans les applications pour téléphone, il est enregistré dans le dossier Documents de l’application, et vous pouvez le déplacer depuis l’app Fichiers.
+- **Enregistrer un fichier de sauvegarde** crée un petit fichier unique que vous pouvez garder n’importe où. Aucun compte n’est nécessaire. Dans les applications pour téléphone, il est enregistré dans le dossier Documents de l’application, et vous pouvez le déplacer depuis l’app Fichiers.
 - **Sauvegarder sur votre Universal ID** conserve la même sauvegarde avec votre compte, si vous êtes connecté. Elle est remplacée à chaque sauvegarde, et vous pouvez la supprimer. Elle n’est pas chiffrée de bout en bout. Si elle est trop volumineuse pour votre compte, l’application indique ce qu’elle a laissé de côté, et un fichier de sauvegarde garde tout.
 
 ## Sur un nouveau téléphone

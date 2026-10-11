@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { DropRing } from '@unisim/sdk'
 import { useT, type Translator } from '../i18n'
 import { shownName } from '../lib/format'
 import { goHome } from '../lib/route'
 import type { MergeProposal } from '../lib/tidy'
-import { useLibraryStore } from '../stores/libraryStore'
+import { needAccessFrom, useLibraryStore } from '../stores/libraryStore'
 import { proposalKey, useTidyStore } from '../stores/tidyStore'
 
 // The tidy-up: what the app thinks it can put right, and a button.
@@ -44,6 +44,12 @@ export default function Tidy() {
   const apply = useTidyStore((s) => s.apply)
 
   const hasLibrary = useLibraryStore((s) => s.tracks.length > 0)
+  const coversSkipped = useTidyStore((s) => s.coversSkipped)
+  const regrantFolder = useLibraryStore((s) => s.regrantFolder)
+  const roots = useLibraryStore((s) => s.roots)
+  const tracks = useLibraryStore((s) => s.tracks)
+  const filesByPath = useLibraryStore((s) => s.filesByPath)
+  const needAccess = useMemo(() => needAccessFrom(roots, tracks, filesByPath), [roots, tracks, filesByPath])
 
   // Look as soon as the page opens. The whole page is "what can be fixed", so
   // making somebody press Start to find out is a click that asks nothing.
@@ -87,9 +93,25 @@ export default function Tidy() {
         </div>
       )}
 
-      {status === 'unavailable' && (
-        <Note>{t('tidy.unavailable')}</Note>
+      {/* Covers need the files; split records don't. Said here, with the way
+          to fix it here (James, 2026-10-11: "if it needs access then have the
+          prompt on the same page"). */}
+      {status === 'done' && coversSkipped === 'access' && needAccess.length > 0 && (
+        <Note>
+          {t('tidy.covers_access')}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              const root = needAccess[0]
+              if (root) void regrantFolder(root.id).then(() => look())
+            }}
+            className="font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+          >
+            {t('tidy.allow_access')}
+          </button>
+        </Note>
       )}
+      {status === 'done' && coversSkipped === 'phone' && <Note>{t('tidy.covers_phone')}</Note>}
 
       {status === 'done' && applied > 0 && (
         <Note>
@@ -106,7 +128,7 @@ export default function Tidy() {
 
       {status === 'done' && applied === 0 && proposals.length === 0 && (
         <Note>
-          {checked === 0 ? t('tidy.nothing_to_do_all_art') : t.plural('tidy.nothing_to_do_checked', checked)}
+          {coversSkipped ? t('tidy.nothing_split') : checked === 0 ? t('tidy.nothing_to_do_all_art') : t.plural('tidy.nothing_to_do_checked', checked)}
           <span className="mt-2 block text-slate-500 dark:text-slate-400">
             {t('tidy.nothing_to_do_note')}
           </span>

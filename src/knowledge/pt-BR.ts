@@ -136,7 +136,7 @@ Depois de adicionar ou remover músicas na nuvem, escolha **Escanear de novo**.
 
 Suas estantes, seus pedidos, seus ajustes e os arquivos de letra que você adicionou só existem no app. Para guardá-los, abra **Ajustar este app** e depois **Backup**:
 
-- **Salvar um arquivo de backup** cria um único arquivo pequeno que você pode guardar onde quiser, inclusive no Proton Drive. Não precisa de conta. Nos apps para celular, ele é salvo na pasta Documentos do app, e você pode movê-lo pelo app Arquivos.
+- **Salvar um arquivo de backup** cria um único arquivo pequeno que você pode guardar onde quiser. Não precisa de conta. Nos apps para celular, ele é salvo na pasta Documentos do app, e você pode movê-lo pelo app Arquivos.
 - **Fazer backup no seu Universal ID** guarda o mesmo backup com a sua conta, se você estiver conectado. Ele é substituído a cada novo backup, e você pode excluí-lo. Não tem criptografia de ponta a ponta. Se for grande demais para a sua conta, o app diz o que ficou de fora, e um arquivo de backup guarda tudo.
 
 ## Num celular novo

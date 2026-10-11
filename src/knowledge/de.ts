@@ -136,7 +136,7 @@ Wählen Sie **Neu einlesen**, nachdem Sie in der Cloud Songs hinzugefügt oder e
 
 Ihre Regale, Ihre Wünsche, Ihre Einstellungen und alle Songtext-Dateien, die Sie hinzugefügt haben, gibt es nur in der App. Um sie zu behalten, öffnen Sie **Diese App anpassen** und dann **Sicherung**:
 
-- **Sicherungsdatei speichern** erstellt eine kleine Datei, die Sie überall aufbewahren können, auch in Proton Drive. Ein Konto ist nicht nötig. In den Smartphone-Apps wird sie im Ordner „Dokumente“ der App gespeichert, und Sie können sie in der Dateien-App verschieben.
+- **Sicherungsdatei speichern** erstellt eine kleine Datei, die Sie überall aufbewahren können. Ein Konto ist nicht nötig. In den Smartphone-Apps wird sie im Ordner „Dokumente“ der App gespeichert, und Sie können sie in der Dateien-App verschieben.
 - **In deiner Universal ID sichern** bewahrt dieselbe Sicherung bei Ihrem Konto auf, wenn Sie angemeldet sind. Sie wird bei jedem Sichern ersetzt, und Sie können sie löschen. Sie ist nicht Ende-zu-Ende-verschlüsselt. Ist sie zu groß für Ihr Konto, sagt die App, was sie weggelassen hat – eine Sicherungsdatei behält alles.
 
 ## Auf einem neuen Smartphone

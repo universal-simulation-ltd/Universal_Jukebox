@@ -40,7 +40,7 @@ const settings: Draft['settings'] = {
   'backup_blocked_trying': 'Önce kendi müziğinize dönün — şu anda örnek kitaplık deneniyor.',
   'backup_blocked_loading': 'Kitaplığınız yüklendiğinde kullanılabilir.',
   'save_file': 'Yedek dosyası kaydet',
-  'save_file_hint': 'Raflarınız, istekleriniz, ayarlarınız ve eklediğiniz şarkı sözleri tek bir küçük dosyada. İstediğiniz yerde saklayın, Proton Drive da olur. Hesap gerekmez.',
+  'save_file_hint': 'Raflarınız, istekleriniz, ayarlarınız ve eklediğiniz şarkı sözleri tek bir küçük dosyada. Hesap gerekmez.',
   'saved_native': '{name} adıyla uygulamanın Belgeler klasörüne kaydedildi. Dosyalar uygulamasından taşıyabilirsiniz.',
   'saved': '{name} adıyla kaydedildi.',
   'restore_file': 'Dosyadan geri yükle',

@@ -136,7 +136,7 @@ Dopo aver aggiunto o rimosso brani nel cloud, scegli **Ripeti scansione**.
 
 I tuoi scaffali, le tue richieste, le tue impostazioni e gli eventuali file di testo che hai aggiunto esistono solo nell’app. Per conservarli, apri **Regola questa app** e poi **Backup**:
 
-- **Salva un file di backup** crea un unico piccolo file che puoi conservare dove vuoi, anche su Proton Drive. Non serve un account. Nelle app per telefono viene salvato nella cartella Documenti dell’app, e puoi spostarlo dall’app File.
+- **Salva un file di backup** crea un unico piccolo file che puoi conservare dove vuoi. Non serve un account. Nelle app per telefono viene salvato nella cartella Documenti dell’app, e puoi spostarlo dall’app File.
 - **Fai il backup sul tuo Universal ID** conserva lo stesso backup con il tuo account, se hai effettuato l’accesso. Viene sostituito a ogni nuovo backup e puoi eliminarlo. Non è crittografato end-to-end. Se è troppo grande per il tuo account, l’app ti dice cosa ha lasciato fuori, e un file di backup conserva tutto.
 
 ## Su un nuovo telefono

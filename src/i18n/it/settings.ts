@@ -41,7 +41,7 @@ const settings: Draft['settings'] = {
   'backup_blocked_trying': 'Torna prima alla tua musica: stai provando la libreria di esempio.',
   'backup_blocked_loading': 'Disponibile quando la libreria avrà finito di caricarsi.',
   'save_file': 'Salva un file di backup',
-  'save_file_hint': 'Scaffali, richieste, impostazioni ed eventuali testi aggiunti, in un unico piccolo file. Conservalo dove vuoi, anche su Proton Drive. Non serve un account.',
+  'save_file_hint': 'Scaffali, richieste, impostazioni ed eventuali testi aggiunti, in un unico piccolo file. Non serve un account.',
   'saved_native': 'Salvato come {name} nella cartella Documenti dell’app. Puoi spostarlo dall’app File.',
   'saved': 'Salvato come {name}.',
   'restore_file': 'Ripristina da un file',

@@ -136,7 +136,7 @@ Bulutta şarkı ekledikten ya da sildikten sonra **Yeniden tara** seçeneğini s
 
 Raflarınız, istekleriniz, ayarlarınız ve eklediğiniz söz dosyaları yalnızca uygulamanın içinde bulunur. Bunları korumak için **Bu uygulamayı ayarla** sayfasını, ardından **Yedekleme** bölümünü açın:
 
-- **Yedek dosyası kaydet**, Proton Drive dahil istediğiniz yerde saklayabileceğiniz tek bir küçük dosya oluşturur. Hesap gerekmez. Telefon uygulamalarında dosya, uygulamanın Belgeler klasörüne kaydedilir ve onu Dosyalar uygulamasından taşıyabilirsiniz.
+- **Yedek dosyası kaydet**, istediğiniz yerde saklayabileceğiniz tek bir küçük dosya oluşturur. Hesap gerekmez. Telefon uygulamalarında dosya, uygulamanın Belgeler klasörüne kaydedilir ve onu Dosyalar uygulamasından taşıyabilirsiniz.
 - **Universal ID’nize yedekleyin**, oturumunuz açıksa aynı yedeği hesabınızla birlikte saklar. Her yedeklemede yenisiyle değiştirilir ve onu silebilirsiniz. Uçtan uca şifreli değildir. Hesabınız için fazla büyükse uygulama neyi dışarıda bıraktığını söyler; bir yedek dosyası ise her şeyi saklar.
 
 ## Yeni bir telefonda

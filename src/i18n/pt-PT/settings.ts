@@ -40,7 +40,7 @@ const settings: Draft['settings'] = {
   'backup_blocked_trying': 'Volte primeiro à sua música — está a experimentar a biblioteca de exemplo.',
   'backup_blocked_loading': 'Disponível quando a biblioteca tiver carregado.',
   'save_file': 'Guardar um ficheiro de cópia de segurança',
-  'save_file_hint': 'As prateleiras, os pedidos, as definições e as letras que adicionou, num único ficheiro pequeno. Guarde-o onde quiser, incluindo no Proton Drive. Não é preciso conta.',
+  'save_file_hint': 'As prateleiras, os pedidos, as definições e as letras que adicionou, num único ficheiro pequeno. Não é preciso conta.',
   'saved_native': 'Guardado como {name} na pasta Documentos da aplicação. Pode movê-lo a partir da app Ficheiros.',
   'saved': 'Guardado como {name}.',
   'restore_file': 'Repor a partir de um ficheiro',

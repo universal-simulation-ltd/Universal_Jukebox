@@ -40,7 +40,7 @@ const settings: Draft['settings'] = {
   'backup_blocked_trying': 'Geh zuerst zu deiner eigenen Musik zurück – gerade wird die Beispiel-Mediathek ausprobiert.',
   'backup_blocked_loading': 'Verfügbar, sobald deine Mediathek geladen ist.',
   'save_file': 'Sicherungsdatei speichern',
-  'save_file_hint': 'Deine Regale, Wünsche, Einstellungen und alle Songtexte, die du hinzugefügt hast, in einer kleinen Datei. Bewahre sie auf, wo du willst, auch in Proton Drive. Kein Konto nötig.',
+  'save_file_hint': 'Deine Regale, Wünsche, Einstellungen und alle Songtexte, die du hinzugefügt hast, in einer kleinen Datei. Kein Konto nötig.',
   'saved_native': 'Als {name} im Ordner „Dokumente“ der App gespeichert. Du kannst sie in der App „Dateien“ verschieben.',
   'saved': 'Als {name} gespeichert.',
   'restore_file': 'Aus einer Datei wiederherstellen',

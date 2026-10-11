@@ -54,7 +54,7 @@ export default {
   'backup_blocked_trying': 'Go back to your own music first — the example library is being tried.',
   'backup_blocked_loading': 'Available once your library has loaded.',
   'save_file': 'Save a backup file',
-  'save_file_hint': 'Your shelves, requests, settings and any lyrics you added, as one small file. Keep it wherever you like, Proton Drive included. No account needed.',
+  'save_file_hint': 'Your shelves, requests, settings and any lyrics you added, as one small file. No account needed.',
   'saved_native': 'Saved as {name} in the app’s Documents folder. You can move it from the Files app.', // {name} is the file name; Documents and Files are what the phone calls them
   'saved': 'Saved as {name}.',
   'restore_file': 'Restore from a file', // row with an Open button that picks the file

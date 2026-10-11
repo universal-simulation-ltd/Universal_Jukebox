@@ -136,7 +136,7 @@ Después de añadir o quitar canciones en la nube, elija **Volver a escanear**.
 
 Sus estantes, sus peticiones, sus ajustes y los archivos de letras que haya añadido solo existen en la aplicación. Para conservarlos, abra **Ajustar esta app** y luego **Copia de seguridad**:
 
-- **Guardar un archivo de copia de seguridad** crea un único archivo pequeño que puede guardar donde quiera, también en Proton Drive. No hace falta ninguna cuenta. En las aplicaciones para teléfono se guarda en la carpeta Documentos de la aplicación, y puede moverlo desde la app Archivos.
+- **Guardar un archivo de copia de seguridad** crea un único archivo pequeño que puede guardar donde quiera. No hace falta ninguna cuenta. En las aplicaciones para teléfono se guarda en la carpeta Documentos de la aplicación, y puede moverlo desde la app Archivos.
 - **Hacer una copia en tu Universal ID** guarda la misma copia de seguridad con su cuenta, si tiene la sesión iniciada. Se sustituye cada vez que hace una copia, y puede eliminarla. No tiene cifrado de extremo a extremo. Si es demasiado grande para su cuenta, la aplicación le indica qué ha dejado fuera, y un archivo de copia de seguridad lo guarda todo.
 
 ## En un teléfono nuevo

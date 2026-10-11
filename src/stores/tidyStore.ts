@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { isNativeShell } from '../lib/nativeFile'
 import { makeCoverBlob, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
 import { readSlice } from '../lib/scan'
@@ -40,7 +41,16 @@ export interface CoverProposal {
 
 export type Proposal = CoverProposal | MergeProposal
 
-export type TidyStatus = 'idle' | 'looking' | 'done' | 'unavailable'
+export type TidyStatus = 'idle' | 'looking' | 'done'
+
+/**
+ * Why missing covers weren't looked for, when they weren't: the phone reads
+ * files through the system, not as the browser's file handles the cover search
+ * needs; the website has lost the folder permission until it is granted again.
+ * The split records are still found either way (James, 2026-10-11: "if it
+ * needs access then have the prompt on the same page").
+ */
+export type CoversSkipped = 'phone' | 'access' | null
 
 interface TidyState {
   status: TidyStatus
@@ -50,6 +60,7 @@ interface TidyState {
   /** How many albums were checked, for an honest "nothing to do" message. */
   checked: number
   applied: number
+  coversSkipped: CoversSkipped
 
   look(): Promise<void>
   toggle(key: string): void
@@ -69,6 +80,7 @@ export const useTidyStore = create<TidyState>((set, get) => ({
   chosen: new Set(),
   checked: 0,
   applied: 0,
+  coversSkipped: null,
 
   async look() {
     const library = useLibraryStore.getState()
@@ -76,17 +88,15 @@ export const useTidyStore = create<TidyState>((set, get) => ({
 
     // Reading art needs the actual files, which need the folder permission. On
     // a reloaded library that has not been re-granted there is nothing to read,
-    // and saying so beats finding zero covers and calling the library tidy.
-    if (filesByPath.size === 0) {
-      set({ status: 'unavailable', proposals: [], checked: 0 })
-      return
-    }
+    // and saying so beats finding zero covers and calling the library tidy —
+    // but records split in two are found from the tags alone, so they still are.
+    const coversSkipped: CoversSkipped = filesByPath.size > 0 ? null : isNativeShell() ? 'phone' : 'access'
 
     releasePreviews(get().proposals)
-    set({ status: 'looking', proposals: [], chosen: new Set(), applied: 0 })
+    set({ status: 'looking', proposals: [], chosen: new Set(), applied: 0, coversSkipped })
 
     const byId = new Map(tracks.map((t) => [t.id, t]))
-    const gaps = findCoverGaps(tracks, albums)
+    const gaps = coversSkipped ? [] : findCoverGaps(tracks, albums)
     const found: Proposal[] = []
 
     for (const gap of gaps) {

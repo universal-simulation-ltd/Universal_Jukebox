@@ -136,7 +136,7 @@ After adding or removing songs in the cloud, choose **Rescan**.
 
 Your shelves, your requests, your settings and any lyrics files you added exist only in the app. To keep them, open **Tune this app** and then **Backup**:
 
-- **Save a backup file** makes one small file you can keep anywhere, Proton Drive included. No account is needed. In the phone apps it is saved in the app’s Documents folder, and you can move it from the Files app.
+- **Save a backup file** makes one small file you can keep anywhere. No account is needed. In the phone apps it is saved in the app’s Documents folder, and you can move it from the Files app.
 - **Back up to your Universal ID** keeps the same backup with your account, if you are signed in. It is replaced each time you back up, and you can delete it. It isn’t end-to-end encrypted. If it is too big for your account, the app says what it left out, and a backup file keeps everything.
 
 ## On a new phone
