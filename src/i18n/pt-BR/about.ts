@@ -49,6 +49,9 @@ const about: Draft['about'] = {
   'app_turntable': 'Aperte play em qualquer coisa — uma faixa, um álbum, um resultado de busca — e você vai parar no aparelho de som: o disco começa a girar, o braço desce e a música começa. A agulha vai avançando para o centro enquanto a faixa toca, e levanta e volta para a borda para a próxima. Qualquer clique ou tecla pula a introdução, e você pode deixá-la só para um álbum novo, só uma vez por visita ou nunca, em {settings}, além de fades e um reforço de volume para álbuns masterizados baixos.',
   'app_tune_this_app': 'Ajustar este app',
   'app_preview': 'A exceção é o pequeno botão de fones de ouvido ao lado de cada faixa da sua biblioteca. Ele toca dez segundos, a partir do décimo segundo — o bastante para saber se é a música que você queria — sem tirar você da página nem atrapalhar o que já estava tocando.',
+  'app_built_with_heading': 'Feito com',
+  'app_built_with': 'Este aplicativo se apoia no trabalho destes projetos de código aberto.',
+  'app_all_packages': 'Todos os {count} pacotes e suas licenças',
   'app_footer': 'Gratuito e de código aberto, como todo Universal App. Feito pela {unisim} · {source}.',
   'app_footer_source': 'o código-fonte no GitHub',
 }

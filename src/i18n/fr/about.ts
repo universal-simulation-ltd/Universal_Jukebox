@@ -49,6 +49,9 @@ const about: Draft['about'] = {
   'app_turntable': 'Lancez la lecture de n’importe quoi — une piste, un album, un résultat de recherche — et vous arrivez sur la platine : elle prend de la vitesse, le bras descend, et la musique démarre. L’aiguille avance ensuite vers le centre au fil du morceau, puis se lève et revient au bord extérieur pour le suivant. Un clic ou une touche quelconque passe l’intro, et vous pouvez ne la garder que pour un nouvel album, qu’une fois par visite, ou jamais, dans {settings}, avec les fondus et une amplification du volume pour les albums mixés trop bas.',
   'app_tune_this_app': 'Régler cette application',
   'app_preview': 'L’exception, c’est le petit bouton en forme de casque à côté de chaque piste de votre bibliothèque. Il joue dix secondes, prises à partir de la dixième seconde — assez pour savoir si c’est bien celle que vous vouliez — sans vous faire quitter la page ni interrompre ce qui était déjà en cours de lecture.',
+  'app_built_with_heading': 'Développée avec',
+  'app_built_with': 'Cette application repose sur le travail de ces projets open source.',
+  'app_all_packages': 'Les {count} paquets et leurs licences',
   'app_footer': 'Gratuit et open source, comme toutes les Universal Apps. Créé par {unisim} · {source}.',
   'app_footer_source': 'le code source sur GitHub',
 }

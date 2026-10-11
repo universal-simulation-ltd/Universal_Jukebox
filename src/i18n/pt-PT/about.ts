@@ -46,6 +46,9 @@ const about: Draft['about'] = {
   'app_turntable': 'Carregue em reproduzir em qualquer coisa — uma faixa, um álbum, um resultado de pesquisa — e chega à aparelhagem: o prato começa a girar, o braço desce e a música começa. A agulha vai avançando para o centro enquanto a faixa toca, levanta-se e volta à borda exterior para a seguinte. Qualquer clique ou tecla salta a introdução, e pode tê-la só num álbum novo, só uma vez por visita ou nunca, em {settings}, juntamente com desvanecimentos e um reforço de volume para álbuns masterizados com pouco volume.',
   'app_tune_this_app': 'Ajustar esta aplicação',
   'app_preview': 'A exceção é o pequeno botão dos auscultadores ao lado de cada faixa da biblioteca. Esse reproduz dez segundos, a partir dos dez segundos — o suficiente para saber se é a que queria — sem sair da página nem interromper o que já estava a tocar.',
+  'app_built_with_heading': 'Desenvolvida com',
+  'app_built_with': 'Esta aplicação assenta no trabalho destes projetos de código aberto.',
+  'app_all_packages': 'Todos os {count} pacotes e as suas licenças',
   'app_footer': 'Gratuita e de código aberto, como todas as Universal Apps. Feita por {unisim} · {source}.',
   'app_footer_source': 'o código-fonte no GitHub',
 }

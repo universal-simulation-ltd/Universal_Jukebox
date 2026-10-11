@@ -46,6 +46,9 @@ const about: Draft['about'] = {
   'app_turntable': 'Pulsa reproducir en cualquier cosa (una pista, un álbum, un resultado de búsqueda) y llegas al aparato: arranca, baja el brazo y empieza la música. Luego la aguja avanza hacia dentro mientras suena la pista, y se levanta y vuelve al borde exterior para la siguiente. Cualquier clic o tecla se salta la introducción, y en {settings} puedes hacer que solo salga con un álbum nuevo, una vez por visita o nunca, además de fundidos y un refuerzo de volumen para álbumes masterizados a bajo volumen.',
   'app_tune_this_app': 'Ajustar esta app',
   'app_preview': 'La excepción es el pequeño botón de auriculares junto a cada pista de tu biblioteca. Reproduce diez segundos, a partir del segundo diez (lo justo para saber si es la que buscabas), sin sacarte de la página ni interrumpir lo que ya estuviera sonando.',
+  'app_built_with_heading': 'Creada con',
+  'app_built_with': 'Esta aplicación se apoya en el trabajo de estos proyectos de código abierto.',
+  'app_all_packages': 'Los {count} paquetes y sus licencias',
   'app_footer': 'Gratuita y de código abierto, como todas las Universal Apps. Creada por {unisim} · {source}.',
   'app_footer_source': 'el código fuente en GitHub',
 }

@@ -55,6 +55,9 @@ export default {
   'app_turntable': 'Press play on anything — a track, an album, a search result — and you land on the deck: it spins up, the arm comes down, and the music starts. The needle then works its way in as the track plays, and comes off and back to the outside edge for the next one. Any click or key skips the intro, and you can have it only on a new album, only once a visit, or never at all in {settings}, along with fades and a volume boost for quietly-mastered albums.', // {settings} is a link reading "Tune this app"
   'app_tune_this_app': 'Tune this app', // the settings page's name, as a link — use the same words as the page's own title
   'app_preview': 'The exception is the small headphones button beside every track in your library. That plays ten seconds, taken ten seconds in — enough to know whether it is the one you meant — without moving you off the page or disturbing whatever you already had playing.',
+  'app_built_with_heading': 'Built with', // heading over the list of open-source projects the app ships
+  'app_built_with': 'This app stands on the work of these open-source projects.', // under that heading
+  'app_all_packages': 'All {count} packages and their licences', // link to the full licence texts; {count} is a number
   'app_footer': 'Free and open source, like every Universal App. Built by {unisim} · {source}.', // {unisim} is a link reading "UNI·SIM"; {source} is a link reading "the source on GitHub"
   'app_footer_source': 'the source on GitHub', // link to the app's code
 } as const

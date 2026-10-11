@@ -46,6 +46,9 @@ const about: Draft['about'] = {
   'app_turntable': 'Tippe bei irgendetwas auf Abspielen – einem Titel, einem Album, einem Suchergebnis –, und du landest beim Abspielgerät: Es läuft an, der Tonarm senkt sich, und die Musik beginnt. Die Nadel arbeitet sich dann während des Titels nach innen vor, hebt ab und kehrt für den nächsten zum äußeren Rand zurück. Jeder Klick und jede Taste überspringt das Intro, und in {settings} kannst du es nur bei einem neuen Album, nur einmal pro Besuch oder gar nicht haben, dazu Ein- und Ausblenden und eine Lautstärkeanhebung für leise gemasterte Alben.',
   'app_tune_this_app': 'Diese App anpassen',
   'app_preview': 'Die Ausnahme ist die kleine Kopfhörer-Taste neben jedem Titel in deiner Mediathek. Sie spielt zehn Sekunden ab, ab Sekunde zehn – genug, um zu wissen, ob es der gemeinte Titel ist –, ohne dass du die Seite verlässt oder das störst, was gerade läuft.',
+  'app_built_with_heading': 'Entwickelt mit',
+  'app_built_with': 'Diese App baut auf der Arbeit dieser Open-Source-Projekte auf.',
+  'app_all_packages': 'Alle {count} Pakete und ihre Lizenzen',
   'app_footer': 'Kostenlos und Open Source, wie jede Universal App. Entwickelt von {unisim} · {source}.',
   'app_footer_source': 'der Quellcode auf GitHub',
 }

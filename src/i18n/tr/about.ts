@@ -46,6 +46,9 @@ const about: Draft['about'] = {
   'app_turntable': 'Herhangi bir şeyde — bir parça, bir albüm, bir arama sonucu — çal’a bastığınızda kendinizi çalarda bulursunuz: plak dönmeye başlar, ton kolu iner ve müzik başlar. Ardından iğne, parça çaldıkça içeri doğru ilerler; sonraki parça için kalkıp dış kenara geri döner. Herhangi bir tıklama ya da tuş girişi atlar; bunun yalnızca yeni bir albümde, her açılışta bir kez ya da hiçbir zaman olmasını {settings} bölümünden seçebilirsiniz; orada yavaş açılma/kapanma ve sessiz masterlanmış albümler için ses yükseltme de vardır.',
   'app_tune_this_app': 'Bu uygulamayı ayarla',
   'app_preview': 'İstisna, kitaplığınızdaki her parçanın yanındaki küçük kulaklık düğmesidir. Bu düğme, parçanın onuncu saniyesinden başlayarak on saniye çalar — aradığınız şarkı olup olmadığını anlamaya yeter — sizi sayfadan götürmeden ve zaten çalan müziği bozmadan.',
+  'app_built_with_heading': 'Şununla geliştirildi',
+  'app_built_with': 'Bu uygulama şu açık kaynak projelerin emeği üzerine kurulu.',
+  'app_all_packages': 'Tüm {count} paket ve lisansları',
   'app_footer': 'Her Universal App gibi ücretsiz ve açık kaynak. Yapan: {unisim} · {source}.',
   'app_footer_source': 'GitHub’daki kaynak kodu',
 }

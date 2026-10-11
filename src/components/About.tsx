@@ -9,6 +9,10 @@
 
 import { goHome, navigate } from '../lib/route'
 import { useT } from '../i18n'
+// Generated — `npm run credits` after any dependency change. Never edit by hand.
+import credits from '../generated/credits.json'
+
+const NOTICES = 'https://github.com/universal-simulation-ltd/Universal_Jukebox/blob/main/THIRD-PARTY-NOTICES.md'
 
 export default function About() {
   const t = useT()
@@ -109,6 +113,33 @@ export default function About() {
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
         {t('about.app_preview')}
+      </p>
+
+      {/* The projects that ship inside the app, and the full licence texts.
+          MIT and the rest require the notice to travel with the app, which is
+          what THIRD-PARTY-NOTICES.md is; this list is the courtesy. Jukebox has
+          its own About page rather than the SDK's dialog, so it carries the
+          dialog's "Built with" itself. Regenerate with `npm run credits`. */}
+      <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
+        {t('about.app_built_with_heading')}
+      </h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
+        {t('about.app_built_with')}
+      </p>
+      <ul className="mt-3 space-y-2 text-[14px] leading-relaxed text-slate-700 dark:text-slate-300">
+        {credits.ships.map((c) => (
+          <li key={c.name}>
+            <a href={c.repo} target="_blank" rel="noreferrer" className="font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
+              {c.title ?? c.name}
+            </a>
+            <span className="text-slate-500 dark:text-slate-400"> · {c.licence}{c.authors?.length ? ` · ${c.authors.join(', ')}` : ''}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-[14px]">
+        <a href={NOTICES} target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
+          {t('about.app_all_packages', { count: String(credits.noticesCount) })}
+        </a>
       </p>
 
       <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">

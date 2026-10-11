@@ -46,6 +46,9 @@ const about: Draft['about'] = {
   'app_turntable': 'Premi play su qualsiasi cosa (una traccia, un album, un risultato di ricerca) e arrivi all’apparecchio: il disco prende velocità, il braccio si abbassa e la musica parte. Poi la puntina avanza verso il centro mentre la traccia suona, e si solleva e torna al bordo esterno per la successiva. Qualsiasi clic o tasto salta l’introduzione, e in {settings} puoi averla solo con un nuovo album, solo una volta per visita o mai, insieme alle dissolvenze e a un’amplificazione del volume per gli album masterizzati a basso volume.',
   'app_tune_this_app': 'Regola questa app',
   'app_preview': 'L’eccezione è il piccolo pulsante con le cuffie accanto a ogni traccia della libreria. Riproduce dieci secondi, a partire dal decimo secondo (abbastanza per capire se è quella giusta), senza farti lasciare la pagina e senza disturbare ciò che stavi già ascoltando.',
+  'app_built_with_heading': 'Realizzata con',
+  'app_built_with': 'Questa applicazione si basa sul lavoro di questi progetti open source.',
+  'app_all_packages': 'Tutti i {count} pacchetti e le loro licenze',
   'app_footer': 'Libera e open source, come ogni Universal App. Creata da {unisim} · {source}.',
   'app_footer_source': 'il codice sorgente su GitHub',
 }
