@@ -84,6 +84,9 @@ const library: Draft['library'] = {
   'play_next': 'Sonra çal',
   'add_to_a_shelf': 'Bir rafa ekle…',
   'go_to_album': 'Albüme git',
+  'open_album': 'Albümü aç',
+  'go_to_artist': '{artist} sayfasına git',
+  'view_albums': 'Albümlerini gör',
 
   'add_to_queue': 'Kuyruğa ekle',
   'add_song_to_queue': '“{title}” şarkısını kuyruğa ekle',

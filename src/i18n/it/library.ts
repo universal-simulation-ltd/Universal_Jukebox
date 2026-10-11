@@ -84,6 +84,9 @@ const library: Draft['library'] = {
   'play_next': 'Riproduci dopo',
   'add_to_a_shelf': 'Aggiungi a uno scaffale…',
   'go_to_album': 'Vai all’album',
+  'open_album': 'Apri l’album',
+  'go_to_artist': 'Vai a {artist}',
+  'view_albums': 'Vedi gli album',
 
   'add_to_queue': 'Aggiungi alla coda',
   'add_song_to_queue': 'Aggiungi «{title}» alla coda',

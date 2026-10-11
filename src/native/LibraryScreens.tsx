@@ -31,6 +31,7 @@ import { PREVIEW_RUN_SEC, PREVIEW_START_SEC } from '../lib/audio'
 import TrackOptions from '../components/TrackOptions'
 import ResumeCard from '../components/ResumeCard'
 import { haptic } from '../lib/haptics'
+import { useCollectionHold } from './CollectionHold'
 import { PullDrawer } from './PullDrawer'
 import { makeDefault, useHold, useListDefaults } from './listDefaults'
 
@@ -345,6 +346,8 @@ export function AlbumsScreen(props: ListProps) {
   const setSetting = useSettingsStore((s) => s.set)
   const shuffleAlbums = usePlayerStore((s) => s.shuffleAlbums)
   const layout = useLayout('albums', order, genre)
+  // Hold an album for what it offers (`CollectionHold`).
+  const held = useCollectionHold()
   const shown = useMemo(() => {
     const pool = fullOnly ? seen.albums.filter(isFullAlbum) : seen.albums
     const ordered = layout.effective.kind === 'random' ? seededOrder(pool, (a) => a.id, layout.effective.seed) : [...pool].sort((a, b) => compareBase(a.title, b.title))
@@ -381,13 +384,14 @@ export function AlbumsScreen(props: ListProps) {
         <>
           {/* "Pick up where you left off" — the website puts it in its lists
               too; it draws nothing when there is nothing to resume. */}
+          {held.sheet}
           {!query.trim() && <ResumeCard />}
           <Nothing query={shown.length === 0 ? query : ''} />
           {layout.columns === 1 ? (
             <ul className="jx-list">
               {shown.slice(0, limit).map((album) => (
                 <li key={album.id}>
-                  <button type="button" className="jx-row" onClick={() => navigate({ view: 'album', albumId: album.id })}>
+                  <button type="button" className="jx-row" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
                     <Cover album={album} className="jx-thumb" />
                     <span>
                       <b>{shownName(album.title)}</b>
@@ -407,7 +411,7 @@ export function AlbumsScreen(props: ListProps) {
             <ul key={layout.columns} className={`jx-grid n${layout.columns}`}>
               {shown.slice(0, limit).map((album) => (
                 <li key={album.id}>
-                  <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
+                  <button type="button" className="jx-tile" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
                     <Cover album={album} className="jx-cover" />
                     <b>{shownName(album.title)}</b>
                     <small>{shownName(album.artist)}</small>
@@ -432,6 +436,8 @@ export function ArtistsScreen(props: ListProps) {
   const setSetting = useSettingsStore((s) => s.set)
   const shuffleArtists = usePlayerStore((s) => s.shuffleArtists)
   const layout = useLayout('artists', order, genre)
+  // Hold an artist for their albums, all their songs, play or shuffle (`CollectionHold`).
+  const held = useCollectionHold()
   const pool = useMemo(() => (min3 ? albumsOfBigArtists(seen.albums) : seen.albums), [seen.albums, min3])
   /** Each artist's albums, so a row can show a cover and a count. */
   const byArtist = useMemo(() => {
@@ -476,6 +482,7 @@ export function ArtistsScreen(props: ListProps) {
         <div className="jx-web"><ArtistList query={query} order={layout.effective} genre={genre} /></div>
       ) : (
         <>
+          {held.sheet}
           {!query.trim() && <ResumeCard />}
           <Nothing query={names.length === 0 ? query : ''} />
           {/* Keyed by the layout, as the albums grid is (see there). */}
@@ -486,7 +493,7 @@ export function ArtistsScreen(props: ListProps) {
               return (
                 <li key={name}>
                   {layout.columns === 1 ? (
-                    <button type="button" className="jx-row" onClick={() => navigate({ view: 'artist', artist: name })}>
+                    <button type="button" className="jx-row" {...held.bind({ kind: 'artist', name })} onClick={() => { if (!held.consumed()) navigate({ view: 'artist', artist: name }) }}>
                       <Cover album={face} className="jx-thumb round" />
                       <span>
                         <b>{shownName(name)}</b>
@@ -494,7 +501,7 @@ export function ArtistsScreen(props: ListProps) {
                       </span>
                     </button>
                   ) : (
-                    <button type="button" className="jx-tile" onClick={() => navigate({ view: 'artist', artist: name })}>
+                    <button type="button" className="jx-tile" {...held.bind({ kind: 'artist', name })} onClick={() => { if (!held.consumed()) navigate({ view: 'artist', artist: name }) }}>
                       <Cover album={face} className="jx-cover round" />
                       <b>{shownName(name)}</b>
                       <small>{t.plural('common.albums', theirs.length)}</small>

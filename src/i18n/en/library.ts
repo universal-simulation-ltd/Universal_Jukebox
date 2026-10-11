@@ -102,6 +102,9 @@ export default {
   'play_next': 'Play next',
   'add_to_a_shelf': 'Add to a shelf…',
   'go_to_album': 'Go to the album',
+  'open_album': 'Open the album', // in the sheet a held album opens
+  'go_to_artist': 'Go to {artist}', // the same sheet; {artist} is the album's artist
+  'view_albums': 'View their albums', // in the sheet a held artist opens
 
   // Add to queue (AddToQueue, TrackOptions)
   'add_to_queue': 'Add to queue',

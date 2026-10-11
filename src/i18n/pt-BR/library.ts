@@ -93,6 +93,9 @@ const library: Draft['library'] = {
   'play_next': 'Tocar a seguir',
   'add_to_a_shelf': 'Adicionar a uma estante…',
   'go_to_album': 'Ir para o álbum',
+  'open_album': 'Abrir o álbum',
+  'go_to_artist': 'Ir para {artist}',
+  'view_albums': 'Ver os álbuns',
 
   // Add to queue
   'add_to_queue': 'Adicionar à fila',

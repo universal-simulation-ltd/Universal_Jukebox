@@ -5,6 +5,7 @@ import type { Album, Track } from './types'
 import { COLUMN_CYCLE, type LibraryColumns } from '../stores/settingsStore'
 import { ORDER_KINDS, type OrderKind } from './order'
 import { getT } from '../i18n/runtime.ts'
+import { compareBase } from './collate'
 
 /**
  * A–Z is each list's own alphabetical order (albums by title,
@@ -304,4 +305,10 @@ function cut<T>(items: readonly T[], sizes: number[]): T[][] {
     at += size
   }
   return out.filter((row) => row.length > 0)
+}
+
+/** An artist's albums oldest first, then A–Z — their page, and their songs in a held artist's sheet. */
+export function byYearThenTitle(a: { year?: number; title: string }, b: { year?: number; title: string }): number {
+  const year = (a.year ?? 9999) - (b.year ?? 9999)
+  return year !== 0 ? year : compareBase(a.title, b.title)
 }

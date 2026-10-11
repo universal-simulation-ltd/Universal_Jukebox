@@ -9,17 +9,18 @@ import { matchTracks } from '../lib/search'
 import { PullDrawer } from './PullDrawer'
 import Cover from '../components/Cover'
 import { VinylRecord } from '../components/decks/VinylRecord'
-import { compareBase } from '../lib/collate'
 import { shownName, totalTime } from '../lib/format'
 import { useT } from '../i18n'
 import { navigate } from '../lib/route'
-import type { Album, Track } from '../lib/types'
+import type { Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
 import AddToQueue from '../components/AddToQueue'
 import AddToShelf from '../components/AddToShelf'
 import { IconPlay, IconShuffle } from './icons'
 import { SearchBox, SongList } from './LibraryScreens'
+import { byYearThenTitle } from '../lib/libraryView'
+import { useCollectionHold } from './CollectionHold'
 
 function usePlayShuffle() {
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -155,6 +156,8 @@ export function ArtistScreen({ name }: { name: string }) {
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
   const albums = useMemo(() => allAlbums.filter((a) => a.artist === name).sort(byYearThenTitle), [allAlbums, name])
+  // Hold one of their albums for what it offers (`CollectionHold`).
+  const held = useCollectionHold()
   /** Every song of theirs, album by album, oldest album first. */
   const tracks = useMemo(() => {
     const byAlbum = new Map(albums.map((a) => [a.id, [] as typeof allTracks]))
@@ -177,10 +180,11 @@ export function ArtistScreen({ name }: { name: string }) {
         <p className="jx-sub">{[t.plural('common.albums', albums.length), t.plural('common.tracks', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
       </div>
       <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
+      {held.sheet}
       <ul className="jx-grid">
         {albums.map((album) => (
           <li key={album.id}>
-            <button type="button" className="jx-tile" onClick={() => navigate({ view: 'album', albumId: album.id })}>
+            <button type="button" className="jx-tile" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
               <Cover album={album} className="jx-cover" />
               <b>{shownName(album.title)}</b>
               <small>{[album.year, t.plural('common.tracks', album.trackCount)].filter(Boolean).join(' · ')}</small>
@@ -205,7 +209,3 @@ export function ArtistScreen({ name }: { name: string }) {
   )
 }
 
-function byYearThenTitle(a: Album, b: Album): number {
-  const year = (a.year ?? 9999) - (b.year ?? 9999)
-  return year !== 0 ? year : compareBase(a.title, b.title)
-}
