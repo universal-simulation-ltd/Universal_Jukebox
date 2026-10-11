@@ -1,4 +1,5 @@
-import { forwardRef, type MouseEvent, type ReactNode } from 'react'
+import { forwardRef, useRef, type MouseEvent, type ReactNode } from 'react'
+import { haptic } from '../lib/haptics'
 
 // One round button with its word underneath — the row under the records
 // waiting to go on (`PlayModes`): shuffle, the two repeats, a shelf, About.
@@ -20,18 +21,53 @@ export const ModeButton = forwardRef<
     onClick(e: MouseEvent<HTMLButtonElement>): void
     /** What a screen reader hears (and a hover shows), when it is more than `label`. */
     ariaLabel?: string
+    /** Which mode this is (`MODE_KEYS`), as `data-mode` — how the store screenshots find a button in any language. */
+    mode?: string
+    /** A press held for half a second (the Player button's full picker). The release after it isn't also a tap. */
+    onLongPress?: () => void
     children: ReactNode
   }
->(function ModeButton({ label, on, onClick, ariaLabel, children }, ref) {
+>(function ModeButton({ label, on, onClick, ariaLabel, mode, onLongPress, children }, ref) {
   const lit = on === true
+  const hold = useRef<{ timer: number; fired: boolean } | null>(null)
+  const cancelHold = () => {
+    if (hold.current) window.clearTimeout(hold.current.timer)
+  }
+  const holdProps = onLongPress
+    ? {
+        onPointerDown: (e: React.PointerEvent) => {
+          if (e.button > 0) return
+          cancelHold()
+          const h = { timer: 0, fired: false }
+          h.timer = window.setTimeout(() => {
+            h.fired = true
+            haptic('thunk')
+            onLongPress()
+          }, 500)
+          hold.current = h
+        },
+        onPointerUp: cancelHold,
+        onPointerLeave: cancelHold,
+        onPointerCancel: cancelHold,
+        onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+      }
+    : {}
   return (
     <button
       ref={ref}
       type="button"
-      onClick={onClick}
+      {...holdProps}
+      onClick={(e) => {
+        if (hold.current?.fired) {
+          hold.current = null
+          return
+        }
+        onClick(e)
+      }}
       aria-pressed={on}
       aria-label={ariaLabel}
       title={ariaLabel}
+      data-mode={mode}
       className="group flex w-16 flex-col items-center gap-1.5 focus:outline-none sm:w-20"
     >
       <span

@@ -40,6 +40,18 @@
    "Baladeur"
   ]
  },
+ "05-bedside": {
+  "headline": [
+   "À côté",
+   "*du lit*"
+  ],
+  "caption": "Le disque, l’heure et la minuterie, en sombre pour une chambre dans le noir",
+  "chips": [
+   "Chevet",
+   "Minuteur de veille",
+   "Anti-veille"
+  ]
+ },
  "feature-graphic": {
   "tagline": "Votre musique, sur la platine"
  }

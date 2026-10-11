@@ -149,7 +149,7 @@ L’animation de changement de disque, et la fréquence à laquelle elle appara�
     title: 'Paroles : d’où viennent les mots',
     summary: 'D’abord les paroles de vos fichiers ou enregistrées à côté, puis une recherche en ligne facultative.',
     group: 'Fonctionnement',
-    body: `Appuyez sur **Paroles** dans l’écran En cours de lecture pour voir les paroles du morceau en cours. Elles peuvent venir de deux sources, toujours dans cet ordre.
+    body: `Appuyez sur **Afficher la feuille de paroles** dans l’écran En cours de lecture pour voir les paroles du morceau en cours. Elles peuvent venir de deux sources, toujours dans cet ordre.
 
 ## 1. Votre propre fichier
 

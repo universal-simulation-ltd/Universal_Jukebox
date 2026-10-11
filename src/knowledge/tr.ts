@@ -149,7 +149,7 @@ Plak değiştirme animasyonu ve ne sıklıkta göründüğü müzikle değil, g�
     title: 'Şarkı sözleri: sözler nereden gelir',
     summary: 'Önce dosyalarınızdaki ya da yanlarına kaydedilmiş sözler, isteğe bağlı olarak da çevrimiçi arama.',
     group: 'Nasıl çalışır',
-    body: `Çalan şarkının sözlerini görmek için **Şimdi çalıyor** ekranında **Şarkı sözleri** düğmesine dokunun. Sözler iki yerden gelebilir ve sıra hep aynıdır.
+    body: `Çalan şarkının sözlerini görmek için **Şimdi çalıyor** ekranında **Söz kâğıdını göster** düğmesine dokunun. Sözler iki yerden gelebilir ve sıra hep aynıdır.
 
 ## 1. Kendi dosyanız
 

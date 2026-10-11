@@ -13,8 +13,8 @@ const player: Draft['player'] = {
   'spec_track': 'Faixa {number}',
   'queued_position_one': '{position} de {count} faixa na fila',
   'queued_position_other': '{position} de {count} faixas na fila',
-  'show_lyrics': 'Mostrar a letra',
-  'hide_lyrics': 'Ocultar a letra',
+  'show_lyrics': 'Mostrar a folha da letra',
+  'hide_lyrics': 'Ocultar a folha da letra',
   'back_to_library': 'Voltar para a sua biblioteca',
 
   // Transport
@@ -103,7 +103,7 @@ const player: Draft['player'] = {
   'output_aria_here': 'Escolha por onde o som sai',
 
   // The machine
-  'player_aria': 'Aparelho: {deck}. Toque para {next}',
+  'player_aria': 'Aparelho: {deck}. Toque para {next}, ou toque e segure para escolher entre todos',
 
   // Preview
   'preview_stop_aria': 'Parar a prévia de {title}',
@@ -131,6 +131,7 @@ const player: Draft['player'] = {
   'error_unplayable_iphone': 'Não dá para tocar essa música — ela não está mais neste iPhone, ou é um download do Apple Music, que o iOS não deixa outros apps tocarem.',
   'skipped_not_on_iphone': 'não está mais neste iPhone',
   'skipped_file_missing': 'o arquivo sumiu',
+  'foldup_hint': 'Deslize para cima para ver mais botões',
 }
 
 export default player

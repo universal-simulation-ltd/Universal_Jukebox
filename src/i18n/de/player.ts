@@ -12,8 +12,8 @@ const player: Draft['player'] = {
   'spec_track': 'Titel {number}',
   'queued_position_one': '{position} von {count} Titel in der Warteschlange',
   'queued_position_other': '{position} von {count} Titeln in der Warteschlange',
-  'show_lyrics': 'Songtext anzeigen',
-  'hide_lyrics': 'Songtext ausblenden',
+  'show_lyrics': 'Textblatt anzeigen',
+  'hide_lyrics': 'Textblatt ausblenden',
   'back_to_library': 'Zurück zur Mediathek',
 
   'seek': 'Position',
@@ -93,7 +93,7 @@ const player: Draft['player'] = {
   'output_aria_away': 'Der Ton geht an ein anderes Gerät – wählen, wo er herauskommt',
   'output_aria_here': 'Wählen, wo der Ton herauskommt',
 
-  'player_aria': 'Abspielgerät: {deck}. Tippen für {next}',
+  'player_aria': 'Abspielgerät: {deck}. Tippen für {next}, gedrückt halten für alle zur Auswahl',
 
   'preview_stop_aria': 'Vorhören von {title} beenden',
   'preview_aria_one': '{title} vorhören – {count} Sekunde ab Sekunde {start}',
@@ -118,6 +118,7 @@ const player: Draft['player'] = {
   'error_unplayable_iphone': 'Dieser Song kann nicht abgespielt werden – er ist nicht mehr auf diesem iPhone, oder er ist ein Apple Music-Download, den iOS andere Apps nicht abspielen lässt.',
   'skipped_not_on_iphone': 'nicht mehr auf diesem iPhone',
   'skipped_file_missing': 'Datei fehlt',
+  'foldup_hint': 'Nach oben wischen für mehr Tasten',
 }
 
 export default player

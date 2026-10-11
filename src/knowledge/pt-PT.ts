@@ -149,7 +149,7 @@ A animação de mudança de disco, e a frequência com que aparece, diz respeito
     title: 'Letras: de onde vêm as palavras',
     summary: 'Primeiro as letras nos seus ficheiros ou guardadas junto a eles, e uma pesquisa online opcional.',
     group: 'Como funciona',
-    body: `Toque em **Mostrar a letra** no ecrã A reproduzir para ver as palavras da música que está a tocar. Pode vir de dois sítios, sempre por esta ordem.
+    body: `Toque em **Mostrar a folha da letra** no ecrã A reproduzir para ver as palavras da música que está a tocar. Pode vir de dois sítios, sempre por esta ordem.
 
 ## 1. O seu próprio ficheiro
 

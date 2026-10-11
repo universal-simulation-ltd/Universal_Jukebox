@@ -58,7 +58,8 @@ html.jx-phone .accent-\[\#E05504\] { accent-color: #b42318; }
 html.jx-phone { --jb-accent: #b42318; }
 html.jx-phone.dark { --jb-accent: #e5735f; }
 /* Dark mode draws the record navy on the website; warm black here. */
-html.jx-phone.dark .dark\:bg-\[\#12192b\] { background-color: #1a1613; }
+html.jx-phone.dark .dark\:bg-\[\#12192b\],
+html.jx-phone .dark .dark\:bg-\[\#12192b\] { background-color: #1a1613; } /* …and inside Bedside, which is dark on its own */
 
 .jx {
   --jx-bg: #f6f2ec;

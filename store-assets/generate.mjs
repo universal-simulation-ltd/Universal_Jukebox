@@ -46,7 +46,7 @@ const { chromium } = await import(
 // raw/<locale>/<class>/, which the store kit frames for that locale. en-GB is
 // the shared raw/<class>/.
 const LOCALE = process.env.LOCALE || 'en-GB'
-const APP_LANGUAGE = { 'en-GB': 'en', 'de-DE': 'de', 'fr-FR': 'fr', 'es-ES': 'es', 'it-IT': 'it', 'pt-BR': 'pt-BR', 'pt-PT': 'pt-PT', 'tr-TR': 'tr' }[LOCALE]
+const APP_LANGUAGE = { 'en-GB': 'en-gb', 'de-DE': 'de', 'fr-FR': 'fr', 'es-ES': 'es', 'it-IT': 'it', 'pt-BR': 'pt-BR', 'pt-PT': 'pt-PT', 'tr-TR': 'tr' }[LOCALE]
 if (!APP_LANGUAGE) throw new Error(`LOCALE ${LOCALE}: not one of the app's languages`)
 const rawDir = (dir) => (LOCALE === 'en-GB' ? dir : dir.replace(/^raw\//, `raw/${LOCALE}/`))
 
@@ -105,7 +105,7 @@ async function pullDown(page, ctx) {
  * a "Tap here" bubble belongs to somebody's first minute, not to a screenshot.
  */
 function settings(extra = {}) {
-  return { tipsSeen: ['record', 'cover', 'hold', 'shelfPlay'], lyricsAround: true, lyricsAroundStyle: 'orbit', ...extra }
+  return { tipsSeen: ['record', 'cover', 'hold', 'shelfPlay', 'foldUp'], lyricsAround: true, lyricsAroundStyle: 'orbit', ...extra }
 }
 
 /**
@@ -186,6 +186,25 @@ const CAPTURES = {
       await page.locator('.jx-tile', { hasText: 'Second Pressing' }).first().click()
       await page.waitForTimeout(900)
       await top(page)
+    },
+  },
+  // 05: Bedside — the record, the time and the song, dim on black (James,
+  // 2026-10-11: "add a final screen about the bedside mode"). Its button is
+  // in Now Playing's folded row; found by `data-mode`, clicked through the DOM
+  // because the fold hides it. The clock is held at 9:41, the time the store
+  // kit's status bar shows.
+  bedside: {
+    settings: settings({ deck: 'vinyl' }),
+    async run(page) {
+      await play(page, 'Forty-five')
+      await page.waitForTimeout(9000)
+      await page.clock.setFixedTime(new Date(2026, 9, 11, 9, 41))
+      await page.evaluate(() => {
+        const button = document.querySelector('[data-mode="bedside"]')
+        if (!button) throw new Error('no Bedside button on Now Playing')
+        button.click()
+      })
+      await page.waitForTimeout(2500)
     },
   },
   // Tune this app, the machines open (its third card, in every language).

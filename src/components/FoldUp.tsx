@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useT } from '../i18n'
+import { markTipSeen } from '../lib/tips'
+import { useSettingsStore } from '../stores/settingsStore'
 
 // The last row of Now Playing on a PHONE — shuffle, the repeats, a shelf, the
 // "i" — folded away under the records waiting to go on, and pulled up into view
@@ -317,18 +320,62 @@ export default function FoldUp({
 
   if (!phone) return <>{children}</>
   return (
-    <div
-      ref={box}
-      className="h-0 overflow-hidden opacity-0"
-      onFocus={() => {
-        if (!open) opener.current()
-      }}
-    >
-      {/* `flow-root`, so the row's own top margin is inside the height measured. */}
-      <div ref={inner} className="flow-root pb-2">
-        {children}
+    <>
+      <div
+        ref={box}
+        className="h-0 overflow-hidden opacity-0"
+        onFocus={() => {
+          if (!open) opener.current()
+        }}
+      >
+        {/* `flow-root`, so the row's own top margin is inside the height measured. */}
+        <div ref={inner} className="flow-root pb-2">
+          {children}
+        </div>
       </div>
-    </div>
+      <FoldHint
+        open={open}
+        onOpen={() => {
+          opener.current()
+          // The row opens at the END of the page: go there to see it.
+          requestAnimationFrame(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }))
+        }}
+      />
+    </>
+  )
+}
+
+/**
+ * The first-run hint that the row is here (James, 2026-10-11: "for a new
+ * user, give a hint so they know to swipe up to reveal the additional buttons
+ * on the now playing screen"). A pill at the foot of the screen, a moment
+ * after Now Playing opens; tapping it opens the row too. Once the row has been
+ * opened — by the swipe or the pill — it is gone for good (the `foldUp` tip;
+ * "Show the tips again" brings it back, like the others).
+ */
+function FoldHint({ open, onOpen }: { open: boolean; onOpen(): void }) {
+  const t = useT()
+  const seen = useSettingsStore((s) => s.tipsSeen.includes('foldUp'))
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    if (open) markTipSeen('foldUp')
+  }, [open])
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShown(true), 1600)
+    return () => window.clearTimeout(timer)
+  }, [])
+  if (seen || open || !shown) return null
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+14px)] left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-orange-600 px-4 py-2 text-[13px] font-semibold whitespace-nowrap text-white shadow-lg motion-safe:animate-[jb-tip-bob_1.6s_ease-in-out_infinite]"
+    >
+      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M5 12l5-5 5 5" />
+      </svg>
+      {t('player.foldup_hint')}
+    </button>
   )
 }
 

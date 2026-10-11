@@ -149,7 +149,7 @@ L’animazione del cambio di disco, e la frequenza con cui compare, riguarda l�
     title: 'Testi: da dove vengono le parole',
     summary: 'Prima i testi nei tuoi file o salvati accanto, poi una ricerca online facoltativa.',
     group: 'Come funziona',
-    body: `Premi **Mostra il testo** nella schermata In riproduzione per vedere il testo del brano in riproduzione. Può arrivare da due fonti, sempre in quest’ordine.
+    body: `Premi **Mostra il foglio dei testi** nella schermata In riproduzione per vedere il testo del brano in riproduzione. Può arrivare da due fonti, sempre in quest’ordine.
 
 ## 1. Il tuo file
 

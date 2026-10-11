@@ -54,6 +54,7 @@ export function BedsideButton() {
       <ModeButton
         label={t('player.bedside')}
         ariaLabel={t('player.bedside_aria')}
+        mode="bedside"
         onClick={() => useBedside.setState({ open: true })}
       >
         <BedsideGlyph />

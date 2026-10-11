@@ -40,6 +40,18 @@
    "Cep müzik çalar"
   ]
  },
+ "05-bedside": {
+  "headline": [
+   "Başucunda",
+   "*çalsın*"
+  ],
+  "caption": "Plak, saat ve uyku zamanlayıcısı; karanlık bir oda için siyah üzerinde loş",
+  "chips": [
+   "Başucu",
+   "Uyku zamanlayıcısı",
+   "Ekran açık"
+  ]
+ },
  "feature-graphic": {
   "tagline": "Müziğiniz pikapta"
  }

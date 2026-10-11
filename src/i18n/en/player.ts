@@ -19,8 +19,8 @@ export default {
   'spec_track': 'Track {number}', // chip: the track's number on its album, "Track 3"
   'queued_position_one': '{position} of {count} track queued', // desktop, under the transport: "3 of 12 tracks queued"
   'queued_position_other': '{position} of {count} tracks queued',
-  'show_lyrics': 'Show lyrics', // button, opens the lyrics under the record
-  'hide_lyrics': 'Hide lyrics',
+  'show_lyrics': 'Show the lyric sheet', // button, opens the lyrics as a sheet under the record — named so it isn't taken for the words going round the record (James, 2026-10-11)
+  'hide_lyrics': 'Hide the lyric sheet',
   'back_to_library': 'Back to your library', // link above the record (desktop)
 
   // Transport (StageTransport, PlayerBar)
@@ -109,7 +109,7 @@ export default {
   'output_aria_here': 'Choose where the sound comes out',
 
   // The machine (PlayerButton) — {deck} and {next} are machine names: Vinyl, CD, Cassette…
-  'player_aria': 'Player: {deck}. Tap for {next}',
+  'player_aria': 'Player: {deck}. Tap for {next}, or hold to choose from them all',
 
   // Preview (PreviewButton) — a short listen from a song list
   'preview_stop_aria': 'Stop previewing {title}',
@@ -137,4 +137,5 @@ export default {
   'error_unplayable_iphone': 'That song can’t be played — it isn’t on this iPhone any more, or it’s an Apple Music download, which iOS doesn’t let other apps play.',
   'skipped_not_on_iphone': 'not on this iPhone any more', // why a song was skipped, after its name: "Song · not on this iPhone any more"
   'skipped_file_missing': 'its file is missing', // why a song was skipped, after its name: "Song · its file is missing"
+  'foldup_hint': 'Swipe up for more buttons', // a first-run hint at the foot of Now Playing on a phone: the row of round buttons (shuffle, repeat, sleep…) is folded away below and opens with a swipe up; tapping the hint opens it too. Keep short
 } as const

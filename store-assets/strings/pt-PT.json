@@ -40,6 +40,18 @@
    "Leitor de bolso"
   ]
  },
+ "05-bedside": {
+  "headline": [
+   "Ao lado",
+   "*da cama*"
+  ],
+  "caption": "O disco, as horas e o temporizador, escurecidos para um quarto às escuras",
+  "chips": [
+   "Cabeceira",
+   "Temporizador de suspensão",
+   "Ecrã ligado"
+  ]
+ },
  "feature-graphic": {
   "tagline": "A sua música, no gira-discos"
  }

@@ -12,8 +12,8 @@ const player: Draft['player'] = {
   'spec_track': '{number}. parça',
   'queued_position_one': 'Kuyruk: {position} / {count} parça',
   'queued_position_other': 'Kuyruk: {position} / {count} parça',
-  'show_lyrics': 'Sözleri göster',
-  'hide_lyrics': 'Sözleri gizle',
+  'show_lyrics': 'Söz kâğıdını göster',
+  'hide_lyrics': 'Söz kâğıdını gizle',
   'back_to_library': 'Kitaplığınıza dönün',
 
   'seek': 'Konum',
@@ -93,7 +93,7 @@ const player: Draft['player'] = {
   'output_aria_away': 'Ses başka bir cihaza gidiyor — sesin nereden çıkacağını seçin',
   'output_aria_here': 'Sesin nereden çıkacağını seçin',
 
-  'player_aria': 'Çalar: {deck}. {next} için dokunun',
+  'player_aria': 'Çalar: {deck}. {next} için dokunun, hepsinden seçmek için basılı tutun',
 
   'preview_stop_aria': '{title} için ön dinlemeyi durdur',
   'preview_aria_one': '{title} için ön dinleme — {start}. saniyeden itibaren {count} saniye',
@@ -118,6 +118,7 @@ const player: Draft['player'] = {
   'error_unplayable_iphone': 'O şarkı çalınamıyor — artık bu iPhone’da değil ya da bir Apple Music indirmesi; iOS bunları başka uygulamaların çalmasına izin vermez.',
   'skipped_not_on_iphone': 'artık bu iPhone’da değil',
   'skipped_file_missing': 'dosyası eksik',
+  'foldup_hint': 'Daha fazla düğme için yukarı kaydırın',
 }
 
 export default player

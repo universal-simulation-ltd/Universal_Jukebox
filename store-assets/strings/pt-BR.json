@@ -40,6 +40,18 @@
    "Player de bolso"
   ]
  },
+ "05-bedside": {
+  "headline": [
+   "Ao lado",
+   "*da cama*"
+  ],
+  "caption": "O disco, a hora e o timer, em tons escuros para um quarto no escuro",
+  "chips": [
+   "Cabeceira",
+   "Timer de desligamento",
+   "Tela ligada"
+  ]
+ },
  "feature-graphic": {
   "tagline": "Suas músicas, no toca-discos"
  }

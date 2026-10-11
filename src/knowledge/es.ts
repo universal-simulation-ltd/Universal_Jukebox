@@ -149,7 +149,7 @@ La animación de cambio de disco, y la frecuencia con que aparece, afecta a la i
     title: 'Letras: de dónde salen las palabras',
     summary: 'Primero las letras de sus archivos o guardadas junto a ellos, y una búsqueda en línea opcional.',
     group: 'Cómo funciona',
-    body: `Pulse **Mostrar la letra** en la pantalla Reproduciendo para ver la letra de la canción que está sonando. Puede venir de dos sitios, siempre en este orden.
+    body: `Pulse **Mostrar la hoja de letras** en la pantalla Reproduciendo para ver la letra de la canción que está sonando. Puede venir de dos sitios, siempre en este orden.
 
 ## 1. Su propio archivo
 

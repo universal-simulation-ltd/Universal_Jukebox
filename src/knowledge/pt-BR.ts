@@ -149,7 +149,7 @@ A animação de troca de disco, e a frequência com que ela aparece, tem a ver c
     title: 'Letras: de onde vêm as palavras',
     summary: 'Primeiro as letras nos seus arquivos ou salvas ao lado deles, e uma busca on-line opcional.',
     group: 'Como funciona',
-    body: `Toque em **Mostrar a letra** em Tocando agora para ver a letra da música que está tocando. Ela pode vir de dois lugares, sempre nesta ordem.
+    body: `Toque em **Mostrar a folha da letra** em Tocando agora para ver a letra da música que está tocando. Ela pode vir de dois lugares, sempre nesta ordem.
 
 ## 1. O seu próprio arquivo
 

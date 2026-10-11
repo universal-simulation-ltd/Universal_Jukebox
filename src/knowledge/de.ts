@@ -149,7 +149,7 @@ Die Plattenwechsel-Animation und wie oft sie erscheint, betrifft das Bild und se
     title: 'Songtexte: woher die Worte kommen',
     summary: 'Zuerst die Texte in Ihren Dateien oder daneben, dazu eine optionale Online-Suche.',
     group: 'So funktioniert es',
-    body: `Tippen Sie unter „Läuft gerade“ auf **Songtext**, um den Text des laufenden Songs zu sehen. Er kann aus zwei Quellen stammen, immer in dieser Reihenfolge.
+    body: `Tippen Sie unter „Läuft gerade“ auf **Textblatt anzeigen**, um den Text des laufenden Songs zu sehen. Er kann aus zwei Quellen stammen, immer in dieser Reihenfolge.
 
 ## 1. Ihre eigene Datei
 

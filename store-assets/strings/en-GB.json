@@ -40,6 +40,18 @@
    "Pocket player"
   ]
  },
+ "05-bedside": {
+  "headline": [
+   "Leave it",
+   "*by the bed*"
+  ],
+  "caption": "The record, the time and the sleep timer, dim on black for a dark room",
+  "chips": [
+   "Bedside",
+   "Sleep timer",
+   "Keep awake"
+  ]
+ },
  "feature-graphic": {
   "tagline": "Your music, on the turntable"
  }

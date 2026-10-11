@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { DECKS } from '../lib/decks'
 import { DECK_SETTINGS, useSettingsStore } from '../stores/settingsStore'
 import { DeckMiniature } from './Deck'
+import DeckPicker from './DeckPicker'
 import { ModeButton } from './ModeButton'
 import { useT } from '../i18n'
 
@@ -18,13 +20,21 @@ export default function PlayerButton() {
   const set = useSettingsStore((s) => s.set)
   const t = useT()
   const next = DECK_SETTINGS[(DECK_SETTINGS.indexOf(deck) + 1) % DECK_SETTINGS.length]
+  // Tap: the next machine. Hold: every machine to choose from (James,
+  // 2026-10-11) — the same picker as holding the deck itself.
+  const [picking, setPicking] = useState(false)
   return (
-    <ModeButton
-      label={DECKS[deck].label}
-      ariaLabel={t('player.player_aria', { deck: DECKS[deck].label, next: DECKS[next].label })}
-      onClick={() => set('deck', next)}
-    >
-      <DeckMiniature setting={deck} box={26} />
-    </ModeButton>
+    <>
+      <ModeButton
+        label={DECKS[deck].label}
+        ariaLabel={t('player.player_aria', { deck: DECKS[deck].label, next: DECKS[next].label })}
+        mode="player"
+        onClick={() => set('deck', next)}
+        onLongPress={() => setPicking(true)}
+      >
+        <DeckMiniature setting={deck} box={26} />
+      </ModeButton>
+      {picking && <DeckPicker onClose={() => setPicking(false)} />}
+    </>
   )
 }

@@ -49,6 +49,12 @@
       "layout": "sleeve-dark",
       "raw": "tune",
       "hot": 0
+    },
+    {
+      "id": "05-bedside",
+      "layout": "sleeve-paper",
+      "raw": "bedside",
+      "hot": 0
     }
   ]
 }

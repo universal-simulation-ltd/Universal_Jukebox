@@ -149,7 +149,7 @@ The record-changing animation, and how often it appears, is about the picture an
     title: 'Lyrics: where the words come from',
     summary: 'Lyrics in your files, or saved beside them, first; an optional online lookup after.',
     group: 'How it works',
-    body: `Press **Show lyrics** on Now playing to see the words to the song that is playing. They can come from two places, always in this order.
+    body: `Press **Show the lyric sheet** on Now playing to see the words to the song that is playing. They can come from two places, always in this order.
 
 ## 1. Your own file
 

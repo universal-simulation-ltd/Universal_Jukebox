@@ -135,8 +135,8 @@ export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'reel', 
 // hold for options", "tap the record to play the shelf from here"): shown under
 // every record until the thing they describe has been done once, then gone —
 // a line repeated under every shelf for ever is noise by the second visit.
-export type TipId = 'record' | 'cover' | 'hold' | 'shelfPlay'
-export const TIP_IDS: TipId[] = ['record', 'cover', 'hold', 'shelfPlay']
+export type TipId = 'record' | 'cover' | 'hold' | 'shelfPlay' | 'foldUp'
+export const TIP_IDS: TipId[] = ['record', 'cover', 'hold', 'shelfPlay', 'foldUp']
 
 /** How many albums across (James, 2026-09-11) — or the jukebox shelf. */
 export type LibraryColumns = 1 | 2 | 3 | 4 | 'jukebox'
@@ -345,7 +345,10 @@ export const DEFAULTS: Settings = {
   needleDropLevel: 1,
   volumeBoost: 1,
   levelDb: 0,
-  hiddenModes: [],
+  // The row under the song starts with Shuffle, Add to shelf, About, Player and
+  // Bedside (and Customise until it's used); the rest wait behind Customise
+  // (James, 2026-10-11).
+  hiddenModes: ['repeatAll', 'repeatOne', 'output', 'quiet', 'loud', 'keepAwake', 'sleep'],
   customiseSeen: false,
   fadeInSec: 0,
   fadeOutSec: 0,
@@ -446,7 +449,7 @@ export const MODE_LABELS = Object.defineProperties(
 ) as Readonly<Record<ModeKey, string>>
 
 function sanitiseModes(value: unknown): ModeKey[] {
-  if (!Array.isArray(value)) return []
+  if (!Array.isArray(value)) return [...DEFAULTS.hiddenModes]
   return MODE_KEYS.filter((key) => value.includes(key))
 }
 /**
@@ -507,6 +510,7 @@ const LIBRARY_STANDARD_KEY = 'jukebox:library-standard-2026-09-27'
 const ALBUMS_TRACKS_KEY = 'jukebox:albums-shelf-tracks-list-2026-09-29'
 /** The single-purpose key `playerStore` used before this store existed. */
 const LEGACY_CRACKLE_KEY = 'unisim-jukebox-crackle'
+const ROUND_BUTTONS_KEY = 'jukebox:round-buttons-2026-10-11'
 
 function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
   const v = typeof n === 'number' ? n : Number(n)
@@ -550,6 +554,14 @@ function read(): Settings {
   // tracks' shelf, chosen or not.
   if (adoptOnce(ALBUMS_TRACKS_KEY)) {
     settings.libraryColumns = { ...settings.libraryColumns, albums: 'jukebox', tracks: DEFAULTS.libraryColumns.tracks }
+    persist(settings)
+  }
+  // …and the shorter row of round buttons (James, 2026-10-11), the same
+  // once-only way: every blob holds the old "all shown". Customise comes back
+  // once with it, so the buttons now hidden can be found.
+  if (adoptOnce(ROUND_BUTTONS_KEY)) {
+    settings.hiddenModes = [...DEFAULTS.hiddenModes]
+    settings.customiseSeen = false
     persist(settings)
   }
   return settings

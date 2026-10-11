@@ -13,8 +13,8 @@ const player: Draft['player'] = {
   'spec_track': 'Piste {number}',
   'queued_position_one': '{position} sur {count} piste en file d’attente',
   'queued_position_other': '{position} sur {count} pistes en file d’attente',
-  'show_lyrics': 'Afficher les paroles',
-  'hide_lyrics': 'Masquer les paroles',
+  'show_lyrics': 'Afficher la feuille de paroles',
+  'hide_lyrics': 'Masquer la feuille de paroles',
   'back_to_library': 'Retour à votre bibliothèque',
 
   // Transport (StageTransport, PlayerBar)
@@ -103,7 +103,7 @@ const player: Draft['player'] = {
   'output_aria_here': 'Choisissez où sort le son',
 
   // The machine (PlayerButton)
-  'player_aria': 'Platine : {deck}. Touchez pour {next}',
+  'player_aria': 'Platine : {deck}. Touchez pour {next}, ou maintenez pour choisir parmi toutes',
 
   // Preview (PreviewButton)
   'preview_stop_aria': 'Arrêter la pré-écoute de {title}',
@@ -131,6 +131,7 @@ const player: Draft['player'] = {
   'error_unplayable_iphone': 'Ce morceau ne peut pas être lu — il n’est plus sur cet iPhone, ou c’est un téléchargement Apple Music, qu’iOS ne laisse pas les autres apps lire.',
   'skipped_not_on_iphone': 'n’est plus sur cet iPhone',
   'skipped_file_missing': 'fichier introuvable',
+  'foldup_hint': 'Balayez vers le haut pour plus de boutons',
 }
 
 export default player

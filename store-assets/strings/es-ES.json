@@ -40,6 +40,18 @@
    "De bolsillo"
   ]
  },
+ "05-bedside": {
+  "headline": [
+   "Junto",
+   "*a la cama*"
+  ],
+  "caption": "El disco, la hora y el temporizador, tenues sobre negro para un cuarto a oscuras",
+  "chips": [
+   "Mesilla",
+   "Temporizador de apagado",
+   "No apagar"
+  ]
+ },
  "feature-graphic": {
   "tagline": "Tu música, en el tocadiscos"
  }
