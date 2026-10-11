@@ -78,7 +78,7 @@ const native: Draft['native'] = {
   'your_music': 'La tua musica',
   'your_music_songs_one': 'La tua musica · {count} brano',
   'your_music_songs_other': 'La tua musica · {count} brani',
-  'keep': 'Tieni',
+  'tap_to_confirm': 'Tocca per confermare',
   'remove_note': 'Solo Jukebox la dimentica. I file musicali restano dove sono.',
   'rescan_music': 'Ripeti la scansione della musica',
   'refresh_library_phone': 'Aggiorna la libreria di Musica del telefono',

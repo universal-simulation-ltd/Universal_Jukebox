@@ -78,7 +78,7 @@ const native: Draft['native'] = {
   'your_music': 'Müziğiniz',
   'your_music_songs_one': 'Müziğiniz · {count} şarkı',
   'your_music_songs_other': 'Müziğiniz · {count} şarkı',
-  'keep': 'Tut',
+  'tap_to_confirm': 'Onaylamak için dokunun',
   'remove_note': 'Yalnızca Jukebox onu unutur. Müzik dosyaları yerinde kalır.',
   'rescan_music': 'Müziğimi yeniden tara',
   'refresh_library_phone': 'Telefonumdaki Müzik arşivini yenile',

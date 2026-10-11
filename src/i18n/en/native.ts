@@ -89,7 +89,7 @@ export default {
   'your_music': 'Your music', // section heading (small capitals)
   'your_music_songs_one': 'Your music · {count} song', // the same heading with the library's size
   'your_music_songs_other': 'Your music · {count} songs',
-  'keep': 'Keep', // beside Remove, asked before a folder is taken out: keep the folder
+  'tap_to_confirm': 'Tap to confirm', // the Remove button after one tap: a second tap removes the folder; short
   'remove_note': 'Only Jukebox forgets it. The music files stay where they are.', // under the folder list while Remove is being asked
   'rescan_music': 'Rescan my music', // button, when there is one folder
   'refresh_library_phone': 'Refresh my phone’s Music library', // button: re-read the music synced to this phone (Apple's Music app)

@@ -78,7 +78,7 @@ const native: Draft['native'] = {
   'your_music': 'Deine Musik',
   'your_music_songs_one': 'Deine Musik · {count} Song',
   'your_music_songs_other': 'Deine Musik · {count} Songs',
-  'keep': 'Behalten',
+  'tap_to_confirm': 'Zum Bestätigen tippen',
   'remove_note': 'Nur Jukebox vergisst ihn. Die Musikdateien bleiben, wo sie sind.',
   'rescan_music': 'Meine Musik neu einlesen',
   'refresh_library_phone': 'Musik-Mediathek meines iPhone aktualisieren',

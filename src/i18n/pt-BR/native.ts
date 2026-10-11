@@ -84,7 +84,7 @@ const native: Draft['native'] = {
   'your_music': 'Suas músicas',
   'your_music_songs_one': 'Suas músicas · {count} música',
   'your_music_songs_other': 'Suas músicas · {count} músicas',
-  'keep': 'Manter',
+  'tap_to_confirm': 'Toque para confirmar',
   'remove_note': 'Só o Jukebox se esquece dela. Os arquivos de música continuam onde estão.',
   'rescan_music': 'Escanear minhas músicas de novo',
   'refresh_library_phone': 'Atualizar a biblioteca do Música do celular',

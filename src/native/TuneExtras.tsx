@@ -10,7 +10,7 @@
 // folder is a native picker on Android, and the browser's pickers stand in
 // for both in a dev browser.
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { useT } from '../i18n'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
@@ -46,6 +46,11 @@ export function YourMusic() {
   const fileInput = useRef<HTMLInputElement>(null)
   // Asked once, in place: Remove takes the folder's songs off every shelf too.
   const [removing, setRemoving] = useState<string | null>(null)
+  useEffect(() => {
+    if (!removing) return
+    const timer = window.setTimeout(() => setRemoving(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [removing])
 
   const native = isNativeShell()
   const chosen = usesChosenFolder()
@@ -101,25 +106,22 @@ export function YourMusic() {
                 <b>{shownRootLabel(root.label)}</b>
                 <small>{t.plural('common.songs', trackCountFor(tracks, root))}</small>
               </span>
-              {removing === root.id ? (
-                <span className="jx-confirm">
-                  <button type="button" className="jx-link danger" onClick={() => { setRemoving(null); void removeFolder(root.id) }}>
-                    {t('common.remove')}
-                  </button>
-                  <button type="button" className="jx-link quiet" onClick={() => setRemoving(null)}>
-                    {t('native.keep')}
-                  </button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  className="jx-link quiet"
-                  onClick={() => setRemoving(root.id)}
-                  title={t('app.remove_folder_title')}
-                >
-                  {t('common.remove')}
-                </button>
-              )}
+              {/* One button, two taps: "Remove", then "Tap to confirm" (James,
+                  2026-10-11 — a Remove / Keep pair crowded the row, and either
+                  tap could land on Remove). It goes back after a few seconds. */}
+              <button
+                type="button"
+                className={removing === root.id ? 'jx-link danger' : 'jx-link quiet'}
+                onClick={() => {
+                  if (removing === root.id) {
+                    setRemoving(null)
+                    void removeFolder(root.id)
+                  } else setRemoving(root.id)
+                }}
+                title={t('app.remove_folder_title')}
+              >
+                {removing === root.id ? t('native.tap_to_confirm') : t('common.remove')}
+              </button>
             </div>
           </li>
         ))}
