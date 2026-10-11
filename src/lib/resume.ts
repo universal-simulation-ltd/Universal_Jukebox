@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { readSession, type SavedSession } from './session'
 import type { Album, Track } from './types'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
-import { usePlayerStore } from '../stores/playerStore'
+import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
 // Whether "Resume listening" is showing, and for what. Asked by the card AND by
@@ -84,17 +84,22 @@ export interface Suggestion {
 export function useSuggestion(): Suggestion | null {
   const enabled = useSettingsStore((s) => s.resumeCard)
   const hidden = useHidden((s) => s.hidden)
-  const queued = usePlayerStore((s) => s.queue.length)
   const tracks = useLibraryStore((s) => s.tracks)
   const albums = useLibraryStore((s) => s.albums)
   const resumable = useResumable()
+  // ⚠️ WHILE MUSIC PLAYS TOO (James, 2026-10-11: "When the resume song is
+  // playing replace the card with listen to this too"): the resume card goes
+  // once something plays, and this takes its place — never the song playing,
+  // so tapping a suggestion brings a new one.
+  const playingId = usePlayerStore((s) => currentTrack(s)?.id ?? null)
   return useMemo(() => {
-    if (!enabled || hidden || queued > 0 || resumable || tracks.length === 0) return null
-    let track = suggestedId ? tracks.find((t) => t.id === suggestedId) : undefined
+    if (!enabled || hidden || resumable || tracks.length === 0) return null
+    let track = suggestedId && suggestedId !== playingId ? tracks.find((t) => t.id === suggestedId) : undefined
     if (!track) {
       const covered = new Set(albums.filter((a) => a.cover).map((a) => a.id))
-      const pool = tracks.filter((t) => covered.has(t.albumId))
-      const from = pool.length > 0 ? pool : tracks
+      const pool = tracks.filter((t) => covered.has(t.albumId) && t.id !== playingId)
+      const others = tracks.filter((t) => t.id !== playingId)
+      const from = pool.length > 0 ? pool : others.length > 0 ? others : tracks
       track = from[Math.floor(Math.random() * from.length)]
       suggestedId = track.id
     }
@@ -104,5 +109,5 @@ export function useSuggestion(): Suggestion | null {
       album: albums.find((a) => a.id === albumId),
       albumTracks: sortAlbumTracks(tracks.filter((t) => t.albumId === albumId)),
     }
-  }, [enabled, hidden, queued, resumable, tracks, albums])
+  }, [enabled, hidden, resumable, tracks, albums, playingId])
 }
