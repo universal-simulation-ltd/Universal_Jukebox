@@ -17,6 +17,7 @@ import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
 import AddToQueue from '../components/AddToQueue'
 import AddToShelf from '../components/AddToShelf'
+import { AlbumRow } from '../components/Shelf'
 import { IconPlay, IconShuffle } from './icons'
 import { SearchBox, SongList } from './LibraryScreens'
 import { byYearThenTitle } from '../lib/libraryView'
@@ -181,17 +182,9 @@ export function ArtistScreen({ name }: { name: string }) {
       </div>
       <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       {held.sheet}
-      <ul className="jx-grid">
-        {albums.map((album) => (
-          <li key={album.id}>
-            <button type="button" className="jx-tile" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
-              <Cover album={album} className="jx-cover" />
-              <b>{shownName(album.title)}</b>
-              <small>{[album.year, t.plural('common.tracks', album.trackCount)].filter(Boolean).join(' · ')}</small>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* Their albums as ONE shelf you swipe along, not a grid (James,
+          2026-10-11); hold a record for the album's sheet. */}
+      <div className="jx-web"><AlbumRow albums={albums} hold={(album) => held.open({ kind: 'album', album })} /></div>
       </>
       )}
       {/* Every song of theirs, album by album — the website's "All songs by …"

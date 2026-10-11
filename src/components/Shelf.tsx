@@ -252,6 +252,28 @@ export default function Shelf({ albums, lead, groups }: { albums: Album[]; lead?
   )
 }
 
+/**
+ * One artist's albums on a single shelf, oldest first: the phone's artist page
+ * (James, 2026-10-11: "only have one shelf of their albums that you can swipe
+ * through"). The caption leaves the artist out, as the page is theirs.
+ */
+export function AlbumRow({ albums, hold }: { albums: Album[]; hold?(album: Album): void }) {
+  const t = useT()
+  return (
+    <ShelfRow
+      items={albums}
+      label={t('shelves.albums_on_the_shelf')}
+      keyOf={(a) => a.id}
+      nameOf={(a) => a.title}
+      render={(a) => <Sleeve album={a} />}
+      artOf={(a) => a}
+      open={(a) => navigate({ view: 'album', albumId: a.id })}
+      caption={(a) => ({ title: a.title, detail: [a.year, t.plural('common.tracks', a.trackCount)].filter(Boolean).join(' · ') })}
+      hold={hold}
+    />
+  )
+}
+
 /** The artists on the shelf, each as their latest record. */
 export function ArtistShelf({
   artists, lead, groups,

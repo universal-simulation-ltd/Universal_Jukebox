@@ -21,6 +21,8 @@ export function useCollectionHold() {
   return {
     bind: (what: Held) => hold.bind(() => setHeld(what)),
     consumed: hold.consumed,
+    /** Open the sheet straight away — for a shelf, which runs its own hold. */
+    open: (what: Held) => setHeld(what),
     sheet: held ? <HeldSheet held={held} onClose={() => setHeld(null)} /> : null,
   }
 }
