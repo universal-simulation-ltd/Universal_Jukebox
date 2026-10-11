@@ -106,7 +106,8 @@ const native: Draft['native'] = {
   'way_pick_sub': 'Elige los archivos uno a uno',
   'try_example': 'Probar con la biblioteca de ejemplo',
   'made_up': 'Álbumes inventados, para que veas todos los aparatos antes de añadir los tuyos.',
-  'cloud_help': '¿Tu música está en la nube o en un servicio de streaming?',
+  'cloud_help_title': 'Servicios de streaming',
+  'cloud_help': '¿Por qué no puedo sincronizarla con un servicio de streaming?',
 }
 
 export default native

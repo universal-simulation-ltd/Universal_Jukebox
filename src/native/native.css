@@ -425,6 +425,8 @@ html.dark .jx {
 .jx-help-card .jx-row { padding: 12px 0; }
 .jx-help-card .jx-row b { white-space: normal; }
 .jx-help-card .jx-row small { white-space: normal; line-height: 1.35; margin-top: 2px; }
+/* Tune ▸ About & help: the lines under each row wrap too (German cut them off). */
+.jx-tune-wrap .jx-row small { white-space: normal; line-height: 1.35; margin-top: 2px; }
 .jx-article { gap: 10px; padding-bottom: 32px; }
 .jx-article .jx-h1 { font-size: 26px; }
 .jx-article-body { font-size: 16.5px; line-height: 1.55; }

@@ -106,7 +106,8 @@ const native: Draft['native'] = {
   'way_pick_sub': 'Dateien einzeln auswählen',
   'try_example': 'Mit der Beispiel-Mediathek ausprobieren',
   'made_up': 'Erfundene Alben, damit du jedes Abspielgerät siehst, bevor du deine eigenen hinzufügst.',
-  'cloud_help': 'Musik in der Cloud oder bei einem Streamingdienst?',
+  'cloud_help_title': 'Streamingdienste',
+  'cloud_help': 'Warum kann ich sie nicht mit einem Streamingdienst synchronisieren?',
 }
 
 export default native

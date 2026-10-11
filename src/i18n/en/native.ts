@@ -35,7 +35,7 @@ export default {
   // The bar along the top (NativeApp)
   'close_record': 'Close the record', // screen reader: the down arrow that leaves Now playing
   'now_playing': 'Now playing', // the top bar's title on the record's own screen
-  'tune_title': 'Tune this app', // heading of the Tune tab, and a link on the welcome screen — the suite's name for an app's settings
+  'tune_title': 'Tune this app', // heading of the Tune tab — the suite's name for an app's settings
   'shelves_heading': 'Shelves', // heading of the Shelves tab
 
   // Library tabs (LibraryScreens)
@@ -118,5 +118,6 @@ export default {
   'way_pick_sub': 'Choose files one at a time',
   'try_example': 'Try it with the example library', // big button
   'made_up': 'Made-up albums, so you can see every machine before adding your own.', // under that button; the "machines" are the turntables and players
-  'cloud_help': 'Music in the cloud or on a streaming service?', // link: opens the help articles
+  'cloud_help_title': 'Streaming services', // row title in Tune ▸ About & help; the question below it is cloud_help
+  'cloud_help': 'Why can’t I sync it with a streaming service?', // the line under cloud_help_title; the row opens the help article on music in the cloud and on streaming services; 'it' = the app
 } as const

@@ -177,11 +177,19 @@ export function YourMusic() {
 export function AboutAndHelp() {
   const t = useT()
   return (
-    <section className="jx-card jx-tune-card" aria-label={t('native.about_and_help')}>
+    <section className="jx-card jx-tune-card jx-tune-wrap" aria-label={t('native.about_and_help')}>
       <button type="button" className="jx-row" onClick={() => navigate({ view: 'help' })}>
         <span>
           <b>{t('native.knowledge_base')}</b>
           <small>{t('app.knowledge_base_detail')}</small>
+        </span>
+        <span className="jx-chev" aria-hidden>›</span>
+      </button>
+      {/* Moved here from the first-run screen (James, 2026-10-11). */}
+      <button type="button" className="jx-row" onClick={() => navigate({ view: 'help', article: 'cloud-and-streaming' })}>
+        <span>
+          <b>{t('native.cloud_help_title')}</b>
+          <small>{t('native.cloud_help')}</small>
         </span>
         <span className="jx-chev" aria-hidden>›</span>
       </button>
@@ -193,14 +201,5 @@ export function AboutAndHelp() {
         <span className="jx-chev" aria-hidden>›</span>
       </button>
     </section>
-  )
-}
-
-/** A link into the knowledge base — one article, or the list — from the first-run screen. */
-export function HelpLink({ label, article }: { label: string; article?: string }) {
-  return (
-    <button type="button" className="jx-link center" onClick={() => navigate(article ? { view: 'help', article } : { view: 'help' })}>
-      {label}
-    </button>
   )
 }

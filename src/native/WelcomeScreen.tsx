@@ -10,10 +10,8 @@ import { useRef, useState } from 'react'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { hasOwnMusicFolder, isNativeShell, nativePlatform, usesChosenFolder } from '../lib/nativeFile'
 import { hasNativeImporter } from '../lib/nativeImport'
-import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { RecordMark } from './icons'
-import { HelpLink } from './TuneExtras'
 import { useT } from '../i18n'
 
 export function WelcomeScreen() {
@@ -100,13 +98,10 @@ export function WelcomeScreen() {
       </button>
       <p className="jx-fine">{t('native.made_up')}</p>
 
-      {/* The website's Landing explains music in the cloud and on streaming
-          services; here it is that one help article, one tap away (James,
-          2026-10-11: not the whole knowledge base). */}
-      <HelpLink label={t('native.cloud_help')} article="cloud-and-streaming" />
-      <button type="button" className="jx-link center" onClick={() => navigate({ view: 'settings' })}>
-        {t('native.tune_title')}
-      </button>
+      {/* Nothing else here (James, 2026-10-11): no Tune link, as there is
+          nothing to tune before there is a library, and the streaming
+          question lives in Tune ▸ About & help. The subtitle already says the
+          music is the files on this phone. */}
 
       <input
         ref={folderInput}

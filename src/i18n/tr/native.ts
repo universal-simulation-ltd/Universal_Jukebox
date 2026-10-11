@@ -106,7 +106,8 @@ const native: Draft['native'] = {
   'way_pick_sub': 'Dosyaları tek tek seçin',
   'try_example': 'Örnek kitaplıkla deneyin',
   'made_up': 'Uydurma albümler; böylece kendi müziğinizi eklemeden önce her çaları görebilirsiniz.',
-  'cloud_help': 'Müziğiniz bulutta ya da bir akış hizmetinde mi?',
+  'cloud_help_title': 'Akış hizmetleri',
+  'cloud_help': 'Neden bir akış hizmetiyle eşitleyemiyorum?',
 }
 
 export default native
