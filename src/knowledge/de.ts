@@ -293,9 +293,9 @@ Nur drei Funktionen senden überhaupt etwas über Ihre Musik, und keine davon tu
 
 Die Antworten der ersten beiden werden auf Ihrem Gerät gespeichert, sodass ein Song nur einmal abgefragt wird. „Diese App anpassen“ zeigt, wie viele es sind, und lässt Sie sie vergessen. Audio verlässt Ihr Gerät nie.
 
-## Zählung der Nutzer
+## Zählung der Öffnungen
 
-Auf der Website teilt Ihr Browser UNI·SIM, solange Jukebox geöffnet ist, alle 45 Sekunden mit, dass die App verwendet wird, zusammen mit einer Zufallszahl, die er selbst erzeugt hat. So können wir zählen, wie viele Menschen die App nutzen. Dabei wird nichts über Sie oder Ihre Musik übermittelt. Die Apps für iPhone, iPad, Android und Desktop senden dies nicht.
+Auf der Website zählt die App beim ersten Öffnen jedes Tages eins zur anonymen Tageszählung der Öffnungen hinzu, gesendet nach Ihrem ersten Klick oder Tastendruck. Diese Zählung enthält nur den Namen der App und die Art der Plattform („web“ auf der Website): keine Kennung, kein Konto und nichts darüber, was Sie tun. Eine Markierung „heute schon gezählt“ bleibt auf Ihrem Gerät und wird nie gesendet. Die Apps für iPhone, iPad, Android und Desktop senden dies nicht.
 
 ## Universal ID
 

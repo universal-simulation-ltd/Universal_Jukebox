@@ -293,9 +293,9 @@ Only three features ever send anything about your music, and none of them does a
 
 Answers from the first two are kept on your device, so a song is looked up only once. Tune this app shows how many there are and lets you forget them. No audio ever leaves your device.
 
-## Counting users
+## Counting opens
 
-On the website, while Jukebox is open, your browser tells UNI·SIM every 45 seconds that the app is in use, with a random number it made for itself, so that we can count how many people use the app. It carries nothing about you or your music. The iPhone, iPad, Android and desktop apps don’t send it.
+On the website, the first time you open the app each day, it adds one to an anonymous count of daily opens, sent after your first click or key press. That count holds only the app’s name and the kind of platform (on the website, "web"): no identifier, no account and nothing about what you do. A "counted today" mark stays on your device and is never sent. The iPhone, iPad, Android and desktop apps don’t send it.
 
 ## Universal ID
 

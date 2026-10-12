@@ -293,9 +293,9 @@ Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçb
 
 İlk ikisinin yanıtları cihazınızda saklanır, böylece bir şarkı yalnızca bir kez sorgulanır. **Bu uygulamayı ayarla** sayfası kaç tane olduğunu gösterir ve bunları unutmanızı sağlar. Hiçbir ses cihazınızdan asla çıkmaz.
 
-## Kullanıcıların sayılması
+## Açılışların sayılması
 
-Web sitesinde, Jukebox açıkken tarayıcınız her 45 saniyede bir UNI·SIM’e uygulamanın kullanıldığını, kendi oluşturduğu rastgele bir sayıyla birlikte bildirir; böylece uygulamayı kaç kişinin kullandığını sayabiliriz. Sizinle veya müziğinizle ilgili hiçbir şey gönderilmez. iPhone, iPad, Android ve masaüstü uygulamaları bunu göndermez.
+Web sitesinde, uygulamayı her gün ilk açışınızda, ilk tıklamanızdan veya tuşa basmanızdan sonra anonim günlük açılış sayısına bir ekler. Bu sayım yalnızca uygulamanın adını ve platform türünü (sitede "web") içerir: hiçbir tanımlayıcı, hesap ya da ne yaptığınıza dair bir şey yoktur. "Bugün sayıldı" işareti cihazınızda kalır ve asla gönderilmez. iPhone, iPad, Android ve masaüstü uygulamaları bunu göndermez.
 
 ## Universal ID
 

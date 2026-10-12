@@ -293,9 +293,9 @@ Só três funcionalidades enviam alguma coisa sobre a sua música, e nenhuma faz
 
 As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cada música só é consultada uma vez. Ajustar esta aplicação mostra quantas existem e permite esquecê-las. Nenhum áudio sai alguma vez do seu dispositivo.
 
-## Contagem de utilizadores
+## Contagem de aberturas
 
-No site, enquanto o Jukebox está aberto, o seu navegador informa a UNI·SIM a cada 45 segundos de que a aplicação está a ser utilizada, com um número aleatório que ele próprio criou, para que possamos contar quantas pessoas utilizam a aplicação. Não é enviado nada sobre si nem sobre a sua música. As aplicações para iPhone, iPad, Android e computador não enviam isto.
+No site, na primeira vez que abre a aplicação em cada dia, soma um à contagem anónima de aberturas do dia, enviada depois do seu primeiro clique ou da primeira tecla premida. Essa contagem contém apenas o nome da aplicação e o tipo de plataforma («web» no site): nenhum identificador, nenhuma conta e nada sobre o que faz. Uma marca de «já contado hoje» fica no seu dispositivo e nunca é enviada. As aplicações para iPhone, iPad, Android e computador não enviam isto.
 
 ## Universal ID
 

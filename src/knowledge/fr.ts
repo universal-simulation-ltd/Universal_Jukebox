@@ -293,9 +293,9 @@ Seules trois fonctions envoient quoi que ce soit au sujet de votre musique, et a
 
 Les réponses des deux premières sont conservées sur votre appareil, si bien qu’un morceau n’est recherché qu’une fois. La page Régler cette application indique combien il y en a et vous permet de les oublier. Aucun son ne quitte jamais votre appareil.
 
-## Comptage des utilisateurs
+## Comptage des ouvertures
 
-Sur le site web, tant que Jukebox est ouvert, votre navigateur indique à UNI·SIM toutes les 45 secondes que l’application est utilisée, avec un nombre aléatoire qu’il a créé lui-même, afin que nous puissions compter combien de personnes utilisent l’application. Rien sur vous ni sur votre musique n’est envoyé. Les applications pour iPhone, iPad, Android et ordinateur ne l’envoient pas.
+Sur le site web, la première fois que vous ouvrez l’application chaque jour, elle ajoute un au décompte anonyme des ouvertures du jour, envoyé après votre premier clic ou votre première frappe au clavier. Ce décompte ne contient que le nom de l’application et le type de plateforme (« web » sur le site) : aucun identifiant, aucun compte et rien sur ce que vous faites. Une marque « déjà compté aujourd’hui » reste sur votre appareil et n’est jamais envoyée. Les applications pour iPhone, iPad, Android et ordinateur ne l’envoient pas.
 
 ## Universal ID
 
