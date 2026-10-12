@@ -83,6 +83,7 @@ const native: Draft['native'] = {
   'tap_to_confirm': 'Tocca per confermare',
   'remove_note': 'Solo Jukebox la dimentica. I file musicali restano dove sono.',
   'rescan_music': 'Ripeti la scansione della musica',
+  'refresh_music': 'Aggiorna la mia musica',
   'refresh_library_phone': 'Aggiorna la libreria di Musica del telefono',
   'refresh_library_ipad': 'Aggiorna la libreria di Musica dell’iPad',
   'add_library_phone': 'Aggiungi la libreria di Musica del telefono',

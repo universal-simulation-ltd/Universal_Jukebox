@@ -83,6 +83,7 @@ const native: Draft['native'] = {
   'tap_to_confirm': 'Onaylamak için dokunun',
   'remove_note': 'Yalnızca Jukebox onu unutur. Müzik dosyaları yerinde kalır.',
   'rescan_music': 'Müziğimi yeniden tara',
+  'refresh_music': 'Müziğimi yenile',
   'refresh_library_phone': 'Telefonumdaki Müzik arşivini yenile',
   'refresh_library_ipad': 'iPad’imdeki Müzik arşivini yenile',
   'add_library_phone': 'Telefonumdaki Müzik arşivini ekle',

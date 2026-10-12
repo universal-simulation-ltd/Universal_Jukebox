@@ -83,6 +83,7 @@ const native: Draft['native'] = {
   'tap_to_confirm': 'Toque para confirmar',
   'remove_note': 'Só o Jukebox a esquece. Os ficheiros de música ficam onde estão.',
   'rescan_music': 'Analisar novamente a minha música',
+  'refresh_music': 'Atualizar a minha música',
   'refresh_library_phone': 'Atualizar a biblioteca de Música do telemóvel',
   'refresh_library_ipad': 'Atualizar a biblioteca de Música do iPad',
   'add_library_phone': 'Adicionar a biblioteca de Música do telemóvel',

@@ -140,16 +140,30 @@ export function YourMusic() {
       <div className="jx-tune-actions">
         {canAddTracks && <button type="button" className="jx-btn" onClick={addTracks}>{t('app.add_tracks')}</button>}
         {canAddFolder && <button type="button" className="jx-btn" onClick={addFolder}>{t('app.add_folder')}</button>}
-        {(native || folders.length > 0) && (
-          <button type="button" className="jx-btn" onClick={() => void rescan()}>
-            {folders.length > 1 ? t('app.rescan_folders') : t('native.rescan_music')}
+        {/* ONE button reads everything again — the folders AND the phone's
+            Music library (James, 2026-10-12: "could we do refresh and
+            rescan"). Named for what there is to read. */}
+        {(folders.length > 0 || (native && !hasMusicRoot) || (hasMusicRoot && hasMusicLibrary())) && (
+          <button
+            type="button"
+            className="jx-btn"
+            onClick={async () => {
+              if (folders.length > 0 || !hasMusicRoot) await rescan()
+              if (hasMusicRoot && hasMusicLibrary()) await importMusicLibrary()
+            }}
+          >
+            {folders.length > 0 && hasMusicRoot
+              ? t('native.refresh_music')
+              : hasMusicRoot
+                ? t(deviceWord() === 'iPad' ? 'native.refresh_library_ipad' : 'native.refresh_library_phone')
+                : folders.length > 1
+                  ? t('app.rescan_folders')
+                  : t('native.rescan_music')}
           </button>
         )}
-        {hasMusicLibrary() && (
+        {hasMusicLibrary() && !hasMusicRoot && (
           <button type="button" className="jx-btn" onClick={() => void importMusicLibrary()}>
-            {deviceWord() === 'iPad'
-              ? t(hasMusicRoot ? 'native.refresh_library_ipad' : 'native.add_library_ipad')
-              : t(hasMusicRoot ? 'native.refresh_library_phone' : 'native.add_library_phone')}
+            {t(deviceWord() === 'iPad' ? 'native.add_library_ipad' : 'native.add_library_phone')}
           </button>
         )}
       </div>

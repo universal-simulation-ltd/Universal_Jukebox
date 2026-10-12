@@ -94,6 +94,7 @@ export default {
   'tap_to_confirm': 'Tap to confirm', // the Remove button after one tap: a second tap removes the folder; short
   'remove_note': 'Only Jukebox forgets it. The music files stay where they are.', // under the folder list while Remove is being asked
   'rescan_music': 'Rescan my music', // button, when there is one folder
+  'refresh_music': 'Refresh my music', // button: reads the folders AND the phone's Music library again, when there are both
   'refresh_library_phone': 'Refresh my phone’s Music library', // button: re-read the music synced to this phone (Apple's Music app)
   'refresh_library_ipad': 'Refresh my iPad’s Music library',
   'add_library_phone': 'Add my phone’s Music library',

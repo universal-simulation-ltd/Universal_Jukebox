@@ -83,6 +83,7 @@ const native: Draft['native'] = {
   'tap_to_confirm': 'Zum Bestätigen tippen',
   'remove_note': 'Nur Jukebox vergisst ihn. Die Musikdateien bleiben, wo sie sind.',
   'rescan_music': 'Meine Musik neu einlesen',
+  'refresh_music': 'Meine Musik aktualisieren',
   'refresh_library_phone': 'Musik-Mediathek meines iPhone aktualisieren',
   'refresh_library_ipad': 'Musik-Mediathek meines iPad aktualisieren',
   'add_library_phone': 'Musik-Mediathek meines iPhone hinzufügen',
