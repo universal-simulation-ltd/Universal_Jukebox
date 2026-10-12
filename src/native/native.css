@@ -347,6 +347,11 @@ html.dark .jx {
   animation: jx-disc-out 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
 }
 @keyframes jx-disc-out { from { transform: translateX(calc(var(--s) * -0.34)) rotate(-40deg); } }
+/* Dark mode: a black record on the warm black ground all but vanished
+   (James, 2026-10-12: "slightly more visible"). A touch brighter, a faint
+   light rim and a soft glow, on the album page and on the shelves. */
+html.dark .jx .jx-sleeve-disc { border-radius: 50%; filter: brightness(1.35); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 22px rgba(255, 255, 255, 0.07); }
+html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 18px rgba(255, 255, 255, 0.07); }
 /* Held: back into the sleeve, a beat, and out again (`AlbumScreen`). */
 .jx-sleeve-disc.again { animation: jx-disc-again 1.3s cubic-bezier(0.45, 0, 0.25, 1) both; }
 @keyframes jx-disc-again {
