@@ -355,6 +355,10 @@ html.dark .jx {
 .jx-tune-card > .jx-row + .jx-row { border-top: 1px solid var(--jx-line); }
 .jx-tune-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
 .jx-tune-actions .jx-btn { min-height: 44px; font-size: 15px; }
+/* A button left alone on the last row takes the whole width (James,
+   2026-10-12: "Refresh my phone's Music library" wrapped onto three lines
+   in half of it). */
+.jx-tune-actions > .jx-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .jx-confirm { display: flex; gap: 14px; flex: none; }
 .jx-link.quiet { color: var(--jx-mute); font-size: 14px; flex: none; }
 .jx-link.danger { font-size: 14px; font-weight: 650; flex: none; }
