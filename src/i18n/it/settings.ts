@@ -167,7 +167,7 @@ const settings: Draft['settings'] = {
   'lyrics_note': 'Jukebox legge i testi contenuti nei tag dei tuoi file e un file .lrc salvato accanto a un brano con lo stesso nome (ripeti la scansione dopo averli aggiunti). La maggior parte dei file non ha né l’uno né l’altro.',
   'lyrics_online': 'Cerca online i testi mancanti',
   'lyrics_online_hint': 'Quando una traccia non ha un testo suo, chiedilo a lrclib.net. Vengono inviati artista, titolo, album e durata di quella traccia: nient’altro, e niente del tutto finché questa opzione è disattivata. Le risposte restano su questo dispositivo, quindi ogni traccia viene cercata una sola volta.',
-  'lyrics_around': 'Testo intorno al disco',
+  'no_lyrics_around': 'Nessun testo intorno al disco',
   'lyrics_around_hint': 'In In riproduzione le parole compaiono intorno al disco che gira mentre vengono cantate, in uno dei tre stili qui sotto. Servono testi sincronizzati.',
   'lyrics_style': 'Stile',
   'style_arc': 'Prima riga, poi intorno al disco',

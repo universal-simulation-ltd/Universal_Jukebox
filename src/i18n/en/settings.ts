@@ -192,7 +192,7 @@ export default {
   'lyrics_note': 'Jukebox reads the lyrics your files were tagged with, and a .lrc file saved beside a song under the same name (rescan after adding them). Most files have neither.',
   'lyrics_online': 'Look up missing lyrics online', // tick box
   'lyrics_online_hint': 'When a track has no lyrics of its own, ask lrclib.net for them. This sends that track’s artist, title, album and length — nothing else, and nothing at all while this is off. Answers are kept on this device so each track is only ever asked about once.',
-  'lyrics_around': 'Lyrics around the record', // tick box
+  'no_lyrics_around': 'No lyrics around the record', // tick box, unticked by default: lyrics DO go round the record unless it is ticked
   'lyrics_around_hint': 'On Now Playing, the words appear around the spinning record as they are sung — in one of three styles, chosen below. Needs lyrics with timings.',
   'lyrics_style': 'Style',
   'style_arc': 'First line, then around the record',

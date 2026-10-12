@@ -174,7 +174,7 @@ const settings: Draft['settings'] = {
   'lyrics_note': 'O Jukebox lê as letras gravadas nas tags dos seus arquivos e um arquivo .lrc salvo ao lado de uma música com o mesmo nome (escaneie de novo depois de adicioná-los). A maioria dos arquivos não tem nenhum dos dois.',
   'lyrics_online': 'Procurar on-line as letras que faltam',
   'lyrics_online_hint': 'Quando uma faixa não tem letra própria, pedir ao lrclib.net. Isso envia o artista, o título, o álbum e a duração dessa faixa — nada mais, e nada enquanto isto estiver desativado. As respostas ficam guardadas neste aparelho, então cada faixa só é consultada uma vez.',
-  'lyrics_around': 'Letra em volta do disco',
+  'no_lyrics_around': 'Sem letra em volta do disco',
   'lyrics_around_hint': 'Em Tocando agora, as palavras aparecem em volta do disco girando enquanto são cantadas — em um de três estilos, escolhido abaixo. Precisa de letras sincronizadas.',
   'lyrics_style': 'Estilo',
   'style_arc': 'Primeira linha, depois em volta do disco',

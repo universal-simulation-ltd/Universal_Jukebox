@@ -355,8 +355,10 @@ export const DEFAULTS: Settings = {
   fadeInSec: 0,
   fadeOutSec: 0,
   lyricsOnline: false,
-  lyricsAround: false,
-  lyricsAroundStyle: 'arc',
+  // On, turning round the record (James, 2026-10-12: "have the lyrics
+  // rotating around the vinyl as the default setting").
+  lyricsAround: true,
+  lyricsAroundStyle: 'orbit',
   fullAlbumsOnly: true,
   artistsMin3: true,
   genresMin3: true,
@@ -514,6 +516,7 @@ const ALBUMS_TRACKS_KEY = 'jukebox:albums-shelf-tracks-list-2026-09-29'
 /** The single-purpose key `playerStore` used before this store existed. */
 const LEGACY_CRACKLE_KEY = 'unisim-jukebox-crackle'
 const ROUND_BUTTONS_KEY = 'jukebox:round-buttons-2026-10-11'
+const LYRICS_ORBIT_KEY = 'jukebox:lyrics-orbit-2026-10-12'
 
 function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
   const v = typeof n === 'number' ? n : Number(n)
@@ -565,6 +568,14 @@ function read(): Settings {
   if (adoptOnce(ROUND_BUTTONS_KEY)) {
     settings.hiddenModes = [...DEFAULTS.hiddenModes]
     settings.customiseSeen = false
+    persist(settings)
+  }
+  // …and the lyrics turning round the record (James, 2026-10-12), once: every
+  // blob holds `lyricsAround: false`, chosen or not. Turned off afterwards
+  // (Tune ▸ "No lyrics around the record"), it stays off.
+  if (adoptOnce(LYRICS_ORBIT_KEY)) {
+    settings.lyricsAround = true
+    settings.lyricsAroundStyle = 'orbit'
     persist(settings)
   }
   return settings
@@ -637,7 +648,7 @@ function readStored(given?: Record<string, unknown>): Settings {
     // version — has to mean off, because "off unless someone chose otherwise"
     // is the entire guarantee this setting makes.
     lyricsOnline: stored.lyricsOnline === true,
-    lyricsAround: stored.lyricsAround === true,
+    lyricsAround: stored.lyricsAround !== false,
     // ⚠️ A named list, not a cast. Anything else stored — a value from a
     // version that had a style this one does not — falls back to `arc` rather
     // than reaching `LyricsAround` as a style nothing there can draw.

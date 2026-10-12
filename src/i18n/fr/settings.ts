@@ -179,7 +179,7 @@ const settings: Draft['settings'] = {
   'lyrics_note': 'Jukebox lit les paroles enregistrées dans les tags de vos fichiers, ainsi qu’un fichier .lrc placé à côté d’un morceau sous le même nom (réanalysez après les avoir ajoutés). La plupart des fichiers n’ont ni l’un ni l’autre.',
   'lyrics_online': 'Rechercher les paroles manquantes en ligne',
   'lyrics_online_hint': 'Quand une piste n’a pas ses propres paroles, les demander à lrclib.net. Cela envoie l’artiste, le titre, l’album et la durée de cette piste — rien d’autre, et rien du tout tant que l’option est désactivée. Les réponses sont gardées sur cet appareil, pour que chaque piste ne soit demandée qu’une seule fois.',
-  'lyrics_around': 'Paroles autour du disque',
+  'no_lyrics_around': 'Pas de paroles autour du disque',
   'lyrics_around_hint': 'Dans En cours de lecture, les paroles apparaissent autour du disque qui tourne au moment où elles sont chantées — dans l’un des trois styles proposés ci-dessous. Nécessite des paroles synchronisées.',
   'lyrics_style': 'Style',
   'style_arc': 'Première ligne, puis autour du disque',

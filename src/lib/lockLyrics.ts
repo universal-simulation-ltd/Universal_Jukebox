@@ -25,6 +25,7 @@ import * as ms from './mediaSession'
 import { setLockArtist } from './nowPlayingNative'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { settings } from '../stores/settingsStore'
+import { isNativeShell, nativePlatform } from './nativeFile'
 import type { Track } from './types'
 
 /** The line to show at `sec`, or null to show the artist. */
@@ -39,9 +40,19 @@ export function lockScreenLine(sheet: LyricSheet | null, sec: number): string | 
 /**
  * Called on every playback tick, and when the setting changes. Writes only on a change.
  */
+/**
+ * Can the line reach a lock screen here? Not in the Android app: its lock
+ * screen and notification come from the native player, which neither writer
+ * above reaches (James, 2026-10-12: hide the setting there). The website on
+ * Android keeps it — Chrome shows the Media Session's entry.
+ */
+export function lockLyricsAvailable(): boolean {
+  return !(isNativeShell() && nativePlatform() === 'android')
+}
+
 export function followLockLyrics(track: Track | null, sec: number): void {
   if (!track) return
-  const onLockScreen = settings().lockScreenLyrics
+  const onLockScreen = settings().lockScreenLyrics && lockLyricsAvailable()
   let line: string | null = null
   if (onLockScreen) {
     const lyrics = useLyricsStore.getState()

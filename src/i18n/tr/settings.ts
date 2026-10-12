@@ -166,7 +166,7 @@ const settings: Draft['settings'] = {
   'lyrics_note': 'Jukebox, dosyalarınızın etiketlerindeki şarkı sözlerini ve bir şarkının yanına aynı adla kaydedilmiş .lrc dosyasını okur (ekledikten sonra yeniden tarayın). Çoğu dosyada ikisi de yoktur.',
   'lyrics_online': 'Eksik şarkı sözlerini çevrimiçi ara',
   'lyrics_online_hint': 'Bir parçanın kendi şarkı sözleri yoksa bunları lrclib.net’ten iste. Bunun için o parçanın sanatçısı, başlığı, albümü ve süresi gönderilir — başka hiçbir şey gönderilmez, bu ayar kapalıyken de hiçbir şey gönderilmez. Yanıtlar bu cihazda saklanır, böylece her parça için yalnızca bir kez sorulur.',
-  'lyrics_around': 'Plağın çevresinde şarkı sözleri',
+  'no_lyrics_around': 'Plağın çevresinde şarkı sözü yok',
   'lyrics_around_hint': 'Şimdi çalıyor ekranında sözler, söylendikçe dönen plağın çevresinde belirir — aşağıda seçilen üç stilden biriyle. Zamanlamalı şarkı sözleri gerekir.',
   'lyrics_style': 'Stil',
   'style_arc': 'Önce ilk satır, sonra plağın çevresinde',

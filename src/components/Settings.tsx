@@ -15,6 +15,7 @@ import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, startSummary, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
 import { barsOnlineLyrics, isNativeShell, nativePlatform } from '../lib/nativeFile'
+import { lockLyricsAvailable } from '../lib/lockLyrics'
 import { nativeCommandLog } from '../lib/nowPlayingNative'
 import { formatPlaybackLog } from '../lib/playbackLog'
 import { savedEvents } from '../lib/bgLog'
@@ -168,7 +169,7 @@ export default function Settings() {
     lyrics: [
       s.lyricsOnline && !barsOnlineLyrics() ? t('settings.summary_lyrics_online') : t('settings.summary_lyrics_files'),
       ...(s.lyricsAround ? [t(`settings.summary_style_${s.lyricsAroundStyle}`)] : []),
-      ...(s.lockScreenLyrics ? [t('settings.summary_lock_screen')] : []),
+      ...(s.lockScreenLyrics && lockLyricsAvailable() ? [t('settings.summary_lock_screen')] : []),
     ].join(', '),
     about: s.aboutOnline ? t('settings.summary_about_on') : t('common.off'),
     notifications: sentence(t, [
@@ -509,11 +510,13 @@ export default function Settings() {
               onChange={(v) => s.set('lyricsOnline', v)}
             />
           )}
+          {/* Worded as the way OUT, so the box starts unticked (the suite's
+              rule) while the lyrics go round the record by default. */}
           <Toggle
-            label={t('settings.lyrics_around')}
+            label={t('settings.no_lyrics_around')}
             hint={t('settings.lyrics_around_hint')}
-            checked={s.lyricsAround}
-            onChange={(v) => s.set('lyricsAround', v)}
+            checked={!s.lyricsAround}
+            onChange={(v) => s.set('lyricsAround', !v)}
           />
           {s.lyricsAround && (
             <Choice<LyricsAroundStyle>
@@ -523,12 +526,15 @@ export default function Settings() {
               options={lyricsStyleOptions(t)}
             />
           )}
-          <Toggle
-            label={t('settings.lock_lyrics')}
-            hint={t('settings.lock_lyrics_hint')}
-            checked={s.lockScreenLyrics}
-            onChange={(v) => s.set('lockScreenLyrics', v)}
-          />
+          {/* Not in the Android app, where it can't reach the lock screen. */}
+          {lockLyricsAvailable() && (
+            <Toggle
+              label={t('settings.lock_lyrics')}
+              hint={t('settings.lock_lyrics_hint')}
+              checked={s.lockScreenLyrics}
+              onChange={(v) => s.set('lockScreenLyrics', v)}
+            />
+          )}
           <DownloadedLyrics />
           {/* Lyrics for a whole library at once, with LRCGET (James, 2026-10-11). */}
           <div className="pt-1">

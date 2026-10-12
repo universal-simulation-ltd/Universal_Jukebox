@@ -166,7 +166,7 @@ const settings: Draft['settings'] = {
   'lyrics_note': 'Jukebox lee las letras con las que se etiquetaron tus archivos y los archivos .lrc guardados junto a una canción con el mismo nombre (vuelve a escanear después de añadirlos). La mayoría de los archivos no tienen ni lo uno ni lo otro.',
   'lyrics_online': 'Buscar en internet las letras que falten',
   'lyrics_online_hint': 'Cuando una pista no tiene letra propia, se la pide a lrclib.net. Envía el artista, el título, el álbum y la duración de esa pista; nada más, y nada en absoluto mientras esto está desactivado. Las respuestas se guardan en este dispositivo, así que cada pista solo se consulta una vez.',
-  'lyrics_around': 'Letra alrededor del disco',
+  'no_lyrics_around': 'Sin letra alrededor del disco',
   'lyrics_around_hint': 'En Reproduciendo, la letra aparece alrededor del disco que gira a medida que se canta, en uno de los tres estilos que eliges abajo. Necesita letras sincronizadas.',
   'lyrics_style': 'Estilo',
   'style_arc': 'Primera línea y luego alrededor del disco',

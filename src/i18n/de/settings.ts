@@ -166,7 +166,7 @@ const settings: Draft['settings'] = {
   'lyrics_note': 'Jukebox liest die Songtexte aus den Tags deiner Dateien und aus einer .lrc-Datei, die mit demselben Namen neben einem Song gespeichert ist (lies nach dem Hinzufügen neu ein). Die meisten Dateien haben weder das eine noch das andere.',
   'lyrics_online': 'Fehlende Songtexte online suchen',
   'lyrics_online_hint': 'Wenn ein Titel keinen eigenen Songtext hat, wird lrclib.net danach gefragt. Dabei werden Interpret, Titel, Album und Länge dieses Titels gesendet – sonst nichts, und gar nichts, solange das hier aus ist. Die Antworten werden auf diesem Gerät gespeichert, damit nach jedem Titel nur ein einziges Mal gefragt wird.',
-  'lyrics_around': 'Songtext rund um die Platte',
+  'no_lyrics_around': 'Kein Songtext rund um die Platte',
   'lyrics_around_hint': 'Unter „Läuft gerade“ erscheinen die Worte rund um die sich drehende Platte, während sie gesungen werden – in einem von drei Stilen, die du unten auswählst. Braucht Songtexte mit Zeitangaben.',
   'lyrics_style': 'Stil',
   'style_arc': 'Erste Zeile, dann rund um die Platte',
