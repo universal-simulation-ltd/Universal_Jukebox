@@ -22,7 +22,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { BedsideHost } from '../components/Bedside'
 import ErrorBanner from '../components/ErrorBanner'
-import ExampleNotice from '../components/ExampleNotice'
 import JukeboxShelves from '../components/JukeboxShelves'
 import NowPlaying from '../components/NowPlaying'
 import PlayerBar from '../components/PlayerBar'
@@ -48,6 +47,7 @@ import { goBack } from './shell'
 import { shownName } from '../lib/format'
 import { WelcomeScreen } from './WelcomeScreen'
 import { AboutAndHelp, YourMusic } from './TuneExtras'
+import { isExampleOnly } from '../lib/exampleLibrary'
 import { ArticleScreen, HelpScreen } from './HelpScreens'
 import { useT, type MessageKey } from '../i18n'
 import './native.css'
@@ -113,6 +113,8 @@ function tabOf(view: View): TabView | null {
 export default function NativeApp() {
   const t = useT()
   const route = useRoute()
+  // The example library is loaded: a red dot on the Tune tab (`YourMusic`).
+  const onExample = useLibraryStore((s) => s.trying || isExampleOnly(s.roots))
   const status = useLibraryStore((s) => s.status)
   const hydrate = useLibraryStore((s) => s.hydrate)
   const ceremony = usePlayerStore((s) => s.ceremony)
@@ -303,9 +305,9 @@ export default function NativeApp() {
         <ErrorBanner />
         {!playing && <SkippedBanner />}
         <ScanBanner showRefusals={LIBRARY_VIEWS.has(view)} />
-        {/* "This is the demo", with its way out, on the tab screens only: on a
-            phone it is a third of an album page or the record's room. */}
-        {tab && tab !== 'settings' && view === tab && <ExampleNotice onLibraryPage />}
+        {/* No "this is the demo" banner (James, 2026-10-12): a red dot on the
+            Tune tab instead, and Tune's Your music card lit up as the way to
+            swap in your own music when you're ready. */}
 
         {view === 'settings' ? (
           // Your music and About & help first (the website's menu), then Tune
@@ -374,6 +376,7 @@ export default function NativeApp() {
                   </i>
                 )}
                 {homeTab === target && <i className="jx-home-dot" aria-hidden />}
+                {target === 'settings' && onExample && <i className="jx-alert-dot" aria-label={t('native.use_own_music')} />}
               </button>
             ))}
             {tabMenu && (() => {

@@ -116,6 +116,8 @@ export default {
   'way_folder_sub_android': 'On this phone, an SD card or a USB drive', // Android's line under "A folder of music": no Files app or iCloud there
   'way_pick': 'Pick songs',
   'way_pick_sub': 'Choose files one at a time',
+  'use_own_music': 'Use your own music', // row in Tune while the example library is loaded (shown lit up, with a red dot on the Tune tab)
+  'use_own_music_sub': 'Replaces the example library', // second line under it
   'try_example': 'Try it with the example library', // big button
   'made_up': 'Made-up albums, so you can see every machine before adding your own.', // under that button; the "machines" are the turntables and players
   'cloud_help_title': 'Streaming services', // row title in Tune ▸ About & help; the question below it is cloud_help

@@ -403,6 +403,10 @@ html.dark .jx {
 /* The tab the app opens on: a short rule under its name, not a dot (a dot
    reads as a badge). */
 .jx-home-dot { position: absolute; bottom: 2px; left: calc(50% - 7px); width: 14px; height: 2px; border-radius: 1px; background: currentColor; opacity: 0.55; }
+/* Something waiting in that tab: the example library is loaded (Tune). */
+.jx-alert-dot { position: absolute; top: 4px; left: calc(50% + 9px); width: 8px; height: 8px; border-radius: 50%; background: var(--jx-fill); box-shadow: 0 0 0 2px var(--jx-bg, #fff); }
+/* The card the dot points to. */
+.jx-lit { box-shadow: 0 0 0 2px var(--jx-fill); }
 .jx-tab.flash svg { animation: jx-home-pop 480ms ease-out; }
 /* "Set as default", over a held tab. */
 .jx-tabs { position: relative; }

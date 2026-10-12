@@ -104,6 +104,8 @@ const native: Draft['native'] = {
   'way_folder_sub_android': 'En este teléfono, una tarjeta SD o una memoria USB',
   'way_pick': 'Elegir canciones',
   'way_pick_sub': 'Elige los archivos uno a uno',
+  'use_own_music': 'Usar tu música',
+  'use_own_music_sub': 'Sustituye a la biblioteca de ejemplo',
   'try_example': 'Probar con la biblioteca de ejemplo',
   'made_up': 'Álbumes inventados, para que veas todos los aparatos antes de añadir los tuyos.',
   'cloud_help_title': 'Servicios de streaming',

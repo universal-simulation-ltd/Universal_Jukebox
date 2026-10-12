@@ -792,3 +792,8 @@ function mulberry32(seed: number): () => number {
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
 }
+
+/** The library is the example and nothing else — the first-run screen's demo. */
+export function isExampleOnly(roots: readonly { id: string }[]): boolean {
+  return roots.length > 0 && roots.every((r) => r.id === EXAMPLE_ROOT_ID)
+}

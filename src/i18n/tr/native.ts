@@ -104,6 +104,8 @@ const native: Draft['native'] = {
   'way_folder_sub_android': 'Bu telefonda, bir SD kartta ya da USB bellekte',
   'way_pick': 'Şarkı seç',
   'way_pick_sub': 'Dosyaları tek tek seçin',
+  'use_own_music': 'Kendi müziğinizi kullanın',
+  'use_own_music_sub': 'Örnek kitaplığın yerini alır',
   'try_example': 'Örnek kitaplıkla deneyin',
   'made_up': 'Uydurma albümler; böylece kendi müziğinizi eklemeden önce her çaları görebilirsiniz.',
   'cloud_help_title': 'Akış hizmetleri',

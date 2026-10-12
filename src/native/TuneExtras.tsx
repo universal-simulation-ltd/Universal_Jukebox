@@ -18,6 +18,7 @@ import { hasNativeImporter } from '../lib/nativeImport'
 import { goHome, navigate } from '../lib/route'
 import { shownRootLabel, trackCountFor } from '../lib/roots'
 import { useLibraryStore } from '../stores/libraryStore'
+import { isExampleOnly } from '../lib/exampleLibrary'
 
 function deviceWord(): 'phone' | 'iPad' {
   if (typeof navigator === 'undefined') return 'phone'
@@ -32,6 +33,7 @@ export function YourMusic() {
   const tracks = useLibraryStore((s) => s.tracks)
   const trying = useLibraryStore((s) => s.trying)
   const leaveExample = useLibraryStore((s) => s.leaveExample)
+  const clear = useLibraryStore((s) => s.clear)
   const removeFolder = useLibraryStore((s) => s.removeFolder)
   const rescanFolder = useLibraryStore((s) => s.rescanFolder)
   const rescanNativeFolders = useLibraryStore((s) => s.rescanNativeFolders)
@@ -72,23 +74,31 @@ export function YourMusic() {
   }
 
   // Trying the example library, the one thing wanted here is the way out
-  // (AppMenu's rule): its folders would all be the demo's.
-  if (trying) {
+  // (AppMenu's rule): its folders would all be the demo's. Two ways to be in
+  // it: `trying` (a look at the demo from your own library), or the demo IS
+  // the library (picked on the first-run screen), where the way out clears it
+  // and the first-run screen asks where your music is.
+  const exampleOnly = isExampleOnly(roots)
+  if (trying || exampleOnly) {
     return (
-      <section className="jx-card jx-tune-card" aria-label={t('native.your_music')}>
+      // Lit up (`.jx-lit`), matching the red dot on the Tune tab: the example
+      // is for looking round, and this is where your own music comes in.
+      <section className="jx-card jx-tune-card jx-lit" aria-label={t('native.your_music')}>
         <p className="jx-label">{t('native.your_music')}</p>
         <button
           type="button"
           className="jx-row"
           onClick={() => {
-            leaveExample()
+            if (trying) leaveExample()
+            else void clear()
             goHome()
           }}
         >
           <span>
-            <b>{t('app.back_to_my_music')}</b>
-            <small>{t('app.leave_example')}</small>
+            <b>{t('native.use_own_music')}</b>
+            <small>{t('native.use_own_music_sub')}</small>
           </span>
+          <span className="jx-chev" aria-hidden>›</span>
         </button>
       </section>
     )
