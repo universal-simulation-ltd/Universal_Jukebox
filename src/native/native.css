@@ -125,6 +125,37 @@ html.dark .jx {
 }
 .jx-brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; padding-left: 4px; }
 .jx-brand b { color: var(--jx-acc); font-weight: 700; }
+/* The needle-drop egg (`Brand` in NativeApp): the arm's needle tip, at (4.5,
+   19.5) in its 24-unit box, lands on the middle of the "o". */
+.jx-brand { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.jx-brand-o { position: relative; display: inline-block; }
+.jx-needle {
+  position: absolute; left: calc(50% - 4.5px); top: -6px; width: 24px; height: 24px; overflow: visible;
+  pointer-events: none; transform-origin: 20px 4px;
+  fill: var(--jx-mute); stroke: var(--jx-mute); stroke-width: 1.6; stroke-linecap: round;
+  animation: jx-needle-drop 2.2s ease-in-out both;
+}
+.jx-needle .head { stroke: var(--jx-acc); stroke-width: 3; }
+@keyframes jx-needle-drop {
+  0% { opacity: 0; transform: rotate(-55deg) translateY(-3px); }
+  12% { opacity: 1; }
+  35% { transform: rotate(0deg) translateY(-3px); }
+  45%, 75% { transform: rotate(0deg) translateY(0); }
+  85% { opacity: 1; transform: rotate(0deg) translateY(-3px); }
+  100% { opacity: 0; transform: rotate(-55deg) translateY(-3px); }
+}
+/* While the needle is down, the light bar plays like a level meter. */
+.jx-top.jx-dropping .jx-strip { animation: jx-vu 0.66s linear 1s both; transform-origin: center; }
+@keyframes jx-vu {
+  0% { opacity: 0.3; transform: scaleX(0.4); }
+  15% { opacity: 1; transform: scaleX(1); }
+  30% { opacity: 0.55; transform: scaleX(0.7); }
+  48% { opacity: 1; transform: scaleX(0.95); }
+  64% { opacity: 0.45; transform: scaleX(0.55); }
+  82% { opacity: 0.9; transform: scaleX(0.85); }
+  100% { opacity: 1; transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) { .jx-needle { display: none; } }
 .jx-back {
   display: inline-flex; align-items: center; gap: 2px;
   min-width: 44px; min-height: 44px; padding: 0 6px 0 0;

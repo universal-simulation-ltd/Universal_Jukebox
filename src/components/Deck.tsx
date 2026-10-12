@@ -18,6 +18,7 @@ import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
 import { DeckSlideContext, slideInner, slideOuter } from './decks/slide'
 import { DeckOutlineContext } from './decks/outline'
+import { scratchDeck } from '../lib/scratch'
 import { grooveRings } from '../lib/grooves'
 import { haptic } from '../lib/haptics'
 import { shownName } from '../lib/format'
@@ -100,6 +101,8 @@ interface DeckProps {
 
 /** How long a press is held before it is a long press. */
 const LONG_PRESS_MS = 500
+/** Two taps closer than this are a double tap (the scratch). */
+const DOUBLE_TAP_MS = 260
 /** How far the finger may wander and still be holding — a swipe starts at 8px. */
 const LONG_PRESS_SLOP = 8
 
@@ -289,13 +292,37 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
     if (album) navigate({ view: 'album', albumId: album.id })
   }
 
+  // The easter egg (`lib/scratch.ts`): a DOUBLE tap on Now Playing's machine
+  // scratches it. ⚠️ So the single tap waits DOUBLE_TAP_MS to be sure it is
+  // one — only here, and not when motion is reduced (no egg, no wait).
+  const deckEl = useRef<HTMLDivElement>(null)
+  const firstTap = useRef<number | null>(null)
+  useEffect(() => () => {
+    if (firstTap.current !== null) window.clearTimeout(firstTap.current)
+  }, [])
+  const tapDeck = () => {
+    if (!ceremonial || reduced || longPressed.current) return openAlbum()
+    if (firstTap.current !== null) {
+      window.clearTimeout(firstTap.current)
+      firstTap.current = null
+      haptic('tap')
+      if (deckEl.current) scratchDeck(deckEl.current, style)
+      return
+    }
+    firstTap.current = window.setTimeout(() => {
+      firstTap.current = null
+      openAlbum()
+    }, DOUBLE_TAP_MS)
+  }
+
   return (
     <div className="group flex flex-col items-center">
       <div
         role="button"
         tabIndex={0}
         aria-label={album ? t('decks.open_album_named', { album: shownName(album.title) }) : t('decks.open_album')}
-        onClick={openAlbum}
+        ref={deckEl}
+        onClick={tapDeck}
         {...pressHandlers}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -313,6 +340,8 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
           width: size,
           height: Math.round(size * frame.ratio),
           borderRadius: frame.radius,
+          // A double tap is the egg, never a zoom.
+          touchAction: 'manipulation',
           // No iOS "save image" callout or text selection under a held finger.
           ...(onLongPress ? { WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' } : null),
           ...(slide && !mediumOnly ? slideOuter(slide) : null),

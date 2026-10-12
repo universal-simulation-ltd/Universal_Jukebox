@@ -6,7 +6,9 @@
 // (`lib/nativeFile`, `lib/appleMusic`, `lib/nativeImport`); in a dev browser
 // with `?app` the folder and file buttons fall back to the browser's pickers.
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { haptic } from '../lib/haptics'
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { hasOwnMusicFolder, isNativeShell, nativePlatform, usesChosenFolder } from '../lib/nativeFile'
 import { hasNativeImporter } from '../lib/nativeImport'
@@ -28,6 +30,7 @@ export function WelcomeScreen() {
   const folderInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const [building, setBuilding] = useState(false)
+  const spin = useRevUp()
 
   const native = isNativeShell()
   const chosen = usesChosenFolder()
@@ -64,7 +67,7 @@ export function WelcomeScreen() {
 
   return (
     <div className="jx-page jx-welcome">
-      <div className="jx-welcome-art" aria-hidden>
+      <div className="jx-welcome-art" aria-hidden {...spin}>
         <RecordMark />
       </div>
       <h1 className="jx-h1">{t('native.welcome_title')}</h1>
@@ -133,4 +136,49 @@ export function WelcomeScreen() {
       />
     </div>
   )
+}
+
+/**
+ * An easter egg (James, 2026-10-12): hold the record and it revs up past
+ * 78 rpm; let go and it coasts back down to its own 33⅓. The extra turn rides
+ * on the `rotate` property, on top of the CSS spin (`.jx-mark`), so letting go
+ * hands straight back to it. Nothing when motion is reduced.
+ */
+function useRevUp() {
+  const reduced = usePrefersReducedMotion()
+  const state = useRef({ held: false, speed: 0, angle: 0, frame: 0, last: 0, el: null as HTMLElement | null })
+  useEffect(() => () => cancelAnimationFrame(state.current.frame), [])
+
+  const step = (now: number) => {
+    const s = state.current
+    const dt = Math.min(0.05, (now - s.last) / 1000)
+    s.last = now
+    // Revs up in about a second, coasts down in about two.
+    const target = s.held ? 420 : 0
+    s.speed += (target - s.speed) * (1 - Math.exp(-dt * (s.held ? 2.2 : 1.3)))
+    s.angle = (s.angle + s.speed * dt) % 360
+    if (s.el) s.el.style.rotate = `${s.angle}deg`
+    if (s.held || s.speed > 2) s.frame = requestAnimationFrame(step)
+    else s.frame = 0
+  }
+
+  if (reduced) return {}
+  return {
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button > 0) return
+      const s = state.current
+      s.el = e.currentTarget.querySelector<HTMLElement>('.jx-mark')
+      s.held = true
+      haptic('tick')
+      if (!s.frame) {
+        s.last = performance.now()
+        s.frame = requestAnimationFrame(step)
+      }
+    },
+    onPointerUp: () => { state.current.held = false },
+    onPointerLeave: () => { state.current.held = false },
+    onPointerCancel: () => { state.current.held = false },
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    style: { touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' } as React.CSSProperties,
+  }
 }

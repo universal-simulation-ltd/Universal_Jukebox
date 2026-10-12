@@ -32,6 +32,7 @@ import About from '../components/About'
 import Tidy from '../components/Tidy'
 import { useBooting } from '../lib/boot'
 import { haptic } from '../lib/haptics'
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -51,7 +52,7 @@ import { isExampleOnly } from '../lib/exampleLibrary'
 import { ArticleScreen, HelpScreen } from './HelpScreens'
 import { useT, type MessageKey } from '../i18n'
 import './native.css'
-import { applyListDefaults } from './listDefaults'
+import { applyListDefaults, useHold } from './listDefaults'
 
 // The lists open with their defaults (a tap on a list option lasts until the
 // app is next opened; holding one makes it the default — `listDefaults.ts`).
@@ -459,9 +460,53 @@ function TopBar({ view, route }: { view: View; route: Route }) {
   }
   return (
     <div className="jx-bar">
-      <span className="jx-brand">
-        <b>Universal</b> Jukebox
-      </span>
+      <Brand />
     </div>
+  )
+}
+
+/** How long the needle-drop egg takes, arm in to arm away (native.css). */
+const NEEDLE_DROP_MS = 2200
+
+/**
+ * The name, with an easter egg (James, 2026-10-12): hold it and a little tone
+ * arm swings over and drops its needle on the "o" of Jukebox, the light bar
+ * above flickers like a level meter while it plays, and the arm lifts away.
+ * The name is the brand and never translated, so the "o" is always there.
+ */
+function Brand() {
+  const reduced = usePrefersReducedMotion()
+  const hold = useHold()
+  const [drops, setDrops] = useState(0)
+  const dropping = useRef(0)
+  useEffect(() => () => window.clearTimeout(dropping.current), [])
+  const drop = (el: Element | null) => {
+    if (reduced || dropping.current) return
+    setDrops((n) => n + 1)
+    const top = el?.closest('.jx-top')
+    top?.classList.add('jx-dropping')
+    // The needle lands about 45% of the way through.
+    window.setTimeout(() => haptic('tick'), NEEDLE_DROP_MS * 0.45)
+    dropping.current = window.setTimeout(() => {
+      dropping.current = 0
+      top?.classList.remove('jx-dropping')
+    }, NEEDLE_DROP_MS)
+  }
+  const ref = useRef<HTMLSpanElement>(null)
+  return (
+    <span ref={ref} className="jx-brand" {...hold.bind(() => drop(ref.current))}>
+      <b>Universal</b> Jukeb
+      <span className="jx-brand-o">
+        o
+        {drops > 0 && (
+          <svg key={drops} className="jx-needle" viewBox="0 0 24 24" aria-hidden>
+            <circle cx="20" cy="4" r="2.6" />
+            <path d="M20 4 L7 16" />
+            <path className="head" d="M7 16 L4.5 19.5" />
+          </svg>
+        )}
+      </span>
+      x
+    </span>
   )
 }
