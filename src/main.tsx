@@ -60,10 +60,10 @@ const universalConfig = {
   // an account — the backup file still works — so the SDK hides every account
   // affordance, and with no sign-in there is no Delete my account to provide.
   noAccounts: phoneScreens(),
-  // The user count's presence beat stays on the website only. The phone app
-  // (Capacitor) and the desktop app (Electron) send nothing for it, so they keep
-  // no install id and nothing identifies the device.
-  presence: !isNativeShell() && !isDesktopApp(),
+  // The SDK's anonymous daily open count (0.187.0: once a day, product + kind
+  // of device, no identifier) stays on the website only. The phone app
+  // (Capacitor) and the desktop app (Electron) send nothing for it.
+  openCount: !isNativeShell() && !isDesktopApp(),
 }
 
 // ⚠️ THE LIBRARY IS READ BEFORE REACT RENDERS, not from an effect afterwards.
