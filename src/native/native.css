@@ -347,7 +347,12 @@ html.dark .jx {
   animation: jx-disc-out 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
 }
 @keyframes jx-disc-out { from { transform: translateX(calc(var(--s) * -0.34)) rotate(-40deg); } }
-@media (prefers-reduced-motion: reduce) { .jx-sleeve-disc { animation: none; } }
+/* Held: back into the sleeve, a beat, and out again (`AlbumScreen`). */
+.jx-sleeve-disc.again { animation: jx-disc-again 1.3s cubic-bezier(0.45, 0, 0.25, 1) both; }
+@keyframes jx-disc-again {
+  40%, 52% { transform: translateX(calc(var(--s) * -0.34)) rotate(-40deg); }
+}
+@media (prefers-reduced-motion: reduce) { .jx-sleeve-disc, .jx-sleeve-disc.again { animation: none; } }
 .jx-hero-open.jx-sleeve:active .jx-hero-cover { transform: none; }
 .jx-hero-open.jx-sleeve:active .jx-sleeve-front { transform: scale(0.98); }
 .jx-hero .jx-link { text-align: center; }

@@ -22,6 +22,7 @@ import { IconPlay, IconShuffle } from './icons'
 import { SearchBox, SongList } from './LibraryScreens'
 import { byYearThenTitle } from '../lib/libraryView'
 import { useCollectionHold } from './CollectionHold'
+import { useHold } from './listDefaults'
 
 function usePlayShuffle() {
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -101,6 +102,10 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
   const { playTracks, shuffleThese } = usePlayShuffle()
   const onTheDeck = usePlayerStore((s) => currentTrack(s)?.albumId === albumId)
   const find = useFindWithin(tracks, album ? t('native.search_named', { name: shownName(album.title) }) : t('native.search_this_album'))
+  // Hold the sleeve: the record slides back in and out again (James,
+  // 2026-10-12). A new key restarts the animation on every hold.
+  const sleeveHold = useHold()
+  const [slides, setSlides] = useState(0)
 
   if (!album) return <p className="jx-empty">{t('native.album_gone')}</p>
 
@@ -118,7 +123,9 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
         <button
           type="button"
           className="jx-hero-open jx-sleeve"
+          {...sleeveHold.bind(() => setSlides((n) => n + 1))}
           onClick={() => {
+            if (sleeveHold.consumed()) return
             markTipSeen('cover')
             if (onTheDeck) showTheDeck()
             else playTracks(tracks, 0)
@@ -128,7 +135,7 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
           {/* The sleeve as it is, with its record half out of it behind
               (James, 2026-10-11: "show the album sleeve (as is) with a vinyl
               disc coming out of it"). The two are centred together. */}
-          <span className="jx-sleeve-disc" aria-hidden>
+          <span key={slides} className={`jx-sleeve-disc${slides > 0 ? ' again' : ''}`} aria-hidden>
             <VinylRecord album={album} />
           </span>
           <span className="jx-sleeve-front">
