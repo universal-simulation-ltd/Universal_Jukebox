@@ -14,12 +14,19 @@
   no count. Nothing is collected, and
   NSPrivacyCollectedDataTypes is empty.
 
-  Three lookups send a song's artist and title (never the file) straight from
+  Two lookups send a song's artist and title (never the file) straight from
   the phone to a public service, only when the user asks for what they return:
-  LRCLIB for lyrics, Wikipedia for "About this track", and the iTunes Search
-  API for a cover on the Requests shelf. None of it reaches our servers or is
-  kept against the user, and each request is answered there and then, so
-  under Apple's definition it is not collected and is not declared below.
+  Wikipedia for "About this track", and the iTunes Search API for a cover on
+  the Requests shelf. None of it reaches our servers or is kept against the
+  user, and each request is answered there and then, so under Apple's
+  definition it is not collected and is not declared below.
+
+  There is NO online lyrics lookup on iPhone or iPad: `barsOnlineLyrics()`
+  (src/lib/nativeFile.ts) is true in the iOS shell, so lyricsStore never lets
+  lib/lrclib.ts reach LRCLIB there, and the Tune this app option is hidden.
+  Lyrics come only from files on the device and the Apple Music library. The
+  LRCLIB lookup exists on the web, desktop and Android only (Android answers
+  for it in store-assets/data-safety.json).
 
   Nothing is used for tracking, and there are no third-party analytics or
   advertising SDKs.
