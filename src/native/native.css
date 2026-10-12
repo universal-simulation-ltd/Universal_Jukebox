@@ -330,7 +330,9 @@ html.dark .jx {
 .jx-song .jx-row { flex: 1; min-width: 0; }
 .jx-more { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border: 0; background: none; color: var(--jx-mute); }
 .jx-more svg { width: 20px; height: 20px; }
-.jx-song .jx-row { -webkit-touch-callout: none; user-select: none; }
+/* Every tile and row is held for its options: no words selected under the
+   finger as the sheet opens (James, 2026-10-12). */
+.jx-tile, .jx-row { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 
 /* Album / artist: add-all buttons under Play and Shuffle. */
 .jx-actions-wrap { display: flex; flex-direction: column; gap: 10px; }
@@ -373,7 +375,10 @@ html.dark .jx {
    the album page's sleeve brought it up instead of sliding the record). iOS's
    image menu also cancels the pointer, so `useHold` never fired. */
 .jx img { -webkit-touch-callout: none; }
-.jx-sleeve { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+/* …nor the album's name selected beside it (James, 2026-10-12): a held
+   sleeve made iOS select the nearest words, the title under it. The whole top
+   of an album or artist page, not just the sleeve. */
+.jx-hero { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 .jx-sleeve { --s: min(68vw, 300px); display: block; width: calc(var(--s) * 1.32); height: var(--s); margin-bottom: 14px; }
 .jx-sleeve-front { position: absolute; left: 0; top: 0; z-index: 1; display: block; width: var(--s); height: var(--s); }
 .jx-sleeve .jx-hero-cover { width: var(--s); margin-bottom: 0; }
