@@ -5,7 +5,9 @@
   "devices": [
     "iphone",
     "ipad",
-    "android"
+    "android",
+    "header",
+    "search"
   ],
   "video": {
     "raw": [
@@ -55,6 +57,30 @@
       "layout": "sleeve-paper",
       "raw": "bedside",
       "hot": 0
+    },
+    {
+      "id": "header",
+      "layout": "sleeve-header",
+      "raw": [
+        "now-cassette",
+        "now-jukebox"
+      ],
+      "strings": "01-turntable",
+      "on": [
+        "header"
+      ]
+    },
+    {
+      "id": "search",
+      "layout": "sleeve-search",
+      "raw": [
+        "now-vinyl",
+        "now-jukebox"
+      ],
+      "strings": "01-turntable",
+      "on": [
+        "search"
+      ]
     }
   ]
 }
