@@ -217,7 +217,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## @unisim/sdk 0.184.0
+## @unisim/sdk 0.187.0
 
 Universal Simulation Ltd et al.
 <https://github.com/universal-simulation-ltd/universal-platform>
