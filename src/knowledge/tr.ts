@@ -293,6 +293,10 @@ Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçb
 
 İlk ikisinin yanıtları cihazınızda saklanır, böylece bir şarkı yalnızca bir kez sorgulanır. **Bu uygulamayı ayarla** sayfası kaç tane olduğunu gösterir ve bunları unutmanızı sağlar. Hiçbir ses cihazınızdan asla çıkmaz.
 
+## Kullanıcıların sayılması
+
+Web sitesinde, Jukebox açıkken tarayıcınız her 45 saniyede bir UNI·SIM’e uygulamanın kullanıldığını, kendi oluşturduğu rastgele bir sayıyla birlikte bildirir; böylece uygulamayı kaç kişinin kullandığını sayabiliriz. Sizinle veya müziğinizle ilgili hiçbir şey gönderilmez. iPhone, iPad, Android ve masaüstü uygulamaları bunu göndermez.
+
 ## Universal ID
 
 Universal ID ile oturum açmak isteğe bağlıdır. Tüm UNI·SIM uygulamalarında oturumunuzun açık kalmasını sağlar ve isterseniz hesabınızla birlikte bir yedek tutmanıza olanak tanır. Oturumunuz açıkken uygulama, her başladığında hesabınıza bir “açıldı” olayı kaydeder. Bu olay müziğiniz hakkında hiçbir şey söylemez.

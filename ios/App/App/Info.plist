@@ -144,32 +144,22 @@
 	     is tapped, never at launch. -->
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Universal Jukebox plays the songs in your Music library that are stored on this iPhone, such as the ones you sync from your computer. Nothing is uploaded.</string>
-	<!-- ⚠️ DEFENSIVE, NOT A FEATURE. The web build's folder and file inputs
-	     (Landing.tsx, FolderAccessButton.tsx) are bare `<input type="file">`s,
-	     and iOS turns one into a sheet offering Photo Library and Take Photo or
-	     Video. Inside this app a missing usage string there is not a denied
-	     permission — iOS KILLS the process. Those inputs sit behind `!native`
-	     today, so the native app never shows them; these strings are here so a
-	     future change that does cannot crash it. The app never asks for any of
-	     these by itself. -->
-	<key>NSCameraUsageDescription</key>
-	<string>Universal Jukebox doesn’t use the camera. iOS offers it in the file picker; anything taken there is ignored, because only music files are read. Nothing is uploaded.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Universal Jukebox doesn’t record sound. iOS offers video recording in the file picker; anything recorded there is ignored, because only music files are read. Nothing is uploaded.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Universal Jukebox doesn’t need your photos. iOS offers them in the file picker; anything picked there is ignored, because only music files are read. Nothing is uploaded.</string>
 	<!-- ⚠️ A MISSING USAGE STRING IS A CRASH, not a refusal: iOS terminates
 	     the process the moment a privacy-gated resource is reached without
 	     one (Docs_UNI_SIM/landmines.md).
 
 	     Nothing here calls the camera or the microphone. The web layer's file
 	     inputs do, by proxy: the folder pickers are `webkitdirectory` inputs
-	     with NO accept (FolderAccessButton, the app menu), which iOS degrades
-	     to its generic picker — and that picker offers "Take Photo or Video".
-	     Taking a video records sound, so both strings are needed. Those
-	     buttons are behind a `!native` branch today, which is one refactor
-	     from being live; `npm run check:ios-launch` fails if a camera-reaching
-	     input exists in src/ and the camera string does not. -->
+	     with NO accept (src/native/WelcomeScreen.tsx and TuneExtras.tsx, used
+	     when the native importer is missing; FolderAccessButton and the app
+	     menu on the web), which iOS degrades to its generic picker — and that
+	     picker offers "Take Photo or Video". Taking a video records sound, so
+	     both strings are needed. `npm run check:ios-launch` fails if a
+	     camera-reaching input exists in src/ and the camera string does not.
+
+	     No photo-library string: the same picker's Photo Library entry is the
+	     system photo picker (PHPicker, iOS 14+; this app targets 15), which
+	     needs no permission, and no code here touches the Photos framework. -->
 	<key>NSCameraUsageDescription</key>
 	<string>Universal Jukebox never uses the camera itself. iOS offers it in the file picker; anything you take stays on this device.</string>
 	<key>NSMicrophoneUsageDescription</key>

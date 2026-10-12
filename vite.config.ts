@@ -1,8 +1,37 @@
-import { defineConfig } from 'vite';
+import { readFileSync } from 'node:fs';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import pkg from './package.json' with { type: 'json' };
+
+// The production Content-Security-Policy (public/_headers) served Report-Only
+// on the dev server, so a new origin shows up in the console while developing
+// rather than as a refusal on the live site. Same as Universal PDF's cspDev().
+// Vite's dev server needs inline scripts (React refresh) and its own websocket,
+// so those are added here only.
+function cspDev(): Plugin {
+  const headers = readFileSync(new URL('./public/_headers', import.meta.url), 'utf8');
+  const line = headers.split('\n').find((l) => /^\s*Content-Security-Policy(-Report-Only)?:/.test(l) && /default-src/.test(l));
+  const policy = line ? line.slice(line.indexOf(':') + 1).trim() : '';
+  const dev = policy
+    // Report-Only can't carry frame-ancestors (the browser warns and ignores it).
+    .replace(/;\s*frame-ancestors[^;]*/, '')
+    // A hash in script-src makes the browser ignore 'unsafe-inline'.
+    .replace(/script-src ([^;]*)/, (_m, list: string) => `script-src ${list.replace(/\s*'sha256-[^']+'/g, '')} 'unsafe-inline'`)
+    .replace(/connect-src ([^;]*)/, 'connect-src $1 ws: wss:');
+  return {
+    name: 'csp-dev',
+    apply: 'serve',
+    configureServer(server) {
+      if (!policy) return;
+      server.middlewares.use((_req, res, next) => {
+        res.setHeader('Content-Security-Policy-Report-Only', dev);
+        next();
+      });
+    },
+  };
+}
 
 // Served at opensource.unisim.co.uk/jukebox/ behind the portal Worker, so
 // production assets live under /jukebox/.
@@ -51,6 +80,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      cspDev(),
       ...(isDesktop ? [] : [VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg', 'unisim-icon.png', 'icon-180.png', 'icon-192.png', 'icon-512.png'],

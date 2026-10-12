@@ -11,6 +11,8 @@ import './index.css'
 import { installShortcuts } from './lib/shortcuts'
 import { followThemeWithStatusBar } from './lib/systemBars'
 import { phoneScreens } from './native/shell'
+import { isNativeShell } from './lib/nativeFile'
+import { isDesktopApp } from './lib/host'
 // Counts plays for the Most played shelf from the first song on (`lib/playCounts.ts`).
 import './lib/playCounts'
 
@@ -58,6 +60,10 @@ const universalConfig = {
   // an account — the backup file still works — so the SDK hides every account
   // affordance, and with no sign-in there is no Delete my account to provide.
   noAccounts: phoneScreens(),
+  // The user count's presence beat stays on the website only. The phone app
+  // (Capacitor) and the desktop app (Electron) send nothing for it, so they keep
+  // no install id and nothing identifies the device.
+  presence: !isNativeShell() && !isDesktopApp(),
 }
 
 // ⚠️ THE LIBRARY IS READ BEFORE REACT RENDERS, not from an effect afterwards.

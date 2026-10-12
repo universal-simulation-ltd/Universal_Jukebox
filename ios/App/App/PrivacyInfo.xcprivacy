@@ -5,22 +5,12 @@
   Apple's privacy manifest, required for App Store submission.
 
   The music never leaves the phone: scanning, tags, artwork, shelves, the
-  queue and playback all happen on the device. What CAN leave:
-
-  - Signing in with a Universal ID (optional): the email and the account id.
-  - While signed in, one "the app was opened" event per launch, tied to the
-    account (the SDK's <UsageTracker />). Nothing about the music. Declared as
-    product interaction, for analytics, because that is what it is.
-
-  The one exception to "only when the user asks" (since 2026-09-17): the
-  suite user count (@unisim/sdk presence.js, started by
-  <UniversalProvider>). From the moment the app opens, signed in or not, and
-  every 45 s while it is in front, it sends a random install id this app
-  makes itself (kept in the WebView's localStorage), the platform and the
-  product name, with the account id once signed in, so "N users" can be
-  counted. Declared as Device ID and Product Interaction, analytics,
-  linked (a signed-in beat names the account), not tracking — the same
-  answers as Ergo Assess and Universal QR (2026-10-10).
+  queue and playback all happen on the device. The phone app has no sign-in
+  (noAccounts in src/main.tsx), so there is no account, no email and no
+  "the app was opened" event. The suite user count (@unisim/sdk presence.js)
+  is turned off in the phone app (src/main.tsx `presence`, since 2026-10-12),
+  so it keeps no install id and sends no beat. Nothing is collected, and
+  NSPrivacyCollectedDataTypes is empty.
 
   Three lookups send a song's artist and title (never the file) straight from
   the phone to a public service, only when the user asks for what they return:
@@ -69,37 +59,8 @@
 			</array>
 		</dict>
 	</array>
-	<!-- No accounts in the phone app (2026-10-11), so nothing here is linked to a
-	     person: the install id is random and made by the app itself. -->
+	<!-- No accounts and no user-count beat in the phone app: nothing collected. -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array>
-		<dict>
-			<!-- The suite user count's random install id (SDK presence.js). -->
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeDeviceID</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-		</dict>
-		<dict>
-			<!-- The user count's "this install is open" beat, signed in or not,
-			     and one "session.opened" event per launch while signed in. -->
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-		</dict>
-	</array>
+	<array/>
 </dict>
 </plist>

@@ -293,6 +293,10 @@ Only three features ever send anything about your music, and none of them does a
 
 Answers from the first two are kept on your device, so a song is looked up only once. Tune this app shows how many there are and lets you forget them. No audio ever leaves your device.
 
+## Counting users
+
+On the website, while Jukebox is open, your browser tells UNI·SIM every 45 seconds that the app is in use, with a random number it made for itself, so that we can count how many people use the app. It carries nothing about you or your music. The iPhone, iPad, Android and desktop apps don’t send it.
+
 ## Universal ID
 
 Signing in with a Universal ID is optional. It keeps you signed in across the UNI·SIM apps, and lets you keep a backup with your account if you choose to. While you are signed in, the app records one “opened” event against your account each time it starts. That event says nothing about your music.

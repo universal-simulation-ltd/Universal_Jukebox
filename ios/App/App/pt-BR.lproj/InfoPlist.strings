@@ -2,4 +2,3 @@
 "NSAppleMusicUsageDescription" = "O Universal Jukebox toca as músicas da sua biblioteca do app Música que estão armazenadas neste iPhone, como as que você sincroniza do computador. Nada é enviado.";
 "NSCameraUsageDescription" = "O Universal Jukebox nunca usa a câmera por conta própria. O iOS a oferece no seletor de arquivos; o que você fotografar ali fica neste dispositivo.";
 "NSMicrophoneUsageDescription" = "O Universal Jukebox nunca grava som por conta própria. O iOS só pede o microfone se você gravar um vídeo pelo seletor de arquivos; ele fica neste dispositivo.";
-"NSPhotoLibraryUsageDescription" = "O Universal Jukebox não precisa das suas fotos. O iOS as oferece no seletor de arquivos; o que você escolher ali é ignorado, porque só arquivos de música são lidos. Nada é enviado.";

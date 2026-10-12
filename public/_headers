@@ -1,5 +1,45 @@
 # Force HTTPS: instruct browsers to only ever connect over TLS (mirrors the
 # marketing site). The HTTP→HTTPS redirect itself is the Cloudflare zone
 # "Always Use HTTPS" setting.
+#
+# These are served by Workers static assets (wrangler.jsonc — this app is a
+# Worker with assets, not a Pages project; `_headers` works the same way for
+# both), and the portal Worker passes them through on
+# opensource.unisim.co.uk/jukebox/*. `/*` matches every path, prefixed or not.
+# The Capacitor and Electron builds load the bundle from disk and never see
+# these headers.
+#
+# Content-Security-Policy (2026-10-12) — what the web app really reaches for,
+# and nothing else:
+#   • script-src: its own bundle; the one inline script in index.html (the
+#     pre-paint theme, allowed by its sha256 — src/lib/csp.test.ts fails the
+#     build if the script changes without the hash); Google's sign-in script
+#     (the SDK loads accounts.google.com/gsi/client on demand). No
+#     'unsafe-inline' and no 'unsafe-eval'.
+#   • style-src 'unsafe-inline': React style attributes, everywhere.
+#   • connect-src: Supabase (API, auth, storage for a backup to a Universal ID,
+#     realtime), the suite changelog, Google sign-in, and the three lookups a
+#     user asks for: lrclib.net (lyrics), en.wikipedia.org (About this track),
+#     itunes.apple.com plus the chosen picture on *.mzstatic.com (Find a
+#     picture, on a request).
+#   • worker-src 'self' blob:: the service worker, and Supabase realtime's
+#     heartbeat worker (a blob:).
+#   • media-src: the music is played from blob: URLs of the user's own files;
+#     https: is allowed too so no playback path is refused.
+#   • img-src https:: Wikipedia thumbnails, iTunes artwork, avatars.
+#   • frame-src: Google sign-in only.
+#   • No Cloudflare Web Analytics. Cloudflare's zone-level automatic setup
+#     injects its beacon (static.cloudflareinsights.com) into the live HTML;
+#     this policy refuses it on purpose. Turn the injection off for this host
+#     in Cloudflare (Web Analytics site rules) — until then the beacon is
+#     simply refused here.
+# The dev server serves the same policy Report-Only (vite.config.ts, cspDev()).
+#
+# Hardening (2026-10-12). Nothing in the suite frames this app, so refusing to
+# be framed elsewhere costs nothing.
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-3mZLT8QvXfr7EO+IvEUeiA7ljcfRRFIjG77C5UGG//4=' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' data: blob: https://rygfxgalojojppxmhddo.supabase.co wss://rygfxgalojojppxmhddo.supabase.co https://changelog.unisim.co.uk https://accounts.google.com/gsi/ https://lrclib.net https://en.wikipedia.org https://itunes.apple.com https://*.mzstatic.com; worker-src 'self' blob:; frame-src 'self' https://accounts.google.com/gsi/; media-src 'self' blob: data: https:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'

@@ -1,21 +1,8 @@
 {
- "_about": "Play Data safety answers. Build the importable CSV with: node Docs_UNI_SIM/store-kit/data-safety.mjs Universal_Apps/Universal_Jukebox/store-assets/data-safety.json Universal_Apps/Universal_Jukebox/store-assets/out/play/data-safety.csv. Checked against the code 2026-10-11: the phone app has no accounts at all (noAccounts in main.tsx), so no email or user id. The music, its tags, art and lyrics never leave the device. The suite user count (@unisim/sdk presence.js) sends a random install id the app makes itself and the platform when the app opens and every 45 s in use: App interactions + Device or other IDs, required, Analytics. The lookups (lrclib.net on Android only, opt-in; Wikipedia, opt-in; iTunes Search on tap) go straight from the phone to those services and are not collected by us. Mirrors ios/App/App/PrivacyInfo.xcprivacy.",
+ "_about": "Play Data safety answers. Build the importable CSV with: node Docs_UNI_SIM/store-kit/data-safety.mjs Universal_Apps/Universal_Jukebox/store-assets/data-safety.json Universal_Apps/Universal_Jukebox/store-assets/out/play/data-safety.csv. Checked against the code 2026-10-12: the phone app has no accounts at all (noAccounts in main.tsx), so no email, no user id and no signed-in usage events. The suite user count (@unisim/sdk presence.js) is OFF in the phone and desktop apps since 2026-10-12 (src/main.tsx `presence: !isNativeShell() && !isDesktopApp()`), so no install id and no Device or other IDs, and no App interactions either. The music, its tags, art and lyrics never leave the device. The lookups (lrclib.net on Android only, opt-in; Wikipedia, opt-in; iTunes Search on tap) go straight from the phone to those services and are not collected by us. So: no data collected. Re-import this at the next Play release. Mirrors ios/App/App/PrivacyInfo.xcprivacy.",
  "accountCreation": [
   "PSL_ACM_NONE"
  ],
  "deletionUrl": "https://www.unisim.co.uk/privacy#retention",
- "types": {
-  "PSL_USER_INTERACTION": {
-   "required": true,
-   "purposes": [
-    "PSL_ANALYTICS"
-   ]
-  },
-  "PSL_DEVICE_ID": {
-   "required": true,
-   "purposes": [
-    "PSL_ANALYTICS"
-   ]
-  }
- }
+ "types": {}
 }

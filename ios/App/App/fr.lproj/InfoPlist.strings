@@ -2,4 +2,3 @@
 "NSAppleMusicUsageDescription" = "Universal Jukebox lit les morceaux de votre bibliothèque Musique enregistrés sur cet iPhone, comme ceux que vous synchronisez depuis votre ordinateur. Rien n’est envoyé en ligne.";
 "NSCameraUsageDescription" = "Universal Jukebox n’utilise jamais l’appareil photo lui-même. iOS le propose dans le sélecteur de fichiers ; ce que vous y prenez reste sur cet appareil.";
 "NSMicrophoneUsageDescription" = "Universal Jukebox n’enregistre jamais de son lui-même. iOS ne demande le micro que si vous filmez une vidéo depuis le sélecteur de fichiers ; elle reste sur cet appareil.";
-"NSPhotoLibraryUsageDescription" = "Universal Jukebox n’a pas besoin de vos photos. iOS les propose dans le sélecteur de fichiers ; tout ce qui y est choisi est ignoré, car seuls les fichiers musicaux sont lus. Rien n’est envoyé en ligne.";

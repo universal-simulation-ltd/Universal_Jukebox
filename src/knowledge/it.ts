@@ -293,6 +293,10 @@ Solo tre funzioni inviano qualcosa sulla tua musica, e nessuna fa nulla finché 
 
 Le risposte delle prime due vengono conservate sul tuo dispositivo, così un brano viene cercato una sola volta. Regola questa app mostra quante sono e ti permette di dimenticarle. Nessun audio lascia mai il tuo dispositivo.
 
+## Conteggio degli utenti
+
+Sul sito web, mentre Jukebox è aperto, il browser comunica a UNI·SIM ogni 45 secondi che l’app è in uso, insieme a un numero casuale creato da sé, così possiamo contare quante persone usano l’app. Non contiene nulla su di te o sulla tua musica. Le app per iPhone, iPad, Android e desktop non lo inviano.
+
 ## Universal ID
 
 Accedere con un Universal ID è facoltativo. Ti mantiene connesso in tutte le app UNI·SIM e, se vuoi, ti permette di conservare un backup con il tuo account. Mentre hai effettuato l’accesso, l’app registra un evento di «apertura» sul tuo account ogni volta che si avvia. Quell’evento non dice nulla della tua musica.

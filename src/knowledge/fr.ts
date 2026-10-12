@@ -293,6 +293,10 @@ Seules trois fonctions envoient quoi que ce soit au sujet de votre musique, et a
 
 Les réponses des deux premières sont conservées sur votre appareil, si bien qu’un morceau n’est recherché qu’une fois. La page Régler cette application indique combien il y en a et vous permet de les oublier. Aucun son ne quitte jamais votre appareil.
 
+## Comptage des utilisateurs
+
+Sur le site web, tant que Jukebox est ouvert, votre navigateur indique à UNI·SIM toutes les 45 secondes que l’application est utilisée, avec un nombre aléatoire qu’il a créé lui-même, afin que nous puissions compter combien de personnes utilisent l’application. Rien sur vous ni sur votre musique n’est envoyé. Les applications pour iPhone, iPad, Android et ordinateur ne l’envoient pas.
+
 ## Universal ID
 
 La connexion avec un Universal ID est facultative. Elle vous garde connecté dans toutes les applications UNI·SIM, et vous permet de garder une sauvegarde avec votre compte si vous le souhaitez. Pendant que vous êtes connecté, l’application enregistre un événement « ouverture » sur votre compte à chaque démarrage. Cet événement ne dit rien de votre musique.

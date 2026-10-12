@@ -2,4 +2,3 @@
 "NSAppleMusicUsageDescription" = "Universal Jukebox spielt die Songs aus deiner Musik-Mediathek ab, die auf diesem iPhone gespeichert sind, etwa die, die du von deinem Computer synchronisierst. Es wird nichts hochgeladen.";
 "NSCameraUsageDescription" = "Universal Jukebox nutzt die Kamera nie selbst. iOS bietet sie in der Dateiauswahl an; was du dort aufnimmst, bleibt auf diesem Gerät.";
 "NSMicrophoneUsageDescription" = "Universal Jukebox nimmt nie selbst Ton auf. iOS fragt nur nach dem Mikrofon, wenn du in der Dateiauswahl ein Video aufnimmst; es bleibt auf diesem Gerät.";
-"NSPhotoLibraryUsageDescription" = "Universal Jukebox braucht deine Fotos nicht. iOS bietet sie in der Dateiauswahl an; was du dort auswählst, wird ignoriert, denn es werden nur Musikdateien gelesen. Es wird nichts hochgeladen.";
