@@ -62,8 +62,8 @@
       "id": "header",
       "layout": "sleeve-header",
       "raw": [
-        "now-cassette",
-        "now-jukebox"
+        "lyrics-vinyl",
+        "album"
       ],
       "strings": "01-turntable",
       "on": [
