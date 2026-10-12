@@ -73,6 +73,9 @@ export function leadWith<T>(items: readonly T[], lead: ((item: T) => boolean) | 
 // your thumb as the lists re-render; from an album with a cover where there
 // is one. Hidden and "Don't show again" are the resume card's own.
 let suggestedId: string | null = null
+/** The song "Another" will bring, picked ahead so the card can draw its record
+ *  before the tap (James, 2026-10-12: the new record took a long time to come). */
+let upNextId: string | null = null
 /** Which showing of the card the pick is for: a new visit to the page, or the card's shuffle, picks again. */
 let suggestedFor = -1
 let visits = 0
@@ -84,6 +87,8 @@ export interface Suggestion {
   album: Album | undefined
   /** The song's album, in order, to play on from it. */
   albumTracks: Track[]
+  /** What "Another" will show next — the card draws its picture ahead. */
+  upNext: { track: Track; album: Album | undefined } | null
 }
 
 /**
@@ -109,20 +114,28 @@ export function useSuggestion(showing: number): Suggestion | null {
     const fresh = showing !== suggestedFor
     const previous = suggestedId
     let track = !fresh && suggestedId && suggestedId !== playingId ? tracks.find((t) => t.id === suggestedId) : undefined
-    if (!track) {
-      const covered = new Set(albums.filter((a) => a.cover).map((a) => a.id))
-      const pool = tracks.filter((t) => covered.has(t.albumId) && t.id !== playingId && t.id !== previous)
-      const others = tracks.filter((t) => t.id !== playingId && t.id !== previous)
+    const covered = new Set(albums.filter((a) => a.cover).map((a) => a.id))
+    const pick = (not: (string | null)[]): Track => {
+      const pool = tracks.filter((t) => covered.has(t.albumId) && !not.includes(t.id))
+      const others = tracks.filter((t) => !not.includes(t.id))
       const from = pool.length > 0 ? pool : others.length > 0 ? others : tracks
-      track = from[Math.floor(Math.random() * from.length)]
+      return from[Math.floor(Math.random() * from.length)]
+    }
+    if (!track) {
+      const ahead = upNextId && upNextId !== playingId && upNextId !== previous ? tracks.find((t) => t.id === upNextId) : undefined
+      track = ahead ?? pick([playingId, previous])
       suggestedId = track.id
     }
+    let next = upNextId && upNextId !== track.id && upNextId !== playingId ? tracks.find((t) => t.id === upNextId) : undefined
+    if (!next && tracks.length > 1) next = pick([playingId, track.id])
+    upNextId = next?.id ?? null
     suggestedFor = showing
     const albumId = track.albumId
     return {
       track,
       album: albums.find((a) => a.id === albumId),
       albumTracks: sortAlbumTracks(tracks.filter((t) => t.albumId === albumId)),
+      upNext: next ? { track: next, album: albums.find((a) => a.id === next.albumId) } : null,
     }
   }, [enabled, hidden, resumable, tracks, albums, playingId, showing])
 }

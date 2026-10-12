@@ -36,24 +36,34 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
     if (resumable) resume()
     else if (suggestion) playTracks(suggestion.albumTracks, Math.max(0, suggestion.albumTracks.findIndex((t) => t.id === suggestion.track.id)))
   }
-  const [art, setArt] = useState<string | null>(null)
+  // The drawing is kept with the song it shows. ⚠️ A bare URL kept showing the
+  // LAST song's record until the new one was drawn (James, 2026-10-12: "it
+  // takes a long time to load the new record graphic"): now the new album's
+  // cover stands in, and the song "Another" brings next is drawn ahead.
+  const [art, setArt] = useState<{ id: string; url: string } | null>(null)
+  const upNext = suggestion?.upNext ?? null
 
   useEffect(() => {
     if (!track) return
     let live = true
-    const id = album?.id ?? track.albumId
-    void lockArt({
-      albumId: id,
-      cover: album ? coverUrl(album.id, album.cover) : null,
-      hue: fallbackHue(id),
-      style: resolveDeck(deckSetting, album ?? track, eras),
-    }).then((drawn) => {
-      if (live && drawn) setArt(drawn.stillUrl)
+    const draw = (t: NonNullable<typeof track>, a: typeof album) => {
+      const id = a?.id ?? t.albumId
+      return lockArt({
+        albumId: id,
+        cover: a ? coverUrl(a.id, a.cover) : null,
+        hue: fallbackHue(id),
+        style: resolveDeck(deckSetting, a ?? t, eras),
+      })
+    }
+    void draw(track, album).then((drawn) => {
+      if (live && drawn) setArt({ id: track.id, url: drawn.stillUrl })
+      // After this one, so the two don't share the phone's time.
+      if (live && upNext) void draw(upNext.track, upNext.album)
     })
     return () => {
       live = false
     }
-  }, [track, album, deckSetting, eras])
+  }, [track, album, upNext, deckSetting, eras])
 
   if (!track) return null
   const session = resumable?.session
@@ -78,7 +88,7 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
         onClick={play}
         className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-slate-900/10 dark:ring-white/10"
       >
-        {art ? <img src={art} alt="" className="h-full w-full object-cover" /> : <Cover album={album} className="h-full w-full" />}
+        {art && art.id === track.id ? <img src={art.url} alt="" className="h-full w-full object-cover" /> : <Cover album={album} className="h-full w-full" />}
         {/* ▶ in the CORNER, off the label — in the middle it covered the
             album art, which is the one part of the picture that says which
             song this is. */}

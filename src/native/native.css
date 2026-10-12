@@ -369,6 +369,11 @@ html.dark .jx {
    (AlbumScreen). --s is the sleeve's own size, unchanged; the disc is a touch
    smaller than the sleeve, as a record in its sleeve is, and slides out as
    the page opens. */
+/* ⚠️ No "Save to Photos" menu on a held picture (James, 2026-10-12: holding
+   the album page's sleeve brought it up instead of sliding the record). iOS's
+   image menu also cancels the pointer, so `useHold` never fired. */
+.jx img { -webkit-touch-callout: none; }
+.jx-sleeve { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 .jx-sleeve { --s: min(68vw, 300px); display: block; width: calc(var(--s) * 1.32); height: var(--s); margin-bottom: 14px; }
 .jx-sleeve-front { position: absolute; left: 0; top: 0; z-index: 1; display: block; width: var(--s); height: var(--s); }
 .jx-sleeve .jx-hero-cover { width: var(--s); margin-bottom: 0; }
