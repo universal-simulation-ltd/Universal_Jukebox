@@ -223,7 +223,12 @@ Un fichier .lrc n’accompagne un morceau que si tout le dossier est copié avec
 
 1. Dans LRCGET, ouvrez **Settings** et, sous Experimental, cochez **Enable embed lyrics option**. LRCGET prévient que cela pourrait endommager vos fichiers musicaux : sauvegardez d’abord votre bibliothèque.
 2. Cliquez de nouveau sur **Download all lyrics**, cochez aussi **Embed into track**, puis cliquez sur **Download**.
-3. Synchronisez votre musique avec votre téléphone ou votre tablette comme d’habitude. Dans Universal Jukebox, appuyez sur **Actualiser la bibliothèque musicale de mon téléphone** (sur un iPad, **Actualiser la bibliothèque musicale de mon iPad**) dans Régler cette application, ou relancez l’analyse de votre dossier.
+3. Les morceaux déjà présents sur votre iPhone ou votre iPad gardent leur ancienne copie, car une synchronisation normale ne renvoie pas un morceau modifié. Retirez-les donc, puis remettez-les : branchez l’appareil à votre ordinateur et sélectionnez-le dans le Finder (sous Windows, dans l’app Appareils Apple).
+4. Dans l’onglet **Musique**, décochez la synchronisation de la musique (ou seulement les artistes et albums qui ont maintenant des paroles), puis synchronisez. Les morceaux sont retirés de l’appareil.
+5. Cochez-les de nouveau et synchronisez encore une fois. Ils reviennent à neuf, avec les paroles à l’intérieur.
+6. Dans Universal Jukebox, appuyez sur **Actualiser la bibliothèque musicale de mon téléphone** (sur un iPad, **Actualiser la bibliothèque musicale de mon iPad**) dans Régler cette application.
+
+Si vous écoutez un dossier plutôt que la bibliothèque Musique, copiez-y de nouveau les morceaux modifiés, puis relancez l’analyse de votre dossier dans Régler cette application.
 
 Les morceaux achetés sur Apple Music ou écoutés en streaming depuis ce service sont protégés : les autres applications ne peuvent ni les modifier ni les lire. Cela ne fonctionne donc qu’avec vos propres fichiers.`,
   },

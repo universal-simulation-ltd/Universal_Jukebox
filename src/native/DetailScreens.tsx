@@ -210,3 +210,58 @@ export function ArtistScreen({ name }: { name: string }) {
   )
 }
 
+
+/**
+ * What is playing and what comes after it, opened by tapping the record on
+ * Now Playing (James, 2026-10-12: "click the record to go to the queue list
+ * page. If it's one album show it as the album view, if there's multiple
+ * albums in the queue then show a shelf of the albums and then the queue list
+ * of tracks beneath"). It replaces the row of records under the deck.
+ *
+ * ⚠️ It walks `order`, not `queue`, for `Queue`'s reason: shuffle permutes the
+ * order and leaves the queue alone.
+ */
+export function QueueScreen() {
+  const t = useT()
+  const albums = useLibraryStore((s) => s.albums)
+  const queue = usePlayerStore((s) => s.queue)
+  const order = usePlayerStore((s) => s.order)
+  const cursor = usePlayerStore((s) => s.cursor)
+  const jumpTo = usePlayerStore((s) => s.jumpTo)
+  const clearQueue = usePlayerStore((s) => s.clearQueue)
+  const held = useCollectionHold()
+  // The song on now, then the rest in the order they will play.
+  const from = Math.max(0, cursor)
+  const tracks = useMemo(() => order.slice(from).map((i) => queue[i]).filter((track): track is Track => !!track), [order, queue, from])
+  const queued = useMemo(() => {
+    const seen = new Set<string>()
+    const list: typeof albums = []
+    for (const track of tracks) {
+      if (seen.has(track.albumId)) continue
+      seen.add(track.albumId)
+      const album = albums.find((a) => a.id === track.albumId)
+      if (album) list.push(album)
+    }
+    return list
+  }, [tracks, albums])
+
+  if (tracks.length === 0) return <p className="jx-empty">{t('player.nothing_after')}</p>
+  // One album: its own page, as if opened from the library.
+  if (queued.length === 1 && tracks.every((track) => track.albumId === queued[0].id)) return <AlbumScreen albumId={queued[0].id} />
+
+  return (
+    <div className="jx-page">
+      <div className="jx-hero">
+        <h1 className="jx-h1">{t('player.up_next')}</h1>
+        <p className="jx-sub">{[t.plural('common.albums', queued.length), t.plural('common.tracks', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
+      </div>
+      {held.sheet}
+      <div className="jx-web"><AlbumRow albums={queued} hold={(album) => held.open({ kind: 'album', album })} /></div>
+      <p className="jx-label">
+        <button type="button" className="jx-link" onClick={clearQueue}>{t('common.clear')}</button>
+      </p>
+      {/* A row plays from itself: the same queue, moved along to it. */}
+      <SongList tracks={tracks} albums={albums} onPlay={(i) => jumpTo(from + i)} showAlbum />
+    </div>
+  )
+}

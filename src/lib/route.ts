@@ -6,7 +6,7 @@
 // this file needing to know about it, and makes an album a link somebody can
 // send to themselves. `Universal_Video/src/lib/route.ts` is the same shape.
 
-export type View = 'albums' | 'artists' | 'tracks' | 'jukebox' | 'album' | 'artist' | 'playing' | 'about' | 'settings' | 'tidy' | 'help'
+export type View = 'albums' | 'artists' | 'tracks' | 'jukebox' | 'album' | 'artist' | 'playing' | 'queue' | 'about' | 'settings' | 'tidy' | 'help'
 
 export interface Route {
   view: View
@@ -79,6 +79,7 @@ export function routeFromHash(rawHash: string): Route {
   if (hash === 'tracks') return { view: 'tracks' }
   if (hash === 'jukebox') return { view: 'jukebox' }
   if (hash === 'playing') return { view: 'playing' }
+  if (hash === 'queue') return { view: 'queue' }
   if (hash === 'about') return { view: 'about' }
   if (hash === 'settings') return { view: 'settings' }
   if (hash === 'tidy') return { view: 'tidy' }
@@ -148,7 +149,7 @@ export function goHome(): void {
 //                                                same level seen differently
 
 /**
- * 0 the library (any tab), 1 a page off it, 2 Now Playing — and an artist's
+ * 0 the library (any tab), 1 a page off it, 2 Now Playing, 3 its queue — and an artist's
  * page at 0.5, BETWEEN the library and an album. "All albums by …" from an
  * album is UP (back from the artist is the library, not the album you left),
  * and an album opened from the artist's page comes back to it.
@@ -162,6 +163,9 @@ export type Level = number
 export function levelOf(hash: string): Level {
   const { view, genre, article } = routeFromHash(hash)
   if (view === 'playing') return 2
+  // The queue is a page off Now Playing (the phone app: tap the record), so
+  // back from it is the record.
+  if (view === 'queue') return 3
   // The knowledge base is a page off Tune (1.25, so back from it is Tune, not
   // the library); an article is a page off that.
   if (view === 'help') return article ? 1.5 : 1.25

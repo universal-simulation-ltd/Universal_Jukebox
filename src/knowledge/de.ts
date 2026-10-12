@@ -223,7 +223,12 @@ Eine .lrc-Datei reist nur mit einem Song mit, wenn der ganze Ordner mitkommt. Ge
 
 1. Öffnen Sie in LRCGET die **Settings** und setzen Sie unter Experimental ein Häkchen bei **Enable embed lyrics option**. LRCGET warnt, dass dies Ihre Musikdateien beschädigen könnte. Sichern Sie Ihre Mediathek deshalb vorher.
 2. Klicken Sie erneut auf **Download all lyrics**, setzen Sie zusätzlich ein Häkchen bei **Embed into track** und klicken Sie dann auf **Download**.
-3. Synchronisieren Sie Ihre Musik wie gewohnt auf Ihr Smartphone oder Tablet. Tippen Sie in Universal Jukebox in „Diese App anpassen“ auf **Musik-Mediathek meines iPhone aktualisieren** (auf einem iPad auf **Musik-Mediathek meines iPad aktualisieren**), oder durchsuchen Sie Ihren Ordner erneut.
+3. Titel, die schon auf Ihrem iPhone oder iPad sind, behalten ihre alte Kopie, denn eine normale Synchronisierung überträgt einen geänderten Titel nicht noch einmal. Nehmen Sie sie also herunter und spielen Sie sie neu auf: Schließen Sie das Gerät an den Computer an und wählen Sie es im Finder aus (unter Windows in der App „Apple Geräte“).
+4. Deaktivieren Sie im Tab **Musik** das Synchronisieren der Musik (oder nur der Interpreten und Alben, die jetzt Liedtexte haben) und synchronisieren Sie. Die Titel werden vom Gerät entfernt.
+5. Aktivieren Sie sie wieder und synchronisieren Sie noch einmal. Sie kommen frisch zurück, mit den Liedtexten darin.
+6. Tippen Sie in Universal Jukebox in „Diese App anpassen“ auf **Musik-Mediathek meines iPhone aktualisieren** (auf einem iPad auf **Musik-Mediathek meines iPad aktualisieren**).
+
+Wenn Sie einen Ordner statt der Musik-Mediathek abspielen, kopieren Sie die geänderten Titel erneut hinein und durchsuchen Sie den Ordner dann in „Diese App anpassen“ neu.
 
 Songs, die bei Apple Music gekauft oder von dort gestreamt werden, sind geschützt und können von anderen Apps weder verändert noch abgespielt werden. Das funktioniert daher nur mit Ihren eigenen Dateien.`,
   },

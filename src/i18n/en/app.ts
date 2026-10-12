@@ -157,5 +157,6 @@ export default {
   'tip_tap_here': 'Tap here', // first-run tip bubble (Tip), over one of the next lines
   'tip_cover': 'to open the jukebox', // the tip's second line, on an album cover
   'tip_record': 'to see the album', // the tip's second line, on the turning record
+  'tip_record_queue': 'to see what’s up next', // the phone app's version: tapping the record opens the queue
   'voice_not_found': 'Nothing called “{asked}” in your library.', // after "Hey Google, play … on Jukebox" found nothing; {asked} is what was said
 } as const

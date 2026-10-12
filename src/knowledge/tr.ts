@@ -223,7 +223,12 @@ Bir .lrc dosyası, şarkıyla birlikte ancak bütün klasör taşındığında g
 
 1. LRCGET’te **Settings** bölümünü açın ve Experimental altında **Enable embed lyrics option** seçeneğini işaretleyin. LRCGET bunun müzik dosyalarınıza zarar verebileceği konusunda uyarır; bu yüzden önce kitaplığınızı yedekleyin.
 2. **Download all lyrics** düğmesine yeniden tıklayın, **Embed into track** seçeneğini de işaretleyin ve ardından **Download** düğmesine tıklayın.
-3. Müziğinizi her zamanki gibi telefonunuza ya da tabletinize eşzamanlayın. Universal Jukebox’ta **Bu uygulamayı ayarla** sayfasındaki **Telefonumdaki Müzik arşivini yenile** düğmesine (iPad’de **iPad’imdeki Müzik arşivini yenile** düğmesine) dokunun ya da klasörünüzü yeniden taratın.
+3. iPhone’unuzda ya da iPad’inizde zaten olan şarkılar eski kopyalarını korur, çünkü normal bir eşzamanlama değişen bir şarkıyı yeniden göndermez. Bu yüzden onları kaldırıp yeniden yükleyin: Aygıtı bilgisayarınıza bağlayın ve Finder’da seçin (Windows’ta Apple Aygıtları uygulamasında).
+4. **Müzik** sekmesinde müzik eşzamanlamanın işaretini kaldırın (ya da yalnızca artık şarkı sözü olan sanatçıların ve albümlerin) ve eşzamanlayın. Şarkılar aygıttan kaldırılır.
+5. Onları yeniden işaretleyin ve bir kez daha eşzamanlayın. Şarkı sözleri içlerinde, yepyeni olarak geri gelirler.
+6. Universal Jukebox’ta **Bu uygulamayı ayarla** sayfasındaki **Telefonumdaki Müzik arşivini yenile** düğmesine (iPad’de **iPad’imdeki Müzik arşivini yenile** düğmesine) dokunun.
+
+Müzik arşivi yerine bir klasör çalıyorsanız değişen şarkıları klasöre yeniden kopyalayın, ardından **Bu uygulamayı ayarla** sayfasında klasörünüzü yeniden taratın.
 
 Apple Music’ten satın alınan ya da oradan akışla dinlenen şarkılar korumalıdır; başka uygulamalar bunları değiştiremez ya da çalamaz. Bu yüzden bu yöntem yalnızca kendi dosyalarınızda işe yarar.`,
   },

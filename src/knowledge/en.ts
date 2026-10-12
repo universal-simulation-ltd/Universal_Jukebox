@@ -223,7 +223,12 @@ A .lrc file only travels with a song if the whole folder does. When your music r
 
 1. In LRCGET, open **Settings** and, under Experimental, tick **Enable embed lyrics option**. LRCGET warns that this could damage your music files, so back up your library first.
 2. Press **Download all lyrics** again and tick **Embed into track** as well, then **Download**.
-3. Sync your music to your phone or tablet as you usually do. In Universal Jukebox, press **Refresh my phone’s Music library** (on an iPad, **Refresh my iPad’s Music library**) in Tune this app, or rescan your folder.
+3. Songs already on your iPhone or iPad keep their old copies, because a normal sync doesn’t send a changed song again. So take them off and put them back: connect the device to your computer and select it in Finder (on Windows, in the Apple Devices app).
+4. In the **Music** tab, untick **Sync music** (or just the artists and albums that now have lyrics), then sync. The songs are removed from the device.
+5. Tick them again and sync once more. They go back on fresh, with the lyrics inside.
+6. In Universal Jukebox, press **Refresh my phone’s Music library** (on an iPad, **Refresh my iPad’s Music library**) in Tune this app.
+
+If you play a folder rather than the Music library, copy the changed songs into it again, then rescan your folder in Tune this app.
 
 Songs bought from Apple Music or streamed from it are protected and can’t be changed or played by other apps, so this works only for your own files.`,
   },

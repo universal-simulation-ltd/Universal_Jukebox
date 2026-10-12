@@ -223,7 +223,12 @@ Un archivo .lrc solo acompaña a una canción si se copia la carpeta entera. Cua
 
 1. En LRCGET, abra **Settings** y, en el apartado Experimental, marque **Enable embed lyrics option**. LRCGET advierte de que esto podría dañar sus archivos de música, así que haga antes una copia de seguridad de su biblioteca.
 2. Vuelva a hacer clic en **Download all lyrics**, marque también **Embed into track** y, después, haga clic en **Download**.
-3. Sincronice su música con el teléfono o la tableta como de costumbre. En Universal Jukebox, pulse **Actualizar la biblioteca de Música del móvil** (en un iPad, **Actualizar la biblioteca de Música del iPad**) en Ajustar esta app, o vuelva a explorar su carpeta.
+3. Las canciones que ya están en su iPhone o iPad conservan su copia antigua, porque una sincronización normal no vuelve a enviar una canción modificada. Así que quítelas y vuelva a ponerlas: conecte el dispositivo al ordenador y selecciónelo en el Finder (en Windows, en la app Dispositivos Apple).
+4. En la pestaña **Música**, desmarque la sincronización de música (o solo los artistas y álbumes que ahora tienen letra) y sincronice. Las canciones se eliminan del dispositivo.
+5. Vuelva a marcarlas y sincronice otra vez. Vuelven como nuevas, con la letra dentro.
+6. En Universal Jukebox, pulse **Actualizar la biblioteca de Música del móvil** (en un iPad, **Actualizar la biblioteca de Música del iPad**) en Ajustar esta app.
+
+Si reproduce una carpeta en lugar de la biblioteca de Música, vuelva a copiar en ella las canciones modificadas y luego vuelva a explorar la carpeta en Ajustar esta app.
 
 Las canciones compradas en Apple Music o escuchadas en streaming desde allí están protegidas y ninguna otra aplicación puede modificarlas ni reproducirlas, así que esto solo funciona con sus propios archivos.`,
   },

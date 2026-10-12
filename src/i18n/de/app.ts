@@ -141,6 +141,7 @@ const app: Draft['app'] = {
   'tip_tap_here': 'Hier tippen',
   'tip_cover': 'um die Jukebox zu öffnen',
   'tip_record': 'um das Album zu sehen',
+  'tip_record_queue': 'um zu sehen, was als Nächstes kommt',
   'voice_not_found': 'In deiner Mediathek gibt es nichts namens „{asked}“.',
 }
 

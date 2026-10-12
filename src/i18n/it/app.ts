@@ -141,6 +141,7 @@ const app: Draft['app'] = {
   'tip_tap_here': 'Tocca qui',
   'tip_cover': 'per aprire il jukebox',
   'tip_record': 'per vedere l’album',
+  'tip_record_queue': 'per vedere cosa viene dopo',
   'voice_not_found': 'Niente che si chiami «{asked}» nella tua libreria.',
 }
 

@@ -141,6 +141,7 @@ const app: Draft['app'] = {
   'tip_tap_here': 'Buraya dokunun',
   'tip_cover': 'jukebox’ı açmak için',
   'tip_record': 'albümü görmek için',
+  'tip_record_queue': 'sırada ne olduğunu görmek için',
   'voice_not_found': 'Kitaplığınızda “{asked}” adında bir şey yok.',
 }
 

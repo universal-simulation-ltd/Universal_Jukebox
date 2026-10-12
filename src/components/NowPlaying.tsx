@@ -6,6 +6,7 @@ import { useLandscapeStage } from '../lib/stageLayout'
 import { navBarBottom } from '../lib/scrollBelowBar'
 import { coverUrl } from '../lib/art'
 import { useT } from '../i18n'
+import { phoneScreens } from '../native/shell'
 import { goHome, navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -51,6 +52,7 @@ import { rgba, useSleeveColour } from '../lib/sleeveColour'
 export default function NowPlaying() {
   const t = useT()
   const lyricsAround = useSettingsStore((s) => s.lyricsAround)
+  const phone = phoneScreens()
   // "Keep awake" (in the folded row, `PlayModes`) holds the screen on for as
   // long as this page is open — and only this page. See `lib/keepAwake.ts`.
   useKeepAwake(useSettingsStore((s) => s.keepAwake))
@@ -252,6 +254,10 @@ export default function NowPlaying() {
           size={clampDeck(landscape, room)}
           ceremonial
           onLongPress={() => setPickerOpen(true)}
+          // The phone app: the record opens the queue, which takes the place
+          // of the row of records under it (James, 2026-10-12).
+          onOpen={phone ? () => navigate({ view: 'queue' }) : undefined}
+          openTip={phone ? t('app.tip_record_queue') : undefined}
           // The words around the record (Settings › Lyrics), drawn under its tonearm.
           underArm={lyricsAround ? <LyricsAround size={clampDeck(landscape, room)} /> : undefined}
         />
@@ -333,7 +339,9 @@ export default function NowPlaying() {
         list on purpose: it belongs to the deck (it is the same medium, in the
         order it will go on) and it introduces the queue underneath, which is
         the version with names and a way to remove a row. */}
-    <UpNextReel onMore={openQueue} />
+    {/* Not in the phone app (James, 2026-10-12: "Remove the 'waiting to go
+        on'"): swipe the record, or tap it for the queue's own page. */}
+    {!phone && <UpNextReel onMore={openQueue} />}
     {/* Shuffle, the repeats, where the sound comes out, Add to shelf and the
         "i" — see `PlayModes`. On a phone the page stops at the records above,
         and a further swipe up brings this row into view (James, 2026-09-13),

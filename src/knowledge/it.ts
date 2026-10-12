@@ -223,7 +223,12 @@ Un file .lrc accompagna un brano solo se viene copiata tutta la cartella. Quando
 
 1. In LRCGET, apri **Settings** e, sotto Experimental, spunta **Enable embed lyrics option**. LRCGET avverte che questo potrebbe danneggiare i file musicali, quindi prima fai un backup della libreria.
 2. Fai di nuovo clic su **Download all lyrics**, spunta anche **Embed into track** e poi fai clic su **Download**.
-3. Sincronizza la musica sul telefono o sul tablet come fai di solito. In Universal Jukebox, premi **Aggiorna la libreria di Musica del telefono** (su un iPad, **Aggiorna la libreria di Musica dell’iPad**) in Regola questa app, oppure ripeti la scansione della cartella.
+3. I brani che sono già sul tuo iPhone o iPad tengono la vecchia copia, perché una sincronizzazione normale non rimanda un brano modificato. Quindi toglili e rimettili: collega il dispositivo al computer e selezionalo nel Finder (su Windows, nell’app Dispositivi Apple).
+4. Nella scheda **Musica**, togli la spunta alla sincronizzazione della musica (o solo agli artisti e agli album che ora hanno il testo), poi sincronizza. I brani vengono rimossi dal dispositivo.
+5. Rimetti la spunta e sincronizza ancora una volta. Tornano come nuovi, con il testo all’interno.
+6. In Universal Jukebox, premi **Aggiorna la libreria di Musica del telefono** (su un iPad, **Aggiorna la libreria di Musica dell’iPad**) in Regola questa app.
+
+Se ascolti una cartella invece della libreria di Musica, copiaci di nuovo i brani modificati, poi ripeti la scansione della cartella in Regola questa app.
 
 I brani acquistati su Apple Music o ascoltati in streaming da lì sono protetti e le altre app non possono modificarli né riprodurli, quindi questo funziona solo con i tuoi file.`,
   },

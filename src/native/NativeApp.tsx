@@ -40,7 +40,7 @@ import { useSettingsStore, type HomeTab, type ListTab } from '../stores/settings
 import { albumsOfBigArtists, isFullAlbum, orderFrom, type LibraryOrder } from '../lib/libraryView'
 import { libraryInGenre } from '../lib/genres'
 import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
-import { AlbumScreen, ArtistScreen } from './DetailScreens'
+import { AlbumScreen, ArtistScreen, QueueScreen } from './DetailScreens'
 import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, IconTune } from './icons'
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
@@ -107,7 +107,7 @@ function tabOf(view: View): TabView | null {
   if (view === 'album') return 'albums'
   if (view === 'artist') return 'artists'
   if (view === 'about' || view === 'tidy' || view === 'help') return 'settings'
-  if (view === 'playing') return null
+  if (view === 'playing' || view === 'queue') return null
   return view as TabView
 }
 
@@ -327,6 +327,8 @@ export default function NativeApp() {
           <div className="jx-page jx-tune"><Tidy /></div>
         ) : welcome ? (
           <WelcomeScreen />
+        ) : view === 'queue' ? (
+          <QueueScreen />
         ) : view === 'album' && route.albumId ? (
           <AlbumScreen albumId={route.albumId} />
         ) : view === 'artist' && route.artist ? (
@@ -438,15 +440,17 @@ function TopBar({ view, route }: { view: View; route: Route }) {
     )
   }
   const up: { label: string; to: () => void } | null =
-    view === 'album'
-      ? { label: t('native.tab_albums'), to: () => navigate({ view: 'albums' }) }
-      : view === 'artist'
-        ? { label: t('native.tab_artists'), to: () => navigate({ view: 'artists' }) }
-        : view === 'about' || view === 'tidy' || (view === 'help' && !route.article)
-          ? { label: t('native.tab_tune'), to: () => navigate({ view: 'settings' }) }
-          : view === 'help'
-            ? { label: t('native.knowledge_base'), to: () => navigate({ view: 'help' }) }
-            : null
+    view === 'queue'
+      ? { label: t('native.now_playing'), to: () => navigate({ view: 'playing' }) }
+      : view === 'album'
+        ? { label: t('native.tab_albums'), to: () => navigate({ view: 'albums' }) }
+        : view === 'artist'
+          ? { label: t('native.tab_artists'), to: () => navigate({ view: 'artists' }) }
+          : view === 'about' || view === 'tidy' || (view === 'help' && !route.article)
+            ? { label: t('native.tab_tune'), to: () => navigate({ view: 'settings' }) }
+            : view === 'help'
+              ? { label: t('native.knowledge_base'), to: () => navigate({ view: 'help' }) }
+              : null
   if (up) {
     return (
       <div className="jx-bar">

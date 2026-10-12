@@ -97,6 +97,12 @@ interface DeckProps {
    * so it does not also open the album.
    */
   onLongPress?: () => void
+  /**
+   * A tap on the machine, instead of opening its album — the phone app opens
+   * the queue (James, 2026-10-12). `openTip` is the tip's second line to match.
+   */
+  onOpen?: () => void
+  openTip?: string
 }
 
 /** How long a press is held before it is a long press. */
@@ -106,7 +112,7 @@ const DOUBLE_TAP_MS = 260
 /** How far the finger may wander and still be holding — a swipe starts at 8px. */
 const LONG_PRESS_SLOP = 8
 
-export default function Deck({ album, size, ceremonial = false, underArm, onLongPress }: DeckProps) {
+export default function Deck({ album, size, ceremonial = false, underArm, onLongPress, onOpen, openTip }: DeckProps) {
   const t = useT()
   const playing = usePlayerStore((s) => s.playing)
   const ceremony = usePlayerStore((s) => s.ceremony)
@@ -289,7 +295,8 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
       return
     }
     if (ceremonial) markTipSeen('record')
-    if (album) navigate({ view: 'album', albumId: album.id })
+    if (onOpen) onOpen()
+    else if (album) navigate({ view: 'album', albumId: album.id })
   }
 
   // The easter egg (`lib/scratch.ts`): a DOUBLE tap on Now Playing's machine
@@ -374,8 +381,9 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
             the record player happened to put them. */}
         {spinning && !reduced && <Notes at={notes} />}
 
-        {/* First run: "Tap here" on the record — tapping it opens the album. */}
-        {ceremonial && <Tip id="record" detail={t('app.tip_record')} />}
+        {/* First run: "Tap here" on the record — tapping it opens the album
+            (the queue, in the phone app). */}
+        {ceremonial && <Tip id="record" detail={openTip ?? t('app.tip_record')} />}
       </div>
 
       {/* The affordance, kept quiet: the deck is also the thing you are meant to
