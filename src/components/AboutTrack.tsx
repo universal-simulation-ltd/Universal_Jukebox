@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../lib/route'
 import { ModeButton } from './ModeButton'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
-import { scrollToTop } from '../lib/scrollTop'
+import { scrollToTopThen } from '../lib/scrollTop'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import type { WikiPage } from '../lib/aboutTrack'
 import { useAboutStore } from '../stores/aboutStore'
@@ -67,6 +67,8 @@ export function AboutToggle() {
   const button = useRef<HTMLButtonElement>(null)
   /** Set by a tap on THIS copy; cleared once the answer has landed. */
   const revealing = useRef(false)
+  /** Gliding up before closing — a second tap mid-glide is the same tap. */
+  const closing = useRef(false)
 
   useEffect(() => {
     if (!open || !revealing.current) return
@@ -89,10 +91,15 @@ export function AboutToggle() {
         // on the deck's screen is not that click.
         e.stopPropagation()
         if (open) {
-          setOpen(false)
           // Back up to the record, as "Hide lyrics" does (James, 2026-09-13:
-          // "when closing 'i' scroll back to top").
-          scrollToTop()
+          // "when closing 'i' scroll back to top") — and then close, so the
+          // page glides rather than jumps (`scrollToTopThen`).
+          if (closing.current) return
+          closing.current = true
+          scrollToTopThen(() => {
+            closing.current = false
+            setOpen(false)
+          })
           return
         }
         revealing.current = true

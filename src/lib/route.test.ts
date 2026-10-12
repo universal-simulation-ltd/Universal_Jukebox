@@ -55,6 +55,18 @@ describe('planNavigation', () => {
   })
 })
 
+describe('an album opened from Up next', () => {
+  const Q = '#/queue'
+  it('goes on top of Up next, so back is Up next (James, 2026-10-12)', () => {
+    expect(planNavigation([LIB, NP, Q], A)).toEqual({ back: 0, then: 'push' })
+  })
+  it('still steps back to Up next, Now Playing or home from there', () => {
+    expect(planNavigation([LIB, NP, Q, A], Q)).toEqual({ back: 1, then: 'none' })
+    expect(planNavigation([LIB, NP, Q, A], NP)).toEqual({ back: 2, then: 'none' })
+    expect(planNavigation([LIB, NP, Q, A], LIB)).toEqual({ back: 3, then: 'none' })
+  })
+})
+
 describe('artist pages', () => {
   const ART = '#/artist/Bob%20Marley'
   it('sit between the library and an album', () => {

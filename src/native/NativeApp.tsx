@@ -33,7 +33,7 @@ import Tidy from '../components/Tidy'
 import { useBooting } from '../lib/boot'
 import { haptic } from '../lib/haptics'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
-import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from '../lib/route'
+import { NAVIGATED, arrivedByHistory, currentRoute, entryBelow, goHome, navigate, type Route, type View } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type HomeTab, type ListTab } from '../stores/settingsStore'
@@ -442,6 +442,8 @@ function TopBar({ view, route }: { view: View; route: Route }) {
   const up: { label: string; to: () => void } | null =
     view === 'queue'
       ? { label: t('native.now_playing'), to: () => navigate({ view: 'playing' }) }
+      : view === 'album' && entryBelow()?.view === 'queue'
+        ? { label: t('player.up_next'), to: () => navigate({ view: 'queue' }) }
       : view === 'album'
         ? { label: t('native.tab_albums'), to: () => navigate({ view: 'albums' }) }
         : view === 'artist'

@@ -187,6 +187,14 @@ export interface NavigationPlan {
  * Pure, and the whole of the rule above.
  */
 export function planNavigation(stack: string[], target: string): NavigationPlan {
+  // ⚠️ THE ONE EXCEPTION: an album opened FROM Up next goes on top of it, so
+  // back is Up next again (James, 2026-10-12: "up next -> tap an album -> swipe
+  // backwards - it goes to library but should return to the up next screen").
+  // Up next is a list of albums to dip into and come back from; the level rule
+  // would step back past Now Playing and drop you in the library.
+  if (routeFromHash(target).view === 'album' && stack.length > 0 && routeFromHash(stack[stack.length - 1]).view === 'queue') {
+    return { back: 0, then: 'push' }
+  }
   const level = levelOf(target)
   let keep = 0
   while (keep < stack.length && levelOf(stack[keep]) < level) keep++
@@ -211,6 +219,11 @@ let byHistory = false
  */
 export function arrivedByHistory(): boolean {
   return byHistory
+}
+
+/** The entry a back step lands on — what a back button should be named after. */
+export function entryBelow(): Route | null {
+  return stack.length > 1 ? routeFromHash(stack[stack.length - 2]) : null
 }
 /** Where a multi-step move is going, while its `history.go(-n)` lands. */
 let pending: { then: 'push' | 'replace'; hash: string } | null = null

@@ -1,7 +1,7 @@
 import { trackGenres } from '../lib/genres'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Chip, revealExpanded } from '@unisim/sdk'
-import { scrollToTop } from '../lib/scrollTop'
+import { scrollToTopThen } from '../lib/scrollTop'
 import { useLandscapeStage } from '../lib/stageLayout'
 import { navBarBottom } from '../lib/scrollBelowBar'
 import { coverUrl } from '../lib/art'
@@ -383,6 +383,8 @@ function LyricsToggle() {
   const showFor = useLyricsStore((s) => s.showFor)
   const hideLyrics = useLyricsStore((s) => s.hideLyrics)
   const show = !!track && shownFor !== null
+  /** Gliding up before closing — a second tap mid-glide is the same tap. */
+  const closing = useRef(false)
   const t = useT()
   return (
     <button
@@ -391,10 +393,15 @@ function LyricsToggle() {
         e.stopPropagation()
         if (!track) return
         if (show) {
-          hideLyrics()
           // Back up to the record (James, 2026-09-11: "When clicking hide
-          // lyrics scroll back up to top for animation").
-          scrollToTop()
+          // lyrics scroll back up to top for animation") — and THEN close, the
+          // reverse of opening (2026-10-12): see `scrollToTopThen`.
+          if (closing.current) return
+          closing.current = true
+          scrollToTopThen(() => {
+            closing.current = false
+            hideLyrics()
+          })
           return
         }
         // Opening them scrolls down to them — see `lib/lyricsReveal.ts`.
