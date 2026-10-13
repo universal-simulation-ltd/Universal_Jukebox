@@ -74,12 +74,14 @@ export default function Lyrics() {
     }
   }, [show, status, reduced])
 
-  // ⚠️ THE SMALL CONTROLS LIVE BEHIND "…" (James, 2026-09-28, from the UX
-  // review): Replace lyrics, Around the record and Following/Free scroll were
-  // a row of chrome over every song's words. Where the words came from stays
-  // on show — that is a disclosure, not a control. Sing along is the one
-  // control left out, because it is the one people come here for.
-  const [more, setMore] = useState(false)
+  // ⚠️ NO "…" ANY MORE (James, 2026-10-13, circling it on a screenshot: "This
+  // part looks a bit untidy"). Behind "…" (2026-09-28) the three small
+  // controls opened as a ragged row between the heading and the sheet. Now
+  // each sits where it belongs: Around the record beside Following in the
+  // sheet's own header (both are about how the words are SHOWN), and Replace
+  // lyrics as a quiet link under the sheet, "where you won't notice it as much
+  // but it's most useful there". Sing along stays up top, the one people come
+  // here for.
   const [singing, setSinging] = useState(false)
   const closeSinging = useCallback(() => setSinging(false), [])
   const sheet = useLyricsStore((s) => s.sheet)
@@ -108,36 +110,16 @@ export default function Lyrics() {
               {t('lyrics.sing_along')}
             </button>
           )}
-          {status === 'ready' && (
-            <button
-              type="button"
-              onClick={() => setMore((m) => !m)}
-              aria-expanded={more}
-              aria-label={more ? t('lyrics.fewer_options') : t('lyrics.more_options')}
-              title={t('lyrics.more_options_title')}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${
-                more
-                  ? 'border-orange-400 text-orange-700 dark:border-orange-600 dark:text-orange-400'
-                  : 'border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-orange-400'
-              }`}
-            >
-              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
-                <circle cx="4.5" cy="10" r="1.6" />
-                <circle cx="10" cy="10" r="1.6" />
-                <circle cx="15.5" cy="10" r="1.6" />
-              </svg>
-            </button>
-          )}
         </div>
       </div>
-      {more && status === 'ready' && (
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-          {timed && <AroundTheRecord />}
-          {/* In case the wrong words came back (James, 2026-09-10). */}
+      <Body />
+      {status === 'ready' && (
+        // In case the wrong words came back (James, 2026-09-10) — under the
+        // sheet, quiet, where it is found by somebody reading the words.
+        <div className="mt-2 flex justify-end">
           <AddLyricsFile compact />
         </div>
       )}
-      <Body options={more} />
       {singing && timed && <SingAlong onClose={closeSinging} />}
     </section>
   )
@@ -158,7 +140,7 @@ function Provenance() {
   )
 }
 
-function Body({ options }: { options: boolean }) {
+function Body() {
   const t = useT()
   const status = useLyricsStore((s) => s.status)
   const sheet = useLyricsStore((s) => s.sheet)
@@ -168,7 +150,7 @@ function Body({ options }: { options: boolean }) {
   if (status === 'loading') return <Note>{t('lyrics.looking')}</Note>
   // Keyed by track, so every song's sheet starts LOCKED and following — the
   // default James asked for — rather than inheriting the last song's unlock.
-  if (status === 'ready' && sheet) return sheet.synced ? <Synced key={trackId ?? ''} options={options} /> : <Plain />
+  if (status === 'ready' && sheet) return sheet.synced ? <Synced key={trackId ?? ''} /> : <Plain />
   if (status === 'instrumental') {
     return <Note>{t('lyrics.instrumental')}</Note>
   }
@@ -205,7 +187,7 @@ function Body({ options }: { options: boolean }) {
 /** How far ahead of the next line its count-in starts, in seconds. */
 const COUNT_IN_SEC = 5
 
-function Synced({ options }: { options: boolean }) {
+function Synced() {
   const t = useT()
   const sheet = useLyricsStore((s) => s.sheet)
   const currentSec = usePlayerStore((s) => s.currentSec)
@@ -245,9 +227,10 @@ function Synced({ options }: { options: boolean }) {
     <div className="rounded-lg border border-slate-200 bg-white/40 dark:border-slate-800 dark:bg-slate-900/30">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
         <SingingMic phase={phase} reduced={reduced} />
-        {/* Following / Free scroll, under "…" with the rest (`Lyrics`). */}
-        {options && (
+        {/* How the words are shown: round the record, and whether the sheet
+            follows the song — side by side, always there (`Lyrics`). */}
         <div className="flex flex-wrap items-center justify-end gap-2">
+          <AroundTheRecord />
           <ChipToggle
             selected={locked}
             onClick={() => setLocked((was) => !was)}
@@ -257,7 +240,6 @@ function Synced({ options }: { options: boolean }) {
             {locked ? t('lyrics.following') : t('lyrics.free_scroll')}
           </ChipToggle>
         </div>
-        )}
       </div>
       <div
         ref={box}
