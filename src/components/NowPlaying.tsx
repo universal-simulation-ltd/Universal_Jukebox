@@ -52,6 +52,7 @@ import { rgba, useSleeveColour } from '../lib/sleeveColour'
 export default function NowPlaying() {
   const t = useT()
   const lyricsAround = useSettingsStore((s) => s.lyricsAround)
+  const hideVisualiser = useSettingsStore((s) => s.hideVisualiser)
   const phone = phoneScreens()
   // "Keep awake" (in the folded row, `PlayModes`) holds the screen on for as
   // long as this page is open — and only this page. See `lib/keepAwake.ts`.
@@ -324,8 +325,9 @@ export default function NowPlaying() {
         {/* Hidden below 560px (T5) — the first thing to go from the words
             column, because it is the only part of it that is decoration. Gone
             lying down for the same reason: every row here is height the record
-            beside it could have had. */}
-        {!landscape && (
+            beside it could have had. Tune this app ▸ Appearance can turn it
+            off. */}
+        {!landscape && !hideVisualiser && (
           <div className="mt-5 hidden sm:block">
             <Visualiser />
           </div>

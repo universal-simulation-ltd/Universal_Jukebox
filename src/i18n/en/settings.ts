@@ -141,7 +141,7 @@ export default {
   'sound_title': 'Sound', // section title
   'sound_note': 'Applied as the music plays. Nothing here changes your files.',
   'original_levels': 'Original sound levels', // tick box
-  'original_levels_hint': 'Tick to play every song exactly as loud as it was made. Unticked, loud songs are turned down to meet the rest, so a track doesn’t blast your ears off — each song is measured once, on this device, the first time it plays, and quiet songs are left as they are.',
+  'original_levels_hint': 'Tick to play every song exactly as loud as it was made. Unticked, loud songs are turned down to meet the rest, so a track doesn’t blast your ears off — each song is measured once, on this device, the first time it plays, and quiet songs are left as they are. A song tagged with ReplayGain uses its tag instead of being measured.',
   'quiet_loud': 'Quiet or loud', // slider
   'quiet_loud_hint': 'Left of centre turns the music down further than the phone’s lowest volume, for listening in bed. Right of centre turns it up; past +10 dB most songs will distort.',
   'no_graph_app': 'The app couldn’t get the audio graph this needs. Everything else still works.', // “audio graph”: the browser's audio processing
@@ -245,6 +245,8 @@ export default {
   'notify_blocked_site': 'Notifications are blocked for this site. Allow them in your browser’s site settings, then come back here.',
   'show_errors': 'Show error messages', // tick box
   'show_errors_hint': 'Tick to see banners about songs that couldn’t play, folders that couldn’t be opened and files that were skipped. Unticked, songs that can’t play are skipped quietly and nothing is said.',
+  'no_visualiser': 'No visualiser', // tick box: unticked = the visualiser shows
+  'no_visualiser_hint': 'No moving bars under the record on Now playing. They only show on a wider screen, such as a tablet or computer.',
   'copy_log': 'Copy playback log', // phone apps only
   'copy_log_hint': 'What happened to the music recently: plays, pauses, skips, the lock screen’s buttons and the song titles it was given. It goes only where you paste it.',
   'copy_log_copied_hint': 'Copied. Paste it into your message about what went wrong.',

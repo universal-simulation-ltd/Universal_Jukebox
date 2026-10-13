@@ -604,6 +604,12 @@ export default function Settings() {
               ]}
             />
           )}
+          <Toggle
+            label={t('settings.no_visualiser')}
+            hint={t('settings.no_visualiser_hint')}
+            checked={s.hideVisualiser}
+            onChange={(v) => s.set('hideVisualiser', v)}
+          />
           {/* The first-run "Tap here" pointers (`components/Tip.tsx`), back. */}
           <Action
             label={t('settings.show_tips')}

@@ -1,5 +1,6 @@
 import { NativeFile } from './nativeFile'
 import { pluginRegistered } from './nativePlugins'
+import { readTags } from './tags'
 import type { SourceFile } from './types'
 
 // "Stable volume" (James, 2026-09-11: "keeps the volume at in a sensible min /
@@ -19,6 +20,13 @@ import type { SourceFile } from './types'
 // which can decode any file it can play. Elsewhere, the first part of the file
 // is decoded in the page; a file that will not decode from its start (an M4A
 // with its index at the end) is simply left at full level.
+//
+// A song tagged with ReplayGain (or Opus's R128 gain) is not measured at all:
+// the tag's loudness, in LUFS, stands in for the measured RMS (`taggedDb`).
+// LUFS and this gated RMS are close enough on music for a level that only
+// ever turns DOWN, and a tagger's figure covers the whole song where the
+// measurement hears one minute. Cached the same way, so the iPhone's native
+// engine gets it through `gain` like any measured song.
 
 /** The level every song is brought down to, as RMS dBFS. */
 export const TARGET_DB = -16
@@ -85,7 +93,30 @@ export function measureGain(trackId: string, file: SourceFile): Promise<number |
   return work
 }
 
+/** Bytes read from each end of a file looking for a ReplayGain tag. */
+const TAG_BYTES = 512 * 1024
+
+/**
+ * The loudness a ReplayGain / R128 tag gives, or null. The head holds ID3 and
+ * FLAC / Ogg comments; an MP4's tags may sit at the end instead.
+ */
+async function taggedDb(file: SourceFile): Promise<number | null> {
+  try {
+    const read = async (start: number, end: number) =>
+      readTags(new Uint8Array(await file.slice(start, end).arrayBuffer())).loudnessLufs
+    let lufs = await read(0, Math.min(file.size, TAG_BYTES))
+    if (lufs === undefined && /\.(m4a|mp4|aac|alac)$/i.test(file.name) && file.size > TAG_BYTES) {
+      lufs = await read(file.size - TAG_BYTES, file.size)
+    }
+    return lufs !== undefined && Number.isFinite(lufs) ? lufs : null
+  } catch {
+    return null // unreadable here (an Apple Music library song): measure instead
+  }
+}
+
 async function measureDb(file: SourceFile): Promise<number | null> {
+  const tagged = await taggedDb(file)
+  if (tagged !== null) return tagged
   if (file instanceof NativeFile && pluginRegistered(NAME)) {
     const { registerPlugin } = await import('@capacitor/core')
     const plugin = registerPlugin<{ measure(o: { uri: string }): Promise<{ rmsDb: number }> }>(NAME)

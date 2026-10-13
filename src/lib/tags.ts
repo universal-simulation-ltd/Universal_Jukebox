@@ -61,7 +61,35 @@ export interface TagsAndArt extends Tags {
    * somebody opens the panel. Same reasoning as `wantArt`, same shape.
    */
   lyrics?: string
+  /**
+   * The song's loudness in LUFS, from a ReplayGain track-gain tag
+   * (`REPLAYGAIN_TRACK_GAIN`, as ID3 `TXXX`, a Vorbis comment or an MP4
+   * `----` atom) or Opus's `R128_TRACK_GAIN`. Stable volume uses it instead of
+   * measuring the song (`lib/loudness.ts`). Undefined when the file has none.
+   *
+   * Stored as loudness, not as the gain, because the two tags are relative to
+   * different references: ReplayGain 2 to −18 LUFS (so loudness = −18 − gain),
+   * R128 to −23 LUFS in Q7.8 (loudness = −23 − value / 256).
+   */
+  loudnessLufs?: number
 }
+
+/** A ReplayGain value as written ("-7.43 dB", "+1.2 dB") → the song's LUFS. */
+export function lufsFromReplayGain(text: string): number | undefined {
+  const m = /^\s*([+-]?\d+(?:[.,]\d+)?)\s*(?:dB)?\s*$/i.exec(text)
+  if (!m) return undefined
+  const gain = Number(m[1].replace(',', '.'))
+  return Number.isFinite(gain) && Math.abs(gain) < 60 ? -18 - gain : undefined
+}
+
+/** Opus's R128_TRACK_GAIN (a Q7.8 integer, relative to −23 LUFS) → the song's LUFS. */
+export function lufsFromR128(text: string): number | undefined {
+  if (!/^\s*[+-]?\d+\s*$/.test(text)) return undefined
+  const q = Number(text)
+  return Number.isFinite(q) && Math.abs(q) < 32768 ? -23 - q / 256 : undefined
+}
+
+const RG_TRACK = 'REPLAYGAIN_TRACK_GAIN'
 
 export function hasTags(tags: Tags): boolean {
   return Boolean(tags.title || tags.artist || tags.album)
@@ -302,9 +330,11 @@ function readId3(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): Tags
     } else if (wantLyrics && id === lyricFrame) {
       const value = readUsltFrame(body)
       if (value) out.lyrics = preferLyrics(out.lyrics, value)
-    } else if (wantLyrics && id === userFrame) {
+    } else if (id === userFrame) {
+      // TXXX carries the lyric sheet for some taggers and ReplayGain for all.
       const pair = readTxxxFrame(body)
-      if (pair && isLyricKey(pair.description)) out.lyrics = preferLyrics(out.lyrics, pair.value)
+      if (pair && wantLyrics && isLyricKey(pair.description)) out.lyrics = preferLyrics(out.lyrics, pair.value)
+      else if (pair && pair.description.toUpperCase() === RG_TRACK) out.loudnessLufs ??= lufsFromReplayGain(pair.value)
     }
     at += headerLength + frameSize
   }
@@ -516,6 +546,8 @@ function readVorbisComment(bytes: Uint8Array, offset: number, wantArt: boolean, 
     else if (key === 'DISCNUMBER') out.discNo ??= leadingNumber(value)
     else if (key === 'DATE' || key === 'YEAR') date ??= value
     else if (key === 'GENRE') out.genre ??= value
+    else if (key === RG_TRACK) out.loudnessLufs ??= lufsFromReplayGain(value)
+    else if (key === 'R128_TRACK_GAIN') out.loudnessLufs ??= lufsFromR128(value)
     else if (wantLyrics && isLyricKey(key)) out.lyrics = preferLyrics(out.lyrics, value)
     else if (wantArt && key === 'METADATA_BLOCK_PICTURE' && !out.picture) {
       // An Ogg file has no PICTURE block, so the whole block is base64'd into a
@@ -639,6 +671,11 @@ function readMp4Tags(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): 
       // MP3s that have been in libraries for years. One table, one place. The
       // number written here is the ID3v1 code, i.e. `gnre` minus one.
       out.genre ??= String(view.getUint16(at + 24) - 1)
+    } else if (name === '----' && size > 36) {
+      // A freeform atom: `mean` (com.apple.iTunes), `name`, then `data`. foobar,
+      // dBpoweramp and Mp3tag write ReplayGain here as replaygain_track_gain.
+      const free = readFreeform(bytes, view, at + 8, at + size)
+      if (free && free.name.toUpperCase() === RG_TRACK) out.loudnessLufs ??= lufsFromReplayGain(free.value)
     } else if (wantLyrics && name === '©lyr' && size > 24) {
       // The one text atom that is not in the map above, because it must not be
       // read on a scan — see `lyrics` on `TagsAndArt`.
@@ -654,4 +691,21 @@ function readMp4Tags(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): 
     at += size
   }
   return out
+}
+
+/** The `name` and text `data` inside an MP4 `----` atom's body. */
+function readFreeform(bytes: Uint8Array, view: DataView, start: number, end: number): { name: string; value: string } | undefined {
+  let name: string | undefined
+  let value: string | undefined
+  const decoder = new TextDecoder('utf-8')
+  for (let at = start; at + 8 <= end; ) {
+    const size = view.getUint32(at)
+    if (size < 8 || at + size > end) break
+    const kind = ascii(bytes, at + 4, 4)
+    // `name` has a 4-byte version/flags word; `data` has type + locale (8).
+    if (kind === 'name' && size > 12) name = decoder.decode(bytes.subarray(at + 12, at + size))
+    else if (kind === 'data' && size > 16) value = decoder.decode(bytes.subarray(at + 16, at + size)).replace(/\0+$/, '')
+    at += size
+  }
+  return name && value ? { name, value } : undefined
 }

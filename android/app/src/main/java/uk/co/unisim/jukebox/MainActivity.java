@@ -21,6 +21,9 @@ public class MainActivity extends BridgeActivity {
         // Launcher shortcuts and "Hey Google, play … on Jukebox" — see
         // ShortcutsPlugin.
         registerPlugin(ShortcutsPlugin.class);
+        // The strips round the web view follow the app's Light / Dark — see
+        // WindowThemePlugin.
+        registerPlugin(WindowThemePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

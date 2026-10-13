@@ -332,6 +332,13 @@ export interface Settings {
    * without, not a report of something that went wrong.
    */
   hideErrors: boolean
+  /**
+   * No bars under the record on Now Playing (`components/Visualiser.tsx`, which
+   * only shows from 560px wide). The backlog's parked "visualiser on/off"
+   * (2026-10-13). Worded as the opt-out so the tick box starts unticked (the
+   * suite's rule) with the visualiser still on.
+   */
+  hideVisualiser: boolean
 }
 
 export const DEFAULTS: Settings = {
@@ -388,6 +395,7 @@ export const DEFAULTS: Settings = {
   keepAwake: false,
   lockScreenLyrics: false,
   hideErrors: true,
+  hideVisualiser: false,
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -694,6 +702,7 @@ function readStored(given?: Record<string, unknown>): Settings {
     // lock screen. A once-only move: the old key is never written again.
     lockScreenLyrics: stored.lockScreenLyrics === true || stored.liveActivity === true,
     hideErrors: stored.hideErrors !== false,
+    hideVisualiser: stored.hideVisualiser === true,
     // `=== true`, for the reason `lyricsOnline` gives above.
     aboutOnline: stored.aboutOnline === true,
   }
@@ -830,6 +839,7 @@ export function settingsBlob(state: Settings): Settings {
     keepAwake: state.keepAwake,
     lockScreenLyrics: state.lockScreenLyrics,
     hideErrors: state.hideErrors,
+    hideVisualiser: state.hideVisualiser,
   }
 }
 

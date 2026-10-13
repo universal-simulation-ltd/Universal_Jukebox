@@ -393,15 +393,3 @@ html {
 @media (prefers-reduced-motion: reduce) {
   [data-shelf-item] .jb-sleeve-disc { transition: none; }
 }
-
-/* ⚠️ Until the next @unisim/sdk (universal-platform@e109305 puts the chips'
-   hover sweep under `(hover: hover)`): on a touchscreen a tapped chip kept
-   :hover, so its ring sat at 82% until the next touch elsewhere (James,
-   2026-10-12, Lyrics' "Around the record" / "Following"). Back to the rest
-   sweep; a selected toggle keeps its 100%. `html` outranks the SDK's own
-   rules, which are injected after this sheet. Delete once the SDK has it. */
-@media (hover: none) {
-  html a.u-chip:hover::before,
-  html .u-chip--pick:not([aria-pressed="true"]):not([aria-checked="true"]):hover::before,
-  html button.u-chip:not(.u-chip--pick):hover::before { --u-chip-sweep: 62%; }
-}

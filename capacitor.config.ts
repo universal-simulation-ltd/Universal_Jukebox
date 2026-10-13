@@ -19,12 +19,13 @@ const config: CapacitorConfig = {
   // `env(safe-area-inset-*)` carries the real insets — which this app already
   // pads by, exactly as on iOS. On an older WebView, where those env values
   // read 0, it pads the web view natively instead and the strips show the
-  // WINDOW background, which values/styles.xml pins light.
+  // WINDOW background: paper from values/styles.xml, repainted to match the
+  // app's own theme by WindowThemePlugin (android/…) via src/lib/systemBars.ts.
   plugins: {
     SystemBars: {
       // Dark glyphs, for the light default theme ("LIGHT" means "for a light
-      // background"). Left at DEFAULT it would follow the phone's dark mode —
-      // white glyphs on the white strip.
+      // background"). Left at DEFAULT it would follow the phone's dark mode rather
+      // than the app's own setting; src/lib/systemBars.ts follows the app's.
       style: 'LIGHT',
       // index.html says cover; saying so here spares a layout jump on start.
       initialViewportFitValueHint: 'cover',
