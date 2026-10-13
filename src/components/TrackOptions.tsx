@@ -7,6 +7,7 @@ import type { Track } from '../lib/types'
 import { ShelfSheet } from './AddToShelf'
 import { TickGlyph } from './DoneBubble'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import RemoveRow from './RemoveRow'
 
 // A song's options, from a tap and hold on its record on the Tracks shelf
 // (James, 2026-09-27: "remove the play and queue icons instead show options on
@@ -122,6 +123,7 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
               <span className="w-5 text-center text-slate-500">▤</span>
               {t('library.go_to_album')}
             </button>
+            <RemoveRow kind="tracks" keyOf={track.path} name={`“${track.title}”`} rowClass={row} onDone={setSaid} />
           </div>
         )}
       </div>

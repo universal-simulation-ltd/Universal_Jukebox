@@ -143,6 +143,7 @@ const app: Draft['app'] = {
   'tip_record': 'para ver el álbum',
   'tip_record_queue': 'para ver lo que viene',
   'voice_not_found': 'No hay nada llamado «{asked}» en tu biblioteca.',
+  'tip_pull_down': 'Desliza hacia abajo para buscar y mezclar',
 }
 
 export default app

@@ -264,6 +264,13 @@ const settings: Draft['settings'] = {
   'xf_next_song': 'Sonraki şarkı',
   'xf_note_staggered': 'sonraki şarkı ilk {value} sn sessiz',
   'xf_note_lead_out': 'eski şarkı {value} sn sonra biter',
+  'removed_title': 'Jukebox’tan kaldırılanlar',
+  'removed_hint_one': 'Kaldırdığınız {count} öğe gizli. Hiçbir şey silinmedi: buradan geri getirin.',
+  'removed_hint_other': 'Kaldırdığınız {count} öğe gizli. Hiçbir şey silinmedi: buradan geri getirin.',
+  'removed_artist': 'Sanatçı',
+  'removed_album': 'Albüm',
+  'removed_track': 'Şarkı',
+  'put_back': 'Geri getir',
 }
 
 export default settings

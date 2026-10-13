@@ -143,6 +143,7 @@ const app: Draft['app'] = {
   'tip_record': 'albümü görmek için',
   'tip_record_queue': 'sırada ne olduğunu görmek için',
   'voice_not_found': 'Kitaplığınızda “{asked}” adında bir şey yok.',
+  'tip_pull_down': 'Arama ve karıştırma için aşağı çekin',
 }
 
 export default app

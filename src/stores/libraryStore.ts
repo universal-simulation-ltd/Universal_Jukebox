@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useHiddenStore, visibleLibrary, withFilteredOut, type HiddenSet } from '../lib/hidden'
 import { releaseAllCovers, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
 import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
@@ -467,7 +468,7 @@ let hydration: Promise<void> | null = null
 /** How often a running scan publishes what it has found (see `runScan`). */
 const SCAN_PUBLISH_MS = 750
 
-export const useLibraryStore = create<LibraryState>((set, get) => ({
+const rawStore = create<LibraryState>((set, get) => ({
   status: 'loading',
   tracks: [],
   albums: [],
@@ -1151,6 +1152,61 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ error: null })
   },
 }))
+
+// ── What the screens see: the library minus what was removed ────────────────
+//
+// ⚠️ `useLibraryStore` IS A VIEW (`lib/hidden.ts`, "Remove from Jukebox"). Its
+// `tracks` and `albums` leave out whatever has been removed, so every screen,
+// search, shuffle and the queue's own lookups drop it with no code of their
+// own. The store's actions above work on the WHOLE catalogue through their own
+// `get`/`set`, which is what keeps a removed song in storage and lets a rescan
+// or "Put back" bring it straight back.
+//
+// ⚠️ A WRITE THROUGH THE VIEW puts back what the view hid (`withFilteredOut`):
+// a learnt song length or a tidy-up starts from the view's list, and without
+// that a removed song would fall out of the catalogue the first time anybody
+// else wrote to it.
+/** The last projection, so an unchanged library and hidden set re-use the same arrays. */
+let memo: { tracks: Track[]; albums: Album[]; hidden: HiddenSet; shown: { tracks: Track[]; albums: Album[] } } | null = null
+
+function project(state: LibraryState): LibraryState {
+  const { hidden } = useHiddenStore.getState()
+  if (!memo || memo.hidden !== hidden || memo.tracks !== state.tracks || memo.albums !== state.albums) {
+    memo = { tracks: state.tracks, albums: state.albums, hidden, shown: visibleLibrary(state.tracks, state.albums, hidden) }
+  }
+  const { shown } = memo
+  return shown.tracks === state.tracks && shown.albums === state.albums ? state : { ...state, tracks: shown.tracks, albums: shown.albums }
+}
+
+export const useLibraryStore = create<LibraryState>(() => project(rawStore.getState()))
+{
+  const mirror = useLibraryStore.setState
+  const refresh = () => mirror(project(rawStore.getState()), true)
+  rawStore.subscribe(refresh)
+  useHiddenStore.subscribe((now, before) => {
+    if (now.hidden !== before.hidden) refresh()
+  })
+  useLibraryStore.setState = (partial, replace) => {
+    const shownNow = useLibraryStore.getState()
+    const next = typeof partial === 'function' ? partial(shownNow) : partial
+    const whole = rawStore.getState()
+    const patch: Partial<LibraryState> = { ...next }
+    if (next.tracks) patch.tracks = withFilteredOut(next.tracks, whole.tracks, shownNow.tracks)
+    if (next.albums) patch.albums = withFilteredOut(next.albums, whole.albums, shownNow.albums)
+    if (replace) rawStore.setState(patch as LibraryState, true)
+    else rawStore.setState(patch)
+  }
+}
+
+/**
+ * The WHOLE catalogue, removed songs included — for the few things that must
+ * not forget a song just because it isn't shown: the shelves' clean-up, and
+ * "Removed from Jukebox" naming what it would put back.
+ */
+export function wholeLibrary(): { tracks: Track[]; albums: Album[] } {
+  const { tracks, albums } = rawStore.getState()
+  return { tracks, albums }
+}
 
 // Lengths for every track with a file, in the background — `lib/lengths.ts`.
 // Started whenever the live files change: after a folder is allowed back,

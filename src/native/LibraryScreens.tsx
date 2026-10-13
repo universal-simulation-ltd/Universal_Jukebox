@@ -33,6 +33,7 @@ import ResumeCard from '../components/ResumeCard'
 import { haptic } from '../lib/haptics'
 import { useCollectionHold } from './CollectionHold'
 import { PullDrawer } from './PullDrawer'
+import { markTipSeen, useHintTurn } from '../lib/tips'
 import { makeDefault, useHold, useListDefaults } from './listDefaults'
 
 /** Rows drawn before "Show more": a phone lays out a few hundred rows instantly, not ten thousand. */
@@ -224,7 +225,10 @@ function Screen({
     cols !== defaults.libraryColumns[tab] ? layoutLabel(cols) : null,
     filterNote ?? null,
   ].filter(Boolean)
-  const openDrawer = useCallback(() => setPulled(true), [])
+  const openDrawer = useCallback(() => {
+    setPulled(true)
+    markTipSeen('pullDown')
+  }, [])
   const closeDrawer = useCallback(() => setPulled(false), [])
   // A second pull while it's open: straight into the search box, keyboard up.
   const typeIntoSearch = useCallback(() => input.current?.focus({ preventScroll: true }), [])
@@ -243,6 +247,7 @@ function Screen({
           <p className="jx-sub">{[count, ...(shown ? [] : notes)].join(' · ')}</p>
         </div>
       </div>
+      <PullHint drawerShown={shown} onOpen={openDrawer} />
       <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer} onPullAgain={typeIntoSearch}>
         <SearchBox
           input={input}
@@ -325,6 +330,34 @@ function FilterChip({ on, isDefault, label, offLabel, onToggle, hold, onHold }: 
 
 /** Whether the hold has been used once — then the hint under the chips goes. */
 const HOLD_KEY = 'jukebox:hold-default-learnt'
+/**
+ * The first-run hint that the search box, Shuffle and the list options are
+ * folded away above the list (James, 2026-10-13: "New users - have a hint to
+ * swipe down to reveal the search etc"). Pulling is the only way in
+ * (`PullDrawer`), so nothing else on screen says they exist. Goes for good the
+ * first time the drawer opens, by the pull or by tapping this; waits its turn
+ * behind any other hint (`useHintTurn`).
+ */
+function PullHint({ drawerShown, onOpen }: { drawerShown: boolean; onOpen(): void }) {
+  const t = useT()
+  const turn = useHintTurn('pullDown', !drawerShown)
+  if (!turn) return null
+  return (
+    <div className="flex justify-center pb-2">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex items-center gap-1.5 rounded-full bg-orange-600 px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap text-white shadow-md motion-safe:animate-[jb-tip-bob_1.6s_ease-in-out_infinite]"
+      >
+        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M5 8l5 5 5-5" />
+        </svg>
+        {t('app.tip_pull_down')}
+      </button>
+    </div>
+  )
+}
+
 function readHoldLearnt(): boolean {
   try { return localStorage.getItem(HOLD_KEY) === '1' } catch { return false }
 }
@@ -379,7 +412,10 @@ export function AlbumsScreen(props: ListProps) {
       {layout.genreList ? (
         <GenreIndex tab="albums" query={query} />
       ) : layout.shelf || genre ? (
-        <div className="jx-web"><AlbumGrid query={query} order={layout.effective} genre={genre} /></div>
+        <>
+          {held.sheet}
+          <div className="jx-web"><AlbumGrid query={query} order={layout.effective} genre={genre} hold={(album) => held.open({ kind: 'album', album })} /></div>
+        </>
       ) : (
         <>
           {/* "Pick up where you left off" — the website puts it in its lists
@@ -479,7 +515,10 @@ export function ArtistsScreen(props: ListProps) {
       {layout.genreList ? (
         <GenreIndex tab="artists" query={query} />
       ) : layout.shelf || genre ? (
-        <div className="jx-web"><ArtistList query={query} order={layout.effective} genre={genre} /></div>
+        <>
+          {held.sheet}
+          <div className="jx-web"><ArtistList query={query} order={layout.effective} genre={genre} hold={(name) => held.open({ kind: 'artist', name })} /></div>
+        </>
       ) : (
         <>
           {held.sheet}

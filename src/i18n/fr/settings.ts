@@ -283,6 +283,13 @@ const settings: Draft['settings'] = {
   'xf_next_song': 'Morceau suivant',
   'xf_note_staggered': 'morceau suivant muet pendant les {value} premières s',
   'xf_note_lead_out': 'ancien morceau terminé après {value} s',
+  'removed_title': 'Retiré de Jukebox',
+  'removed_hint_one': '{count} élément retiré est masqué. Rien n’a été supprimé : remettez-le ici.',
+  'removed_hint_other': '{count} éléments retirés sont masqués. Rien n’a été supprimé : remettez-les ici.',
+  'removed_artist': 'Artiste',
+  'removed_album': 'Album',
+  'removed_track': 'Morceau',
+  'put_back': 'Remettre',
 }
 
 export default settings

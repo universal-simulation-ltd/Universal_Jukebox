@@ -265,6 +265,13 @@ const settings: Draft['settings'] = {
   'xf_next_song': 'Brano successivo',
   'xf_note_staggered': 'brano successivo muto per i primi {value} s',
   'xf_note_lead_out': 'vecchio brano sparito dopo {value} s',
+  'removed_title': 'Rimosso da Jukebox',
+  'removed_hint_one': '{count} elemento rimosso è nascosto. Non è stato eliminato nulla: rimettilo da qui.',
+  'removed_hint_other': '{count} elementi rimossi sono nascosti. Non è stato eliminato nulla: rimettili da qui.',
+  'removed_artist': 'Artista',
+  'removed_album': 'Album',
+  'removed_track': 'Brano',
+  'put_back': 'Rimetti',
 }
 
 export default settings

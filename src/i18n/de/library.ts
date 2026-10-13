@@ -102,6 +102,12 @@ const library: Draft['library'] = {
   'layout_jukebox': 'Jukebox',
   'layout_per_row_one': '{count} pro Reihe',
   'layout_per_row_other': '{count} pro Reihe',
+  'shuffle_album': 'Album zufällig abspielen',
+  'remove_from_jukebox': 'Aus Jukebox entfernen',
+  'remove_confirm': '{name} aus Jukebox entfernen?',
+  'remove_explain': 'Es wird nicht mehr angezeigt oder abgespielt. Nichts wird gelöscht: Du kannst es jederzeit unter „Diese App anpassen“ › „Deine Mediathek“ zurückholen.',
+  'remove_yes': 'Entfernen',
+  'removed': 'Entfernt',
 }
 
 export default library

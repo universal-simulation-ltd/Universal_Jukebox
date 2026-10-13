@@ -34,7 +34,8 @@ import { useAboutStore } from '../stores/aboutStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { useRequestsStore } from '../stores/requestsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
-import { useLibraryStore } from '../stores/libraryStore'
+import { useLibraryStore, wholeLibrary } from '../stores/libraryStore'
+import { useHiddenStore, type HiddenKind } from '../lib/hidden'
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import {
   CEREMONY_LADDER,
@@ -237,6 +238,7 @@ export default function Settings() {
           {libraryReady && (
             <Action label={t('settings.tidy_up')} button={t('common.open')} onClick={() => navigate({ view: 'tidy' })} />
           )}
+          <RemovedFromJukebox />
           {/* ⚠️ THE EXAMPLE LIBRARY'S SECOND DOOR (backlog, 2026-09-29). The
               landing page was its only one, because loading it there REPLACES
               the library and the landing page is only shown when there is none
@@ -682,6 +684,71 @@ function ResetDefaults() {
         {t('settings.reset_note')}
       </p>
     </div>
+  )
+}
+
+/**
+ * Everything removed from Jukebox from a long press (`lib/hidden.ts`), each
+ * with "Put back". Only there once something has been removed.
+ *
+ * ⚠️ NAMED FROM THE WHOLE CATALOGUE (`wholeLibrary`), since the screens' own
+ * view of the library is exactly what these are missing from. A removed song
+ * whose file has gone since is still listed, by its file name, so it can be
+ * cleared from the list.
+ */
+function RemovedFromJukebox() {
+  const t = useT()
+  const hidden = useHiddenStore((h) => h.hidden)
+  const restore = useHiddenStore((h) => h.restore)
+  const [open, setOpen] = useState(false)
+  const count = hidden.tracks.length + hidden.albums.length + hidden.artists.length
+  if (count === 0) return null
+  const { tracks, albums } = wholeLibrary()
+  const items: { kind: HiddenKind; key: string; name: string; what: string }[] = [
+    ...hidden.artists.map((key) => ({ kind: 'artists' as const, key, name: key, what: t('settings.removed_artist') })),
+    ...hidden.albums.map((key) => ({
+      kind: 'albums' as const,
+      key,
+      name: albums.find((a) => a.id === key)?.title ?? key,
+      what: t('settings.removed_album'),
+    })),
+    ...hidden.tracks.map((key) => ({
+      kind: 'tracks' as const,
+      key,
+      name: tracks.find((x) => x.path === key)?.title ?? key.split('/').pop() ?? key,
+      what: t('settings.removed_track'),
+    })),
+  ]
+  return (
+    <>
+      <Action
+        label={t('settings.removed_title')}
+        hint={t.plural('settings.removed_hint', count)}
+        button={open ? t('common.close') : t('common.open')}
+        onClick={() => setOpen(!open)}
+      />
+      {open && (
+        <Row>
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {items.map((item) => (
+              <li key={`${item.kind}:${item.key}`} className="flex items-center gap-3 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] text-slate-900 dark:text-slate-100">{item.name}</span>
+                  <span className="block text-[12px] text-slate-500 dark:text-slate-400">{item.what}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => restore(item.kind, item.key)}
+                  className="shrink-0 rounded-full border border-slate-300 px-3 py-1 text-[13px] font-medium text-slate-700 hover:border-orange-500 hover:text-orange-700 dark:border-slate-600 dark:text-slate-200 dark:hover:text-orange-400"
+                >
+                  {t('settings.put_back')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Row>
+      )}
+    </>
   )
 }
 

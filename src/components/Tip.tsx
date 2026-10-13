@@ -1,4 +1,5 @@
-import { useSettingsStore, type TipId } from '../stores/settingsStore'
+import type { TipId } from '../stores/settingsStore'
+import { useHintTurn } from '../lib/tips'
 import { useT } from '../i18n'
 
 // First-run tips (James, 2026-09-10): "Tap here" on the record, and on the
@@ -19,8 +20,9 @@ import { useT } from '../i18n'
  */
 export default function Tip({ id, detail }: { id: TipId; detail: string }) {
   const t = useT()
-  const seen = useSettingsStore((s) => s.tipsSeen.includes(id))
-  if (seen) return null
+  // Its turn among the hints on screen (`useHintTurn`, one at a time).
+  const turn = useHintTurn(id, true)
+  if (!turn) return null
   return (
     <span className="pointer-events-none absolute inset-x-0 -bottom-3 z-10 flex justify-center">
       <span role="note" className="flex flex-col items-center motion-safe:animate-[jb-tip-bob_1.6s_ease-in-out_infinite]">

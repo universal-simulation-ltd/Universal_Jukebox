@@ -108,6 +108,13 @@ export default {
   'open_album': 'Open the album', // in the sheet a held album opens
   'go_to_artist': 'Go to {artist}', // the same sheet; {artist} is the album's artist
   'view_albums': 'View their albums', // in the sheet a held artist opens
+  'shuffle_album': 'Shuffle the album', // in the sheet a held album opens
+  // Remove from Jukebox (RemoveRow, in every long-press sheet; lib/hidden.ts)
+  'remove_from_jukebox': 'Remove from Jukebox', // the sheet's last row: hides a song, album or artist from the app without deleting any file
+  'remove_confirm': 'Remove {name} from Jukebox?', // the question that row asks first; {name} is the song's, album's or artist's name
+  'remove_explain': 'It won’t show or play any more. Nothing is deleted: put it back any time from Tune this app, under Your library.',
+  'remove_yes': 'Remove', // button that confirms
+  'removed': 'Removed', // confirmation after removing
 
   // Add to queue (AddToQueue, TrackOptions)
   'add_to_queue': 'Add to queue',

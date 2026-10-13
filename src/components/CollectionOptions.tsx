@@ -5,6 +5,8 @@ import type { Track } from '../lib/types'
 import { ShelfSheet } from './AddToShelf'
 import { TickGlyph } from './DoneBubble'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import type { HiddenKind } from '../lib/hidden'
+import RemoveRow from './RemoveRow'
 
 // What a held artist or album offers (James, 2026-10-11: "Allow long taps e.g.
 // on the artist and show things like view albums, view all tracks etc"): play
@@ -21,11 +23,21 @@ export interface CollectionLink {
   go(): void
 }
 
-export default function CollectionOptions({ title, subtitle, tracks, links, onClose }: {
+export default function CollectionOptions({ title, subtitle, tracks, links, lead = [], shuffleRow = true, remove, onClose }: {
   title: string
   subtitle?: string
   tracks: Track[]
   links: CollectionLink[]
+  /**
+   * Rows ABOVE Play all — a held album's "Open the album, Shuffle the album,
+   * Go to {artist}" (James, 2026-10-13: "Long tap on album should show - open
+   * album, shuffle album, open artist"), the three things it is held for.
+   */
+  lead?: CollectionLink[]
+  /** False where `lead` already shuffles, so there aren't two Shuffle rows. */
+  shuffleRow?: boolean
+  /** "Remove from Jukebox" at the foot (`RemoveRow`). */
+  remove?: { kind: HiddenKind; key: string; name: string }
   onClose(): void
 }) {
   const t = useT()
@@ -53,6 +65,11 @@ export default function CollectionOptions({ title, subtitle, tracks, links, onCl
 
   if (shelving) return <ShelfSheet tracks={tracks} title={title} onClose={onClose} />
 
+  // Shuffle turns shuffle on and starts, never off (AlbumView's rule).
+  const shuffleAll = (songs: Track[]) => {
+    if (!shuffle) toggleShuffle()
+    playTracks(songs, Math.floor(Math.random() * songs.length))
+  }
   const run = (action: () => void) => () => {
     action()
     onClose()
@@ -91,22 +108,22 @@ export default function CollectionOptions({ title, subtitle, tracks, links, onCl
           </p>
         ) : (
           <div className="flex flex-col">
+            {lead.map((link) => (
+              <button key={link.label} type="button" className={row} onClick={run(link.go)}>
+                <span className="w-5 text-center text-orange-600">{link.icon}</span>
+                {link.label}
+              </button>
+            ))}
             <button type="button" className={row} onClick={run(() => playTracks(tracks, 0))}>
               <span className="w-5 text-center text-orange-600">▶</span>
               {t('library.play_all')}
             </button>
-            <button
-              type="button"
-              className={row}
-              onClick={run(() => {
-                // Shuffle turns shuffle on and starts, never off (AlbumView's rule).
-                if (!shuffle) toggleShuffle()
-                playTracks(tracks, Math.floor(Math.random() * tracks.length))
-              })}
-            >
-              <span className="w-5 text-center text-slate-500">⤨</span>
-              {t('common.shuffle')}
-            </button>
+            {shuffleRow && (
+              <button type="button" className={row} onClick={run(() => shuffleAll(tracks))}>
+                <span className="w-5 text-center text-slate-500">⤨</span>
+                {t('common.shuffle')}
+              </button>
+            )}
             {/* With nothing playing, "next" and "the end" are both "now". */}
             {queued > 0 && (
               <>
@@ -130,6 +147,7 @@ export default function CollectionOptions({ title, subtitle, tracks, links, onCl
                 {link.label}
               </button>
             ))}
+            {remove && <RemoveRow kind={remove.kind} keyOf={remove.key} name={remove.name} rowClass={row} onDone={setSaid} />}
           </div>
         )}
       </div>

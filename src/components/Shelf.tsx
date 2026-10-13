@@ -226,7 +226,7 @@ function LazyShelf({
   )
 }
 
-export default function Shelf({ albums, lead, groups }: { albums: Album[]; lead?: Album; groups?: { genre: string; items: Album[] }[] }) {
+export default function Shelf({ albums, lead, groups, hold }: { albums: Album[]; lead?: Album; groups?: { genre: string; items: Album[] }[]; hold?(album: Album): void }) {
   const t = useT()
   return (
     <Shelves
@@ -245,6 +245,8 @@ export default function Shelf({ albums, lead, groups }: { albums: Album[]; lead?
           render={(a) => <Sleeve album={a} />}
           artOf={(a) => a}
           open={(a) => navigate({ view: 'album', albumId: a.id })}
+          // The phone's long-press sheet (`native/CollectionHold`); the website passes none.
+          hold={hold}
           caption={(a) => ({ title: a.title, detail: t('shelves.album_caption', { detail: [a.artist, a.year].filter(Boolean).join(' · ') }) })}
         />
       )}
@@ -276,11 +278,13 @@ export function AlbumRow({ albums, hold }: { albums: Album[]; hold?(album: Album
 
 /** The artists on the shelf, each as their latest record. */
 export function ArtistShelf({
-  artists, lead, groups,
+  artists, lead, groups, hold,
 }: {
   artists: { name: string; albums: Album[] }[]
   lead?: { name: string; albums: Album[] }
   groups?: { genre: string; items: { name: string; albums: Album[] }[] }[]
+  /** The phone's long-press sheet (`native/CollectionHold`), by artist name. */
+  hold?(name: string): void
 }) {
   const t = useT()
   return (
@@ -303,6 +307,7 @@ export function ArtistShelf({
           open={(a) =>
             a.albums.length === 1 ? navigate({ view: 'album', albumId: a.albums[0].id }) : navigate({ view: 'artist', artist: a.name })
           }
+          hold={hold ? (a) => hold(a.name) : undefined}
           caption={(a) => ({ title: a.name, detail: t.plural('shelves.artist_caption', a.albums.length) })}
         />
       )}

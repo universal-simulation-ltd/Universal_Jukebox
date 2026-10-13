@@ -264,6 +264,13 @@ const settings: Draft['settings'] = {
   'xf_next_song': 'Nächster Song',
   'xf_note_staggered': 'nächster Song in den ersten {value} s stumm',
   'xf_note_lead_out': 'alter Song nach {value} s weg',
+  'removed_title': 'Aus Jukebox entfernt',
+  'removed_hint_one': '{count} entfernter Eintrag ist ausgeblendet. Nichts wurde gelöscht: Hier kannst du ihn zurückholen.',
+  'removed_hint_other': '{count} entfernte Einträge sind ausgeblendet. Nichts wurde gelöscht: Hier kannst du sie zurückholen.',
+  'removed_artist': 'Interpret',
+  'removed_album': 'Album',
+  'removed_track': 'Song',
+  'put_back': 'Zurückholen',
 }
 
 export default settings

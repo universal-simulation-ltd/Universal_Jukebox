@@ -33,9 +33,11 @@ interface AlbumGridProps {
   order: LibraryOrder
   /** One opened from the genre list — only the albums with a song in it (`route.genre`). */
   genre?: string
+  /** A long press on a sleeve in the shelf layout — the phone's sheet (`native/CollectionHold`). */
+  hold?(album: Album): void
 }
 
-export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridProps) {
+export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumGridProps) {
   const t = useT()
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
@@ -124,7 +126,7 @@ export default function AlbumGrid({ query, order, genre: inGenre }: AlbumGridPro
             of the first shelf, and in genre mode the first shelf is a genre it
             probably is not in — which would put a stray record on the Blues
             shelf and quietly make the shelf a lie. */}
-        <Shelf albums={listed} lead={genre ? undefined : resumeAlbum} groups={genre?.groups} />
+        <Shelf albums={listed} lead={genre ? undefined : resumeAlbum} groups={genre?.groups} hold={hold} />
         {genre && <GenreFootnote hidden={genre.hidden} />}
       </>
     )

@@ -49,7 +49,13 @@ function maybeResumeRow(cells: ReactNode[], at: number | undefined, grouped: boo
 let openArtists: ReadonlySet<string> = new Set()
 
 /** `genre`: one opened from the genre list — only the artists with a record in it (`route.genre`). */
-export default function ArtistList({ query, order, genre: inGenre }: { query: string; order: LibraryOrder; genre?: string }) {
+export default function ArtistList({ query, order, genre: inGenre, hold }: {
+  query: string
+  order: LibraryOrder
+  genre?: string
+  /** A long press on an artist in the shelf layout — the phone's sheet (`native/CollectionHold`). */
+  hold?(name: string): void
+}) {
   const t = useT()
   const allAlbums = useLibraryStore((s) => s.albums)
   const allTracks = useLibraryStore((s) => s.tracks)
@@ -108,13 +114,13 @@ export default function ArtistList({ query, order, genre: inGenre }: { query: st
     return { groups: groupByGenre(all, forArtist, shownGenres(tally)), hidden: hiddenByGenre(tally) }
   }, [order.kind, tracks, all])
 
-  if (all.length > 0 && columns === 'jukebox' && !genre) return <ArtistShelf artists={all} lead={resumeArtist} />
+  if (all.length > 0 && columns === 'jukebox' && !genre) return <ArtistShelf artists={all} lead={resumeArtist} hold={hold} />
   if (all.length > 0 && columns === 'jukebox' && genre && genre.groups.length > 0) {
     return (
       <>
         {/* No `lead` in genre mode — the resume artist belongs on their own
             genre's shelf, not at the front of whichever genre is first. */}
-        <ArtistShelf artists={all} groups={genre.groups} />
+        <ArtistShelf artists={all} groups={genre.groups} hold={hold} />
         <GenreFootnote hidden={genre.hidden} />
       </>
     )

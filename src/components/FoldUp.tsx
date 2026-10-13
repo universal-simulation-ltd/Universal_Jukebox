@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useT } from '../i18n'
-import { markTipSeen } from '../lib/tips'
-import { useSettingsStore } from '../stores/settingsStore'
+import { markTipSeen, useHintTurn } from '../lib/tips'
 
 // The last row of Now Playing on a PHONE — shuffle, the repeats, a shelf, the
 // "i" — folded away under the records waiting to go on, and pulled up into view
@@ -355,8 +354,9 @@ export default function FoldUp({
  */
 function FoldHint({ open, onOpen }: { open: boolean; onOpen(): void }) {
   const t = useT()
-  const seen = useSettingsStore((s) => s.tipsSeen.includes('foldUp'))
   const [shown, setShown] = useState(false)
+  // Waits its turn behind "Tap here" on the record (`useHintTurn`).
+  const turn = useHintTurn('foldUp', shown && !open)
   useEffect(() => {
     if (open) markTipSeen('foldUp')
   }, [open])
@@ -364,7 +364,7 @@ function FoldHint({ open, onOpen }: { open: boolean; onOpen(): void }) {
     const timer = window.setTimeout(() => setShown(true), 1600)
     return () => window.clearTimeout(timer)
   }, [])
-  if (seen || open || !shown) return null
+  if (!turn) return null
   return (
     <button
       type="button"

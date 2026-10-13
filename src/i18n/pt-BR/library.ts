@@ -110,6 +110,12 @@ const library: Draft['library'] = {
   'layout_jukebox': 'Jukebox',
   'layout_per_row_one': '{count} por linha',
   'layout_per_row_other': '{count} por linha',
+  'shuffle_album': 'Álbum no aleatório',
+  'remove_from_jukebox': 'Remover do Jukebox',
+  'remove_confirm': 'Remover {name} do Jukebox?',
+  'remove_explain': 'Não vai mais aparecer nem tocar. Nada é apagado: você pode trazer de volta quando quiser em Ajustar este app, em Sua biblioteca.',
+  'remove_yes': 'Remover',
+  'removed': 'Removido',
 }
 
 export default library

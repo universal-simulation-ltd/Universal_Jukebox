@@ -135,8 +135,8 @@ export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'reel', 
 // hold for options", "tap the record to play the shelf from here"): shown under
 // every record until the thing they describe has been done once, then gone —
 // a line repeated under every shelf for ever is noise by the second visit.
-export type TipId = 'record' | 'cover' | 'hold' | 'shelfPlay' | 'foldUp'
-export const TIP_IDS: TipId[] = ['record', 'cover', 'hold', 'shelfPlay', 'foldUp']
+export type TipId = 'record' | 'cover' | 'hold' | 'shelfPlay' | 'foldUp' | 'pullDown'
+export const TIP_IDS: TipId[] = ['record', 'cover', 'hold', 'shelfPlay', 'foldUp', 'pullDown']
 
 /** How many albums across (James, 2026-09-11) — or the jukebox shelf. */
 export type LibraryColumns = 1 | 2 | 3 | 4 | 'jukebox'

@@ -102,6 +102,12 @@ const library: Draft['library'] = {
   'layout_jukebox': 'Jukebox',
   'layout_per_row_one': 'Sırada {count}',
   'layout_per_row_other': 'Sırada {count}',
+  'shuffle_album': 'Albümü karıştır',
+  'remove_from_jukebox': 'Jukebox’tan kaldır',
+  'remove_confirm': '{name} Jukebox’tan kaldırılsın mı?',
+  'remove_explain': 'Artık gösterilmez ve çalınmaz. Hiçbir şey silinmez: istediğiniz zaman Bu uygulamayı ayarla › Kitaplığınız bölümünden geri getirebilirsiniz.',
+  'remove_yes': 'Kaldır',
+  'removed': 'Kaldırıldı',
 }
 
 export default library

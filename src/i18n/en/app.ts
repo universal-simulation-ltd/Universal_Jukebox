@@ -158,5 +158,6 @@ export default {
   'tip_cover': 'to open the jukebox', // the tip's second line, on an album cover
   'tip_record': 'to see the album', // the tip's second line, on the turning record
   'tip_record_queue': 'to see what’s up next', // the phone app's version: tapping the record opens the queue
+  'tip_pull_down': 'Pull down for search and shuffle', // first-run hint at the top of Artists, Albums and Tracks on a phone: the search box and options fold away above the list until you pull down. Keep short
   'voice_not_found': 'Nothing called “{asked}” in your library.', // after "Hey Google, play … on Jukebox" found nothing; {asked} is what was said
 } as const

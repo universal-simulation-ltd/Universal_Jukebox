@@ -44,6 +44,15 @@ export default {
   'try_example_hint': 'Nine made-up records to explore. Your own library is set aside, untouched, until you come back.',
   'try_it': 'Try it', // button
 
+  // Removed from Jukebox (Your library; lib/hidden.ts)
+  'removed_title': 'Removed from Jukebox', // row label; opens the list of what was removed
+  'removed_hint_one': '{count} thing you removed is hidden. Nothing was deleted: put it back here.',
+  'removed_hint_other': '{count} things you removed are hidden. Nothing was deleted: put them back here.',
+  'removed_artist': 'Artist', // the kind of thing removed, beside its name
+  'removed_album': 'Album',
+  'removed_track': 'Song',
+  'put_back': 'Put back', // button beside each removed thing
+
   // Backup (section)
   'backup_title': 'Backup', // section title
   'backup_note': 'Keep your music in your own cloud. Back up your shelves, requests and settings here.',

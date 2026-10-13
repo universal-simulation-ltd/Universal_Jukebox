@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { useLibraryStore } from './libraryStore'
+import { useLibraryStore, wholeLibrary } from './libraryStore'
 import { haptic } from '../lib/haptics'
 import { addToShelf, moveOnShelf, parseShelves, renameShelf, starterPicks, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
 import { getT } from '../i18n/runtime.ts'
@@ -104,7 +104,9 @@ useLibraryStore.subscribe((now, before) => {
   if (now.trying) return
   if (now.status !== 'ready' || now.tracks.length === 0) return
   if (before.status === 'ready' && now.tracks === before.tracks) return
-  const have = new Set(now.tracks.map((t) => t.id))
+  // The WHOLE catalogue: a shelf of songs removed from Jukebox (`lib/hidden.ts`)
+  // is only out of sight, and must still be there when they are put back.
+  const have = new Set(wholeLibrary().tracks.map((t) => t.id))
   const { shelves } = useShelvesStore.getState()
   const kept = shelves.filter((s) => s.trackIds.some((id) => have.has(id)))
   if (kept.length !== shelves.length) {

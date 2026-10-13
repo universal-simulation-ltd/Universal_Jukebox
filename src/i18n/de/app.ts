@@ -143,6 +143,7 @@ const app: Draft['app'] = {
   'tip_record': 'um das Album zu sehen',
   'tip_record_queue': 'um zu sehen, was als Nächstes kommt',
   'voice_not_found': 'In deiner Mediathek gibt es nichts namens „{asked}“.',
+  'tip_pull_down': 'Nach unten ziehen für Suche und Zufall',
 }
 
 export default app
