@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { engineActive } from '../lib/audio'
 import { fadeLevel, LEAD_OUT, STAGGER, type FadeCurve } from '../lib/fadeCurve'
 import {
   CROSSFADE_LIMITS,
@@ -181,9 +182,12 @@ export default function CrossfadeDialog({ onClose }: { onClose(): void }) {
           </fieldset>
         </div>
 
-        <p className="mt-4 text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
-          {t('settings.xf_iphone_note')}
-        </p>
+        {/* The website on an iPhone; the iPhone app's own engine makes fades heard. */}
+        {!engineActive() && (
+          <p className="mt-4 text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
+            {t('settings.xf_iphone_note')}
+          </p>
+        )}
 
         <div className="mt-5 flex items-center justify-between gap-2">
           <button type="button" onClick={reset} className="text-[13px] font-medium text-slate-500 dark:text-slate-400">

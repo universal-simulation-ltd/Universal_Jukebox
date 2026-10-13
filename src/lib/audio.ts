@@ -234,6 +234,18 @@ export function setUpcoming(plan: EnginePlanDraft): void {
   native?.setUpcoming(plan)
 }
 
+/**
+ * Write an example song to a file the engine can open, ahead of the plan that
+ * names it (`stashExampleAhead` in `playerStore`). False off the iPhone app.
+ */
+export function engineStashAhead(trackId: string, file: SourceFile): Promise<boolean> {
+  return native ? native.stashAhead(trackId, file) : Promise.resolve(false)
+}
+
+export function engineHasStashed(trackId: string): boolean {
+  return native?.hasStashed(trackId) ?? false
+}
+
 /** What the engine needs from the player store — see `EngineStoreHooks`. */
 export function setEngineHandlers(hooks: EngineStoreHooks): void {
   native?.setStoreHooks(hooks)

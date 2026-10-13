@@ -138,10 +138,12 @@ public class JukeboxEnginePlugin: CAPPlugin, CAPBridgedPlugin {
         let limits = JukeboxEngine.Limits(call.getObject("limits"))
         let stable = call.getBool("stableVolume") ?? true
         let cueLevel = call.getDouble("cueLevel") ?? 0.5
+        let notify = call.getBool("notify") ?? false
         let pageSeq = call.getInt("seq") ?? 0
         onMain(call) {
             self.engine.setUpcoming(current: current, entries: entries, previous: previous, repeatOne: repeatOne,
-                                    wrap: wrap, limits: limits, stableVolume: stable, cueLevel: cueLevel, pageSeq: pageSeq)
+                                    wrap: wrap, limits: limits, stableVolume: stable, cueLevel: cueLevel,
+                                    notify: notify, pageSeq: pageSeq)
         }
     }
 

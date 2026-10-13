@@ -210,6 +210,12 @@ export interface EngineEntryDraft {
   skip: EngineTransition
   /** The start-up cue for the machine this song plays on (`cue:vinyl`…), or null with the cue off. */
   cueKey: string | null
+  /**
+   * "Lyrics on the lock screen": the song's timed lines, in order, for the
+   * engine to follow while the page is away (`lib/lockLinesAhead.ts`). Null
+   * with the setting off, or no synced sheet found (yet).
+   */
+  lines: { t: number; text: string }[] | null
 }
 
 export interface EnginePlanDraft {
@@ -229,6 +235,8 @@ export interface EnginePlanDraft {
   stableVolume: boolean
   /** The start-up cue's level ÷ the clip headroom, as `playClip` plays it. */
   cueLevel: number
+  /** "Notify me of each new song": the engine posts the card itself while the page is away. */
+  notify: boolean
 }
 
 /** How far ahead the engine is told. ~50 songs is hours of locked listening. */

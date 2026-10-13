@@ -139,24 +139,27 @@ export const useLyricsStore = create<LyricsState>((set, get) => ({
   },
 }))
 
-async function run(track: Track, set: (partial: Partial<LyricsState>) => void): Promise<void> {
-  const mine = ++token
-  set({ trackId: track.id, status: 'loading', sheet: null, message: null, askedOnline: false })
-
+/**
+ * The words a song carries with it, from everywhere but lrclib.net, in the
+ * order `run` trusts them. `prepare`: copy a Music-library song out to read
+ * its file (the panel, for the song on now); without it such a song is read
+ * from the library's own lyrics only, which needs no copy — what the
+ * lock-screen look-ahead uses (`lib/lockLinesAhead.ts`).
+ */
+export async function localLyricSheet(track: Track, prepare: boolean): Promise<LyricSheet | null> {
   // ⚠️ The person's OWN lyrics file wins over everything — they added it
   // because the others were missing or wrong (see `adoptLyrics`). Next, a
   // `.lrc` that sat beside the song in its folder (`lib/folderLyrics.ts`):
   // also theirs, put there on purpose, so ahead of the tags and lrclib too.
   const own = await getLyricRecord(track.id).catch(() => null)
-  if (mine !== token) return
   if ((own?.source === 'upload' || own?.source === 'folder') && own.raw) {
     const sheet = parseLyrics(own.raw, 'upload')
-    if (sheet) return set({ status: 'ready', sheet, message: null })
+    if (sheet) return sheet
   }
 
   // The example library's songs carry their words in the app, not the file.
   const example = exampleLyrics(track)
-  if (example) return set({ status: 'ready', sheet: example, message: null })
+  if (example) return example
 
   // ⚠️ WAIT FOR A MUSIC-LIBRARY SONG'S COPY. Its file only exists once it has
   // been copied out of the library (`lib/appleMusic.ts`), and the song becomes
@@ -166,17 +169,15 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
   // 2026-10-12: "lost my lyrics which were embedded into tracks on Apple
   // library"). `prepare` shares the copy the player is already making.
   const library = useLibraryStore.getState()
-  const file = library.needsPreparing(track) ? await library.prepare(track) : library.fileFor(track)
-  if (mine !== token) return
+  const waiting = library.needsPreparing(track)
+  const file = waiting ? (prepare ? await library.prepare(track) : null) : library.fileFor(track)
   if (file) {
     try {
       const sheet = await lyricsFromFile(file)
-      if (mine !== token) return
-      if (sheet) return set({ status: 'ready', sheet, message: null })
+      if (sheet) return sheet
     } catch {
       // A file that has moved or lost its permission is not a lyrics error —
-      // fall through and let the online half have a go.
-      if (mine !== token) return
+      // fall through and let the others have a go.
     }
   }
 
@@ -184,10 +185,19 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
   // an MP3's embedded lyrics survive (its playback copy has no tags).
   if (isMusicLibraryTrack(library.roots, track)) {
     const raw = await musicLibraryLyrics(track).catch(() => null)
-    if (mine !== token) return
     const sheet = raw ? parseLyrics(raw) : null
-    if (sheet) return set({ status: 'ready', sheet, message: null })
+    if (sheet) return sheet
   }
+  return null
+}
+
+async function run(track: Track, set: (partial: Partial<LyricsState>) => void): Promise<void> {
+  const mine = ++token
+  set({ trackId: track.id, status: 'loading', sheet: null, message: null, askedOnline: false })
+
+  const local = await localLyricSheet(track, true)
+  if (mine !== token) return
+  if (local) return set({ status: 'ready', sheet: local, message: null })
 
   const allowNetwork = settings().lyricsOnline && !barsOnlineLyrics()
   const found = await onlineLyrics(track, allowNetwork)

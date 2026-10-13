@@ -31,7 +31,9 @@ import { navigate } from '../lib/route'
 import { cachedIntro, introHold, INTRO_HOLD_MAX, INTRO_MIN, measureIntro } from '../lib/intro'
 import { cachedOutro, measureOutro, OUTRO_LEAD_MAX, OUTRO_MIN, outroLead } from '../lib/outro'
 import { noteEvent } from '../lib/bgLog'
-import { followLockLyrics } from '../lib/lockLyrics'
+import { followLockLyrics, lockLyricsAvailable } from '../lib/lockLyrics'
+import { findLockLines, LINES_AHEAD, lockLinesFor } from '../lib/lockLinesAhead'
+import { useLyricsStore } from './lyricsStore'
 import { getT } from '../i18n/runtime.ts'
 import { isMusicLibraryTrack, songIdOf } from '../lib/appleMusic'
 import { isExampleTrack } from '../lib/exampleLibrary'
@@ -1856,6 +1858,9 @@ function engineEntry(cursor: number, track: Track, from: Track | null, ahead: nu
     auto: transitionFor(plan, times, 'auto'),
     skip: transitionFor(plan, times, 'skip'),
     cueKey: s.needleDrop ? `cue:${resolveDeck(s.deck, album ?? track, s.deckEras)}` : null,
+    // Only near the front of the queue: further on, the plan is re-sent long
+    // before the engine gets there.
+    lines: s.lockScreenLyrics && lockLyricsAvailable() && ahead <= LINES_AHEAD ? lockLinesFor(track) : null,
   }
 }
 
@@ -1893,6 +1898,7 @@ function enginePlan(): EnginePlanDraft {
     },
     stableVolume: s.stableVolume,
     cueLevel: clipLevel(s.needleDropLevel),
+    notify: s.trackNotifications,
   }
   const track = currentTrack(state)
   if (!track) return { ...base, current: null, upcoming: [], previous: null, repeatOne: null }
@@ -1926,7 +1932,54 @@ function scheduleEnginePlan(): void {
   queueMicrotask(() => {
     enginePlanQueued = false
     audio.setUpcoming(enginePlan())
+    lookAheadForEngine()
   })
+}
+
+/**
+ * What the engine will need with the page away, made while the page is here:
+ * the lock-screen lines of the next few songs, and the example library's
+ * songs past the first few (`ENGINE_MADE_AHEAD`). Each sends a fresh plan
+ * once there is something new in it.
+ */
+function lookAheadForEngine(): void {
+  const state = usePlayerStore.getState()
+  const track = currentTrack(state)
+  if (!track) return
+  const ahead = upcomingCursors(state.order.length, state.cursor, state.repeat, EXAMPLE_LOCKED_AHEAD)
+    .map((cursor) => trackAt(state, cursor))
+    .filter((t): t is Track => t !== null)
+  if (settings().lockScreenLyrics && lockLyricsAvailable()) {
+    findLockLines([track, ...ahead.slice(0, LINES_AHEAD)], scheduleEnginePlan)
+  }
+  stashExampleAhead(ahead.filter((t) => isExampleTrack(t) && !audio.engineHasStashed(t.id)))
+}
+
+/**
+ * The example library on a locked phone (backlog, 2026-10-13: "only 2 songs
+ * ahead while locked"). Its songs are made in the page, which a locked phone
+ * does not run, so the engine stopped once the few made for the plan ran out.
+ * Now the next dozen are made and written out one at a time while the page is
+ * here — a few milliseconds of synth and a ~1–2 MB file each, in the app's
+ * Caches — and the plan names them by track (`byTrack` in `audioEngine.ts`).
+ */
+const EXAMPLE_LOCKED_AHEAD = 12
+let stashingExamples = false
+
+function stashExampleAhead(tracks: Track[]): void {
+  if (stashingExamples || tracks.length === 0) return
+  stashingExamples = true
+  void (async () => {
+    let any = false
+    for (const track of tracks) {
+      // A breath between songs, so the synth never holds up a frame.
+      await new Promise((resolve) => setTimeout(resolve, 30))
+      const file = useLibraryStore.getState().fileFor(track)
+      if (file && (await audio.engineStashAhead(track.id, file).catch(() => false))) any = true
+    }
+    stashingExamples = false
+    if (any) scheduleEnginePlan()
+  })()
 }
 
 /**
@@ -1987,6 +2040,13 @@ if (audio.engineActive()) {
   // level, Stable volume, the machine — all of them shape the plan, and none
   // of them change often.
   useSettingsStore.subscribe(() => scheduleEnginePlan())
+  // The song on now's sheet lands after it has started: its lines go to the
+  // engine at once, so a lock straight after still has them.
+  useLyricsStore.subscribe((next, prev) => {
+    if (next.status === 'ready' && (prev.status !== 'ready' || prev.trackId !== next.trackId) && settings().lockScreenLyrics) {
+      scheduleEnginePlan()
+    }
+  })
 }
 
 // Trying the example library (`libraryStore.tryExample`) — and coming back.

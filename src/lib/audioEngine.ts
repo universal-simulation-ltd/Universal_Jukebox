@@ -115,6 +115,7 @@ interface EnginePlugin {
     limits: LeadLimits
     stableVolume: boolean
     cueLevel: number
+    notify: boolean
     seq: number
   }): Promise<void>
   setSleep(o: { endsAt: number | null; fadeSec: number }): Promise<void>
@@ -148,6 +149,9 @@ export interface EngineBackend {
   setUpcoming(plan: EnginePlanDraft): void
   setSleepEnd(endsAt: number | null, fadeSec: number): void
   setStoreHooks(hooks: EngineStoreHooks): void
+  /** Write a song made in the page (the example library) to a file now, for a later plan. */
+  stashAhead(trackId: string, file: SourceFile): Promise<boolean>
+  hasStashed(trackId: string): boolean
   startPreview(file: SourceFile, volume: number): void
   stopPreview(): void
   setPreviewVolume(volume: number): void
@@ -223,14 +227,16 @@ function createBackend(hooks: EngineHooks): EngineBackend {
   // ── Files the engine can open ────────────────────────────────────────────
 
   const stashed = new Map<string, Promise<string | null>>()
+  /** The same stashed files by track id, for an entry the page did not make this time (`stashAhead`). */
+  const byTrack = new Map<string, Promise<string | null>>()
 
   /**
    * A `file://` URL for a song. A folder's file and a copied Music-library song
    * already have one (`NativeFile.uri`); the example library's are made in the
    * page, so their bytes are written to the app's Caches once (`stash`).
    */
-  function urlFor(file: SourceFile | null | undefined): Promise<string | null> {
-    if (!file) return Promise.resolve(null)
+  function urlFor(file: SourceFile | null | undefined, trackId?: string): Promise<string | null> {
+    if (!file) return Promise.resolve((trackId && byTrack.get(trackId)) || null)
     if (file instanceof NativeFile) return Promise.resolve(file.uri)
     // Not `lastModified`: an example song evicted and synthesised again is the
     // same bytes in a new `File`, and must not be written out a second time.
@@ -243,6 +249,7 @@ function createBackend(hooks: EngineHooks): EngineBackend {
       })().catch(() => null)
       stashed.set(name, made)
     }
+    if (trackId) byTrack.set(trackId, made)
     return made
   }
 
@@ -271,7 +278,7 @@ function createBackend(hooks: EngineHooks): EngineBackend {
     const { file: own, cueKey, ...rest } = draft
     return {
       ...rest,
-      url: await urlFor(file ?? own),
+      url: await urlFor(file ?? own, rest.trackId),
       cue: cueKey ? await clipUri(cueKey) : null,
     }
   }
@@ -286,6 +293,7 @@ function createBackend(hooks: EngineHooks): EngineBackend {
     return {
       key: `file:${file.name}:${file.size}`, cursor: -1, trackId: file.name, albumId: '', file, mediaId: null,
       title: file.name, artist: '', album: '', gain: null, introSec: null, outroSec: null, auto: none, skip: none, cueKey: null,
+      lines: null,
     }
   }
 
@@ -535,6 +543,7 @@ function createBackend(hooks: EngineHooks): EngineBackend {
             limits: plan.limits,
             stableVolume: plan.stableVolume,
             cueLevel: plan.cueLevel,
+            notify: plan.notify,
             seq,
           })
           .catch(() => {})
@@ -547,6 +556,14 @@ function createBackend(hooks: EngineHooks): EngineBackend {
 
     setStoreHooks(next) {
       store = next
+    },
+
+    async stashAhead(trackId, file) {
+      return (await urlFor(file, trackId)) !== null
+    },
+
+    hasStashed(trackId) {
+      return byTrack.has(trackId)
     },
 
     startPreview(file, volume) {

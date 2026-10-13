@@ -10,6 +10,7 @@ import {
   useUniversal,
   type Language,
 } from '@unisim/sdk'
+import { engineActive } from '../lib/audio'
 import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGraph'
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, startSummary, type DeckEras } from '../lib/decks'
@@ -109,8 +110,9 @@ export default function Settings() {
 
   // The boost is the one setting that can be genuinely unavailable: it needs a
   // Web Audio graph, and a browser can refuse us one. Saying so is better than
-  // a slider that does nothing.
-  const boostBroken = graphUnavailable()
+  // a slider that does nothing. Not in the iPhone app: its native engine
+  // boosts the song itself (`BoostTap` in JukeboxEngine.swift), no graph.
+  const boostBroken = !engineActive() && graphUnavailable()
   const quietBroken = quietUnavailable()
   // Where the engine will not let an app set `element.volume`, a fade is a
   // slider that moves and changes nothing you can hear. The suite's rule for a
@@ -604,12 +606,15 @@ export default function Settings() {
               ]}
             />
           )}
-          <Toggle
-            label={t('settings.no_visualiser')}
-            hint={t('settings.no_visualiser_hint')}
-            checked={s.hideVisualiser}
-            onChange={(v) => s.set('hideVisualiser', v)}
-          />
+          {/* Not in the iPhone / iPad app, where the bars never draw (no graph there). */}
+          {graphAllowed() && (
+            <Toggle
+              label={t('settings.no_visualiser')}
+              hint={t('settings.no_visualiser_hint')}
+              checked={s.hideVisualiser}
+              onChange={(v) => s.set('hideVisualiser', v)}
+            />
+          )}
           {/* The first-run "Tap here" pointers (`components/Tip.tsx`), back. */}
           <Action
             label={t('settings.show_tips')}

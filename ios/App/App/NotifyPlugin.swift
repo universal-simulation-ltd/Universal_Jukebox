@@ -1,11 +1,13 @@
 import Foundation
 import UserNotifications
+import UIKit
 import Capacitor
 
 /// A notification each time a new song starts — one, replaced every time, never
 /// a stack (James, 2026-09-13: "replace each notification and don't stack
 /// them"). The page decides when; this only shows it. See
-/// `src/lib/trackNotify.ts`.
+/// `src/lib/trackNotify.ts`. With the page away (a locked phone) the engine
+/// decides instead and posts the same card through `post`.
 ///
 /// ⚠️ ONE FIXED IDENTIFIER is what stops the stack. A request under the
 /// identifier of a notification already delivered takes that notification's
@@ -31,7 +33,7 @@ public class NotifyPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProto
         CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise)
     ]
 
-    private static let card = "uk.co.unisim.jukebox.now-playing"
+    static let card = "uk.co.unisim.jukebox.now-playing"
     private let centre = UNUserNotificationCenter.current()
 
     override public func load() {
@@ -49,20 +51,40 @@ public class NotifyPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProto
     }
 
     @objc func show(_ call: CAPPluginCall) {
-        let content = UNMutableNotificationContent()
-        content.title = call.getString("title") ?? ""
-        content.body = call.getString("body") ?? ""
-        content.sound = nil
-        if let image = call.getString("image"), let cover = Self.attachment(image) {
-            content.attachments = [cover]
-        }
-        let request = UNNotificationRequest(identifier: Self.card, content: content, trigger: nil)
-        centre.add(request) { error in
+        let cover = call.getString("image").flatMap { Self.attachment($0) }
+        Self.add(title: call.getString("title") ?? "", body: call.getString("body") ?? "", cover: cover) { error in
             if let error = error {
                 call.reject(error.localizedDescription)
             } else {
                 call.resolve()
             }
+        }
+    }
+
+    /// The engine's way in (`JukeboxEngine.announce`): the same card, from a
+    /// cover it already holds. Not allowed to post? `add` just fails, quietly.
+    static func post(title: String, body: String, image: UIImage?) {
+        let cover = image.flatMap { attachment(thumbnail($0)) }
+        add(title: title, body: body, cover: cover) { _ in }
+    }
+
+    private static func add(title: String, body: String, cover: UNNotificationAttachment?, done: @escaping (Error?) -> Void) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = nil
+        if let cover = cover { content.attachments = [cover] }
+        let request = UNNotificationRequest(identifier: card, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: done)
+    }
+
+    /// 192 px square, as the page sends (`THUMB` in `trackNotify.ts`), as PNG.
+    private static func thumbnail(_ image: UIImage) -> Data? {
+        let side: CGFloat = 192
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).pngData { _ in
+            image.draw(in: CGRect(x: 0, y: 0, width: side, height: side))
         }
     }
 
@@ -93,7 +115,11 @@ public class NotifyPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProto
     /// The cover, as a file iOS can attach. `add` moves it into the system's
     /// own store, so nothing is left behind in tmp.
     private static func attachment(_ base64: String) -> UNNotificationAttachment? {
-        guard let data = Data(base64Encoded: base64) else { return nil }
+        Data(base64Encoded: base64).flatMap { attachment($0) }
+    }
+
+    private static func attachment(_ data: Data?) -> UNNotificationAttachment? {
+        guard let data = data else { return nil }
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("now-playing-\(UUID().uuidString).png")
         do {

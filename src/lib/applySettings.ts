@@ -28,10 +28,12 @@ function apply(): void {
   // ⚠️ THE iPHONE APP BUILDS NO GRAPH AT ALL. Its sound is the native engine's,
   // which has a real gain of its own, so Quiet is just a number sent there —
   // and a Web Audio context here would take WebKit's audio session and fight
-  // the engine for the speaker (`lib/audioEngine.ts`). Above 0 dB the engine
-  // can only take the product up to full: AVPlayer's volume stops at 1.
+  // the engine for the speaker (`lib/audioEngine.ts`). The boost rides along
+  // in the same number; above full the engine puts a tap on the song
+  // (`BoostTap` in JukeboxEngine.swift), since AVPlayer's volume stops at 1.
   if (engineActive()) {
-    setOutputGain(Math.abs(levelDb) > 0.001 ? 10 ** (levelDb / 20) : 1)
+    const level = Math.abs(levelDb) > 0.001 ? 10 ** (levelDb / 20) : 1
+    setOutputGain(level * (volumeBoost > 1.001 ? volumeBoost : 1))
     return
   }
 

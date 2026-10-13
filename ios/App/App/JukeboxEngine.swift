@@ -51,8 +51,11 @@ import UIKit
 /// timer moving it is a ramp you cannot hear the steps of. AVAudioEngine would
 /// buy gain above 1 (the Loud half of "Quiet or loud", the 2× boost) at the cost
 /// of scheduling, seeking, position-keeping and a graph that stops on every
-/// configuration change; not worth it for a gain above 1, which is clamped here
-/// (`outputGain` multiplies, and the product stops at full).
+/// configuration change; not worth it for a gain above 1. Above full, a deck
+/// instead gets an audio tap on its item (`BoostTap`, at the end of this file)
+/// that multiplies the samples, with a soft limiter, while its volume stays at
+/// 1 — attached only once a level above 1 is asked for, so a phone that never
+/// turns things up plays exactly as before.
 ///
 /// All main thread: the plugin hops every call onto it, the KVO and
 /// notification handlers hop back to it, and the timer runs on it.
@@ -119,6 +122,10 @@ final class JukeboxEngine: NSObject {
         let skip: Transition
         /// The start-up cue for the machine this song plays on — a stashed clip.
         let cue: URL?
+        /// "Lyrics on the lock screen": the song's timed lines, in order, for
+        /// the engine to follow while the page is away. Empty with the setting
+        /// off or no synced sheet.
+        var lines: [(at: Double, text: String)]
 
         init?(_ o: [String: Any]?) {
             guard let o = o, let key = o["key"] as? String, let trackId = o["trackId"] as? String else { return nil }
@@ -137,6 +144,10 @@ final class JukeboxEngine: NSObject {
             auto = Transition(o["auto"] as? [String: Any])
             skip = Transition(o["skip"] as? [String: Any])
             cue = (o["cue"] as? String).flatMap { URL(string: $0) }
+            lines = (o["lines"] as? [Any] ?? []).compactMap { item in
+                guard let line = item as? [String: Any], let at = num(line["t"]) else { return nil }
+                return (at, line["text"] as? String ?? "")
+            }
         }
     }
 
@@ -185,6 +196,10 @@ final class JukeboxEngine: NSObject {
         var onReady: [() -> Void] = []
         var statusObservation: NSKeyValueObservation?
         var observers: [NSObjectProtocol] = []
+        /// The tap's gain above full (`BoostTap`), and the item it is on.
+        let boost = BoostTap.Gain()
+        weak var boostedItem: AVPlayerItem?
+        weak var boosting: AVPlayerItem?
 
         init() {
             player.actionAtItemEnd = .pause
@@ -212,6 +227,9 @@ final class JukeboxEngine: NSObject {
     private var limits = Limits()
     private var stableVolume = true
     private var cueLevel = 0.5
+    /// "Notify me of each new song" — the engine posts the card itself while
+    /// the page is away (`announce`).
+    private var notify = false
 
     // MARK: - Levels
 
@@ -268,6 +286,10 @@ final class JukeboxEngine: NSObject {
     private var artCache: [String: UIImage] = [:]
     /// A lyric line in the artist's place (`lib/lockLyrics.ts`), or nil.
     private var artistLine: String?
+    /// The song the last notification card was for, and one waiting for its cover.
+    private var announcedKey: String?
+    private var announceLater: DispatchWorkItem?
+    private var announcePending: Entry?
 
     // MARK: - Preview and cues
 
@@ -507,7 +529,8 @@ final class JukeboxEngine: NSObject {
     ///     moved (forwards OR back) and not loaded yet — `current` goes at the
     ///     front, so if the app goes away now that is the song that follows.
     func setUpcoming(current: Entry?, entries: [Entry], previous: Entry?, repeatOne: Transition?,
-                     wrap: Bool, limits: Limits, stableVolume: Bool, cueLevel: Double, pageSeq: Int) {
+                     wrap: Bool, limits: Limits, stableVolume: Bool, cueLevel: Double, notify: Bool, pageSeq: Int) {
+        self.notify = notify
         self.limits = limits
         self.stableVolume = stableVolume
         self.cueLevel = cueLevel
@@ -522,6 +545,8 @@ final class JukeboxEngine: NSObject {
             playing.gain = current.gain ?? playing.gain
             playing.intro = current.intro ?? playing.intro
             playing.outro = current.outro ?? playing.outro
+            // Found after the song went on (the panel's sheet, usually).
+            if !current.lines.isEmpty { playing.lines = current.lines }
             upcoming = entries
             pageMovedAt = nil
         } else if behind, let playing = playing, let at = entries.firstIndex(where: { $0.key == playing.key }) {
@@ -731,7 +756,10 @@ final class JukeboxEngine: NSObject {
         ensureTimer()
         publishNowPlaying()
         emitState(force: true)
-        if !appActive { measureAhead() }
+        if !appActive {
+            measureAhead()
+            if notify { announce(e) }
+        }
     }
 
     /// The page has loaded the song its plan said it had moved to: the copy
@@ -914,6 +942,32 @@ final class JukeboxEngine: NSObject {
         let d = decks[i]
         let level = muted ? 0 : userVolume * d.fade * d.level * sleepFactor * outputGain
         d.player.volume = Float(clamp(level))
+        // Past full, the rest is the tap's (32× at most: Loud's +30 dB).
+        d.boost.value = Float(max(1, min(level, 32)))
+        if level > 1.0001 { attachBoost(d) }
+    }
+
+    /// Put `BoostTap` on the deck's current item, once. The audio track is
+    /// read off the main thread (it can block while the asset loads); a deck
+    /// that has moved to another item by then is left alone.
+    private func attachBoost(_ d: Deck) {
+        guard let item = d.player.currentItem, d.boostedItem !== item, d.boosting !== item else { return }
+        d.boosting = item
+        let gain = d.boost
+        DispatchQueue.global(qos: .userInitiated).async {
+            let track = item.asset.tracks(withMediaType: .audio).first
+            let mix = track.flatMap { BoostTap.mix(for: $0, gain: gain) }
+            DispatchQueue.main.async {
+                guard d.player.currentItem === item else { return }
+                d.boosting = nil
+                guard let mix = mix else {
+                    CommandLog.note("engine: no boost tap for this song — held at full")
+                    return
+                }
+                item.audioMix = mix
+                d.boostedItem = item
+            }
+        }
     }
 
     private func applyAll() {
@@ -1023,6 +1077,9 @@ final class JukeboxEngine: NSObject {
                 fadeOutCheck(d, remaining: remaining, duration: duration)
                 if !appActive { autoCrossfade(remaining: remaining) }
             }
+            // The page writes the line while it is awake (`followLockLyrics`);
+            // asleep, nobody else can.
+            if !appActive, let e = d.entry, !e.lines.isEmpty, at.isFinite { followLines(e, at) }
         }
         safetyNets(now)
         if appActive, now - lastStateAt >= 0.25 { emitState() }
@@ -1351,6 +1408,43 @@ final class JukeboxEngine: NSObject {
         publishNowPlaying()
     }
 
+    /// The line being sung at `at`, as `lockScreenLine` picks it: the last
+    /// line started, or the artist back between lines and before the first.
+    private func followLines(_ e: Entry, _ at: Double) {
+        var line: String?
+        for l in e.lines {
+            if l.at > at { break }
+            line = l.text
+        }
+        let text = line?.trimmingCharacters(in: .whitespaces)
+        setArtistLine(text?.isEmpty == false ? text : nil)
+    }
+
+    /// The new-song card (`announceTrack` in `lib/trackNotify.ts`), for a song
+    /// the engine put on with the page away. With the cover if it is to hand,
+    /// or once it has loaded — a second and a half at most.
+    private func announce(_ e: Entry) {
+        guard announcedKey != e.key else { return }
+        announcedKey = e.key
+        announceLater?.cancel()
+        if let image = artCache[e.albumId] ?? (artworkAlbum == e.albumId ? artwork?.image(at: CGSize(width: 192, height: 192)) : nil) {
+            NotifyPlugin.post(title: e.title, body: Self.cardBody(e), image: image)
+            return
+        }
+        announcePending = e
+        let later = DispatchWorkItem { [weak self] in
+            guard let self = self, let waiting = self.announcePending else { return }
+            self.announcePending = nil
+            NotifyPlugin.post(title: waiting.title, body: Self.cardBody(waiting), image: nil)
+        }
+        announceLater = later
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: later)
+    }
+
+    private static func cardBody(_ e: Entry) -> String {
+        [e.artist, e.album].filter { !$0.isEmpty }.joined(separator: " — ")
+    }
+
     /// A different album, changed to with the page away: its own embedded
     /// cover (or the Music library's), until the page draws the real one.
     private func loadArtwork(for e: Entry) {
@@ -1387,6 +1481,11 @@ final class JukeboxEngine: NSObject {
     }
 
     private func setArtwork(_ image: UIImage, for albumId: String) {
+        if let waiting = announcePending, waiting.albumId == albumId {
+            announcePending = nil
+            announceLater?.cancel()
+            NotifyPlugin.post(title: waiting.title, body: Self.cardBody(waiting), image: image)
+        }
         guard decks[active].entry?.albumId == albumId, artworkAlbum != albumId || artwork == nil else { return }
         artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
         artworkAlbum = albumId
@@ -1578,3 +1677,68 @@ func num(_ value: Any?) -> Double? {
 }
 
 private func clamp(_ v: Double) -> Double { max(0, min(1, v)) }
+
+/// Gain above full for one deck: an `MTAudioProcessingTap` on the item's audio
+/// track that multiplies the samples by `Gain.value` (read on the audio thread;
+/// a lone Float, so a torn read cannot happen on arm64) and soft-limits what
+/// goes past 0.9 so a +30 dB Loud saturates rather than cracks. Only float
+/// PCM is touched, which is what AVPlayer hands a tap; anything else passes
+/// through at full.
+enum BoostTap {
+    final class Gain {
+        var value: Float = 1
+        fileprivate var isFloat = false
+    }
+
+    static func mix(for track: AVAssetTrack, gain: Gain) -> AVAudioMix? {
+        var callbacks = MTAudioProcessingTapCallbacks(
+            version: kMTAudioProcessingTapCallbacksVersion_0,
+            clientInfo: UnsafeMutableRawPointer(Unmanaged.passRetained(gain).toOpaque()),
+            init: { _, clientInfo, storageOut in storageOut.pointee = clientInfo },
+            finalize: { tap in
+                Unmanaged<Gain>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).release()
+            },
+            prepare: { tap, _, format in
+                let gain = Unmanaged<Gain>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
+                let f = format.pointee
+                gain.isFloat = f.mFormatFlags & kAudioFormatFlagIsFloat != 0 && f.mBitsPerChannel == 32
+            },
+            unprepare: nil,
+            process: { tap, frames, _, buffers, framesOut, flagsOut in
+                guard MTAudioProcessingTapGetSourceAudio(tap, frames, buffers, flagsOut, nil, framesOut) == noErr else { return }
+                let gain = Unmanaged<Gain>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
+                let g = gain.value
+                guard g > 1.0001, gain.isFloat else { return }
+                for buffer in UnsafeMutableAudioBufferListPointer(buffers) {
+                    guard let data = buffer.mData else { continue }
+                    let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+                    let samples = data.assumingMemoryBound(to: Float.self)
+                    for i in 0..<count { samples[i] = boostLimit(samples[i] * g) }
+                }
+            }
+        )
+        var tap: MTAudioProcessingTap?
+        guard MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PostEffects, &tap) == noErr,
+              let made = tap else {
+            Unmanaged<Gain>.fromOpaque(callbacks.clientInfo!).release()
+            return nil
+        }
+        let input = AVMutableAudioMixInputParameters(track: track)
+        input.audioTapProcessor = made
+        let mix = AVMutableAudioMix()
+        mix.inputParameters = [input]
+        return mix
+    }
+
+}
+
+/// Straight up to 0.9, then a tanh knee that never reaches 1. A free function:
+/// the tap's callbacks are C function pointers and may capture nothing.
+@inline(__always) private func boostLimit(_ x: Float) -> Float {
+    let knee: Float = 0.9
+    let m = abs(x)
+    guard m > knee else { return x }
+    let y = knee + (1 - knee) * tanh((m - knee) / (1 - knee))
+    return x < 0 ? -y : y
+}
+
