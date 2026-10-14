@@ -41,7 +41,7 @@ const decks: Draft['decks'] = {
 
   // Cassette
   'cassette_label': 'Fita cassete',
-  'cassette_hint': 'Uma caixa no estilo Walkman com a fita passando do rolo da esquerda para o da direita, então o quanto já tocou é o quanto os rolos estão cheios.',
+  'cassette_hint': 'Um toca-fitas portátil com a fita passando do rolo da esquerda para o da direita, então o quanto já tocou é o quanto os rolos estão cheios.',
   'cassette_start_title': 'Colocando uma fita',
   'cassette_start_note': 'A animação da fita, a contagem regressiva e o som da tecla play.',
   'cassette_sound_label': 'Som da tecla play',
@@ -114,6 +114,7 @@ const decks: Draft['decks'] = {
   // Automatic
   'automatic_label': 'Automático',
   'automatic_hint': 'Cada álbum no aparelho da sua época, pelo ano do álbum — um jukebox para os mais antigos, depois vinil, fita cassete, CD e um player de bolso. Você escolhe a partir de que ano cada um assume.',
+  'automatic_hint_no_pocket': 'Cada álbum no aparelho da sua época, pelo ano do álbum — um jukebox para os mais antigos, depois vinil, fita cassete e CD. Você escolhe a partir de que ano cada um assume.',
   'automatic_start_title': 'Colocando algo para tocar',
   'automatic_start_note': 'A animação de carga, a contagem regressiva e o som do aparelho a que o álbum pertence.',
   'automatic_sound_label': 'Som de início',

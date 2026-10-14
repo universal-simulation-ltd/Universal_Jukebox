@@ -52,7 +52,7 @@ export default {
 
   // Cassette (the same places as Vinyl above)
   'cassette_label': 'Cassette', // the machine’s name, also the word under the Player button: keep to ~12 characters
-  'cassette_hint': 'A Walkman-style shell with the tape spooling from the left reel to the right, so how far through you are is how full the reels are.',
+  'cassette_hint': 'A personal stereo with the tape spooling from the left reel to the right, so how far through you are is how full the reels are.',
   'cassette_start_title': 'Putting a cassette in',
   'cassette_start_note': 'The cassette animation, the countdown, and the sound of the play key.',
   'cassette_sound_label': 'Play-key sound',
@@ -126,6 +126,7 @@ export default {
   // year picks, so these sentences name no one mechanism.
   'automatic_label': 'Automatic', // the option that picks the machine by the album’s year; under a button too, keep to ~12 characters
   'automatic_hint': 'Each album on the machine of its day, by the year on the album — a jukebox for the oldest, then vinyl, cassette, CD and a pocket player. You choose the years each one takes over.',
+  'automatic_hint_no_pocket': 'Each album on the machine of its day, by the year on the album — a jukebox for the oldest, then vinyl, cassette and CD. You choose the years each one takes over.',  // the same sentence where there is no pocket player (iPhone and iPad)
   'automatic_start_title': 'Putting something on',
   'automatic_start_note': 'The loading animation, the countdown, and the sound of whichever machine the album belongs to.',
   'automatic_sound_label': 'Start-up sound',

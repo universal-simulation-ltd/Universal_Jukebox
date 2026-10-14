@@ -41,7 +41,7 @@ const decks: Draft['decks'] = {
 
   // Cassette
   'cassette_label': 'Cassete',
-  'cassette_hint': 'Uma caixa ao estilo Walkman, com a fita a passar da bobina esquerda para a direita, por isso o quanto já se ouviu é o quanto as bobinas estão cheias.',
+  'cassette_hint': 'Um leitor de cassetes portátil, com a fita a passar da bobina esquerda para a direita, por isso o quanto já se ouviu é o quanto as bobinas estão cheias.',
   'cassette_start_title': 'Pôr uma cassete',
   'cassette_start_note': 'A animação da cassete, a contagem decrescente e o som da tecla play.',
   'cassette_sound_label': 'Som da tecla play',
@@ -114,6 +114,7 @@ const decks: Draft['decks'] = {
   // Automatic
   'automatic_label': 'Automático',
   'automatic_hint': 'Cada álbum na aparelhagem da sua época, pelo ano do álbum — um jukebox para os mais antigos, depois vinil, cassete, CD e um leitor de bolso. Escolhe-se o ano a partir do qual cada um assume.',
+  'automatic_hint_no_pocket': 'Cada álbum na aparelhagem da sua época, pelo ano do álbum — um jukebox para os mais antigos, depois vinil, cassete e CD. Escolhe-se o ano a partir do qual cada um assume.',
   'automatic_start_title': 'Pôr algo a tocar',
   'automatic_start_note': 'A animação de carregamento, a contagem decrescente e o som da aparelhagem a que o álbum pertence.',
   'automatic_sound_label': 'Som de arranque',

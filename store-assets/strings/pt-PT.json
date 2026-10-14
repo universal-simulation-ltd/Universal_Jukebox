@@ -36,14 +36,13 @@
    "Escolha a sua",
    "*aparelhagem*"
   ],
-  "caption": "Vinil, CD, cassete, gravador de bobinas, jukebox ou leitor de bolso",
+  "caption": "Vinil, CD, cassete, gravador de bobinas ou jukebox",
   "chips": [
    "Vinil",
    "CD",
    "Cassete",
    "Gravador de bobinas",
-   "Jukebox",
-   "Leitor de bolso"
+   "Jukebox"
   ]
  },
  "05-bedside": {

@@ -38,7 +38,7 @@ const decks: Draft['decks'] = {
   'cd_summary_at': '{mode}, disk dönüş sesi: {level}',
 
   'cassette_label': 'Kaset',
-  'cassette_hint': 'Walkman tarzı bir kasa; bant soldaki makaradan sağdakine sarılır, böylece parçanın neresinde olduğunuzu makaraların doluluğu gösterir.',
+  'cassette_hint': 'Taşınabilir bir kasetçalar; bant soldaki makaradan sağdakine sarılır, böylece parçanın neresinde olduğunuzu makaraların doluluğu gösterir.',
   'cassette_start_title': 'Kaset takma',
   'cassette_start_note': 'Kaset animasyonu, geri sayım ve çalma tuşunun sesi.',
   'cassette_sound_label': 'Çalma tuşu sesi',
@@ -107,6 +107,7 @@ const decks: Draft['decks'] = {
 
   'automatic_label': 'Otomatik',
   'automatic_hint': 'Her albüm, üzerindeki yıla göre kendi döneminin çalarında — en eskiler için jukebox, sonra plak, kaset, CD ve cep müzik çalar. Her birinin hangi yıldan itibaren devreye gireceğini siz seçersiniz.',
+  'automatic_hint_no_pocket': 'Her albüm, üzerindeki yıla göre kendi döneminin çalarında — en eskiler için jukebox, sonra plak, kaset ve CD. Her birinin hangi yıldan itibaren devreye gireceğini siz seçersiniz.',
   'automatic_start_title': 'Müziği başlatma',
   'automatic_start_note': 'Yükleme animasyonu, geri sayım ve albümün ait olduğu çaların sesi.',
   'automatic_sound_label': 'Başlangıç sesi',

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { DECKS } from '../lib/decks'
-import { DECK_SETTINGS, useSettingsStore } from '../stores/settingsStore'
+import { deckSettings, useSettingsStore } from '../stores/settingsStore'
 import { DeckMiniature } from './Deck'
 import { useDialogFocus } from '../lib/useDialogFocus'
 import { useT } from '../i18n'
@@ -87,7 +87,7 @@ export default function DeckPicker({ onClose }: { onClose(): void }) {
           </button>
         </div>
         <ul className="grid grid-cols-3 gap-2 px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {DECK_SETTINGS.map((value) => {
+          {deckSettings().map((value) => {
             const on = value === deck
             return (
               <li key={value}>

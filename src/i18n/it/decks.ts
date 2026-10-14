@@ -40,7 +40,7 @@ const decks: Draft['decks'] = {
   'cd_summary_at': '{mode}, suono di avvio del disco a {level}',
 
   'cassette_label': 'Cassetta',
-  'cassette_hint': 'Un guscio in stile Walkman con il nastro che passa dalla bobina sinistra a quella destra: quanto sei avanti nel brano si vede da quanto sono piene le bobine.',
+  'cassette_hint': 'Un mangianastri portatile con il nastro che passa dalla bobina sinistra a quella destra: quanto sei avanti nel brano si vede da quanto sono piene le bobine.',
   'cassette_start_title': 'Inserire una cassetta',
   'cassette_start_note': 'L’animazione della cassetta, il conto alla rovescia e il suono del tasto play.',
   'cassette_sound_label': 'Suono del tasto play',
@@ -109,6 +109,7 @@ const decks: Draft['decks'] = {
 
   'automatic_label': 'Automatico',
   'automatic_hint': 'Ogni album sull’apparecchio della sua epoca, in base all’anno dell’album: un jukebox per i più vecchi, poi vinile, cassetta, CD e un lettore tascabile. Sei tu a scegliere da che anno subentra ciascuno.',
+  'automatic_hint_no_pocket': 'Ogni album sull’apparecchio della sua epoca, in base all’anno dell’album: un jukebox per i più vecchi, poi vinile, cassetta e CD. Sei tu a scegliere da che anno subentra ciascuno.',
   'automatic_start_title': 'Mettere su qualcosa',
   'automatic_start_note': 'L’animazione di caricamento, il conto alla rovescia e il suono dell’apparecchio a cui appartiene l’album.',
   'automatic_sound_label': 'Suono di avvio',

@@ -45,7 +45,7 @@ LRCLIB / lrclib.net, iTunes, Apple Music and Apple's Music app ("Musique",
 "Música", "Musica", "Musik", "Müzik" are Apple's own names for the app in
 those languages — use Apple's localised name when it means the app on the
 phone), iPhone, iPad, Android, Windows, Mac, Chrome, Edge, Safari, Firefox,
-Bluetooth, AirPlay, Walkman (brand-like, kept as "Walkman-style"), Proton Drive,
+Bluetooth, AirPlay, Proton Drive,
 iCloud Drive, Google Drive, OneDrive, GitHub, file formats and extensions (MP3,
 M4A, AAC, FLAC, WAV, AIFF, Ogg, Opus, .m4p, .wma, JSON), and the numbers
 33⅓ and 45 (rpm).
@@ -177,3 +177,9 @@ quotes in bold must match the app's labels word for word.
 - Turkish suffixes on names and abbreviations take an apostrophe (Jukebox’ta,
   CD’yi, Wikipedia’dan); on a `{placeholder}` that holds a name, prefer a
   construction that needs no suffix.
+
+**Never "Walkman"** (James, 2026-10-14): it is Sony's trademark, and the App
+Store turns down apps that use other companies' trademarks in their copy or
+keywords. Say "personal stereo", "cassette player" or the language's own
+generic word (tragbarer Kassettenspieler, baladeur cassette, mangianastri,
+toca-fitas, kasetçalar…).

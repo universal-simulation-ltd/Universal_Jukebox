@@ -1,5 +1,6 @@
 import type { DeckSetting, DeckStyle } from '../stores/settingsStore'
 import { getT, type MessageKey } from '../i18n/runtime.ts'
+import { barsPocketPlayer } from './nativeFile'
 
 // The decks, as words.
 //
@@ -101,7 +102,11 @@ function key(deck: DeckSetting, field: Field | 'summary_off' | 'summary_on' | 's
 function copyFor(deck: DeckSetting): DeckCopy {
   const copy = {} as DeckCopy
   for (const [name, field] of Object.entries(FIELDS) as [keyof typeof FIELDS, Field][]) {
-    Object.defineProperty(copy, name, { enumerable: true, get: () => getT()(key(deck, field)) })
+    // Automatic's sentence lists the machines it picks from: without the pocket
+    // player on iPhone/iPad (`barsPocketPlayer`).
+    const which = (): MessageKey =>
+      deck === 'automatic' && field === 'hint' && barsPocketPlayer() ? 'decks.automatic_hint_no_pocket' : key(deck, field)
+    Object.defineProperty(copy, name, { enumerable: true, get: () => getT()(which()) })
   }
   Object.defineProperty(copy, 'muteHint', {
     enumerable: true,
@@ -162,6 +167,11 @@ export function deckCopy(setting: DeckSetting): DeckCopy {
  */
 export const ERA_ORDER: DeckStyle[] = ['jukebox', 'vinyl', 'cassette', 'cd', 'pocket']
 
+/** `ERA_ORDER` as this app has it: no pocket player on iPhone/iPad (`barsPocketPlayer`). */
+export function eraOrder(): DeckStyle[] {
+  return barsPocketPlayer() ? ERA_ORDER.filter((style) => style !== 'pocket') : ERA_ORDER
+}
+
 /**
  * The first year each later machine takes over, for `automatic`. Anything
  * before `vinyl` goes on the jukebox.
@@ -205,7 +215,8 @@ export function sanitiseEras(value: unknown): DeckEras {
 /** The machine for an album of this year. No year at all goes on vinyl. */
 export function deckForYear(year: number | undefined, eras: DeckEras = DEFAULT_ERAS): DeckStyle {
   if (!year || !Number.isFinite(year)) return 'vinyl'
-  if (year >= eras.pocket) return 'pocket'
+  // Where there is no pocket player (`barsPocketPlayer`), the CD carries on.
+  if (year >= eras.pocket && !barsPocketPlayer()) return 'pocket'
   if (year >= eras.cd) return 'cd'
   if (year >= eras.cassette) return 'cassette'
   if (year >= eras.vinyl) return 'vinyl'

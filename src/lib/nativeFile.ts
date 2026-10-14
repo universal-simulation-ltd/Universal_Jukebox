@@ -335,6 +335,22 @@ export function barsOnlineLyrics(): boolean {
   return isNativeShell() && nativePlatform() === 'ios'
 }
 
+/**
+ * No pocket player on iPhone and iPad (James, 2026-10-14). Its white body,
+ * click wheel and MENU read as Apple's iPod, and App Review turns down apps
+ * that look like an Apple product (5.2.5). The store screenshots, captured in
+ * a browser for both stores (`store-assets/generate.mjs`), leave it out too.
+ * Android and the website keep it.
+ */
+export function barsPocketPlayer(): boolean {
+  if (isNativeShell()) return nativePlatform() === 'ios'
+  try {
+    return sessionStorage.getItem('jukebox:store-capture') === '1'
+  } catch {
+    return false
+  }
+}
+
 /** The native plugin behind a chosen folder — see `usesChosenFolder`. */
 export const MUSIC_FOLDER_PLUGIN = 'JukeboxMusicFolder'
 

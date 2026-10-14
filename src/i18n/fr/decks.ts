@@ -43,7 +43,7 @@ const decks: Draft['decks'] = {
 
   // Cassette
   'cassette_label': 'Cassette',
-  'cassette_hint': 'Un boîtier façon Walkman, la bande passant de la bobine de gauche à celle de droite : le remplissage des bobines montre où vous en êtes.',
+  'cassette_hint': 'Un baladeur cassette, la bande passant de la bobine de gauche à celle de droite : le remplissage des bobines montre où vous en êtes.',
   'cassette_start_title': 'Insérer une cassette',
   'cassette_start_note': 'L’animation de la cassette, le compte à rebours et le bruit de la touche lecture.',
   'cassette_sound_label': 'Son de la touche lecture',
@@ -116,6 +116,7 @@ const decks: Draft['decks'] = {
   // Automatic
   'automatic_label': 'Automatique',
   'automatic_hint': 'Chaque album sur la machine de son époque, selon l’année de l’album — un juke-box pour les plus anciens, puis le vinyle, la cassette, le CD et un baladeur. Vous choisissez à partir de quelle année chacun prend le relais.',
+  'automatic_hint_no_pocket': 'Chaque album sur la machine de son époque, selon l’année de l’album — un juke-box pour les plus anciens, puis le vinyle, la cassette et le CD. Vous choisissez à partir de quelle année chacun prend le relais.',
   'automatic_start_title': 'Lancer la lecture',
   'automatic_start_note': 'L’animation de chargement, le compte à rebours et le son de la machine à laquelle appartient l’album.',
   'automatic_sound_label': 'Son de démarrage',

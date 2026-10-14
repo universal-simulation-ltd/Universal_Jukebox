@@ -36,14 +36,13 @@
    "Elige tu",
    "*aparato*"
   ],
-  "caption": "Vinilo, CD, casete, magnetófono de bobinas, jukebox o reproductor de bolsillo",
+  "caption": "Vinilo, CD, casete, magnetófono de bobinas o jukebox",
   "chips": [
    "Vinilo",
    "CD",
    "Casete",
    "Magnetófono",
-   "Jukebox",
-   "De bolsillo"
+   "Jukebox"
   ]
  },
  "05-bedside": {

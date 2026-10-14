@@ -41,7 +41,7 @@ const decks: Draft['decks'] = {
 
   // Cassette
   'cassette_label': 'Kassette',
-  'cassette_hint': 'Ein Gehäuse im Walkman-Stil, in dem das Band von der linken auf die rechte Spule läuft – wie weit der Titel ist, siehst du daran, wie voll die Spulen sind.',
+  'cassette_hint': 'Ein tragbarer Kassettenspieler, in dem das Band von der linken auf die rechte Spule läuft – wie weit der Titel ist, siehst du daran, wie voll die Spulen sind.',
   'cassette_start_title': 'Eine Kassette einlegen',
   'cassette_start_note': 'Die Kassetten-Animation, der Countdown und das Geräusch der Play-Taste.',
   'cassette_sound_label': 'Play-Tasten-Geräusch',
@@ -114,6 +114,7 @@ const decks: Draft['decks'] = {
   // Automatic
   'automatic_label': 'Auto\u00ADmatisch',
   'automatic_hint': 'Jedes Album auf dem Gerät seiner Zeit, nach dem Jahr auf dem Album – eine Jukebox für die ältesten, dann Vinyl, Kassette, CD und ein Taschenplayer. Du bestimmst, ab welchem Jahr jedes Gerät übernimmt.',
+  'automatic_hint_no_pocket': 'Jedes Album auf dem Gerät seiner Zeit, nach dem Jahr auf dem Album – eine Jukebox für die ältesten, dann Vinyl, Kassette und CD. Du bestimmst, ab welchem Jahr jedes Gerät übernimmt.',
   'automatic_start_title': 'Etwas auflegen',
   'automatic_start_note': 'Die Lade-Animation, der Countdown und das Geräusch des Geräts, zu dem das Album gehört.',
   'automatic_sound_label': 'Startgeräusch',

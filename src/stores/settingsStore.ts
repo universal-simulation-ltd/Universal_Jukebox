@@ -1,4 +1,5 @@
 import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
+import { barsPocketPlayer } from '../lib/nativeFile'
 import { create } from 'zustand'
 import { perTab } from '../lib/perTab'
 import { ORDER_KINDS, type OrderKind } from '../lib/order'
@@ -129,6 +130,11 @@ export type DeckSetting = DeckStyle | 'automatic'
  * putting it at the end of the radio list keeps the four real ones together.
  */
 export const DECK_SETTINGS: DeckSetting[] = ['vinyl', 'cd', 'cassette', 'reel', 'jukebox', 'pocket', 'automatic']
+
+/** The machines to offer, in order: `DECK_SETTINGS` less the pocket player on iPhone/iPad (`barsPocketPlayer`). */
+export function deckSettings(): DeckSetting[] {
+  return barsPocketPlayer() ? DECK_SETTINGS.filter((d) => d !== 'pocket') : DECK_SETTINGS
+}
 
 /** The first-run tips — see `components/Tip.tsx`. */
 // 'hold' and 'shelfPlay' are the hints in the shelves' captions ("tap to play,
@@ -637,7 +643,7 @@ function readStored(given?: Record<string, unknown>): Settings {
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' || tab === 'jukebox' ? tab : DEFAULTS.homeTab,
     // `automatic` was retired for `automatic` on 2026-09-10; somebody who had
     // chosen "a different machine each time" gets the closest thing to it.
-    deck: deck === 'random' ? 'automatic' : DECK_SETTINGS.includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
+    deck: deck === 'random' ? 'automatic' : deckSettings().includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
     deckEras: sanitiseEras((stored as { deckEras?: unknown }).deckEras),
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),

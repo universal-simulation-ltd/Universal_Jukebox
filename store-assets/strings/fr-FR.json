@@ -36,14 +36,13 @@
    "Choisissez",
    "*votre platine*"
   ],
-  "caption": "Vinyle, CD, cassette, magnétophone, juke-box ou baladeur",
+  "caption": "Vinyle, CD, cassette, magnétophone ou juke-box",
   "chips": [
    "Vinyle",
    "CD",
    "Cassette",
    "Magnétophone",
-   "Juke-box",
-   "Baladeur"
+   "Juke-box"
   ]
  },
  "05-bedside": {

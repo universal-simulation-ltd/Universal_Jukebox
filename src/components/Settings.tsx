@@ -15,7 +15,7 @@ import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGr
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, startSummary, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
-import { barsOnlineLyrics, isNativeShell, nativePlatform } from '../lib/nativeFile'
+import { barsOnlineLyrics, barsPocketPlayer, isNativeShell, nativePlatform } from '../lib/nativeFile'
 import { lockLyricsAvailable } from '../lib/lockLyrics'
 import { nativeCommandLog } from '../lib/nowPlayingNative'
 import { formatPlaybackLog } from '../lib/playbackLog'
@@ -40,7 +40,7 @@ import { useHiddenStore, type HiddenKind } from '../lib/hidden'
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import {
   CEREMONY_LADDER,
-  DECK_SETTINGS,
+  deckSettings,
   MAX_BOOST,
   MAX_FADE_SEC,
   MAX_LEVEL_DB,
@@ -296,7 +296,7 @@ export default function Settings() {
             // same five values, but only one of them has a defined ORDER — object
             // key order is an implementation detail, and this list has `automatic`
             // deliberately last, after the four real machines.
-            options={DECK_SETTINGS.map((value) => ({
+            options={deckSettings().map((value) => ({
               value,
               label: DECKS[value].label,
               hint: DECKS[value].hint,
@@ -1719,12 +1719,14 @@ function Slider({
  */
 function EraYears({ eras, onChange }: { eras: DeckEras; onChange(eras: DeckEras): void }) {
   const t = useT()
-  const rows: { key: keyof DeckEras; label: string }[] = [
+  const all: { key: keyof DeckEras; label: string }[] = [
     { key: 'vinyl', label: t('settings.era_vinyl') },
     { key: 'cassette', label: t('settings.era_cassette') },
     { key: 'cd', label: t('settings.era_cd') },
     { key: 'pocket', label: t('settings.era_pocket') },
   ]
+  // No pocket player on iPhone/iPad (`barsPocketPlayer`), so no year for it.
+  const rows = all.filter((row) => row.key !== 'pocket' || !barsPocketPlayer())
   return (
     <div className="mt-4 rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-700">
       <p className="text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">

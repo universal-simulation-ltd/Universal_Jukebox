@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { coverUrl, fallbackHue } from '../lib/art'
-import { ERA_ORDER, resolveDeck } from '../lib/decks'
+import { eraOrder, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -470,7 +470,8 @@ export function DeckMiniature({ setting, box }: { setting: DeckSetting; box: num
     const cell = (box - 4) / 2
     return (
       <span className="grid grid-cols-2 place-items-center gap-1" style={{ width: box, height: box }}>
-        {ERA_ORDER.filter((style) => style !== 'jukebox').map((style) => (
+        {/* The last four eras: vinyl to pocket, or jukebox to CD where there is no pocket player. */}
+        {eraOrder().slice(-4).map((style) => (
           <StillDeck key={style} style={style} box={cell} />
         ))}
       </span>

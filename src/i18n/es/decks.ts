@@ -38,7 +38,7 @@ const decks: Draft['decks'] = {
   'cd_summary_at': '{mode}, arranque del disco a {level}',
 
   'cassette_label': 'Casete',
-  'cassette_hint': 'Una carcasa al estilo Walkman con la cinta pasando de la bobina izquierda a la derecha, de modo que cuánto se han llenado las bobinas indica por dónde vas.',
+  'cassette_hint': 'Un reproductor de casete portátil con la cinta pasando de la bobina izquierda a la derecha, de modo que cuánto se han llenado las bobinas indica por dónde vas.',
   'cassette_start_title': 'Meter un casete',
   'cassette_start_note': 'La animación del casete, la cuenta atrás y el sonido de la tecla de reproducción.',
   'cassette_sound_label': 'Sonido de la tecla de reproducción',
@@ -107,6 +107,7 @@ const decks: Draft['decks'] = {
 
   'automatic_label': 'Automático',
   'automatic_hint': 'Cada álbum en el aparato de su época, según el año del álbum: un jukebox para los más antiguos y luego vinilo, casete, CD y un reproductor de bolsillo. Tú eliges a partir de qué año entra cada uno.',
+  'automatic_hint_no_pocket': 'Cada álbum en el aparato de su época, según el año del álbum: un jukebox para los más antiguos y luego vinilo, casete y CD. Tú eliges a partir de qué año entra cada uno.',
   'automatic_start_title': 'Poner algo',
   'automatic_start_note': 'La animación de carga, la cuenta atrás y el sonido del aparato al que corresponda el álbum.',
   'automatic_sound_label': 'Sonido de arranque',

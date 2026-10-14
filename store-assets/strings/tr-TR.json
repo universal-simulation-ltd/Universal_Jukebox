@@ -36,14 +36,13 @@
    "Çalarınızı",
    "*seçin*"
   ],
-  "caption": "Plak, CD, kaset, makaralı teyp, jukebox ya da cep müzik çalar",
+  "caption": "Plak, CD, kaset, makaralı teyp ya da jukebox",
   "chips": [
    "Plak",
    "CD",
    "Kaset",
    "Makaralı teyp",
-   "Jukebox",
-   "Cep müzik çalar"
+   "Jukebox"
   ]
  },
  "05-bedside": {

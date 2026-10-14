@@ -36,14 +36,13 @@
    "Pick your",
    "*machine*"
   ],
-  "caption": "Vinyl, CD, cassette, reel-to-reel, jukebox or pocket player",
+  "caption": "Vinyl, CD, cassette, reel-to-reel or jukebox",
   "chips": [
    "Vinyl",
    "CD",
    "Cassette",
    "Reel-to-reel",
-   "Jukebox",
-   "Pocket player"
+   "Jukebox"
   ]
  },
  "05-bedside": {

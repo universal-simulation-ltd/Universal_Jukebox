@@ -36,14 +36,13 @@
    "Wähl dein",
    "*Abspielgerät*"
   ],
-  "caption": "Vinyl, CD, Kassette, Tonband, Jukebox oder Taschenplayer",
+  "caption": "Vinyl, CD, Kassette, Tonband oder Jukebox",
   "chips": [
    "Vinyl",
    "CD",
    "Kassette",
    "Tonbandgerät",
-   "Jukebox",
-   "Taschenplayer"
+   "Jukebox"
   ]
  },
  "05-bedside": {
