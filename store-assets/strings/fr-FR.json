@@ -4,7 +4,13 @@
    "Votre musique,",
    "*sur la platine*"
   ],
-  "label": "Universal Jukebox · 33⅓ · Face A ·"
+  "label": "Universal Jukebox · 33⅓ · Face A ·",
+  "strap": "Un lecteur hors ligne pour les fichiers musicaux que vous avez déjà",
+  "chips": [
+   "Hors ligne",
+   "Pas de streaming",
+   "Sans abonnement"
+  ]
  },
  "02-album": {
   "headline": [

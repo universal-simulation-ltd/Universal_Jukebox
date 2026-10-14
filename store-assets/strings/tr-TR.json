@@ -4,7 +4,13 @@
    "Müziğiniz",
    "*pikapta*"
   ],
-  "label": "Universal Jukebox · 33⅓ · A Yüzü ·"
+  "label": "Universal Jukebox · 33⅓ · A Yüzü ·",
+  "strap": "Zaten sahip olduğunuz müzik dosyaları için çevrimdışı bir oynatıcı",
+  "chips": [
+   "Çevrimdışı",
+   "Akış yok",
+   "Abonelik yok"
+  ]
  },
  "02-album": {
   "headline": [

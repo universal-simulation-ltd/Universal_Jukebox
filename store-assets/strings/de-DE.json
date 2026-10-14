@@ -4,7 +4,13 @@
    "Deine Musik",
    "*auf Platte*"
   ],
-  "label": "Universal Jukebox · 33⅓ · Seite A ·"
+  "label": "Universal Jukebox · 33⅓ · Seite A ·",
+  "strap": "Ein Offline-Player für Musikdateien, die du schon hast",
+  "chips": [
+   "Offline",
+   "Kein Streaming",
+   "Kein Abo"
+  ]
  },
  "02-album": {
   "headline": [

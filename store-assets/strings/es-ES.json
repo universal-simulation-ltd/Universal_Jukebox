@@ -4,7 +4,13 @@
    "Tu música,",
    "*en el tocadiscos*"
   ],
-  "label": "Universal Jukebox · 33⅓ · Cara A ·"
+  "label": "Universal Jukebox · 33⅓ · Cara A ·",
+  "strap": "Un reproductor sin conexión para tus archivos de música",
+  "chips": [
+   "Sin conexión",
+   "Sin streaming",
+   "Sin suscripción"
+  ]
  },
  "02-album": {
   "headline": [

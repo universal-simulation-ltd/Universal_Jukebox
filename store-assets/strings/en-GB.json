@@ -4,7 +4,13 @@
    "Your music,",
    "*on the turntable*"
   ],
-  "label": "Universal Jukebox · 33⅓ · Side A ·"
+  "label": "Universal Jukebox · 33⅓ · Side A ·",
+  "strap": "An offline player for music files you already have",
+  "chips": [
+   "Offline",
+   "No streaming",
+   "No subscription"
+  ]
  },
  "02-album": {
   "headline": [

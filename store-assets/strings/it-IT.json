@@ -4,7 +4,13 @@
    "La tua musica,",
    "*sul giradischi*"
   ],
-  "label": "Universal Jukebox · 33⅓ · Lato A ·"
+  "label": "Universal Jukebox · 33⅓ · Lato A ·",
+  "strap": "Un lettore offline per i file musicali che hai già",
+  "chips": [
+   "Offline",
+   "Niente streaming",
+   "Niente abbonamento"
+  ]
  },
  "02-album": {
   "headline": [

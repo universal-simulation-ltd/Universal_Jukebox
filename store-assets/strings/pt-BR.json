@@ -4,7 +4,13 @@
    "Suas músicas,",
    "*no toca-discos*"
   ],
-  "label": "Universal Jukebox · 33⅓ · Lado A ·"
+  "label": "Universal Jukebox · 33⅓ · Lado A ·",
+  "strap": "Um player offline para os arquivos de música que você já tem",
+  "chips": [
+   "Offline",
+   "Sem streaming",
+   "Sem assinatura"
+  ]
  },
  "02-album": {
   "headline": [

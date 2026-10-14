@@ -4,7 +4,13 @@
    "A sua música,",
    "*no gira-discos*"
   ],
-  "label": "Universal Jukebox · 33⅓ · Lado A ·"
+  "label": "Universal Jukebox · 33⅓ · Lado A ·",
+  "strap": "Um leitor offline para os ficheiros de música que já tem",
+  "chips": [
+   "Offline",
+   "Sem streaming",
+   "Sem subscrição"
+  ]
  },
  "02-album": {
   "headline": [
