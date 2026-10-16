@@ -72,6 +72,8 @@ const native: Draft['native'] = {
   'artist_gone': 'Bu sanatçı artık kitaplığınızda değil.',
   'matching_tracks': 'Eşleşen parçalar',
   'all_tracks': 'Tüm parçalar',
+  'discography': 'Diskografi',
+  'play_discography': '{name} için her şeyi çal',
   'no_artist_match': 'Sanatçının parçalarından hiçbiri eşleşmiyor.',
 
   'mini_open': 'Şimdi çalıyor: {title}. Plağı aç',

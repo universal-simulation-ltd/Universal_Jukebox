@@ -501,3 +501,11 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
 .jx-article-sources ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .jx-article-sources a { color: var(--jx-acc); font-size: 14px; font-weight: 550; text-decoration: none; }
 .jx-article-sources small { display: block; color: var(--jx-mute); font-size: 12.5px; margin-top: 1px; }
+
+/* The artist page's "Discography" card: their last three sleeves fanned out
+   (DetailScreens `DiscographyStack`). The front one stands straight. */
+.jx-disco { position: relative; display: block; width: 100%; aspect-ratio: 1; }
+.jx-disco-cover { position: absolute; inset: 0; display: block; transform-origin: 50% 90%; }
+.jx-disco.n3 .jx-disco-cover:nth-child(1) { transform: rotate(-9deg) translateX(-8%) scale(0.9); }
+.jx-disco.n3 .jx-disco-cover:nth-child(2) { transform: rotate(5deg) translateX(6%) scale(0.94); }
+.jx-disco.n2 .jx-disco-cover:nth-child(1) { transform: rotate(-7deg) translateX(-6%) scale(0.92); }

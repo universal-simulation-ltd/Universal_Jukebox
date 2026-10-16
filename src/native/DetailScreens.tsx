@@ -12,12 +12,12 @@ import { VinylRecord } from '../components/decks/VinylRecord'
 import { shownName, totalTime } from '../lib/format'
 import { useT } from '../i18n'
 import { navigate } from '../lib/route'
-import type { Track } from '../lib/types'
+import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
 import AddToQueue from '../components/AddToQueue'
 import AddToShelf from '../components/AddToShelf'
-import { AlbumRow } from '../components/Shelf'
+import { AlbumRow, ShelfRow, Sleeve } from '../components/Shelf'
 import { IconPlay, IconShuffle } from './icons'
 import { SearchBox, SongList } from './LibraryScreens'
 import { byYearThenTitle } from '../lib/libraryView'
@@ -159,6 +159,24 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
   )
 }
 
+/** The card at the front of an artist's shelf that stands for all of it. */
+const DISCOGRAPHY = 'discography' as const
+type ArtistShelfItem = Album | typeof DISCOGRAPHY
+
+/** Their last three sleeves fanned out — the whole discography as one card. */
+function DiscographyStack({ albums }: { albums: Album[] }) {
+  const shown = albums.slice(-3)
+  return (
+    <span className={`jx-disco n${shown.length}`} aria-hidden>
+      {shown.map((album) => (
+        <span key={album.id} className="jx-disco-cover">
+          <Cover album={album} className="aspect-square w-full rounded-md shadow-lg ring-1 ring-black/10" />
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export function ArtistScreen({ name }: { name: string }) {
   const t = useT()
   const allAlbums = useLibraryStore((s) => s.albums)
@@ -166,15 +184,24 @@ export function ArtistScreen({ name }: { name: string }) {
   const albums = useMemo(() => allAlbums.filter((a) => a.artist === name).sort(byYearThenTitle), [allAlbums, name])
   // Hold one of their albums for what it offers (`CollectionHold`).
   const held = useCollectionHold()
-  /** Every song of theirs, album by album, oldest album first. */
-  const tracks = useMemo(() => {
-    const byAlbum = new Map(albums.map((a) => [a.id, [] as typeof allTracks]))
-    for (const track of allTracks) byAlbum.get(track.albumId)?.push(track)
-    return albums.flatMap((a) => sortAlbumTracks(byAlbum.get(a.id) ?? []))
+  /** Their songs by album, oldest album first. */
+  const byAlbum = useMemo(() => {
+    const map = new Map(albums.map((a) => [a.id, [] as typeof allTracks]))
+    for (const track of allTracks) map.get(track.albumId)?.push(track)
+    for (const [id, list] of map) map.set(id, sortAlbumTracks(list))
+    return map
   }, [albums, allTracks])
+  /** Every song of theirs, album by album. */
+  const tracks = useMemo(() => albums.flatMap((a) => byAlbum.get(a.id) ?? []), [albums, byAlbum])
   const { playTracks, shuffleThese } = usePlayShuffle()
   const albumYear = useMemo(() => new Map(albums.map((a) => [a.id, a.year])), [albums])
   const find = useFindWithin(tracks, t('native.search_named', { name: shownName(name) }))
+  // The shelf opens on "Discography", every song of theirs; swipe to an album
+  // and the list under it is that album's alone (James, 2026-10-16).
+  const shelf = useMemo<ArtistShelfItem[]>(() => (albums.length > 1 ? [DISCOGRAPHY, ...albums] : albums), [albums])
+  const [middleId, setMiddleId] = useState<string>(DISCOGRAPHY)
+  const shownAlbum = albums.find((a) => a.id === middleId) ?? (albums.length === 1 ? albums[0] : undefined)
+  const shown = shownAlbum ? (byAlbum.get(shownAlbum.id) ?? []) : tracks
 
   if (albums.length === 0) return <p className="jx-empty">{t('native.artist_gone')}</p>
 
@@ -190,26 +217,48 @@ export function ArtistScreen({ name }: { name: string }) {
       {held.sheet}
       {/* Their albums as ONE shelf you swipe along, not a grid (James,
           2026-10-11); hold a record for the album's sheet. Play and Shuffle
-          sit under it (James, 2026-10-12). */}
-      <div className="jx-web"><AlbumRow albums={albums} hold={(album) => held.open({ kind: 'album', album })} /></div>
-      <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
+          sit under it (James, 2026-10-12), and play what the list shows. */}
+      <div className="jx-web">
+        <ShelfRow<ArtistShelfItem>
+          items={shelf}
+          label={t('shelves.albums_on_the_shelf')}
+          keyOf={(a) => (a === DISCOGRAPHY ? DISCOGRAPHY : a.id)}
+          nameOf={(a) => (a === DISCOGRAPHY ? t('native.discography') : a.title)}
+          labelOf={(a) => (a === DISCOGRAPHY ? t('native.play_discography', { name: shownName(name) }) : undefined)}
+          render={(a) => (a === DISCOGRAPHY ? <DiscographyStack albums={albums} /> : <Sleeve album={a} />)}
+          artOf={(a) => (a === DISCOGRAPHY ? albums[albums.length - 1] : a)}
+          open={(a) => (a === DISCOGRAPHY ? playTracks(tracks, 0) : navigate({ view: 'album', albumId: a.id }))}
+          caption={(a) =>
+            a === DISCOGRAPHY
+              ? { title: t('native.discography'), detail: [t.plural('common.albums', albums.length), t.plural('common.tracks', tracks.length)].join(' · ') }
+              : { title: a.title, detail: [a.year, t.plural('common.tracks', a.trackCount)].filter(Boolean).join(' · ') }
+          }
+          hold={(a) => {
+            if (a !== DISCOGRAPHY) held.open({ kind: 'album', album: a })
+          }}
+          onMiddle={(a) => setMiddleId(a === DISCOGRAPHY ? DISCOGRAPHY : a.id)}
+        />
+      </div>
+      <Actions tracks={shown} onPlay={() => playTracks(shown, 0)} onShuffle={() => shuffleThese(shown)} />
       </>
       )}
-      {/* Every song of theirs, album by album — the website's "All songs by …"
-          page, here under their albums. Playing one plays on from it through
-          the rest. */}
-      <p className="jx-label">{find.searching ? t('native.matching_tracks') : t('native.all_tracks')}</p>
+      {/* Searching looks through every song of theirs, whichever record is in
+          the middle. Playing one plays on from it through the rest. */}
+      <p className="jx-label">{find.searching ? t('native.matching_tracks') : shownAlbum ? shownName(shownAlbum.title) : t('native.all_tracks')}</p>
       {find.searching && find.found.length === 0 ? <p className="jx-empty">{t('native.no_artist_match')}</p> : null}
-      <SongList
-        tracks={find.found}
-        albums={allAlbums}
-        onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))}
-        subtitle={(track) => [shownName(track.album), albumYear.get(track.albumId)].filter(Boolean).join(' · ')}
-      />
+      {find.searching || !shownAlbum ? (
+        <SongList
+          tracks={find.found}
+          albums={allAlbums}
+          onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))}
+          subtitle={(track) => [shownName(track.album), albumYear.get(track.albumId)].filter(Boolean).join(' · ')}
+        />
+      ) : (
+        <SongList tracks={shown} albums={allAlbums} onPlay={(i) => playTracks(shown, i)} numbered />
+      )}
     </div>
   )
 }
-
 
 /**
  * What is playing and what comes after it, opened by tapping the record on

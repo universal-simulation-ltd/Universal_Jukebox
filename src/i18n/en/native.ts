@@ -81,6 +81,8 @@ export default {
   'artist_gone': 'This artist isn’t in your library any more.',
   'matching_tracks': 'Matching tracks', // small label over the songs while searching
   'all_tracks': 'All tracks', // small label over all of an artist's songs
+  'discography': 'Discography', // the first card on an artist’s shelf, standing for all their albums
+  'play_discography': 'Play everything by {name}', // screen reader: that card; {name} is the artist
   'no_artist_match': 'None of their tracks matches.',
 
   // What's playing, above the tabs (MiniPlayer)

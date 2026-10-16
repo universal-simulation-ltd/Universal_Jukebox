@@ -38,7 +38,7 @@ import type { Album, Track } from '../lib/types'
  * shouldn't show a track coming out"). The rest keep theirs inside; index.css,
  * `.jb-sleeve-disc`, moves it by the shelf item's `aria-current`.
  */
-function Sleeve({ album }: { album: Album | undefined }) {
+export function Sleeve({ album }: { album: Album | undefined }) {
   return (
     <>
       <span
@@ -408,6 +408,8 @@ interface ShelfRowProps<T> {
   hold?(item: T): void
   /** The rail's look: wood for a shelf of records, steel for the requests (2026-09-27). */
   rail?: 'wood' | 'steel'
+  /** Told which item is in the middle whenever that changes — the phone's artist page lists that album's tracks. */
+  onMiddle?(item: T): void
 }
 
 /**
@@ -436,7 +438,7 @@ const HOLD_MS = 450
 /** A finger that moves further than this is swiping, not holding. */
 const HOLD_SLOP_PX = 10
 
-export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood', below, hold }: ShelfRowProps<T>) {
+export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'open', render, open, caption, size = 'sleeve', direct, labelOf, artOf, heading, rail = 'wood', below, hold, onMiddle }: ShelfRowProps<T>) {
   const t = useT()
   const row = useRef<HTMLDivElement>(null)
   const ticker = useRef<HTMLSpanElement>(null)
@@ -538,6 +540,11 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'op
 
   const current = items[Math.min(middle, items.length - 1)]
   const text = current === undefined ? null : caption(current)
+  const onMiddleNow = useRef(onMiddle)
+  onMiddleNow.current = onMiddle
+  useEffect(() => {
+    if (current !== undefined) onMiddleNow.current?.(current)
+  }, [current])
 
   return (
     // ⚠️ FULL-BLEED AT EVERY WIDTH (James, 2026-09-15: "once it gets to this

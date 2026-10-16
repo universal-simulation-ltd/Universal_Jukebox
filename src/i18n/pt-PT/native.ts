@@ -72,6 +72,8 @@ const native: Draft['native'] = {
   'artist_gone': 'Este artista já não está na sua biblioteca.',
   'matching_tracks': 'Faixas correspondentes',
   'all_tracks': 'Todas as faixas',
+  'discography': 'Discografia',
+  'play_discography': 'Reproduzir tudo de {name}',
   'no_artist_match': 'Nenhuma das faixas deste artista corresponde.',
 
   'mini_open': 'A reproduzir: {title}. Abrir o disco',

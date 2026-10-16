@@ -72,6 +72,8 @@ const native: Draft['native'] = {
   'artist_gone': 'Dieser Interpret ist nicht mehr in deiner Mediathek.',
   'matching_tracks': 'Passende Titel',
   'all_tracks': 'Alle Titel',
+  'discography': 'Diskografie',
+  'play_discography': 'Alles von {name} abspielen',
   'no_artist_match': 'Keiner der Titel passt.',
 
   'mini_open': 'Läuft gerade: {title}. Platte öffnen',
