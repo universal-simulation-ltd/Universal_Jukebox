@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useT } from '../i18n'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -17,6 +17,7 @@ export default function SkippedBanner() {
   const skipped = usePlayerStore((s) => s.skipped)
   const dismiss = usePlayerStore((s) => s.dismissSkipped)
   const [open, setOpen] = useState(false)
+  const listId = useId()
 
   // Settings › Messages › "Show error messages" (unticked by default): the skipping
   // still happens, it just is not announced.
@@ -34,6 +35,7 @@ export default function SkippedBanner() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
+          aria-controls={listId}
           className="min-w-0 flex-1 basis-56 text-left font-medium underline-offset-2 hover:underline"
         >
           {t.plural('app.skipped', skipped.length)}
@@ -51,7 +53,7 @@ export default function SkippedBanner() {
         </button>
       </div>
       {open && (
-        <div className="mt-2.5">
+        <div id={listId} className="mt-2.5">
           <ul className="space-y-1">
             {skipped.map((s, i) => (
               <li key={`${s.id}-${i}`}>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { DropRing } from '@unisim/sdk'
+import { DropRing, useRevealOnOpen } from '@unisim/sdk'
 import FolderAccessButton from './FolderAccessButton'
 import { folderAccess, shownRootLabel } from '../lib/roots'
 import { goHome } from '../lib/route'
@@ -36,9 +36,11 @@ const TICK_MS = 1200
 function StartAgain({ onClick }: { onClick(): void }) {
   const t = useT()
   const [asking, setAsking] = useState(false)
+  // The question takes the link's place: scroll it fully on screen.
+  const revealRef = useRevealOnOpen()
   if (asking) {
     return (
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('landing.start_new_library')}>
+      <div ref={revealRef} className="flex flex-wrap items-center gap-2" role="group" aria-label={t('landing.start_new_library')}>
         <span className="mr-1 text-[13px] font-medium">
           {t('landing.forget_library_ask')}
         </span>
@@ -333,6 +335,8 @@ function ScanningCard({
 }) {
   const t = useT()
   const [asking, setAsking] = useState(false)
+  // "Stop and…" opens beneath the card's text in place of its link.
+  const revealRef = useRevealOnOpen()
   return (
     <div className="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
       <div className="flex items-center gap-3">
@@ -355,7 +359,7 @@ function ScanningCard({
         </div>
       </div>
       {asking && (
-        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label={t('landing.scan_stop_label')}>
+        <div ref={revealRef} className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label={t('landing.scan_stop_label')}>
           <span className="mr-1 text-[13px] font-medium text-slate-800 dark:text-slate-100">{t('landing.scan_stop_and')}</span>
           <button
             type="button"

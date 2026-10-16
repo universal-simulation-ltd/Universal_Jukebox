@@ -712,6 +712,7 @@ function RemovedFromJukebox() {
   const hidden = useHiddenStore((h) => h.hidden)
   const restore = useHiddenStore((h) => h.restore)
   const [open, setOpen] = useState(false)
+  const listId = useId()
   const count = hidden.tracks.length + hidden.albums.length + hidden.artists.length
   if (count === 0) return null
   const { tracks, albums } = wholeLibrary()
@@ -737,9 +738,11 @@ function RemovedFromJukebox() {
         hint={t.plural('settings.removed_hint', count)}
         button={open ? t('common.close') : t('common.open')}
         onClick={() => setOpen(!open)}
+        expanded={open}
+        controls={listId}
       />
       {open && (
-        <Row>
+        <Row id={listId}>
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {items.map((item) => (
               <li key={`${item.kind}:${item.key}`} className="flex items-center gap-3 py-2">
@@ -1401,8 +1404,8 @@ function Section({
   )
 }
 
-function Row({ children }: { children: React.ReactNode }) {
-  return <div className="px-5 py-4">{children}</div>
+function Row({ children, id }: { children: React.ReactNode; id?: string }) {
+  return <div id={id} className="px-5 py-4">{children}</div>
 }
 
 function Label({ text, hint }: { text: string; hint?: string }) {
@@ -1598,8 +1601,12 @@ function Ladder({
 
 /** A row that DOES something rather than setting something: its name, and a button. */
 function Action({
-  label, hint, button, onClick, disabled = false,
-}: { label: string; hint?: string; button: string; onClick(): void; disabled?: boolean }) {
+  label, hint, button, onClick, disabled = false, expanded, controls,
+}: {
+  label: string; hint?: string; button: string; onClick(): void; disabled?: boolean
+  /** For a button that folds a panel open beneath it: the panel's id. */
+  expanded?: boolean; controls?: string
+}) {
   return (
     <Row>
       <div className="flex items-center justify-between gap-4">
@@ -1610,6 +1617,8 @@ function Action({
           type="button"
           onClick={onClick}
           disabled={disabled}
+          aria-expanded={expanded}
+          aria-controls={controls}
           className="shrink-0 rounded-full border border-slate-300 px-3.5 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-default disabled:opacity-50 disabled:hover:border-slate-300 disabled:hover:text-slate-700 dark:border-slate-600 dark:text-slate-200 dark:hover:text-orange-400 dark:disabled:hover:border-slate-600 dark:disabled:hover:text-slate-200"
         >
           {button}
