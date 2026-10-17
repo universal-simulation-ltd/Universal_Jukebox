@@ -213,6 +213,16 @@
 			<string>Jukebox</string>
 		</dict>
 	</array>
+	<!-- "Hey Siri, play Mika on Jukebox" — SiriKit's media intent, handled in
+	     the app (AppDelegate → SiriIntents.swift's PlayMediaHandler). -->
+	<key>INIntentsSupported</key>
+	<array>
+		<string>INPlayMediaIntent</string>
+	</array>
+	<key>INSupportedMediaCategories</key>
+	<array>
+		<string>INMediaCategoryMusic</string>
+	</array>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>

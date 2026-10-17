@@ -58,6 +58,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let item = connectionOptions.shortcutItem {
             ShortcutsBridge.receive(item.type)
         }
+        // "Hey Siri, play Mika on Jukebox" that opened the app (`SiriIntents.swift`).
+        connectionOptions.userActivities.forEach(SiriMedia.receive)
     }
 
     /// A Home Screen shortcut tapped while the app was already running.
@@ -93,6 +95,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        SiriMedia.receive(userActivity)
         SceneDelegateProxy.shared.scene(scene, continue: userActivity)
     }
 }

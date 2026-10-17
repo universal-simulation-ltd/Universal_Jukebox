@@ -1,6 +1,7 @@
 // LibraryScreens.tsx — the phone app's three library tabs: Artists, Albums and
-// Tracks. Above each, folded away until you pull down from the top (no
-// button for it: the screen stays clean, James 2026-10-10): the search box,
+// Tracks. Above each, folded away until you pull down from the top or tap the
+// tab you're already on (no button for it: the screen stays clean, James
+// 2026-10-10 and 2026-10-17): the search box,
 // Shuffle, and the list
 // options — A–Z / Random / Genre, the jukebox shelf, and the tab's filter
 // (Full albums, Min. 3). They are the website's own settings (`libraryOrder`,
@@ -83,6 +84,10 @@ function FoundIn({ tab, counts, genre }: { tab: ListTab; counts: Record<ListTab,
     </div>
   )
 }
+
+/** Sent by the tab bar (`NativeApp`'s `tapTab`): open the search drawer, or shut it again. */
+export const OPEN_SEARCH = 'jukebox:open-search'
+export const SHUT_SEARCH = 'jukebox:shut-search'
 
 export function SearchBox({
   query,
@@ -189,6 +194,31 @@ function Screen({
   const [pulled, setPulled] = useState(false)
   const shown = pulled || query.trim() !== ''
   const input = useRef<HTMLInputElement>(null)
+  // Tapping the tab you're already on opens it too, keyboard up (James,
+  // 2026-10-17: "when tapping the nav bar when on it open the search box").
+  // The tab's tap sends the event and the focus happens inside that tap,
+  // because iOS only raises the keyboard for a focus made inside a touch.
+  const queryNow = useRef(query)
+  queryNow.current = query
+  useEffect(() => {
+    const open = () => {
+      setPulled(true)
+      markTipSeen('pullDown')
+      input.current?.focus({ preventScroll: true })
+    }
+    // The second tap of a double tap, which makes the tab the default instead.
+    const shut = () => {
+      if (queryNow.current.trim()) return
+      input.current?.blur()
+      setPulled(false)
+    }
+    window.addEventListener(OPEN_SEARCH, open)
+    window.addEventListener(SHUT_SEARCH, shut)
+    return () => {
+      window.removeEventListener(OPEN_SEARCH, open)
+      window.removeEventListener(SHUT_SEARCH, shut)
+    }
+  }, [])
   // Tap an option for now; hold it to make it what the app opens with
   // (`listDefaults.ts`). A chip is lit when it differs from those defaults.
   const defaults = useListDefaults()

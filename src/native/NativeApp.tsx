@@ -42,7 +42,7 @@ import { libraryInGenre } from '../lib/genres'
 import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
 import { AlbumScreen, ArtistScreen, QueueScreen } from './DetailScreens'
 import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, IconTune } from './icons'
-import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
+import { AlbumsScreen, ArtistsScreen, OPEN_SEARCH, SHUT_SEARCH, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
 import { shownName } from '../lib/format'
@@ -278,13 +278,19 @@ export default function NativeApp() {
     const now = performance.now()
     const last = lastTap.current
     lastTap.current = { view: target, at: now }
-    if (target !== 'settings' && last?.view === target && now - last.at < DOUBLE_TAP_MS) {
+    const double = target !== 'settings' && last?.view === target && now - last.at < DOUBLE_TAP_MS
+    if (double) {
       lastTap.current = null
       setSetting('homeTab', target)
       setHomeFlash(target)
     }
-    if (tab === target && route.view === target) window.scrollTo({ top: 0, behavior: 'smooth' })
-    else {
+    if (tab === target && route.view === target) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Already on the tab: open its search (James, 2026-10-17). A double
+      // tap is for making it the default, so its second tap shuts it again.
+      // Dispatched here, inside the tap, so the focus brings the keyboard up.
+      window.dispatchEvent(new Event(double ? SHUT_SEARCH : OPEN_SEARCH))
+    } else {
       openTabAtTop.current = true
       // A flick still gliding on the iPhone carries on after a scrollTo, so
       // the new tab would open part-way down: stop it first, for a frame.

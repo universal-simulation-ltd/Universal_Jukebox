@@ -22,5 +22,9 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<!-- "Hey Siri, play Mika on Jukebox" (SiriIntents.swift's PlayMediaHandler).
+	     The App ID needs the Siri capability too; automatic signing adds it. -->
+	<key>com.apple.developer.siri</key>
+	<true/>
 </dict>
 </plist>

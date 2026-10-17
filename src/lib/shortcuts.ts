@@ -30,9 +30,14 @@ export function installShortcuts(): void {
   })()
 }
 
-/** `search` carries what the Android assistant asked for (`MEDIA_PLAY_FROM_SEARCH`). */
+/**
+ * `search` carries what the voice assistant asked for: Android's
+ * `MEDIA_PLAY_FROM_SEARCH`, or Siri's `INPlayMediaIntent` (`SiriIntents.swift`'s
+ * `SiriMedia`), which adds `shuffle` for "shuffle Mika on Jukebox".
+ */
 interface ShortcutEvent extends VoiceRequest {
   action?: string
+  shuffle?: boolean
 }
 
 function whenLibraryReady(run: () => void): void {
@@ -80,13 +85,15 @@ function playMusic(): void {
 const FOCUSES: readonly VoiceFocus[] = ['artist', 'album', 'song', 'genre', 'any']
 
 /** "Hey Google, play Radiohead on Jukebox" — see `voiceSearch.ts`. */
-export function playFromSearch(request: VoiceRequest): void {
+export function playFromSearch(request: VoiceRequest & { shuffle?: boolean }): void {
   const focus = FOCUSES.includes(request.focus as VoiceFocus) ? request.focus : undefined
   const plan = planVoice({ ...request, focus }, useLibraryStore.getState().tracks, sortAlbumTracks)
   const player = usePlayerStore.getState()
   switch (plan.kind) {
     case 'play':
-      playMusic()
+      // "Shuffle Jukebox" from Siri arrives as a search with nothing named.
+      if (request.shuffle) player.shuffleSongs()
+      else playMusic()
       return
     case 'shuffle':
       runShortcut(`shuffle-${plan.what}`)
@@ -95,6 +102,11 @@ export function playFromSearch(request: VoiceRequest): void {
       player.shuffleSongs(plan.tracks)
       return
     case 'inOrder':
+      // "Shuffle Hyperlove on Jukebox".
+      if (request.shuffle) {
+        player.shuffleSongs(plan.tracks)
+        return
+      }
       // An album is asked for in its own order, whatever shuffle was left at.
       if (player.shuffle) player.toggleShuffle()
       player.playTracks(plan.tracks, plan.at)

@@ -19,18 +19,20 @@ extension Notification.Name {
 }
 
 enum ShortcutsBridge {
-    /// Main thread only.
-    static var pending: String?
-    private static var last: (action: String, at: Date)?
+    /// Main thread only. The event for the page: `action`, plus what Siri
+    /// asked for when the action is `search` (`SiriIntents.swift`).
+    static var pending: [String: Any]?
+    private static var last: (key: String, at: Date)?
 
     /// `uk.co.unisim.jukebox.shuffle-albums` → `shuffle-albums`.
-    static func receive(_ type: String) {
+    static func receive(_ type: String, _ extras: [String: Any] = [:]) {
         let action = type.components(separatedBy: ".").last ?? type
         // A cold launch can report one tap twice: the launch options, then
         // `performActionFor`.
-        if let last = last, last.action == action, Date().timeIntervalSince(last.at) < 2 { return }
-        last = (action, Date())
-        pending = action
+        let key = "\(action)|\(extras["query"] as? String ?? "")"
+        if let last = last, last.key == key, Date().timeIntervalSince(last.at) < 2 { return }
+        last = (key, Date())
+        pending = extras.merging(["action": action]) { _, new in new }
         NotificationCenter.default.post(name: .jukeboxShortcut, object: nil)
     }
 }
@@ -48,10 +50,10 @@ public class ShortcutsPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc private func deliver() {
         DispatchQueue.main.async {
-            guard let action = ShortcutsBridge.pending else { return }
+            guard let event = ShortcutsBridge.pending else { return }
             ShortcutsBridge.pending = nil
-            print("[jukebox:native] home screen shortcut: \(action)")
-            self.notifyListeners("shortcut", data: ["action": action], retainUntilConsumed: true)
+            print("[jukebox:native] shortcut: \(event)")
+            self.notifyListeners("shortcut", data: event, retainUntilConsumed: true)
         }
     }
 }

@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import AVFoundation
+import Intents
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -31,6 +32,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     /// ⚠️ This and the `UIApplicationSceneManifest` in Info.plist are both
     /// required: the runtime asks the app delegate rather than trusting the
     /// plist alone. `npm run check:ios-launch` fails the build if either goes.
+    /// "Hey Siri, play Mika on Jukebox": SiriKit's media intent, handled in
+    /// the app rather than an extension (`SiriIntents.swift`).
+    func application(_ application: UIApplication, handlerFor intent: INIntent) -> Any? {
+        intent is INPlayMediaIntent ? PlayMediaHandler() : nil
+    }
+
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
