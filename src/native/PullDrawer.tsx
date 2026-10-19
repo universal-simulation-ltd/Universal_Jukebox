@@ -3,186 +3,35 @@
 // 2026-10-10: "don't show the search bar until you scroll down and it pops
 // out", and the same for the playing options). No search button, to keep the
 // screen clean (James, same day): pull it, or tap the tab you're already on
-// (James, 2026-10-17; `LibraryScreens`' OPEN_SEARCH). The same gesture as the
-// website's phone search (`components/PhoneSearch.tsx`, which has the long
-// version of every rule below): only from the very top, only a mostly
-// vertical pull, and not one that starts on a sideways swiper (`data-swipe-x`,
-// the shelves). It follows the finger with some resistance, opens past
-// PULL_TO_OPEN, and springs shut otherwise.
+// (James, 2026-10-17; `LibraryScreens`' `useSearchRequests`).
 //
-// Scroll it out of sight and it folds itself away again, so the next time
-// it's wanted it is pulled out again (James, 2026-10-10). The list below is
-// held where it is on screen, so nothing jumps. The
-// parent decides whether to let go: with a search typed in, the box stays.
+// The gesture itself is the SDK's `PullDrawer` (@unisim/sdk ≥ 0.197, moved
+// there from this file on 2026-10-19 so BlackBook and the rest of the suite
+// share one): only from the very top, only a mostly vertical pull, not one
+// that starts on a sideways swiper (`data-swipe-x`, the shelves); it follows
+// the finger with some resistance, opens past 64px and springs shut
+// otherwise; a second pull asks for the keyboard (James, 2026-10-11); and
+// scrolled out of sight it folds itself away again (2026-10-10), holding the
+// list still. The parent decides whether to let go: with a search typed in,
+// the box stays.
+//
+// What is Jukebox's own: the look (`.jx-drawer` in native.css) and where the
+// top bar ends (`navBarBottom`, measured the way the rest of the app does).
 
-import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { PullDrawer as SuitePullDrawer } from '@unisim/sdk'
 import { navBarBottom } from '../lib/scrollBelowBar'
 
-/** How far the finger has to travel, in px, before letting go opens it. */
-const PULL_TO_OPEN = 64
-/** The drawer moves this much per pixel of finger: a pull, not a drag. */
-const RESIST = 0.6
-
-export function PullDrawer({
-  shown,
-  onOpen,
-  onScrolledAway,
-  onPullAgain,
-  children,
-}: {
+export function PullDrawer(props: {
   shown: boolean
   onOpen(): void
   /** It has scrolled out of sight under the top bar. Left out while it must
    *  stay (a search is typed in), and then it never folds itself. */
   onScrolledAway?: () => void
-  /**
-   * Pulled down AGAIN while open (James, 2026-10-11: "allow the user to swipe
-   * down again to open the keyboard to type directly into it"). Called from
-   * the finger's release itself, so focusing the search box there brings the
-   * keyboard up — iOS only raises it for a focus made inside a touch.
-   */
+  /** Pulled down AGAIN while open. Called from the finger's release, so
+   *  focusing the search box there brings the keyboard up on iOS. */
   onPullAgain?: () => void
   children: ReactNode
 }) {
-  const box = useRef<HTMLDivElement>(null)
-  const inner = useRef<HTMLDivElement>(null)
-  const full = () => inner.current?.offsetHeight ?? 120
-
-  const settle = useCallback((to: number) => {
-    const el = box.current
-    if (!el) return
-    let reduced = false
-    try {
-      reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    } catch { /* animate */ }
-    el.style.transition = reduced ? 'none' : 'height 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out'
-    el.style.height = `${to}px`
-    el.style.opacity = to > 0 ? '1' : '0'
-    // Open, it takes the height of what is in it, so the options row can
-    // grow (Genre adds a chip) without being cut off.
-    if (to > 0) {
-      const done = () => { if (box.current) box.current.style.height = 'auto' }
-      if (reduced) done()
-      else window.setTimeout(done, 260)
-    }
-  }, [])
-
-  // Open from the start — a search carried over from the tab before — it is
-  // simply open: no sliding out, which pushed the list down and faded the
-  // box on every tab switch mid-search (James, 2026-10-11: "the juttering
-  // when going from artist album tracks during a search").
-  const mounted = useRef(false)
-  useLayoutEffect(() => {
-    const el = box.current
-    if (!mounted.current) {
-      mounted.current = true
-      if (shown && el) {
-        el.style.transition = 'none'
-        el.style.height = 'auto'
-        el.style.opacity = '1'
-        return
-      }
-    }
-    settle(shown ? full() : 0)
-  }, [shown, settle])
-
-  // Open: fold away once it is scrolled out of sight.
-  useEffect(() => {
-    if (!shown || !onScrolledAway) return
-    let frame = 0
-    const check = () => {
-      frame = 0
-      const el = box.current
-      if (!el || el.offsetHeight === 0) return
-      if (el.getBoundingClientRect().bottom > navBarBottom()) return
-      // Keep what's below exactly where it is on screen. Measured rather than
-      // assumed: Chromium (Android) moves the page itself when content above
-      // the view goes (scroll anchoring) and WebKit (iOS) doesn't, so a fixed
-      // scrollBy(-height) jumped twice the height on the A065's WebView.
-      const below = el.nextElementSibling
-      const before = below?.getBoundingClientRect().top ?? 0
-      el.style.transition = 'none'
-      el.style.height = '0px'
-      el.style.opacity = '0'
-      const after = below?.getBoundingClientRect().top ?? 0
-      if (after !== before) window.scrollBy(0, after - before)
-      onScrolledAway()
-    }
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(check)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (frame) cancelAnimationFrame(frame)
-    }
-  }, [shown, onScrolledAway])
-
-  useEffect(() => {
-    if (shown && !onPullAgain) return
-    let startY: number | null = null
-    let startX = 0
-    let pulled = 0
-    let decided = false
-    const start = (e: TouchEvent) => {
-      const onSwiper = e.target instanceof Element && e.target.closest('[data-swipe-x]') !== null
-      startY = !onSwiper && window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null
-      startX = e.touches[0]?.clientX ?? 0
-      pulled = 0
-      decided = false
-    }
-    const move = (e: TouchEvent) => {
-      const el = box.current
-      if (startY === null || e.touches.length !== 1 || !el) return
-      const dy = e.touches[0].clientY - startY
-      const dx = e.touches[0].clientX - startX
-      if (!decided) {
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
-        decided = true
-        if (dy <= 0 || Math.abs(dx) >= Math.abs(dy) * 0.75) {
-          startY = null
-          return
-        }
-      }
-      pulled = dy
-      // Already open, the drawer stays put; the pull only asks for the keyboard.
-      if (shown) return
-      const peek = Math.max(0, Math.min(full(), pulled * RESIST))
-      el.style.transition = 'none'
-      el.style.height = `${peek}px`
-      el.style.opacity = String(Math.min(1, peek / full()))
-    }
-    const end = () => {
-      if (startY === null) return
-      startY = null
-      if (shown) {
-        if (pulled > PULL_TO_OPEN) onPullAgain?.()
-        return
-      }
-      if (pulled > PULL_TO_OPEN) onOpen()
-      else settle(0)
-    }
-    window.addEventListener('touchstart', start, { passive: true })
-    window.addEventListener('touchmove', move, { passive: true })
-    window.addEventListener('touchend', end)
-    window.addEventListener('touchcancel', end)
-    return () => {
-      window.removeEventListener('touchstart', start)
-      window.removeEventListener('touchmove', move)
-      window.removeEventListener('touchend', end)
-      window.removeEventListener('touchcancel', end)
-    }
-  }, [shown, onOpen, onPullAgain, settle])
-
-  return (
-    <div
-      ref={box}
-      className="jx-drawer"
-      aria-hidden={!shown}
-      // Shut, nothing in it can take focus. (React 18's types predate `inert`.)
-      {...({ inert: shown ? undefined : '' } as Record<string, string | undefined>)}
-    >
-      <div ref={inner} className="jx-drawer-inner">{children}</div>
-    </div>
-  )
+  return <SuitePullDrawer {...props} className="jx-drawer" innerClassName="jx-drawer-inner" topBarBottom={navBarBottom} />
 }

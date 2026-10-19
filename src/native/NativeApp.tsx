@@ -20,6 +20,7 @@
 // `homeTab`, the same setting as the website's starred tab).
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { requestSearch } from '@unisim/sdk'
 import { BedsideHost } from '../components/Bedside'
 import ErrorBanner from '../components/ErrorBanner'
 import JukeboxShelves from '../components/JukeboxShelves'
@@ -42,7 +43,7 @@ import { libraryInGenre } from '../lib/genres'
 import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
 import { AlbumScreen, ArtistScreen, QueueScreen } from './DetailScreens'
 import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, IconTune } from './icons'
-import { AlbumsScreen, ArtistsScreen, OPEN_SEARCH, SHUT_SEARCH, SongsScreen } from './LibraryScreens'
+import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
 import { shownName } from '../lib/format'
@@ -289,7 +290,7 @@ export default function NativeApp() {
       // Already on the tab: open its search (James, 2026-10-17). A double
       // tap is for making it the default, so its second tap shuts it again.
       // Dispatched here, inside the tap, so the focus brings the keyboard up.
-      window.dispatchEvent(new Event(double ? SHUT_SEARCH : OPEN_SEARCH))
+      requestSearch(!double)
     } else {
       openTabAtTop.current = true
       // A flick still gliding on the iPhone carries on after a scrollTo, so

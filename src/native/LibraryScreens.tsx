@@ -33,6 +33,7 @@ import TrackOptions from '../components/TrackOptions'
 import ResumeCard from '../components/ResumeCard'
 import { haptic } from '../lib/haptics'
 import { useCollectionHold } from './CollectionHold'
+import { openThenFocus, useSearchRequests } from '@unisim/sdk'
 import { PullDrawer } from './PullDrawer'
 import { markTipSeen, useHintTurn } from '../lib/tips'
 import { makeDefault, useHold, useListDefaults } from './listDefaults'
@@ -84,10 +85,6 @@ function FoundIn({ tab, counts, genre }: { tab: ListTab; counts: Record<ListTab,
     </div>
   )
 }
-
-/** Sent by the tab bar (`NativeApp`'s `tapTab`): open the search drawer, or shut it again. */
-export const OPEN_SEARCH = 'jukebox:open-search'
-export const SHUT_SEARCH = 'jukebox:shut-search'
 
 export function SearchBox({
   query,
@@ -196,29 +193,22 @@ function Screen({
   const input = useRef<HTMLInputElement>(null)
   // Tapping the tab you're already on opens it too, keyboard up (James,
   // 2026-10-17: "when tapping the nav bar when on it open the search box").
-  // The tab's tap sends the event and the focus happens inside that tap,
-  // because iOS only raises the keyboard for a focus made inside a touch.
-  const queryNow = useRef(query)
-  queryNow.current = query
-  useEffect(() => {
-    const open = () => {
-      setPulled(true)
+  // The tab's tap sends the SDK's `requestSearch` and the focus happens inside
+  // that tap, because iOS only raises the keyboard for a focus made inside a
+  // touch. `openThenFocus` renders the drawer open first: shut, it is inert,
+  // and a focus() into it went nowhere (2026-10-19).
+  useSearchRequests({
+    onOpen: () => {
+      openThenFocus(() => setPulled(true), input)
       markTipSeen('pullDown')
-      input.current?.focus({ preventScroll: true })
-    }
+    },
     // The second tap of a double tap, which makes the tab the default instead.
-    const shut = () => {
-      if (queryNow.current.trim()) return
+    onShut: () => {
+      if (query.trim()) return
       input.current?.blur()
       setPulled(false)
-    }
-    window.addEventListener(OPEN_SEARCH, open)
-    window.addEventListener(SHUT_SEARCH, shut)
-    return () => {
-      window.removeEventListener(OPEN_SEARCH, open)
-      window.removeEventListener(SHUT_SEARCH, shut)
-    }
-  }, [])
+    },
+  })
   // Tap an option for now; hold it to make it what the app opens with
   // (`listDefaults.ts`). A chip is lit when it differs from those defaults.
   const defaults = useListDefaults()

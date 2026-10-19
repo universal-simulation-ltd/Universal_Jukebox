@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref } from 'react'
-import { flushSync } from 'react-dom'
+import { useCallback, useImperativeHandle, useRef, type Ref } from 'react'
+import { PHONE_QUERY, PullDrawer, openThenFocus, useMediaQuery } from '@unisim/sdk'
 import { useT } from '../i18n'
 
 // A search box for the page you are ALREADY on — one record, rather than the
@@ -26,11 +26,10 @@ import { useT } from '../i18n'
 //     views and this only on a record, so the two pulls cannot fight over one
 //     touch. If that ever stops being true, this is the note that says why it
 //     mattered.
-
-/** How far the finger has to travel for a release to open it. */
-const PULL_TO_OPEN = 64
-/** The box moves at this share of the finger's travel. */
-const RESIST = 0.6
+//
+// The gesture is the SDK's `PullDrawer` (@unisim/sdk ≥ 0.197, 2026-10-19),
+// the same one `PhoneSearch` and the phone app use; `pullable` limits the
+// pull to a phone while the box stays folded at every width.
 
 export interface FindWithinHandle {
   open(): void
@@ -48,37 +47,15 @@ export default function FindWithin({
   placeholder: string
   handle?: Ref<FindWithinHandle>
 }) {
-  const box = useRef<HTMLDivElement>(null)
-  const inner = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const shown = open || query.trim() !== ''
+  const phone = useMediaQuery(PHONE_QUERY)
 
-  const full = () => inner.current?.offsetHeight ?? 52
-
-  const settle = useCallback((to: number) => {
-    const el = box.current
-    if (!el) return
-    let reduced = false
-    try {
-      reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    } catch { /* animate */ }
-    el.style.transition = reduced ? 'none' : 'height 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease-out'
-    el.style.height = `${to}px`
-    el.style.opacity = to > 0 ? '1' : '0'
-  }, [])
-
-  useLayoutEffect(() => {
-    settle(shown ? full() : 0)
-  }, [shown, settle])
-
-  // ⚠️ Opening happens INSIDE `touchend`, with `flushSync` first — iOS only
-  // raises the keyboard for a focus made during the gesture, so the field has
-  // to be focusable before the handler returns rather than on the next render.
-  const openNow = useCallback(() => {
-    flushSync(() => setOpen(true))
-    settle(full())
-    input.current?.focus()
-  }, [setOpen, settle])
+  // ⚠️ Opening happens INSIDE `touchend` (or the button's click), rendered
+  // open first — iOS only raises the keyboard for a focus made during the
+  // gesture, so the field has to be focusable before the handler returns
+  // rather than on the next render.
+  const openNow = useCallback(() => openThenFocus(() => setOpen(true), input, {}), [setOpen])
 
   useImperativeHandle(handle, () => ({ open: openNow }), [openNow])
 
@@ -91,89 +68,34 @@ export default function FindWithin({
     input.current?.blur()
   }, [setQuery, setOpen])
 
-  // The pull. Only from the very top of the page, one finger, on a phone.
-  //
-  // ⚠️ AND ONLY DOWN, and never off something that swipes sideways
-  // (`data-swipe-x`) — the first 10px of a touch decide it, exactly as in
-  // `PhoneSearch`. A record page has a cover on it that people drag.
-  useEffect(() => {
-    if (shown) return
-    const phone = window.matchMedia('(max-width: 639px)')
-    let startY: number | null = null
-    let startX = 0
-    let pulled = 0
-    let decided = false
-    const start = (e: TouchEvent) => {
-      const onSwiper = e.target instanceof Element && e.target.closest('[data-swipe-x]') !== null
-      startY = phone.matches && !onSwiper && window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null
-      startX = e.touches[0]?.clientX ?? 0
-      pulled = 0
-      decided = false
-    }
-    const move = (e: TouchEvent) => {
-      const el = box.current
-      if (startY === null || e.touches.length !== 1 || !el) return
-      const dy = e.touches[0].clientY - startY
-      const dx = e.touches[0].clientX - startX
-      if (!decided) {
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
-        decided = true
-        if (dy <= 0 || Math.abs(dx) >= Math.abs(dy) * 0.75) {
-          startY = null
-          return
-        }
-      }
-      pulled = dy
-      const peek = Math.max(0, Math.min(full(), pulled * RESIST))
-      el.style.transition = 'none'
-      el.style.height = `${peek}px`
-      el.style.opacity = String(Math.min(1, peek / full()))
-    }
-    const end = () => {
-      if (startY === null) return
-      startY = null
-      if (pulled > PULL_TO_OPEN) openNow()
-      else settle(0)
-    }
-    window.addEventListener('touchstart', start, { passive: true })
-    window.addEventListener('touchmove', move, { passive: true })
-    window.addEventListener('touchend', end)
-    window.addEventListener('touchcancel', end)
-    return () => {
-      window.removeEventListener('touchstart', start)
-      window.removeEventListener('touchmove', move)
-      window.removeEventListener('touchend', end)
-      window.removeEventListener('touchcancel', end)
-    }
-  }, [shown, openNow, settle])
-
+  // The pull: only from the very top of the page, one finger, on a phone, only
+  // down, and never off something that swipes sideways (`data-swipe-x`) — a
+  // record page has a cover on it that people drag.
   return (
-    <div ref={box} className="h-0 overflow-hidden opacity-0" aria-hidden={!shown}>
-      <div ref={inner} className="pb-4">
-        <div className="relative">
-          <SearchGlyph />
-          <input
-            ref={input}
-            type="search"
-            value={query}
-            tabIndex={shown ? 0 : -1}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              // Escape clears and folds it away — the way out without reaching
-              // for the X, or for the button that opened it.
-              if (e.key === 'Escape') clearAndClose()
-            }}
-            onBlur={() => {
-              if (!query.trim()) setOpen(false)
-            }}
-            placeholder={placeholder}
-            aria-label={label}
-            className="w-full rounded-full border border-slate-300 bg-white py-2 pr-11 pl-9 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-          />
-          <ClearButton onClear={clearAndClose} tabIndex={shown ? 0 : -1} />
-        </div>
+    <PullDrawer shown={shown} onOpen={openNow} pullable={phone} className="h-0 opacity-0" innerClassName="pb-4">
+      <div className="relative">
+        <SearchGlyph />
+        <input
+          ref={input}
+          type="search"
+          value={query}
+          tabIndex={shown ? 0 : -1}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            // Escape clears and folds it away — the way out without reaching
+            // for the X, or for the button that opened it.
+            if (e.key === 'Escape') clearAndClose()
+          }}
+          onBlur={() => {
+            if (!query.trim()) setOpen(false)
+          }}
+          placeholder={placeholder}
+          aria-label={label}
+          className="w-full rounded-full border border-slate-300 bg-white py-2 pr-11 pl-9 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        />
+        <ClearButton onClear={clearAndClose} tabIndex={shown ? 0 : -1} />
       </div>
-    </div>
+    </PullDrawer>
   )
 }
 
