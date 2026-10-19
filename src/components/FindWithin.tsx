@@ -72,7 +72,7 @@ export default function FindWithin({
   // down, and never off something that swipes sideways (`data-swipe-x`) — a
   // record page has a cover on it that people drag.
   return (
-    <PullDrawer shown={shown} onOpen={openNow} pullable={phone} className="h-0 opacity-0" innerClassName="pb-4">
+    <PullDrawer shown={shown} onOpen={openNow} pullable={phone} containOverscroll={phone} className="h-0 opacity-0" innerClassName="pb-4">
       <div className="relative">
         <SearchGlyph />
         <input

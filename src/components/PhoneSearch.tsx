@@ -59,7 +59,7 @@ const PhoneSearch = forwardRef<PhoneSearchHandle, PhoneSearchProps>(function Pho
   }, [setQuery, setOpen])
 
   return (
-    <PullDrawer shown={shown} onOpen={openNow} pullable={phone} className="h-0 opacity-0 sm:hidden" innerClassName="pb-4">
+    <PullDrawer shown={shown} onOpen={openNow} pullable={phone} containOverscroll={phone} className="h-0 opacity-0 sm:hidden" innerClassName="pb-4">
       <div className="relative">
         <input
           ref={input}
