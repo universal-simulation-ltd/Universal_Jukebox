@@ -25,17 +25,12 @@
 // because each shelf keeps its id and nothing already on it is added twice.
 // Requests are merged by id the same way.
 //
-// Two places to keep it:
-//
-//   • A FILE (`jukebox-backup-YYYY-MM-DD.json`) — no account, no size limit,
-//     and the person puts it wherever they like, Proton Drive included.
-//   • Their Universal ID — the suite's opt-in `app_settings_backups` slot
-//     (migration 0050), written and read only when they tap Back up or
-//     Restore. ⚠️ That table caps a row at 64 KB, so the online copy is
-//     `fitBackup`'s: request pictures go first, then added lyrics, and the
-//     screen says what was left out. ⚠️ And unlike BlackBook's vault it is NOT
-//     end-to-end encrypted: the suite operator can see it (0050's god-mode
-//     policy, for support and erasure). The screen says so before it is used.
+// Where it is kept: a FILE (`jukebox-backup-YYYY-MM-DD.json`) — no account, no
+// size limit, and the person puts it wherever they like, Proton Drive
+// included. (Until 2026-10-20 a signed-in visitor on the website or desktop
+// could also keep a cut-down copy in their Universal ID's
+// `app_settings_backups` slot. That went with sign-in itself — James: "avoid
+// logins except where it really improves experience" — and prod had no rows.)
 
 import { fold } from './format'
 import { addRequest, parseRequests, type MusicRequest } from './requests'
@@ -43,13 +38,6 @@ import type { JukeboxShelf } from './shelves'
 import type { Track } from './types'
 
 export const BACKUP_VERSION = 1
-
-/**
- * The online copy's limit, in bytes of JSON. Under `app_settings_backups`'
- * 64 KB `pg_column_size` check with room to spare: that counts the stored
- * (compressed) jsonb, so anything this size or smaller always fits.
- */
-export const ONLINE_MAX_BYTES = 60_000
 
 /** A song as a backup names it — see the note at the top. */
 export interface SongRef {
@@ -84,12 +72,6 @@ export interface JukeboxBackup {
   requests: MusicRequest[]
   /** Lyrics files the person added themselves — never lrclib's, which can be looked up again. */
   lyrics: BackupLyrics[]
-}
-
-/** What `fitBackup` had to leave out of the online copy. */
-export interface LeftOut {
-  pictures: number
-  lyrics: number
 }
 
 export function songRef(track: Track): SongRef {
@@ -133,64 +115,6 @@ export function buildBackup(input: {
       .map((l) => ({ song: ref(l.id), raw: l.raw }))
       .filter((l): l is BackupLyrics => l.song !== null),
   }
-}
-
-export function backupBytes(backup: JukeboxBackup): number {
-  return new TextEncoder().encode(JSON.stringify(backup)).length
-}
-
-/**
- * The backup cut down to `max` bytes for the online slot, or null when even
- * the settings, shelves and requests alone are too big (the file has no limit,
- * and the screen offers it instead).
- *
- * Pictures go first — a request's picture can be searched for again — then
- * added lyrics, kept in the order they came until the next one would not fit.
- * Lyrics are kept before pictures because somebody typed or found them by hand.
- */
-export function fitBackup(backup: JukeboxBackup, max = ONLINE_MAX_BYTES): { backup: JukeboxBackup; left: LeftOut } | null {
-  if (backupBytes(backup) <= max) return { backup, left: { pictures: 0, lyrics: 0 } }
-
-  const bare: JukeboxBackup = {
-    ...backup,
-    requests: backup.requests.map((r) => {
-      const bareRequest = { ...r }
-      delete bareRequest.art
-      return bareRequest
-    }),
-    lyrics: [],
-  }
-  let size = backupBytes(bare)
-  if (size > max) return null
-
-  // Each item adds its own JSON plus a comma; counting it that way is exact
-  // enough, and the final size is measured again below.
-  const lyrics: BackupLyrics[] = []
-  for (const item of backup.lyrics) {
-    const cost = new TextEncoder().encode(JSON.stringify(item)).length + 1
-    if (size + cost > max) break
-    lyrics.push(item)
-    size += cost
-  }
-  const requests = bare.requests.map((r, i) => {
-    const art = backup.requests[i].art
-    if (!art) return r
-    const cost = new TextEncoder().encode(`,"art":${JSON.stringify(art)}`).length
-    if (size + cost > max) return r
-    size += cost
-    return { ...r, art }
-  })
-  const fitted: JukeboxBackup = { ...bare, requests, lyrics }
-  // Belt and braces: the running count is an estimate of JSON's own layout.
-  if (backupBytes(fitted) > max) return { backup: bare, left: { pictures: countArt(backup), lyrics: backup.lyrics.length } }
-  return {
-    backup: fitted,
-    left: { pictures: countArt(backup) - countArt(fitted), lyrics: backup.lyrics.length - lyrics.length },
-  }
-}
-
-function countArt(backup: JukeboxBackup): number {
-  return backup.requests.filter((r) => r.art).length
 }
 
 /**

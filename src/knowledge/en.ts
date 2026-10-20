@@ -137,7 +137,6 @@ After adding or removing songs in the cloud, choose **Rescan**.
 Your shelves, your requests, your settings and any lyrics files you added exist only in the app. To keep them, open **Tune this app** and then **Backup**:
 
 - **Save a backup file** makes one small file you can keep anywhere. No account is needed. In the phone apps it is saved in the app’s Documents folder, and you can move it from the Files app.
-- **Back up to your Universal ID** keeps the same backup with your account, if you are signed in. It is replaced each time you back up, and you can delete it. It isn’t end-to-end encrypted. If it is too big for your account, the app says what it left out, and a backup file keeps everything.
 
 ## On a new phone
 
@@ -285,7 +284,7 @@ If you like to watch the record turn, **Keep awake** stops the screen dimming or
 - **Your library catalogue**: titles, artists, albums, small copies of the covers, and any tidy-up corrections.
 - **Your settings, your requests and where you left off.** They stay in the app on this device.
 
-None of this leaves your device unless you make a backup. A backup file goes wherever you save it. A backup to your Universal ID holds your settings, shelves, requests and any lyrics you added, named by title, artist and album; it never holds your music. If you use Jukebox on two devices, each keeps its own library.
+None of this leaves your device unless you make a backup. A backup file goes wherever you save it. It holds your settings, shelves, requests and any lyrics you added, named by title, artist and album; it never holds your music. If you use Jukebox on two devices, each keeps its own library.
 
 ## The three lookups
 
@@ -297,13 +296,9 @@ Only three features ever send anything about your music, and none of them does a
 
 Answers from the first two are kept on your device, so a song is looked up only once. Tune this app shows how many there are and lets you forget them. No audio ever leaves your device.
 
-## Counting opens
+## No account
 
-On the website, the first time you open the app each day, it adds one to an anonymous count of daily opens, sent after your first click or key press. That count holds only the app’s name and the kind of platform (on the website, "web"): no identifier, no account and nothing about what you do. A "counted today" mark stays on your device and is never sent. The iPhone, iPad, Android and desktop apps don’t send it.
-
-## Universal ID
-
-Signing in with a Universal ID is optional. It keeps you signed in across the UNI·SIM apps, and lets you keep a backup with your account if you choose to. While you are signed in, the app records one “opened” event against your account each time it starts. That event says nothing about your music.
+There is no sign-in, on any device. Jukebox doesn’t count how often it is opened and sends nothing when it starts: nothing tells us when you use it.
 
 ## Permissions
 

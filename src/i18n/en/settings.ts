@@ -56,8 +56,7 @@ export default {
   // Backup (section)
   'backup_title': 'Backup', // section title
   'backup_note': 'Keep your music in your own cloud. Back up your shelves, requests and settings here.',
-  'summary_backed_up': 'Backed up {when}', // summary; {when} is a date and time
-  'summary_backup_none': 'Your music stays on your devices', // summary, when nothing is backed up online
+  'summary_backup_none': 'Your music stays on your devices', // the Backup section's summary line
   'your_music': 'Your music',
   'your_music_hint': 'Jukebox never uploads your music, so keep a copy somewhere safe yourself: Proton Drive, iCloud Drive, Google Drive or OneDrive all work. Make the music folder available offline on your phone, then add it from Your complete library in the menu. On a new phone, do the same and restore a backup below to get your shelves back.',
   'backup_blocked_trying': 'Go back to your own music first — the example library is being tried.',
@@ -68,28 +67,8 @@ export default {
   'saved': 'Saved as {name}.',
   'restore_file': 'Restore from a file', // row with an Open button that picks the file
   'restore_file_hint': 'Puts back the shelves and requests from a backup file, and its settings.',
-  'backup_online': 'Back up to your Universal ID',
-  'backup_online_hint': 'The same backup, kept with your account and replaced each time you tap Back up. It isn’t end-to-end encrypted: like your account details, UNI·SIM could see it.', // followed by one of the next two
-  'last_backed_up': 'Last backed up {when}.',
-  'nothing_backed_up': 'Nothing backed up yet.',
-  'back_up': 'Back up', // button
-  'backup_too_big': 'Your shelves are too big to keep with your account. Save a backup file instead — it has no limit.',
-  'backed_up': 'Backed up.',
-  'backed_up_except': 'Backed up, except {list}, which didn’t fit. A backup file keeps everything.', // {list} is one or both of the next two
-  'left_lyrics_one': '{count} added lyrics', // lyrics the person added to songs
-  'left_lyrics_other': '{count} added lyrics',
-  'left_pictures_one': '{count} request picture', // pictures attached to requests
-  'left_pictures_other': '{count} request pictures',
-  'restore_online': 'Restore from your Universal ID',
-  'restore_from_when': 'From {when}.', // when the online backup was made
   'restore': 'Restore', // button
-  'no_online_backup': 'There’s no backup on your account to restore.',
-  'delete_online': 'Delete the online backup', // link
-  'deleted_online': 'Your online backup has been deleted. Nothing on this device has changed.',
-  'backup_sign_in_hint': 'Sign in to keep a backup with your account, ready for a new phone. Optional: a backup file works without one.',
-  'sign_in': 'Sign in', // button
   'restore_confirm_file': 'Restore the backup from the file, made {when}?',
-  'restore_confirm_online': 'Restore the backup from your Universal ID, made {when}?',
   'restore_confirm_detail': 'Its settings replace the ones here. Its shelves and requests are added to yours, and nothing you have now is removed. A song only goes back on a shelf if it’s in your library, so restore again after adding more music to bring back the rest.',
   // After a restore: "Settings restored, 12 songs back on your shelves, 2 requests added." — the parts are joined with ", "
   'restored_settings': 'Settings restored',
@@ -105,9 +84,6 @@ export default {
   'restore_wait_loading': 'Wait for your library to finish loading, then restore.',
   'not_a_backup': 'That file isn’t a Jukebox backup.',
   'not_a_backup_or_newer': 'That file isn’t a Jukebox backup, or it was made by a newer version of the app.',
-  'backup_failed': 'Couldn’t back up: {message}', // {message} is the server's own error, in English
-  'read_failed': 'Couldn’t read your backup: {message}',
-  'delete_failed': 'Couldn’t delete your backup: {message}',
 
   // What you're playing on (section)
   'deck_title': 'What you’re playing on', // section title

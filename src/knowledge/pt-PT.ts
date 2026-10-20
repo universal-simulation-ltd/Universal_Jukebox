@@ -137,7 +137,6 @@ Depois de adicionar ou remover músicas na nuvem, escolha **Analisar novamente**
 As suas prateleiras, os seus pedidos, as suas definições e os ficheiros de letras que adicionou existem apenas na aplicação. Para os guardar, abra **Ajustar esta aplicação** e depois **Cópia de segurança**:
 
 - **Guardar um ficheiro de cópia de segurança** cria um único ficheiro pequeno que pode guardar onde quiser. Não é necessária nenhuma conta. Nas aplicações para telemóvel, é guardado na pasta Documentos da aplicação, e pode movê-lo a partir da aplicação Ficheiros.
-- **Cópia de segurança no seu Universal ID** guarda a mesma cópia de segurança com a sua conta, se tiver a sessão iniciada. É substituída sempre que faz uma cópia, e pode eliminá-la. Não tem encriptação ponto a ponto. Se for demasiado grande para a sua conta, a aplicação indica o que deixou de fora, e um ficheiro de cópia de segurança guarda tudo.
 
 ## Num telemóvel novo
 
@@ -285,7 +284,7 @@ Se gosta de ver o disco a girar, **Ecrã ligado** impede que o ecrã escureça o
 - **O catálogo da sua biblioteca**: títulos, artistas, álbuns, cópias pequenas das capas e as correções que fez ao arrumar.
 - **As suas definições, os seus pedidos e o ponto onde ficou.** Ficam na aplicação, neste dispositivo.
 
-Nada disto sai do seu dispositivo, a menos que faça uma cópia de segurança. Um ficheiro de cópia de segurança vai para onde o guardar. Uma cópia de segurança no seu Universal ID contém as definições, as prateleiras, os pedidos e as letras que adicionou, identificadas pelo título, pelo artista e pelo álbum; nunca contém a sua música. Se utilizar o Jukebox em dois dispositivos, cada um mantém a sua própria biblioteca.
+Nada disto sai do seu dispositivo, a menos que faça uma cópia de segurança. Um ficheiro de cópia de segurança vai para onde o guardar. Contém as definições, as prateleiras, os pedidos e as letras que adicionou, identificadas pelo título, pelo artista e pelo álbum; nunca contém a sua música. Se utilizar o Jukebox em dois dispositivos, cada um mantém a sua própria biblioteca.
 
 ## As três pesquisas
 
@@ -297,13 +296,9 @@ Só três funcionalidades enviam alguma coisa sobre a sua música, e nenhuma faz
 
 As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cada música só é consultada uma vez. Ajustar esta aplicação mostra quantas existem e permite esquecê-las. Nenhum áudio sai alguma vez do seu dispositivo.
 
-## Contagem de aberturas
+## Sem conta
 
-No site, na primeira vez que abre a aplicação em cada dia, soma um à contagem anónima de aberturas do dia, enviada depois do seu primeiro clique ou da primeira tecla premida. Essa contagem contém apenas o nome da aplicação e o tipo de plataforma («web» no site): nenhum identificador, nenhuma conta e nada sobre o que faz. Uma marca de «já contado hoje» fica no seu dispositivo e nunca é enviada. As aplicações para iPhone, iPad, Android e computador não enviam isto.
-
-## Universal ID
-
-Iniciar sessão com um Universal ID é opcional. Mantém a sessão iniciada em todas as aplicações da UNI·SIM e permite guardar uma cópia de segurança com a sua conta, se quiser. Enquanto tiver a sessão iniciada, a aplicação regista um evento de «aberta» na sua conta sempre que é iniciada. Esse evento não diz nada sobre a sua música.
+Não há início de sessão em nenhum dispositivo. O Jukebox não conta quantas vezes é aberto e não envia nada ao iniciar: nada nos avisa quando o utiliza.
 
 ## Autorizações
 

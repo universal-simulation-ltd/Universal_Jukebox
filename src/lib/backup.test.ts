@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ONLINE_MAX_BYTES, backupBytes, backupFileName, buildBackup, fitBackup, matchSongs, mergeRequests, mergeShelves, parseBackup,
+  backupFileName, buildBackup, matchSongs, mergeRequests, mergeShelves, parseBackup,
   type JukeboxBackup,
 } from './backup'
 import { REQUESTS_MAX, type MusicRequest } from './requests'
@@ -52,32 +52,6 @@ describe('building a backup', () => {
     expect(parseBackup({ app: 'jukebox', v: 1, shelves: [{ id: 's', songs: [{ t: '' }, 3] }], lyrics: [{ song: { t: 'a' } }] })).toMatchObject({
       shelves: [], lyrics: [], requests: [], settings: {},
     })
-  })
-})
-
-describe('fitting the online copy', () => {
-  it('keeps everything when it fits', () => {
-    const b = backup()
-    expect(fitBackup(b)).toEqual({ backup: b, left: { pictures: 0, lyrics: 0 } })
-  })
-
-  it('drops pictures before lyrics, and says how many', () => {
-    const art = `data:image/webp;base64,${'A'.repeat(20_000)}`
-    const b: JukeboxBackup = {
-      ...backup(),
-      requests: [req({ id: 'a', art }), req({ id: 'b', art }), req({ id: 'c', art })],
-      lyrics: [{ song: { t: 'Hurt' }, raw: 'L'.repeat(15_000) }],
-    }
-    const fitted = fitBackup(b)!
-    expect(backupBytes(fitted.backup)).toBeLessThanOrEqual(ONLINE_MAX_BYTES)
-    expect(fitted.backup.lyrics).toHaveLength(1)
-    expect(fitted.left).toEqual({ pictures: 1, lyrics: 0 })
-    expect(fitted.backup.requests.map((r) => r.id)).toEqual(['a', 'b', 'c'])
-  })
-
-  it('gives up when the shelves alone are too big for the online copy', () => {
-    const b = { ...backup(), shelves: [{ id: 's', songs: Array.from({ length: 3_000 }, (_, i) => ({ t: `Song number ${i}`, a: 'Someone' })) }] }
-    expect(fitBackup(b)).toBeNull()
   })
 })
 

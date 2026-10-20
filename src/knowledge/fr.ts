@@ -137,7 +137,6 @@ Après avoir ajouté ou supprimé des morceaux dans le cloud, choisissez **Réan
 Vos étagères, vos demandes, vos réglages et les fichiers de paroles que vous avez ajoutés n’existent que dans l’application. Pour les conserver, ouvrez **Régler cette application**, puis **Sauvegarde** :
 
 - **Enregistrer un fichier de sauvegarde** crée un petit fichier unique que vous pouvez garder n’importe où. Aucun compte n’est nécessaire. Dans les applications pour téléphone, il est enregistré dans le dossier Documents de l’application, et vous pouvez le déplacer depuis l’app Fichiers.
-- **Sauvegarder sur votre Universal ID** conserve la même sauvegarde avec votre compte, si vous êtes connecté. Elle est remplacée à chaque sauvegarde, et vous pouvez la supprimer. Elle n’est pas chiffrée de bout en bout. Si elle est trop volumineuse pour votre compte, l’application indique ce qu’elle a laissé de côté, et un fichier de sauvegarde garde tout.
 
 ## Sur un nouveau téléphone
 
@@ -285,7 +284,7 @@ Si vous aimez regarder le disque tourner, **Anti-veille** empêche l’écran de
 - **Le catalogue de votre bibliothèque** : titres, artistes, albums, petites copies des pochettes et éventuelles corrections de ménage.
 - **Vos réglages, vos demandes et l’endroit où vous vous étiez arrêté.** Ils restent dans l’application sur cet appareil.
 
-Rien de tout cela ne quitte votre appareil, sauf si vous faites une sauvegarde. Un fichier de sauvegarde va là où vous l’enregistrez. Une sauvegarde sur votre Universal ID contient vos réglages, vos étagères, vos demandes et les paroles que vous avez ajoutées, désignés par leur titre, leur artiste et leur album ; elle ne contient jamais votre musique. Si vous utilisez Jukebox sur deux appareils, chacun garde sa propre bibliothèque.
+Rien de tout cela ne quitte votre appareil, sauf si vous faites une sauvegarde. Un fichier de sauvegarde va là où vous l’enregistrez. Il contient vos réglages, vos étagères, vos demandes et les paroles que vous avez ajoutées, désignés par leur titre, leur artiste et leur album ; il ne contient jamais votre musique. Si vous utilisez Jukebox sur deux appareils, chacun garde sa propre bibliothèque.
 
 ## Les trois recherches
 
@@ -297,13 +296,9 @@ Seules trois fonctions envoient quoi que ce soit au sujet de votre musique, et a
 
 Les réponses des deux premières sont conservées sur votre appareil, si bien qu’un morceau n’est recherché qu’une fois. La page Régler cette application indique combien il y en a et vous permet de les oublier. Aucun son ne quitte jamais votre appareil.
 
-## Comptage des ouvertures
+## Pas de compte
 
-Sur le site web, la première fois que vous ouvrez l’application chaque jour, elle ajoute un au décompte anonyme des ouvertures du jour, envoyé après votre premier clic ou votre première frappe au clavier. Ce décompte ne contient que le nom de l’application et le type de plateforme (« web » sur le site) : aucun identifiant, aucun compte et rien sur ce que vous faites. Une marque « déjà compté aujourd’hui » reste sur votre appareil et n’est jamais envoyée. Les applications pour iPhone, iPad, Android et ordinateur ne l’envoient pas.
-
-## Universal ID
-
-La connexion avec un Universal ID est facultative. Elle vous garde connecté dans toutes les applications UNI·SIM, et vous permet de garder une sauvegarde avec votre compte si vous le souhaitez. Pendant que vous êtes connecté, l’application enregistre un événement « ouverture » sur votre compte à chaque démarrage. Cet événement ne dit rien de votre musique.
+Il n’y a aucune connexion, sur aucun appareil. Jukebox ne compte pas combien de fois il est ouvert et n’envoie rien au démarrage : rien ne nous signale quand vous l’utilisez.
 
 ## Autorisations
 

@@ -137,7 +137,6 @@ Wählen Sie **Neu einlesen**, nachdem Sie in der Cloud Songs hinzugefügt oder e
 Ihre Regale, Ihre Wünsche, Ihre Einstellungen und alle Songtext-Dateien, die Sie hinzugefügt haben, gibt es nur in der App. Um sie zu behalten, öffnen Sie **Diese App anpassen** und dann **Sicherung**:
 
 - **Sicherungsdatei speichern** erstellt eine kleine Datei, die Sie überall aufbewahren können. Ein Konto ist nicht nötig. In den Smartphone-Apps wird sie im Ordner „Dokumente“ der App gespeichert, und Sie können sie in der Dateien-App verschieben.
-- **In deiner Universal ID sichern** bewahrt dieselbe Sicherung bei Ihrem Konto auf, wenn Sie angemeldet sind. Sie wird bei jedem Sichern ersetzt, und Sie können sie löschen. Sie ist nicht Ende-zu-Ende-verschlüsselt. Ist sie zu groß für Ihr Konto, sagt die App, was sie weggelassen hat – eine Sicherungsdatei behält alles.
 
 ## Auf einem neuen Smartphone
 
@@ -285,7 +284,7 @@ Wenn Sie der Platte gern beim Drehen zusehen, verhindert **Bildschirm an**, dass
 - **Der Katalog Ihrer Mediathek**: Titel, Interpreten, Alben, kleine Kopien der Cover und etwaige Aufräum-Korrekturen.
 - **Ihre Einstellungen, Ihre Wünsche und die Stelle, an der Sie aufgehört haben.** Sie bleiben in der App auf diesem Gerät.
 
-Nichts davon verlässt Ihr Gerät, es sei denn, Sie erstellen eine Sicherung. Eine Sicherungsdatei landet dort, wo Sie sie speichern. Eine Sicherung in Ihrer Universal ID enthält Ihre Einstellungen, Regale, Wünsche und etwaige von Ihnen hinzugefügte Songtexte, benannt nach Titel, Interpret und Album; Ihre Musik enthält sie nie. Wenn Sie Jukebox auf zwei Geräten nutzen, hat jedes seine eigene Mediathek.
+Nichts davon verlässt Ihr Gerät, es sei denn, Sie erstellen eine Sicherung. Eine Sicherungsdatei landet dort, wo Sie sie speichern. Sie enthält Ihre Einstellungen, Regale, Wünsche und etwaige von Ihnen hinzugefügte Songtexte, benannt nach Titel, Interpret und Album; Ihre Musik enthält sie nie. Wenn Sie Jukebox auf zwei Geräten nutzen, hat jedes seine eigene Mediathek.
 
 ## Die drei Abfragen
 
@@ -297,13 +296,9 @@ Nur drei Funktionen senden überhaupt etwas über Ihre Musik, und keine davon tu
 
 Die Antworten der ersten beiden werden auf Ihrem Gerät gespeichert, sodass ein Song nur einmal abgefragt wird. „Diese App anpassen“ zeigt, wie viele es sind, und lässt Sie sie vergessen. Audio verlässt Ihr Gerät nie.
 
-## Zählung der Öffnungen
+## Kein Konto
 
-Auf der Website zählt die App beim ersten Öffnen jedes Tages eins zur anonymen Tageszählung der Öffnungen hinzu, gesendet nach Ihrem ersten Klick oder Tastendruck. Diese Zählung enthält nur den Namen der App und die Art der Plattform („web“ auf der Website): keine Kennung, kein Konto und nichts darüber, was Sie tun. Eine Markierung „heute schon gezählt“ bleibt auf Ihrem Gerät und wird nie gesendet. Die Apps für iPhone, iPad, Android und Desktop senden dies nicht.
-
-## Universal ID
-
-Die Anmeldung mit einer Universal ID ist optional. Sie hält Sie in allen UNI·SIM-Apps angemeldet und ermöglicht Ihnen, auf Wunsch eine Sicherung bei Ihrem Konto aufzubewahren. Solange Sie angemeldet sind, erfasst die App bei jedem Start ein „Geöffnet“-Ereignis in Ihrem Konto. Dieses Ereignis sagt nichts über Ihre Musik aus.
+Es gibt keine Anmeldung, auf keinem Gerät. Jukebox zählt nicht, wie oft es geöffnet wird, und sendet beim Start nichts: Nichts meldet uns, wann Sie es nutzen.
 
 ## Berechtigungen
 

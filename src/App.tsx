@@ -1,7 +1,9 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
-// that is the only event this app will ever send. No event may carry a
+// that is the only event this app will ever send. Since 2026-10-20 nobody is
+// ever signed in (`noAccounts: true` in main.tsx), so in practice it sends
+// nothing at all. No event may carry a
 // filename, an artist, an album, a track count or a byte count: this app reads
 // someone's whole music collection, and the front page promises we never
 // build a picture of what people own.

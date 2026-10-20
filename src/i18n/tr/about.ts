@@ -30,7 +30,7 @@ const about: Draft['about'] = {
   'app_title': 'Elinizdeki müzik için bir çalar',
   'app_intro': 'Universal Jukebox bir müzik çalardır, o kadar. Onu kendi cihazınızdaki bir klasöre yönlendirirsiniz; etiketleri ve albüm kapaklarını doğrudan dosyalardan okur, göz atabileceğiniz bir kitaplık oluşturur ve onu çalar.',
   'app_nothing_uploaded': 'Hiçbir şey yüklenmez.',
-  'app_privacy': '{nothing_uploaded} Ne bir parça, ne bir kapak, ne de bir dosya adı. Okuma işlemi kendi cihazınızda yapılır. Tek istisna üç aramadır ve her biri siz açana ya da dokunana kadar bekler: şarkı sözleri, Bu şarkı hakkında ve Görsel bul, bir şarkının sanatçısını ve başlığını gönderir, müziği asla. Kaydolmanız gereken bir şey yok. Universal ID ile giriş yapmak isteğe bağlıdır: UNI·SIM uygulamalarında oturumunuzu açık tutar ve uygulamanın açıldığını bize bildirir; müziğinizi asla görmez.',
+  'app_privacy': '{nothing_uploaded} Ne bir parça, ne bir kapak, ne de bir dosya adı. Okuma işlemi kendi cihazınızda yapılır. Tek istisna üç aramadır ve her biri siz açana ya da dokunana kadar bekler: şarkı sözleri, Bu şarkı hakkında ve Görsel bul, bir şarkının sanatçısını ve başlığını gönderir, müziği asla. Hesap yoktur, giriş yapılacak bir şey de yoktur. Kullanım sayımı da göndermez: uygulamayı ne zaman açtığınızı bize hiçbir şey bildirmez.',
   'app_not_word': 'değildir',
   'app_not': 'Bir akış hizmeti {not} ve kendine ait bir kataloğu yoktur. Zaten sahip olmadığınız müziği sizin için bulamaz ve hiçbir plak şirketine, mağazaya ya da aboneliğe bağlı değildir. Dosyalarınız başka bir yerdeyse bu uygulama onlara ulaşamaz.',
   'app_plays_heading': 'Neleri çalar',

@@ -33,7 +33,7 @@ const about: Draft['about'] = {
   'app_title': 'Um player para as músicas que você já tem',
   'app_intro': 'O Universal Jukebox é um player de música, e nada mais do que isso. Você indica uma pasta no seu próprio aparelho; ele lê as tags e as capas dos próprios arquivos, monta uma biblioteca que você pode navegar e a toca.',
   'app_nothing_uploaded': 'Nada é enviado.',
-  'app_privacy': '{nothing_uploaded} Nem uma faixa, nem uma capa, nem um nome de arquivo. A leitura acontece no seu próprio aparelho. As únicas exceções são três consultas, e cada uma espera até você ativá-la ou tocar nela: a letra, Sobre esta música e Encontrar uma imagem enviam o artista e o título de uma música, nunca a música em si. Não há cadastro. Entrar com um Universal ID é opcional: mantém você conectado nos apps da UNI·SIM e nos avisa que o app foi aberto, e nunca vê as suas músicas.',
+  'app_privacy': '{nothing_uploaded} Nem uma faixa, nem uma capa, nem um nome de arquivo. A leitura acontece no seu próprio aparelho. As únicas exceções são três consultas, e cada uma espera até você ativá-la ou tocar nela: a letra, Sobre esta música e Encontrar uma imagem enviam o artista e o título de uma música, nunca a música em si. Não há conta nem nada em que entrar. Ele também não envia nenhuma contagem de uso: nada nos avisa quando você o abre.',
   'app_not_word': 'não',
   'app_not': 'Ele {not} é um serviço de streaming e não tem catálogo próprio. Não consegue encontrar músicas que você ainda não tem e não está ligado a nenhuma gravadora, loja ou assinatura. Se os seus arquivos estão em outro lugar, este app não consegue alcançá-los.',
   'app_plays_heading': 'O que ele toca',

@@ -3,7 +3,6 @@ import HelpArticleLink from './HelpArticleLink'
 import {
   LANGUAGE_LABELS,
   SUPPORTED_LANGUAGES,
-  SignInDialog,
   translateNav,
   useGlobalPreferences,
   useResetAppDefaults,
@@ -23,7 +22,7 @@ import { savedEvents } from '../lib/bgLog'
 import { goHome, navigate } from '../lib/route'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { forgetSettingsSection, pendingSettingsSection, type SettingsSectionId } from '../lib/settingsSection'
-import { applyBackup, deleteOnline, gatherBackup, loadOnline, readBackupFile, saveBackupFile, saveOnline, type RestoreResult } from '../lib/backupIo'
+import { applyBackup, gatherBackup, readBackupFile, saveBackupFile, type RestoreResult } from '../lib/backupIo'
 import type { JukeboxBackup } from '../lib/backup'
 import { askToNotify, notifyPermission, notifySupport } from '../lib/trackNotify'
 import { canSetElementVolume } from '../lib/volumeSupport'
@@ -776,37 +775,19 @@ function RemovedFromJukebox() {
  *
  * ⚠️ A restore always asks first, because it REPLACES the settings (the
  * shelves and requests it only adds to — see `lib/backup.ts`).
+ *
+ * The file is the only place a backup goes. Until 2026-10-20 a signed-in
+ * visitor on the website or desktop also saw "Back up to your Universal ID";
+ * that went with sign-in (`noAccounts: true` in main.tsx).
  */
 function BackupSection() {
   const t = useT()
-  const { supabase, session, noAccounts } = useUniversal()
-  const userId = session?.user?.id ?? null
   const libraryReady = useLibraryStore((l) => l.status === 'ready')
   const trying = useLibraryStore((l) => l.trying)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
-  const [signingIn, setSigningIn] = useState(false)
-  /** The backup waiting on "Restore" to be confirmed, and where it came from. */
-  const [pending, setPending] = useState<{ backup: JukeboxBackup; from: 'file' | 'online' } | null>(null)
-  /** When the account's backup was made: undefined while asking, null for none. */
-  const [online, setOnline] = useState<number | null | undefined>(undefined)
-
-  useEffect(() => {
-    if (!userId) {
-      setOnline(undefined)
-      return
-    }
-    let live = true
-    void supabase
-      .from('app_settings_backups')
-      .select('updated_at')
-      .eq('app', 'jukebox')
-      .maybeSingle()
-      .then(({ data }) => {
-        if (live) setOnline(data ? Date.parse((data as { updated_at: string }).updated_at) : null)
-      })
-    return () => { live = false }
-  }, [supabase, userId])
+  /** The backup file waiting on "Restore" to be confirmed. */
+  const [pending, setPending] = useState<JukeboxBackup | null>(null)
 
   const run = async (work: () => Promise<string | null>) => {
     setBusy(true)
@@ -836,7 +817,7 @@ function BackupSection() {
     <Section
       title={t('settings.backup_title')}
       note={t('settings.backup_note')}
-      summary={online ? t('settings.summary_backed_up', { when: formatWhen(t, online) }) : t('settings.summary_backup_none')}
+      summary={t('settings.summary_backup_none')}
     >
       <Row>
         <Label
@@ -863,96 +844,15 @@ function BackupSection() {
         hint={blocked ? blockedHint : t('settings.restore_file_hint')}
         onFile={(file) =>
           void run(async () => {
-            setPending({ backup: await readBackupFile(file), from: 'file' })
+            setPending(await readBackupFile(file))
             return null
           })
         }
       />
-      {!noAccounts && (userId ? (
-        <>
-          <Action
-            label={t('settings.backup_online')}
-            hint={
-              blocked
-                ? blockedHint
-                : `${t('settings.backup_online_hint')} ${
-                    online === undefined
-                      ? ''
-                      : online
-                        ? t('settings.last_backed_up', { when: formatWhen(t, online) })
-                        : t('settings.nothing_backed_up')
-                  }`
-            }
-            button={t('settings.back_up')}
-            disabled={busy || blocked}
-            onClick={() =>
-              void run(async () => {
-                const saved = await saveOnline(supabase, userId, await gatherBackup())
-                if (!saved) {
-                  throw new Error(t('settings.backup_too_big'))
-                }
-                setOnline(saved.savedAt)
-                const left = [
-                  saved.left.lyrics ? t.plural('settings.left_lyrics', saved.left.lyrics) : '',
-                  saved.left.pictures ? t.plural('settings.left_pictures', saved.left.pictures) : '',
-                ].filter(Boolean)
-                return left.length
-                  ? t('settings.backed_up_except', {
-                      list: left.length === 2 ? t('common.list_and', { a: left[0], b: left[1] }) : left[0],
-                    })
-                  : t('settings.backed_up')
-              })
-            }
-          />
-          {online ? (
-            <Action
-              label={t('settings.restore_online')}
-              hint={blocked ? blockedHint : t('settings.restore_from_when', { when: formatWhen(t, online) })}
-              button={t('settings.restore')}
-              disabled={busy || blocked}
-              onClick={() =>
-                void run(async () => {
-                  const backup = await loadOnline(supabase)
-                  if (!backup) throw new Error(t('settings.no_online_backup'))
-                  setPending({ backup, from: 'online' })
-                  return null
-                })
-              }
-            />
-          ) : null}
-          {online ? (
-            <Row>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    await deleteOnline(supabase)
-                    setOnline(null)
-                    return t('settings.deleted_online')
-                  })
-                }
-                className="text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline disabled:opacity-50 dark:text-slate-400 dark:hover:text-orange-400"
-              >
-                {t('settings.delete_online')}
-              </button>
-            </Row>
-          ) : null}
-        </>
-      ) : (
-        <Action
-          label={t('settings.backup_online')}
-          hint={t('settings.backup_sign_in_hint')}
-          button={t('settings.sign_in')}
-          onClick={() => setSigningIn(true)}
-        />
-      ))}
       {pending && (
         <Row>
           <p className="text-[13.5px] text-slate-800 dark:text-slate-200">
-            {t(pending.from === 'file' ? 'settings.restore_confirm_file' : 'settings.restore_confirm_online', {
-              when: formatWhen(t, pending.backup.savedAt),
-            })}
+            {t('settings.restore_confirm_file', { when: formatWhen(t, pending.savedAt) })}
           </p>
           <p className="mt-1 text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
             {t('settings.restore_confirm_detail')}
@@ -961,7 +861,7 @@ function BackupSection() {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void restore(pending.backup)}
+              onClick={() => void restore(pending)}
               className="rounded-full bg-orange-600 px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-orange-700 disabled:opacity-50"
             >
               {t('settings.restore')}
@@ -986,7 +886,6 @@ function BackupSection() {
           </p>
         </Row>
       )}
-      <SignInDialog open={signingIn} onClose={() => setSigningIn(false)} />
     </Section>
   )
 }

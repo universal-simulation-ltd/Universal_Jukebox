@@ -10,15 +10,12 @@ import { watchAudioRoute } from './lib/nowPlayingNative'
 import './index.css'
 import { installShortcuts } from './lib/shortcuts'
 import { followThemeWithStatusBar } from './lib/systemBars'
-import { phoneScreens } from './native/shell'
-import { isNativeShell } from './lib/nativeFile'
-import { isDesktopApp } from './lib/host'
 // Counts plays for the Most played shelf from the first song on (`lib/playCounts.ts`).
 import './lib/playCounts'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
-// mount <UniversalProvider> so the shared navbar works and, when the visitor is
-// signed in on .unisim.co.uk, the navbar shows their profile.
+// mount <UniversalProvider> so the shared navbar, suite switcher and language
+// work. There is no sign-in (see `noAccounts` below).
 //
 // The fallback is the REAL public suite project (publishable anon key — safe to
 // ship; RLS is the security boundary). Env overrides.
@@ -56,14 +53,20 @@ const universalConfig = {
   supabaseAnonKey: import.meta.env.VITE_PLATFORM_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5Z2Z4Z2Fsb2pvanBweG1oZGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTY4MjUsImV4cCI6MjA5NDMzMjgyNX0.hLy_vt9vY_rdPKF3nL32yAuMCD604E3CH5VM7D7CaNE',
   product: 'jukebox' as const,
   cookieDomain: import.meta.env.PROD ? '.unisim.co.uk' : undefined,
-  // ⚠️ The phone app has no sign-in at all (James, 2026-10-10). Nothing in it needs
-  // an account — the backup file still works — so the SDK hides every account
-  // affordance, and with no sign-in there is no Delete my account to provide.
-  noAccounts: phoneScreens(),
-  // The SDK's anonymous daily open count (0.187.0: once a day, product + kind
-  // of device, no identifier) stays on the website only. The phone app
-  // (Capacitor) and the desktop app (Electron) send nothing for it.
-  openCount: !isNativeShell() && !isDesktopApp(),
+  // ⚠️ No sign-in anywhere: phone, website or desktop (James, 2026-10-20, "avoid
+  // logins except where it really improves experience"; the phone app went
+  // first, 2026-10-10). Nothing in Jukebox needs an account. The backup FILE is
+  // the feature (`lib/backupIo.ts`) and works without one; the only thing a
+  // sign-in ever added was an online copy of that same backup in
+  // `app_settings_backups`, which had no rows on prod when it was removed. So
+  // the SDK hides every account affordance, never reads a suite session the
+  // browser holds, and there is no Delete my account to provide.
+  //
+  // `noAccounts` also turns OFF the SDK's anonymous daily open count (0.187.0:
+  // once a day, product + kind of device, no identifier), which the website
+  // used to send. Since this change no build sends it, so there is no
+  // `openCount` line: it would be ignored.
+  noAccounts: true,
 }
 
 // ⚠️ THE LIBRARY IS READ BEFORE REACT RENDERS, not from an effect afterwards.

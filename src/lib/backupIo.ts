@@ -1,11 +1,10 @@
-// The backup's side effects: reading the stores, writing them back, the file,
-// and the Universal ID slot. What a backup IS, and why it looks like that, is
+// The backup's side effects: reading the stores, writing them back, and the
+// file. What a backup IS, and why it looks like that, is
 // in `backup.ts`; this file only moves it about.
 
-import type { useUniversal } from '@unisim/sdk'
 import {
-  backupFileName, buildBackup, fitBackup, matchSongs, mergeRequests, mergeShelves, parseBackup,
-  type JukeboxBackup, type LeftOut,
+  backupFileName, buildBackup, matchSongs, mergeRequests, mergeShelves, parseBackup,
+  type JukeboxBackup,
 } from './backup'
 import { putLyricRecord, uploadedLyrics } from './library'
 import { CACHE_VERSION } from './lrclib'
@@ -15,12 +14,6 @@ import { useRequestsStore } from '../stores/requestsStore'
 import { settingsBlob, useSettingsStore } from '../stores/settingsStore'
 import { useShelvesStore } from '../stores/shelvesStore'
 import { getT } from '../i18n/runtime.ts'
-
-/** The SDK's client, typed through the SDK rather than a package this app doesn't depend on. */
-type SupabaseClient = ReturnType<typeof useUniversal>['supabase']
-
-/** `app_settings_backups.app` — the SDK product code, as migration 0050 asks. */
-const APP = 'jukebox'
 
 export async function gatherBackup(): Promise<JukeboxBackup> {
   const library = useLibraryStore.getState()
@@ -124,35 +117,4 @@ export async function readBackupFile(file: File): Promise<JukeboxBackup> {
   const backup = parseBackup(parsed)
   if (!backup) throw new Error(getT()('settings.not_a_backup_or_newer'))
   return backup
-}
-
-// ── Your Universal ID ────────────────────────────────────────────────────────
-
-export interface OnlineSaved {
-  savedAt: number
-  left: LeftOut
-}
-
-/** Back up to the signed-in account. Null when even the bare backup is too big for the slot. */
-export async function saveOnline(supabase: SupabaseClient, userId: string, backup: JukeboxBackup): Promise<OnlineSaved | null> {
-  const fitted = fitBackup(backup)
-  if (!fitted) return null
-  const { error } = await supabase
-    .from('app_settings_backups')
-    .upsert({ user_id: userId, app: APP, data: fitted.backup }, { onConflict: 'user_id,app' })
-  if (error) throw new Error(getT()('settings.backup_failed', { message: error.message }))
-  return { savedAt: fitted.backup.savedAt, left: fitted.left }
-}
-
-/** The account's backup, or null when it has none. */
-export async function loadOnline(supabase: SupabaseClient): Promise<JukeboxBackup | null> {
-  const { data, error } = await supabase.from('app_settings_backups').select('data').eq('app', APP).maybeSingle()
-  if (error) throw new Error(getT()('settings.read_failed', { message: error.message }))
-  return data ? parseBackup((data as { data: unknown }).data) : null
-}
-
-/** Remove the account's backup — the honest answer to "delete what you hold". */
-export async function deleteOnline(supabase: SupabaseClient): Promise<void> {
-  const { error } = await supabase.from('app_settings_backups').delete().eq('app', APP)
-  if (error) throw new Error(getT()('settings.delete_failed', { message: error.message }))
 }

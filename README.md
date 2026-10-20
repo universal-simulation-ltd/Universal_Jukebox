@@ -19,12 +19,15 @@ reach music that is anywhere else.
 > See [Lyrics](#lyrics), [About this track](#about-this-track) and
 > [Requests](#requests).
 >
-> **Signing in is optional.** The suite's Universal ID sign-in (from
-> `@unisim/sdk`) keeps you signed in across the UNI·SIM apps. While signed in,
-> the app records one "opened" event per launch against the account. Neither
-> knows anything about the music. The iOS privacy manifest
-> (`ios/App/App/PrivacyInfo.xcprivacy`) declares exactly this, and the store
-> privacy answers must match it.
+> **There is no sign-in, on any device** — website, desktop or phone. Nothing
+> in Jukebox needs an account. What you made in the app (shelves, requests,
+> settings, lyrics you added) is kept by **Save a backup file** and **Restore
+> from a file** under Tune this app ▸ Backup, and the file goes wherever you
+> put it. The app sends no open count or usage event either: nothing tells
+> UNI·SIM when it is used. (Until 2026-10-20 the website and desktop app
+> offered an optional Universal ID sign-in, which only added an online copy of
+> that backup.) The iOS privacy manifest (`ios/App/App/PrivacyInfo.xcprivacy`)
+> and the store privacy answers must match this.
 
 Live at **<https://opensource.unisim.co.uk/jukebox>**.
 

@@ -137,7 +137,6 @@ Bulutta şarkı ekledikten ya da sildikten sonra **Yeniden tara** seçeneğini s
 Raflarınız, istekleriniz, ayarlarınız ve eklediğiniz söz dosyaları yalnızca uygulamanın içinde bulunur. Bunları korumak için **Bu uygulamayı ayarla** sayfasını, ardından **Yedekleme** bölümünü açın:
 
 - **Yedek dosyası kaydet**, istediğiniz yerde saklayabileceğiniz tek bir küçük dosya oluşturur. Hesap gerekmez. Telefon uygulamalarında dosya, uygulamanın Belgeler klasörüne kaydedilir ve onu Dosyalar uygulamasından taşıyabilirsiniz.
-- **Universal ID’nize yedekleyin**, oturumunuz açıksa aynı yedeği hesabınızla birlikte saklar. Her yedeklemede yenisiyle değiştirilir ve onu silebilirsiniz. Uçtan uca şifreli değildir. Hesabınız için fazla büyükse uygulama neyi dışarıda bıraktığını söyler; bir yedek dosyası ise her şeyi saklar.
 
 ## Yeni bir telefonda
 
@@ -285,7 +284,7 @@ Plağın dönüşünü izlemeyi seviyorsanız **Ekran açık**, **Şimdi çalıy
 - **Kitaplık kataloğunuz**: şarkı adları, sanatçılar, albümler, kapakların küçük kopyaları ve varsa düzenleme düzeltmeleriniz.
 - **Ayarlarınız, istekleriniz ve kaldığınız yer.** Bu cihazda, uygulamanın içinde kalır.
 
-Siz bir yedek oluşturmadıkça bunların hiçbiri cihazınızdan çıkmaz. Yedek dosyası, onu nereye kaydederseniz oraya gider. Universal ID’nize yapılan bir yedek ayarlarınızı, raflarınızı, isteklerinizi ve eklediğiniz şarkı sözlerini başlık, sanatçı ve albüm adlarıyla birlikte tutar; müziğinizi asla tutmaz. Jukebox’ı iki cihazda kullanıyorsanız her biri kendi kitaplığını tutar.
+Siz bir yedek oluşturmadıkça bunların hiçbiri cihazınızdan çıkmaz. Yedek dosyası, onu nereye kaydederseniz oraya gider. Yedek dosyası ayarlarınızı, raflarınızı, isteklerinizi ve eklediğiniz şarkı sözlerini başlık, sanatçı ve albüm adlarıyla birlikte tutar; müziğinizi asla tutmaz. Jukebox’ı iki cihazda kullanıyorsanız her biri kendi kitaplığını tutar.
 
 ## Üç sorgu
 
@@ -297,13 +296,9 @@ Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçb
 
 İlk ikisinin yanıtları cihazınızda saklanır, böylece bir şarkı yalnızca bir kez sorgulanır. **Bu uygulamayı ayarla** sayfası kaç tane olduğunu gösterir ve bunları unutmanızı sağlar. Hiçbir ses cihazınızdan asla çıkmaz.
 
-## Açılışların sayılması
+## Hesap yok
 
-Web sitesinde, uygulamayı her gün ilk açışınızda, ilk tıklamanızdan veya tuşa basmanızdan sonra anonim günlük açılış sayısına bir ekler. Bu sayım yalnızca uygulamanın adını ve platform türünü (sitede "web") içerir: hiçbir tanımlayıcı, hesap ya da ne yaptığınıza dair bir şey yoktur. "Bugün sayıldı" işareti cihazınızda kalır ve asla gönderilmez. iPhone, iPad, Android ve masaüstü uygulamaları bunu göndermez.
-
-## Universal ID
-
-Universal ID ile oturum açmak isteğe bağlıdır. Tüm UNI·SIM uygulamalarında oturumunuzun açık kalmasını sağlar ve isterseniz hesabınızla birlikte bir yedek tutmanıza olanak tanır. Oturumunuz açıkken uygulama, her başladığında hesabınıza bir “açıldı” olayı kaydeder. Bu olay müziğiniz hakkında hiçbir şey söylemez.
+Hiçbir cihazda oturum açma yoktur. Jukebox kaç kez açıldığını saymaz ve başlarken hiçbir şey göndermez: onu ne zaman kullandığınızı bize hiçbir şey bildirmez.
 
 ## İzinler
 

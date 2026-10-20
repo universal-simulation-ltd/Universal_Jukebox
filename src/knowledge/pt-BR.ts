@@ -137,7 +137,6 @@ Depois de adicionar ou remover músicas na nuvem, escolha **Escanear de novo**.
 Suas estantes, seus pedidos, seus ajustes e os arquivos de letra que você adicionou só existem no app. Para guardá-los, abra **Ajustar este app** e depois **Backup**:
 
 - **Salvar um arquivo de backup** cria um único arquivo pequeno que você pode guardar onde quiser. Não precisa de conta. Nos apps para celular, ele é salvo na pasta Documentos do app, e você pode movê-lo pelo app Arquivos.
-- **Fazer backup no seu Universal ID** guarda o mesmo backup com a sua conta, se você estiver conectado. Ele é substituído a cada novo backup, e você pode excluí-lo. Não tem criptografia de ponta a ponta. Se for grande demais para a sua conta, o app diz o que ficou de fora, e um arquivo de backup guarda tudo.
 
 ## Num celular novo
 
@@ -285,7 +284,7 @@ Se você gosta de ver o disco girando, **Tela ligada** impede que a tela escure�
 - **O catálogo da sua biblioteca**: títulos, artistas, álbuns, cópias pequenas das capas e as correções que você fez ao arrumar.
 - **Os seus ajustes, os seus pedidos e o ponto em que você parou.** Eles ficam no app, neste dispositivo.
 
-Nada disso sai do seu dispositivo, a menos que você faça um backup. Um arquivo de backup vai para onde você o salvar. Um backup no seu Universal ID contém seus ajustes, estantes, pedidos e as letras que você adicionou, identificados pelo título, pelo artista e pelo álbum; ele nunca contém a sua música. Se você usar o Jukebox em dois dispositivos, cada um mantém a própria biblioteca.
+Nada disso sai do seu dispositivo, a menos que você faça um backup. Um arquivo de backup vai para onde você o salvar. Ele contém seus ajustes, estantes, pedidos e as letras que você adicionou, identificados pelo título, pelo artista e pelo álbum; ele nunca contém a sua música. Se você usar o Jukebox em dois dispositivos, cada um mantém a própria biblioteca.
 
 ## As três buscas
 
@@ -297,13 +296,9 @@ Só três recursos enviam alguma coisa sobre a sua música, e nenhum deles faz n
 
 As respostas das duas primeiras ficam guardadas no seu dispositivo, então cada música é consultada uma única vez. Ajustar este app mostra quantas são e permite esquecê-las. Nenhum áudio sai do seu dispositivo.
 
-## Contagem de aberturas
+## Sem conta
 
-No site, na primeira vez que você abre o app a cada dia, ele soma um à contagem anônima de aberturas do dia, enviada depois do seu primeiro clique ou tecla pressionada. Essa contagem contém só o nome do app e o tipo de plataforma ("web" no site): nenhum identificador, nenhuma conta e nada sobre o que você faz. Uma marca de "já contado hoje" fica no seu dispositivo e nunca é enviada. Os apps para iPhone, iPad, Android e computador não enviam isso.
-
-## Universal ID
-
-Entrar com um Universal ID é opcional. Isso mantém você conectado em todos os apps da UNI·SIM e permite guardar um backup com a sua conta, se você quiser. Enquanto você estiver conectado, o app registra um evento de "aberto" na sua conta sempre que é iniciado. Esse evento não diz nada sobre a sua música.
+Não há login em nenhum dispositivo. O Jukebox não conta quantas vezes é aberto e não envia nada ao iniciar: nada nos avisa quando você o usa.
 
 ## Permissões
 
