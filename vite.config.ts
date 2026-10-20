@@ -109,6 +109,10 @@ export default defineConfig(({ mode }) => {
           // A tap on a song's notification, where only the worker could show
           // it — `public/notification-click.js`.
           importScripts: ['notification-click.js'],
+          // The example library's photos (~1 MB, `src/lib/exampleCovers.ts`)
+          // load when somebody opens the example, not on every install.
+          // Offline, the example falls back to its drawn sleeves.
+          globIgnores: ['**/exampleCovers-*.js'],
         },
         devOptions: { enabled: false },
       })]),

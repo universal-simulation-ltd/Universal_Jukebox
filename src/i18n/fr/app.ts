@@ -131,7 +131,7 @@ const app: Draft['app'] = {
   'trying_lead': 'Vous essayez la bibliothèque d’exemple.',
   'trying_body': 'Votre propre musique est mise de côté telle quelle, et rien de ce que vous faites ici n’y est enregistré.',
   'example_label': 'Bibliothèque d’exemple',
-  'example_body': 'Quatre artistes imaginaires, avec une musique et des pochettes générées sur cet appareil. Pour écouter votre propre musique à la place, ajoutez-la et l’exemple s’efface.',
+  'example_body': 'Quatre artistes imaginaires, avec une musique générée sur cet appareil et des photos libres en guise de pochettes. Pour écouter votre propre musique à la place, ajoutez-la et l’exemple s’efface.',
   'use_own_music': 'Utiliser ma propre musique',
 
   // Try the example library? (TryExampleDialog)

@@ -131,7 +131,7 @@ const app: Draft['app'] = {
   'trying_lead': 'Você está experimentando a biblioteca de exemplo.',
   'trying_body': 'Suas músicas ficam guardadas exatamente como estavam, e nada do que você fizer aqui é salvo nelas.',
   'example_label': 'Biblioteca de exemplo',
-  'example_body': 'Quatro artistas inventados, com músicas e capas geradas neste aparelho. Para tocar as suas músicas, adicione-as e o exemplo sai de cena.',
+  'example_body': 'Quatro artistas inventados, com músicas geradas neste aparelho e fotos livres nas capas. Para tocar as suas músicas, adicione-as e o exemplo sai de cena.',
   'use_own_music': 'Usar minhas músicas',
 
   // Try the example library?

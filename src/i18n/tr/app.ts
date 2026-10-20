@@ -123,7 +123,7 @@ const app: Draft['app'] = {
   'trying_lead': 'Örnek kitaplığı deniyorsunuz.',
   'trying_body': 'Kendi müziğiniz olduğu gibi kenara ayrıldı ve burada yaptığınız hiçbir şey ona kaydedilmez.',
   'example_label': 'Örnek kitaplık',
-  'example_body': 'Uydurma dört sanatçı; müzikleri ve kapakları bu cihazda üretildi. Bunun yerine kendi müziğinizi çalmak için onu ekleyin, örnek kitaplık kenara çekilir.',
+  'example_body': 'Uydurma dört sanatçı; müzikleri bu cihazda üretildi, kapakları serbestçe kullanılabilen fotoğraflar. Bunun yerine kendi müziğinizi çalmak için onu ekleyin, örnek kitaplık kenara çekilir.',
   'use_own_music': 'Kendi müziğimi kullan',
 
   'try_title': 'Örnek kitaplığı denemek ister misiniz?',

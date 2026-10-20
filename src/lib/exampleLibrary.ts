@@ -5,10 +5,9 @@ import type { Album, Track } from './types'
 // An example library, so somebody with no music to hand can take the app for a
 // spin (James, 2026-09-09).
 //
-// ⚠️ EVERY BYTE OF IT IS GENERATED IN THE BROWSER — the music and the sleeves
-// both. Nothing is downloaded, nothing is bundled, and the build is not one
-// kilobyte bigger for having it. That is not a clever trick for its own sake;
-// it is the only honest way for THIS app to have a demo:
+// ⚠️ THE MUSIC IS GENERATED IN THE BROWSER. Nothing is downloaded and no
+// audio is bundled. That is not a clever trick for its own sake; it is the
+// only honest way for THIS app to have a demo:
 //
 //   • Shipping real music means licensing real music, and "it's only a demo" is
 //     not a licence. Shipping a handful of Creative Commons tracks would mean
@@ -17,8 +16,11 @@ import type { Album, Track } from './types'
 //   • The app is about YOUR files. A demo that quietly downloads somebody
 //     else's contradicts the front page.
 //
-// So: four artists, nine records, thirty-one tracks of synthesised music with
-// drawn sleeves, none of which exists until it is asked for.
+// So: four artists, nine records, thirty-one tracks of synthesised music, none
+// of which exists until it is asked for. The sleeves are CC0 photos with the
+// album name set on top (James, 2026-10-20), in a chunk of their own that only
+// loads with the example (`exampleCovers.ts`); the drawn sleeves below stay as
+// the fallback.
 //
 // ⚠️ THE AUDIO IS MADE LAZILY AND THE INDEX IS NOT. The library — titles,
 // artists, years, track numbers, durations, artwork — is built in one go when
@@ -83,6 +85,9 @@ interface ExampleAlbum {
    * records by the same artist look like cousins. See `drawSleeve`.
    */
   sleeve?: 0 | 1 | 2 | 3
+  /** The photo sleeve's lettering: a serif title, and/or set centred. */
+  serif?: boolean
+  centred?: boolean
   /**
    * Words for some of the songs, by track index — written for these made-up
    * records, so the lyrics panel and its styles can be shown with nothing
@@ -157,6 +162,7 @@ const ALBUMS: ExampleAlbum[] = [
     artist: 'The Tone Arms',
     title: 'Run-out',
     year: 2025,
+    centred: true,
     genre: 'Indie',
     recipe: { root: 58, minor: true, bpm: 112, bite: 0.42, density: 0.68, drums: true, pad: 0.42 },
     tracks: ['Locked Groove', 'Matrix Number', 'Fade to Centre'],
@@ -195,6 +201,7 @@ const ALBUMS: ExampleAlbum[] = [
     artist: 'Lathe & the Lacquers',
     title: 'Master Lacquer',
     year: 2024,
+    serif: true,
     genre: 'Dub',
     recipe: { root: 47, minor: true, bpm: 76, bite: 0.26, density: 0.44, drums: true, pad: 0.72 },
     tracks: ['Mother', 'Stamper', 'Plating Room'],
@@ -203,6 +210,8 @@ const ALBUMS: ExampleAlbum[] = [
     artist: 'Marguerite Vale',
     title: 'Quiet Rooms',
     year: 2018,
+    serif: true,
+    centred: true,
     genre: 'Modern classical',
     recipe: { root: 62, minor: false, bpm: 60, bite: 0.1, density: 0.36, drums: false, pad: 0.85 },
     tracks: ['Morning, First Light', 'The Blue Hour', 'Someone Downstairs', 'Nocturne for an Empty House'],
@@ -648,6 +657,10 @@ function wav(samples: Float32Array): Blob {
  * time: the same record is the same sleeve every time.
  */
 async function drawSleeve(entry: ExampleAlbum): Promise<Blob | null> {
+  try {
+    const photo = await drawPhotoSleeve(entry)
+    if (photo) return photo
+  } catch { /* no photo, or the canvas refused it: the drawn sleeve below */ }
   const size = 480
   const canvas = document.createElement('canvas')
   canvas.width = size
@@ -741,6 +754,79 @@ async function drawSleeve(entry: ExampleAlbum): Promise<Blob | null> {
   wrapText(ctx, entry.title, 30, size - 36, size - 60, 36)
 
   return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+}
+
+/**
+ * The sleeve as a photograph with the album name across the top (James,
+ * 2026-10-20: "get some free to use photos for the albums of people, scenery
+ * or anything else and put the album name on top"). Null when there is no
+ * photo for the record.
+ */
+async function drawPhotoSleeve(entry: ExampleAlbum): Promise<Blob | null> {
+  const { EXAMPLE_PHOTOS } = await import('./exampleCovers')
+  const src = EXAMPLE_PHOTOS[entry.title]
+  if (!src) return null
+  const img = new Image()
+  img.src = src
+  await img.decode()
+
+  const size = 720
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  // Cover-cropped from the middle; the files are square already.
+  const scale = Math.max(size / img.naturalWidth, size / img.naturalHeight)
+  const w = img.naturalWidth * scale
+  const h = img.naturalHeight * scale
+  ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+
+  // A shade down from the top edge, so white type reads over sky and over
+  // a bright window alike.
+  const shade = ctx.createLinearGradient(0, 0, 0, size * 0.5)
+  shade.addColorStop(0, 'rgba(0,0,0,0.58)')
+  shade.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = shade
+  ctx.fillRect(0, 0, size, size * 0.5)
+
+  const centred = entry.centred === true
+  const x = centred ? size / 2 : 44
+  ctx.textAlign = centred ? 'center' : 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.shadowColor = 'rgba(0,0,0,0.35)'
+  ctx.shadowBlur = 12
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = entry.serif
+    ? 'italic 500 60px Georgia, "Times New Roman", serif'
+    : '700 58px system-ui, -apple-system, Segoe UI, sans-serif'
+  const lines = titleLines(ctx, entry.title, size - 88).slice(0, 2)
+  lines.forEach((line, i) => ctx.fillText(line, x, 98 + i * 64))
+
+  ctx.fillStyle = 'rgba(255,255,255,0.86)'
+  ctx.font = '600 22px system-ui, -apple-system, Segoe UI, sans-serif'
+  if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '3px'
+  ctx.fillText(entry.artist.toUpperCase(), x, 98 + (lines.length - 1) * 64 + 44)
+
+  return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.86))
+}
+
+/** A title broken into lines no wider than `width`. */
+function titleLines(ctx: CanvasRenderingContext2D, text: string, width: number): string[] {
+  const lines: string[] = []
+  let line = ''
+  for (const word of text.split(' ')) {
+    const candidate = line ? `${line} ${word}` : word
+    if (ctx.measureText(candidate).width > width && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = candidate
+    }
+  }
+  if (line) lines.push(line)
+  return lines
 }
 
 /** Lay a title out on at most two lines, bottom-anchored. */

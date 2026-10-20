@@ -123,7 +123,7 @@ const app: Draft['app'] = {
   'trying_lead': 'Du probierst gerade die Beispiel-Mediathek aus.',
   'trying_body': 'Deine eigene Musik bleibt genau so beiseitegelegt, wie sie war, und nichts, was du hier machst, wird darin gespeichert.',
   'example_label': 'Beispiel-Mediathek',
-  'example_body': 'Vier erfundene Interpreten, deren Musik und Hüllen auf diesem Gerät erzeugt werden. Wenn du stattdessen deine eigene Musik abspielen willst, füge sie hinzu, dann tritt das Beispiel zur Seite.',
+  'example_body': 'Vier erfundene Interpreten, deren Musik auf diesem Gerät erzeugt wird, mit freien Fotos als Hüllen. Wenn du stattdessen deine eigene Musik abspielen willst, füge sie hinzu, dann tritt das Beispiel zur Seite.',
   'use_own_music': 'Meine eigene Musik verwenden',
 
   'try_title': 'Beispiel-Mediathek ausprobieren?',

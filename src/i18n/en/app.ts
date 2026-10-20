@@ -137,7 +137,7 @@ export default {
   'trying_lead': 'You’re trying the example library.', // bold
   'trying_body': 'Your own music is set aside exactly as it was, and nothing you do here is saved to it.',
   'example_label': 'Example library', // bold label
-  'example_body': 'Four made-up artists, with music and sleeves generated on this device. To play your own music instead, add it and this steps aside.',
+  'example_body': 'Four made-up artists, with music generated on this device and free photos for sleeves. To play your own music instead, add it and this steps aside.',
   'use_own_music': 'Use my own music', // link
 
   // Try the example library? (TryExampleDialog)

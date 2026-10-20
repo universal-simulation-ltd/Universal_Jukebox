@@ -212,11 +212,14 @@ apps; that has not been tried on a phone.
 ## The example library
 
 **Nothing to hand?** The landing page offers an example library: nine records
-by four artists who do not exist, with the music AND the sleeves generated in
-the browser (`lib/exampleLibrary.ts`). Not one byte of it is shipped or
-downloaded — which is the only honest way for this app to have a demo, since
-bundling real music means licensing real music, and an app whose pitch is "it
-plays your own files" should not quietly fetch somebody else's.
+by four artists who do not exist, with the music generated in the browser
+(`lib/exampleLibrary.ts`). No audio is shipped or downloaded — which is the
+only honest way for this app to have a demo, since bundling real music means
+licensing real music, and an app whose pitch is "it plays your own files"
+should not quietly fetch somebody else's. The sleeves are CC0 photos with the
+album name set on top (`src/assets/example-covers/`, sources in its README),
+in a chunk of their own that loads only with the example and is left out of
+the offline cache; without it the drawn sleeves stand in.
 
 ⚠️ **It stands aside for real music.** Adding a folder ADDS to the library, and
 the one thing that must never add is the demo — nine records by artists who do
@@ -224,8 +227,8 @@ not exist, mixed in among somebody's own albums, indistinguishable in the grid
 and removable only by knowing which names were fake. So the first real folder
 takes its place.
 
-**It says it is the demo, once you are inside it.** The sleeves are drawn to
-look like real records and survive a reload, so a dashed *Example library*
+**It says it is the demo, once you are inside it.** The sleeves look like real
+records and survive a reload, so a dashed *Example library*
 note sits above the library, the album pages and Now Playing while it is loaded
 (`ExampleNotice`). It is a label, not a door: there is still no way to load the
 demo from a real library, because loading it replaces the library and that would

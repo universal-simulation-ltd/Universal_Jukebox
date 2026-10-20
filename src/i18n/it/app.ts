@@ -123,7 +123,7 @@ const app: Draft['app'] = {
   'trying_lead': 'Stai provando la libreria di esempio.',
   'trying_body': 'La tua musica è messa da parte esattamente com’era e niente di ciò che fai qui viene salvato al suo interno.',
   'example_label': 'Libreria di esempio',
-  'example_body': 'Quattro artisti inventati, con musica e copertine generate su questo dispositivo. Per ascoltare la tua musica, aggiungila e questa si fa da parte.',
+  'example_body': 'Quattro artisti inventati, con musica generata su questo dispositivo e foto libere come copertine. Per ascoltare la tua musica, aggiungila e questa si fa da parte.',
   'use_own_music': 'Usa la mia musica',
 
   'try_title': 'Provare la libreria di esempio?',
