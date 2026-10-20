@@ -240,7 +240,6 @@ export default {
   'theme_system': 'System',
   'theme_system_hint': 'Matches your device.',
   'follow_global': 'Follow global: {value}', // an option: use the setting chosen for every app; {value} is that setting (“Dark”, “Français”)
-  'follow_global_hint': 'Set once for every Universal App under Global Tuning, in the menu when signed in.',
   'summary_following_global': 'Following global: {value}', // summary
   'show_tips': 'Show the tips again',
   'show_tips_hint': 'The “Tap here” pointers you have dismissed come back.', // “Tap here” is the pointers' own words

@@ -218,7 +218,6 @@ const settings: Draft['settings'] = {
   'theme_system': 'Système',
   'theme_system_hint': 'Suit votre appareil.',
   'follow_global': 'Suivre le réglage global : {value}',
-  'follow_global_hint': 'Se règle une seule fois pour toutes les Universal Apps dans Réglages globaux, dans le menu une fois connecté.',
   'summary_following_global': 'Suit le réglage global : {value}',
   'show_tips': 'Réafficher les astuces',
   'show_tips_hint': 'Les bulles « Touchez ici » que vous avez fermées reviennent.',

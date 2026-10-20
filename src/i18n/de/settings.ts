@@ -201,7 +201,6 @@ const settings: Draft['settings'] = {
   'theme_system': 'System',
   'theme_system_hint': 'Passt sich deinem Gerät an.',
   'follow_global': 'Globaler Einstellung folgen: {value}',
-  'follow_global_hint': 'Wird für alle Universal Apps einmal unter „Globale Anpassungen“ festgelegt, im Menü, wenn du angemeldet bist.',
   'summary_following_global': 'Folgt globaler Einstellung: {value}',
   'show_tips': 'Tipps wieder anzeigen',
   'show_tips_hint': 'Die „Hier tippen“-Hinweise, die du geschlossen hast, kommen zurück.',

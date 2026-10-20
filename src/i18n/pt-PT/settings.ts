@@ -201,7 +201,6 @@ const settings: Draft['settings'] = {
   'theme_system': 'Sistema',
   'theme_system_hint': 'Igual ao dispositivo.',
   'follow_global': 'Seguir a opção global: {value}',
-  'follow_global_hint': 'Definido uma vez para todas as Universal Apps em Ajustes globais, no menu, com sessão iniciada.',
   'summary_following_global': 'A seguir a opção global: {value}',
   'show_tips': 'Mostrar novamente as dicas',
   'show_tips_hint': 'As indicações «Toque aqui» que dispensou voltam a aparecer.',

@@ -201,7 +201,6 @@ const settings: Draft['settings'] = {
   'theme_system': 'Sistem',
   'theme_system_hint': 'Cihazınıza uyar.',
   'follow_global': 'Genel ayarı izle: {value}',
-  'follow_global_hint': 'Tüm Universal Apps için bir kez, giriş yaptığınızda menüdeki Genel ayarlar bölümünden ayarlanır.',
   'summary_following_global': 'Genel ayar izleniyor: {value}',
   'show_tips': 'İpuçlarını yeniden göster',
   'show_tips_hint': 'Kapattığınız “Buraya dokunun” işaretleri geri gelir.',
