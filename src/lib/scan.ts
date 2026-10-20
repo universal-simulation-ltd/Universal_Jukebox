@@ -283,14 +283,16 @@ export async function readSlice(file: SourceFile, start: number, end: number): P
 async function readOne(file: SourceFile, wantArt: boolean) {
   const ext = extensionOf(file.name)
   const head = await readSlice(file, 0, HEAD_BYTES)
-  let tags = readTags(head, wantArt)
+  // With the lyrics: only to say whether there ARE any (`Track.hasLyrics`), on
+  // the read the tags need anyway, so a fresh library knows without a second pass.
+  let tags = readTags(head, wantArt, true)
 
   // The MP4 tail read — see TAIL_BYTES. Only when the head yielded nothing
   // useful, so a faststart file costs one read like everything else.
   const isMp4 = ext === 'm4a' || ext === 'mp4' || ext === 'aac'
   if (isMp4 && !tags.title && !tags.album && file.size > HEAD_BYTES) {
     const tail = await readSlice(file, file.size - TAIL_BYTES, file.size)
-    const fromTail = readTags(tail, wantArt)
+    const fromTail = readTags(tail, wantArt, true)
     if (fromTail.title || fromTail.album || fromTail.picture) tags = fromTail
   }
   return tags
@@ -406,8 +408,10 @@ export async function scan(
     // second read is a slice off the same warm file and only happens once per
     // record.
     let tags
+    let hasLyrics: boolean | undefined
     try {
       tags = await readOne(found.file, false)
+      hasLyrics = Boolean(tags.lyrics?.trim())
     } catch {
       tags = {}
     }
@@ -439,6 +443,7 @@ export async function scan(
       year: tags.year,
       genre: tags.genre,
       albumId: id,
+      hasLyrics,
     }
     tracks.push(track)
     batchTracks.push(track)

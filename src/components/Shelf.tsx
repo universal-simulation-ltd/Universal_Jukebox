@@ -14,6 +14,8 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
 import { withResumeRow } from './resumeRow'
 import type { Album, Track } from '../lib/types'
+import LyricsMark from './LyricsMark'
+import { useAlbumsWithLyrics, useLyricsCheck } from '../lib/lyricMarks'
 
 // The jukebox way to browse (James, 2026-09-11: "For jukebox show the records
 // like on a book shelf where you can swipe left of right to cycle through
@@ -228,6 +230,7 @@ function LazyShelf({
 
 export default function Shelf({ albums, lead, groups, hold }: { albums: Album[]; lead?: Album; groups?: { genre: string; items: Album[] }[]; hold?(album: Album): void }) {
   const t = useT()
+  const withLyrics = useAlbumsWithLyrics()
   return (
     <Shelves
       items={albums}
@@ -247,7 +250,7 @@ export default function Shelf({ albums, lead, groups, hold }: { albums: Album[];
           open={(a) => navigate({ view: 'album', albumId: a.id })}
           // The phone's long-press sheet (`native/CollectionHold`); the website passes none.
           hold={hold}
-          caption={(a) => ({ title: a.title, detail: t('shelves.album_caption', { detail: [a.artist, a.year].filter(Boolean).join(' · ') }) })}
+          caption={(a) => ({ title: a.title, detail: t('shelves.album_caption', { detail: [a.artist, a.year].filter(Boolean).join(' · ') }), lyrics: withLyrics.has(a.id) })}
         />
       )}
     />
@@ -261,6 +264,7 @@ export default function Shelf({ albums, lead, groups, hold }: { albums: Album[];
  */
 export function AlbumRow({ albums, hold }: { albums: Album[]; hold?(album: Album): void }) {
   const t = useT()
+  const withLyrics = useAlbumsWithLyrics()
   return (
     <ShelfRow
       items={albums}
@@ -270,7 +274,7 @@ export function AlbumRow({ albums, hold }: { albums: Album[]; hold?(album: Album
       render={(a) => <Sleeve album={a} />}
       artOf={(a) => a}
       open={(a) => navigate({ view: 'album', albumId: a.id })}
-      caption={(a) => ({ title: a.title, detail: [a.year, t.plural('common.tracks', a.trackCount)].filter(Boolean).join(' · ') })}
+      caption={(a) => ({ title: a.title, detail: [a.year, t.plural('common.tracks', a.trackCount)].filter(Boolean).join(' · '), lyrics: withLyrics.has(a.id) })}
       hold={hold}
     />
   )
@@ -320,6 +324,7 @@ export function TrackShelf({
   tracks, onPlay, lead, groups,
 }: { tracks: Track[]; onPlay(track: Track): void; lead?: Track; groups?: { genre: string; items: Track[] }[] }) {
   const t = useT()
+  const hasLyrics = useLyricsCheck()
   const albums = useLibraryStore((s) => s.albums)
   const albumOf = useMemo(() => {
     const byId = new Map(albums.map((a) => [a.id, a]))
@@ -359,7 +364,7 @@ export function TrackShelf({
           // The how-to goes once somebody has held a record (`TipId`).
           caption={(s) => {
             const artist = s.artist ?? s.albumArtist ?? t('common.unknown_artist')
-            return { title: s.title, detail: holdLearnt ? artist : t('shelves.track_caption_hint', { artist }) }
+            return { title: s.title, detail: holdLearnt ? artist : t('shelves.track_caption_hint', { artist }), lyrics: hasLyrics(s) }
           }}
         />
       )}
@@ -379,7 +384,8 @@ interface ShelfRowProps<T> {
   verb?: ShelfVerb
   render(item: T): ReactNode
   open(item: T, index: number): void
-  caption(item: T): { title: string; detail: string }
+  /** `lyrics`: the lyric-sheet mark after the title (`LyricsMark`). */
+  caption(item: T): { title: string; detail: string; lyrics?: boolean }
   /** Sleeves, or the smaller 45s. */
   size?: 'sleeve' | 'record'
   /** A tap on this acts at once, wherever it is on the shelf (the + tile, or taking records off). */
@@ -663,7 +669,10 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'op
       </div>
       {text && (
         <div className="mt-4 px-4 text-center" aria-live="polite">
-          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{text.title}</p>
+          <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">
+            {text.title}
+            {text.lyrics && <LyricsMark className="ml-1.5 h-[14px] w-[14px] -translate-y-px align-middle text-orange-700 dark:text-orange-400" />}
+          </p>
           <p className="text-[12.5px] text-slate-500 dark:text-slate-400">{text.detail}</p>
         </div>
       )}

@@ -184,6 +184,10 @@ Many music files carry the lyrics inside their tags, put there by the shop, a ri
 
 A lyrics file saved next to a song is read too, as long as it has the song's name and ends in **.lrc**: *Song.mp3* and *Song.lrc*. It is read when the folder is scanned, so after adding lyrics files, rescan your music. A lyrics file you add to one song from the lyrics panel comes before both.
 
+## Which songs have lyrics
+
+A small speech bubble after the name of a song means its words are ready to show: in the file, in a lyrics file, or found by an earlier lookup. An album shows one when at least one of its songs has lyrics. The app checks a library it already had in the background, a song at a time, so on a big library the bubbles can take a few minutes to appear.
+
 ## Getting lyrics for your whole library
 
 If your files have no lyrics, a free program for computers called **LRCGET** can fetch them for a whole folder at once, either as .lrc files beside your songs or written into the songs themselves. The article **Lyrics for your whole library, with LRCGET** shows how, step by step.

@@ -184,6 +184,10 @@ Molti file musicali contengono il testo nei tag, inserito dal negozio, da un pro
 
 Viene letto anche un file di testo salvato accanto a un brano, purché abbia il nome del brano e finisca in **.lrc**: *Brano.mp3* e *Brano.lrc*. Viene letto durante la scansione della cartella, quindi dopo aver aggiunto file di testo ripeti la scansione della tua musica. Un file di testo che aggiungi a un singolo brano dal pannello dei testi ha la precedenza su entrambi.
 
+## Quali brani hanno il testo
+
+Un piccolo fumetto dopo il nome di un brano indica che il suo testo si può mostrare: dal file, da un file di testo o da una ricerca online già fatta. Un album lo mostra quando almeno uno dei suoi brani ha il testo. L’app controlla in background una libreria che aveva già, un brano alla volta, quindi in una libreria grande i fumetti possono comparire dopo qualche minuto.
+
 ## Testi per tutta la libreria
 
 Se i tuoi file non hanno testi, un programma gratuito per computer chiamato **LRCGET** può scaricarli per un’intera cartella in una volta, come file .lrc accanto ai brani oppure scritti direttamente dentro i brani. L’articolo **Testi per tutta la libreria, con LRCGET** spiega come fare, passo dopo passo.

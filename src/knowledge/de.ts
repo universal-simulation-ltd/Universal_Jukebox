@@ -184,6 +184,10 @@ Viele Musikdateien enthalten den Songtext in ihren Tags, eingetragen vom Shop, e
 
 Eine Textdatei neben einem Song wird ebenfalls gelesen, wenn sie den Namen des Songs trägt und auf **.lrc** endet: *Song.mp3* und *Song.lrc*. Sie wird beim Durchsuchen des Ordners eingelesen. Durchsuchen Sie Ihre Musik also erneut, nachdem Sie Textdateien hinzugefügt haben. Eine Textdatei, die Sie im Songtext-Bereich zu einem einzelnen Song hinzufügen, hat Vorrang vor beiden.
 
+## Welche Songs Texte haben
+
+Eine kleine Sprechblase nach dem Namen eines Songs bedeutet, dass sein Text angezeigt werden kann: aus der Datei, aus einer Songtextdatei oder aus einer früheren Online-Suche. Ein Album zeigt sie, wenn mindestens einer seiner Songs einen Text hat. Eine bereits vorhandene Mediathek prüft die App im Hintergrund, Song für Song, daher können die Sprechblasen bei einer großen Mediathek ein paar Minuten brauchen.
+
 ## Songtexte für die ganze Mediathek
 
 Haben Ihre Dateien keine Texte, kann ein kostenloses Programm für Computer namens **LRCGET** sie für einen ganzen Ordner auf einmal holen, entweder als .lrc-Dateien neben Ihren Songs oder direkt in die Songs geschrieben. Der Artikel **Songtexte für die ganze Mediathek mit LRCGET** zeigt Schritt für Schritt, wie es geht.

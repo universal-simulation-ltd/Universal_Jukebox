@@ -233,6 +233,12 @@ html.dark .jx {
 .jx-tile .jx-cover { width: 100%; aspect-ratio: 1; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px -8px rgba(0, 0, 0, 0.35); }
 .jx-tile b, .jx-row b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jx-tile small, .jx-row small { font-size: 13px; color: var(--jx-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A name with the lyric-sheet mark after it (`LyricsMark`): the name takes the
+   ellipsis, the mark always shows. */
+.jx-named { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.jx-named > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.jx-lyrics-mark { width: 14px; height: 14px; color: var(--jx-acc); opacity: 0.85; }
+.jx-grid.artists .jx-named { justify-content: center; }
 .jx-tile:active .jx-cover { transform: scale(0.97); }
 
 .jx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

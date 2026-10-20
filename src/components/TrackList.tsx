@@ -16,6 +16,8 @@ import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
 import { compareName } from '../lib/collate'
 import { useT } from '../i18n'
+import LyricsMark from './LyricsMark'
+import { useLyricsCheck } from '../lib/lyricMarks'
 
 // Every track, in one list.
 //
@@ -209,6 +211,7 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
  */
 export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () => void; subtitle?: string }) {
   const t = useT()
+  const hasLyrics = useLyricsCheck()(track)
   // One number per row, so pausing or changing track re-renders the row(s)
   // concerned rather than every row in the list: 0 not this song, 1 this song
   // paused, 2 this song playing.
@@ -224,14 +227,18 @@ export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () 
       >
         <span className="min-w-0 flex-1">
           <span
-            className={`block truncate text-[14px] ${
+            className={`flex min-w-0 items-center gap-1.5 text-[14px] ${
               isCurrent
                 ? 'font-medium text-orange-700 dark:text-orange-400'
                 : 'text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400'
             }`}
           >
-            {isCurrent && playing ? '▶ ' : ''}
-            {track.title}
+            {/* The title takes the ellipsis; the lyric-sheet mark always shows. */}
+            <span className="truncate">
+              {isCurrent && playing ? '▶ ' : ''}
+              {track.title}
+            </span>
+            {hasLyrics && <LyricsMark className="h-[13px] w-[13px] text-orange-700 dark:text-orange-400" />}
           </span>
           <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
             {subtitle ?? ([track.artist, track.album].filter(Boolean).join(' — ') || t('library.unknown'))}

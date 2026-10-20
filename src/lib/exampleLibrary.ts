@@ -287,6 +287,8 @@ export async function buildExampleLibrary(): Promise<{ tracks: Track[]; albums: 
         // album totals are right before anything has been played.
         durationSec: seconds,
         albumId: id,
+        // Their words are in the app (`exampleLyrics`), so this is known too.
+        hasLyrics: Boolean(entry.lyrics?.[i]),
       })
     })
   }

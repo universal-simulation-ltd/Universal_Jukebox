@@ -184,6 +184,10 @@ De nombreux fichiers musicaux contiennent les paroles dans leurs tags, placées 
 
 Un fichier de paroles enregistré à côté d’un morceau est lu lui aussi, à condition de porter le nom du morceau et de se terminer par **.lrc** : *Morceau.mp3* et *Morceau.lrc*. Il est lu lors de l’analyse du dossier : après avoir ajouté des fichiers de paroles, relancez donc l’analyse de votre musique. Un fichier de paroles que vous ajoutez à un morceau depuis le panneau des paroles passe avant les deux.
 
+## Quels morceaux ont des paroles
+
+Une petite bulle après le nom d’un morceau signifie que ses paroles peuvent s’afficher : depuis le fichier, depuis un fichier de paroles ou grâce à une recherche en ligne déjà faite. Un album en affiche une dès qu’au moins un de ses morceaux a des paroles. L’app vérifie en arrière-plan une bibliothèque déjà présente, un morceau à la fois : sur une grande bibliothèque, les bulles peuvent mettre quelques minutes à apparaître.
+
 ## Des paroles pour toute votre bibliothèque
 
 Si vos fichiers n’ont pas de paroles, un programme gratuit pour ordinateur appelé **LRCGET** peut les récupérer pour tout un dossier d’un coup, soit sous forme de fichiers .lrc à côté de vos morceaux, soit directement à l’intérieur des morceaux. L’article **Des paroles pour toute votre bibliothèque, avec LRCGET** explique comment faire, étape par étape.

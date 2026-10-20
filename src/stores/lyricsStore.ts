@@ -8,7 +8,9 @@ import { exampleLyrics } from '../lib/exampleLibrary'
 import { useLibraryStore } from './libraryStore'
 import { settings } from './settingsStore'
 import { barsOnlineLyrics } from '../lib/nativeFile'
-import { isMusicLibraryTrack, musicLibraryLyrics } from '../lib/appleMusic'
+import { hasMusicLibrary, isMusicLibraryTrack, musicLibraryLyrics } from '../lib/appleMusic'
+import { setHasLyrics } from '../lib/library'
+import { learnLyricsPresence, retryLyricsPresence, type PresenceHost } from '../lib/lyricsPresence'
 import type { Track } from '../lib/types'
 
 // Finding the words for the track on the deck.
@@ -209,3 +211,47 @@ async function run(track: Track, set: (partial: Partial<LyricsState>) => void): 
   else if (found.kind === 'error') set({ status: 'error', message: found.message, askedOnline: true })
   else set({ status: 'none', askedOnline: allowNetwork })
 }
+
+// ── Which songs carry words, for the lyric-sheet mark on the lists ──────────
+
+/**
+ * Whether the song itself carries words — the file's tags, the Music
+ * library's own lyrics, the example's — or null when it cannot be asked about
+ * now. Never the network, and never a copy out of the Music library.
+ */
+async function songCarriesWords(track: Track): Promise<boolean | null> {
+  if (exampleLyrics(track)) return true
+  const library = useLibraryStore.getState()
+  if (isMusicLibraryTrack(library.roots, track)) {
+    if (!hasMusicLibrary()) return null
+    const raw = await musicLibraryLyrics(track, true)
+    return raw !== null && parseLyrics(raw) !== null
+  }
+  const file = library.fileFor(track)
+  if (!file) return null
+  return (await lyricsFromFile(file)) !== null
+}
+
+const presenceHost: PresenceHost = {
+  tracks: () => useLibraryStore.getState().tracks,
+  check: songCarriesWords,
+  publish: (found) => {
+    useLibraryStore.setState({
+      tracks: useLibraryStore.getState().tracks.map((t) => {
+        const has = found.get(t.id)
+        return has !== undefined && t.hasLyrics !== has ? { ...t, hasLyrics: has } : t
+      }),
+    })
+    void setHasLyrics(found)
+  },
+}
+
+// Started once the library is in, and again whenever the files change (a
+// folder allowed back can answer what it could not before).
+useLibraryStore.subscribe((state, prev) => {
+  if (state.status !== 'ready') return
+  if (state.filesByPath !== prev.filesByPath) retryLyricsPresence()
+  if (state.tracks !== prev.tracks || state.filesByPath !== prev.filesByPath || prev.status !== 'ready') {
+    void learnLyricsPresence(presenceHost)
+  }
+})

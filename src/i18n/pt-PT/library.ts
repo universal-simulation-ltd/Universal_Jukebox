@@ -68,6 +68,7 @@ const library: Draft['library'] = {
   'resume_listening': 'Continuar a ouvir',
 
   'listen_to_this': 'Ouça esta',
+  'lyrics_available': 'Letra disponível',
 
   'another': 'Outra',
 

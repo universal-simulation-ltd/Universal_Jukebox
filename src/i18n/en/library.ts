@@ -83,6 +83,7 @@ export default {
   // Resume listening (ResumeCard)
   'resume_listening': 'Resume listening', // a card naming the last song played; shown in capitals
   'listen_to_this': 'Listen to this', // the card's heading when there is nothing to resume: a song picked at random
+  'lyrics_available': 'Lyrics available', // the speech-bubble mark after a song or album name: its words can be shown
   'another': 'Another', // small button on the “Listen to this” card: shows a different random song; short
   'another_song': 'Another song at random', // screen reader and hover for that button
   'hide': 'Hide', // hides the card until the app is next opened

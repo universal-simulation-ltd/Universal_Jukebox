@@ -159,6 +159,32 @@ export async function putTracks(tracks: Track[]): Promise<void> {
   })
 }
 
+/** Keep whether these tracks carry words (`Track.hasLyrics`), in one transaction. */
+export async function setHasLyrics(found: ReadonlyMap<string, boolean>): Promise<void> {
+  if (found.size === 0) return
+  const db = await open()
+  if (!db) return
+  await new Promise<void>((resolve) => {
+    let t: IDBTransaction
+    try {
+      t = db.transaction(STORE_TRACKS, 'readwrite')
+    } catch {
+      return resolve()
+    }
+    const store = t.objectStore(STORE_TRACKS)
+    for (const [id, hasLyrics] of found) {
+      const get = store.get(id)
+      get.onsuccess = () => {
+        const track = get.result as Track | undefined
+        if (track && track.hasLyrics !== hasLyrics) store.put({ ...track, hasLyrics })
+      }
+    }
+    t.oncomplete = () => resolve()
+    t.onerror = () => resolve()
+    t.onabort = () => resolve()
+  })
+}
+
 /** Fill in a duration learnt at playback time. */
 export async function setDuration(id: string, durationSec: number): Promise<void> {
   const db = await open()
@@ -334,10 +360,12 @@ export async function getLyricRecord(trackId: string): Promise<LyricRecord | nul
 
 export async function putLyricRecord(record: LyricRecord): Promise<void> {
   await tx(STORE_LYRICS, 'readwrite', (s) => s.put(record))
+  lyricRecordsChanged()
 }
 
 export async function deleteLyricRecord(trackId: string): Promise<void> {
   await tx(STORE_LYRICS, 'readwrite', (s) => s.delete(trackId))
+  lyricRecordsChanged()
 }
 
 /** The lyrics files the person added themselves — what a backup carries (`lib/backup.ts`). */
@@ -349,6 +377,25 @@ export async function uploadedLyrics(): Promise<{ id: string; raw: string }[]> {
 /** "Forget the lyrics I've downloaded" — offered on the Settings page. */
 export async function clearLyrics(): Promise<void> {
   await tx(STORE_LYRICS, 'readwrite', (s) => s.clear())
+  lyricRecordsChanged()
+}
+
+/** The tracks with a lyrics file kept for them that has words in it — `lib/lyricRecords.ts`. */
+export async function lyricRecordIds(): Promise<Set<string>> {
+  const ids = new Set<string>()
+  const all = (await tx<LyricRecord[]>(STORE_LYRICS, 'readonly', (s) => s.getAll())) ?? []
+  for (const r of all) if (typeof r.raw === 'string' && r.raw.trim() !== '') ids.add(r.id)
+  return ids
+}
+
+/** Told whenever a lyrics file is kept, dropped or cleared. */
+const lyricRecordListeners = new Set<() => void>()
+export function onLyricRecordsChanged(listener: () => void): () => void {
+  lyricRecordListeners.add(listener)
+  return () => lyricRecordListeners.delete(listener)
+}
+function lyricRecordsChanged(): void {
+  for (const listener of lyricRecordListeners) listener()
 }
 
 export async function countLyrics(): Promise<number> {
@@ -430,6 +477,7 @@ export async function clearLibrary(): Promise<void> {
     t.onerror = () => resolve()
     t.onabort = () => resolve()
   })
+  lyricRecordsChanged()
 }
 
 /**

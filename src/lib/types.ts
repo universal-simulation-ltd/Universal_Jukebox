@@ -72,6 +72,16 @@ export interface Track {
    * `<audio>` element knows it for free, and written back.
    */
   durationSec?: number
+  /**
+   * Whether the song itself carries words: tags in the file (an ID3 USLT, an
+   * MP4 ©lyr, a LYRICS comment), the Music library's own lyrics, the example
+   * library's. Undefined = not checked yet. Read with the tags at scan time,
+   * and in the background for anything scanned before it existed or read
+   * through iOS (`lib/lyricsPresence.ts`). A lyrics file kept for the track
+   * (an `.lrc` beside it, one the person added, one looked up) is NOT this —
+   * that is `lib/lyricRecords.ts`; `trackHasLyrics` asks both.
+   */
+  hasLyrics?: boolean
   /** `albumKey(...)`. */
   albumId: string
 }

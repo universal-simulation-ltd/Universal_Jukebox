@@ -6,6 +6,8 @@ import Cover from './Cover'
 import { matchAlbums } from '../lib/search'
 import { navigate } from '../lib/route'
 import Shelf from './Shelf'
+import LyricsMark from './LyricsMark'
+import { useAlbumsWithLyrics } from '../lib/lyricMarks'
 import { FULL_ALBUM_MIN, gridClass, isFullAlbum, seededOrder, type LibraryOrder } from '../lib/libraryView'
 import { GENRE_MIN, albumGenres, groupByGenre, hiddenByGenre, libraryInGenre, shownGenres, tallyGenres } from '../lib/genres'
 import GenreHeading, { GenreFootnote } from './GenreHeading'
@@ -49,6 +51,7 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
   const columns = useSettingsStore((s) => s.libraryColumns.albums)
   const [grid, across] = useGridColumns(columns)
   const leadId = useResumable()?.album?.id ?? null
+  const withLyrics = useAlbumsWithLyrics()
 
   // ⚠️ Ordered first, then filtered through `matchAlbums` — the same function
   // the tab count uses, so the number beside "Albums" and the tiles below it
@@ -110,6 +113,7 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
             second line is usually the half that identifies the record. */}
         <p className={`mt-2 line-clamp-2 font-medium text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400 ${small ? 'text-[11.5px] leading-snug' : 'text-[13px]'}`}>
           {shownName(album.title)}
+          {withLyrics.has(album.id) && <LyricsMark className="ml-1 h-[0.95em] w-[0.95em] -translate-y-px align-middle text-orange-700 dark:text-orange-400" />}
         </p>
         <p className={`line-clamp-1 text-slate-500 dark:text-slate-400 ${small ? 'text-[10.5px]' : 'text-[12px]'}`}>
           {shownName(album.artist)}

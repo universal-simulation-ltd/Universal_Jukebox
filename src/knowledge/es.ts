@@ -184,6 +184,10 @@ Muchos archivos de música llevan la letra dentro de sus etiquetas, puesta ahí 
 
 También lee un archivo de letra guardado junto a una canción, siempre que tenga el nombre de la canción y termine en **.lrc**: *Cancion.mp3* y *Cancion.lrc*. Se lee al explorar la carpeta, así que, después de añadir archivos de letras, vuelva a explorar su música. Un archivo de letra que añada a una canción desde el panel de letras tiene prioridad sobre ambos.
 
+## Qué canciones tienen letra
+
+Un pequeño bocadillo junto al nombre de una canción indica que su letra se puede mostrar: desde el archivo, desde un archivo de letra o gracias a una búsqueda en línea anterior. Un álbum lo muestra cuando al menos una de sus canciones tiene letra. La app revisa en segundo plano una biblioteca que ya tenía, canción por canción, así que en una biblioteca grande los bocadillos pueden tardar unos minutos en aparecer.
+
 ## Letras para toda su biblioteca
 
 Si sus archivos no tienen letras, un programa gratuito para ordenador llamado **LRCGET** puede descargarlas para una carpeta entera de una vez, ya sea como archivos .lrc junto a sus canciones o escritas dentro de las propias canciones. El artículo **Letras para toda su biblioteca, con LRCGET** explica cómo hacerlo, paso a paso.

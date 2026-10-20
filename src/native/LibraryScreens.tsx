@@ -37,6 +37,8 @@ import { openThenFocus, useSearchRequests } from '@unisim/sdk'
 import { PullDrawer } from './PullDrawer'
 import { markTipSeen, useHintTurn } from '../lib/tips'
 import { makeDefault, useHold, useListDefaults } from './listDefaults'
+import LyricsMark from '../components/LyricsMark'
+import { useAlbumsWithLyrics, useLyricsCheck } from '../lib/lyricMarks'
 
 /** Rows drawn before "Show more": a phone lays out a few hundred rows instantly, not ten thousand. */
 const PAGE = 300
@@ -391,6 +393,7 @@ function Nothing({ query }: { query: string }) {
 }
 
 export function AlbumsScreen(props: ListProps) {
+  const withLyrics = useAlbumsWithLyrics()
   const t = useT()
   const { query, order, genre } = props
   const seen = useSeen(genre)
@@ -450,7 +453,7 @@ export function AlbumsScreen(props: ListProps) {
                   <button type="button" className="jx-row" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
                     <Cover album={album} className="jx-thumb" />
                     <span>
-                      <b>{shownName(album.title)}</b>
+                      <b className="jx-named"><span>{shownName(album.title)}</span>{withLyrics.has(album.id) && <LyricsMark className="jx-lyrics-mark" />}</b>
                       <small>{[shownName(album.artist), album.year].filter(Boolean).join(' · ')}</small>
                     </span>
                   </button>
@@ -469,7 +472,7 @@ export function AlbumsScreen(props: ListProps) {
                 <li key={album.id}>
                   <button type="button" className="jx-tile" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
                     <Cover album={album} className="jx-cover" />
-                    <b>{shownName(album.title)}</b>
+                    <b className="jx-named"><span>{shownName(album.title)}</span>{withLyrics.has(album.id) && <LyricsMark className="jx-lyrics-mark" />}</b>
                     <small>{shownName(album.artist)}</small>
                   </button>
                 </li>
@@ -646,6 +649,7 @@ export function SongList({
 }) {
   const t = useT()
   const playingId = usePlayerStore((s) => currentTrack(s)?.id)
+  const hasLyrics = useLyricsCheck()
   const albumOf = useMemo(() => new Map(albums.map((a) => [a.id, a])), [albums])
   const [options, setOptions] = useState<number | null>(null)
   const hold = useRef<{ timer: number; fired: boolean } | null>(null)
@@ -691,7 +695,7 @@ export function SongList({
                 <Cover album={albumOf.get(track.albumId)} className="jx-thumb" />
               )}
               <span>
-                <b>{track.title}</b>
+                <b className="jx-named"><span>{track.title}</span>{hasLyrics(track) && <LyricsMark className="jx-lyrics-mark" />}</b>
                 <small>
                   {subtitle
                     ? subtitle(track)

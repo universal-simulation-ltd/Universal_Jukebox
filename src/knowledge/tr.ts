@@ -184,6 +184,10 @@ Birçok müzik dosyası, mağaza, bir aktarma programı ya da bir etiket düzenl
 
 Bir şarkının yanına kaydedilmiş söz dosyası da okunur; yeter ki şarkıyla aynı adı taşısın ve **.lrc** ile bitsin: *Sarki.mp3* ve *Sarki.lrc*. Dosya, klasör taranırken okunur; bu yüzden söz dosyası ekledikten sonra müziğinizi yeniden taratın. Söz panelinden tek bir şarkıya eklediğiniz söz dosyası ikisinden de önce gelir.
 
+## Hangi şarkıların sözleri var
+
+Bir şarkının adından sonraki küçük konuşma balonu, sözlerinin gösterilebileceği anlamına gelir: dosyadan, bir söz dosyasından ya da daha önce yapılmış bir çevrimiçi aramadan. En az bir şarkısının sözleri olan albümde de görünür. Uygulama, zaten var olan bir kitaplığı arka planda şarkı şarkı denetler; bu yüzden büyük bir kitaplıkta balonların görünmesi birkaç dakika sürebilir.
+
 ## Tüm kitaplığınız için sözler
 
 Dosyalarınızda söz yoksa, bilgisayarlar için ücretsiz bir program olan **LRCGET** bütün bir klasörün sözlerini tek seferde indirebilir; sözleri şarkılarınızın yanına .lrc dosyaları olarak kaydeder ya da doğrudan şarkıların içine yazar. **LRCGET ile tüm kitaplığınız için şarkı sözleri** makalesi bunu adım adım anlatır.

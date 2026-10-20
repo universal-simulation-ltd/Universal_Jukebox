@@ -107,6 +107,21 @@ describe('adding a folder', () => {
     expect(merged.tracks.map((t) => t.path)).toEqual(['Music/a.mp3'])
   })
 
+  // A Music-library refresh can't say whether a song has words; the answer
+  // the background pass found must not be lost to it (`lib/lyricsPresence.ts`).
+  it('keeps what was learnt about lyrics where the rescan could not say', () => {
+    const before = {
+      tracks: [track('Music/a.mp3', { id: 'a', albumId: 'one', hasLyrics: true }), track('Music/b.mp3', { id: 'b', albumId: 'one', hasLyrics: false })],
+      albums: [album('one', { trackCount: 2 })],
+    }
+    const merged = addScan(before, 'Music', {
+      tracks: [track('Music/a.mp3', { id: 'a', albumId: 'one' }), track('Music/b.mp3', { id: 'b', albumId: 'one', hasLyrics: true })],
+      albums: [album('one')],
+    })
+    // Unknown in the new read: carried. Known in the new read: the new read wins.
+    expect(merged.tracks.map((t) => t.hasLyrics)).toEqual([true, true])
+  })
+
   it('lets a deleted album disappear on a rescan', () => {
     const merged = addScan(existing, 'Music', { tracks: [], albums: [] })
     expect(merged.tracks).toHaveLength(0)

@@ -124,9 +124,19 @@ export function addScan(existing: Library, prefix: string, scanned: Library): Li
   // same path, size and mtime: the same audio.
   const learnt = new Map<string, number>()
   for (const t of existing.tracks) if (t.durationSec) learnt.set(t.id, t.durationSec)
-  const rescanned = learnt.size === 0
+  // …and so does whether it has words, where the new read could not say: a
+  // Music-library refresh never knows (`lib/lyricsPresence.ts` asks iOS, one
+  // song at a time), and asking every song again on each refresh is minutes.
+  const words = new Map<string, boolean>()
+  for (const t of existing.tracks) if (t.hasLyrics !== undefined) words.set(t.id, t.hasLyrics)
+  const rescanned = learnt.size === 0 && words.size === 0
     ? scanned.tracks
-    : scanned.tracks.map((t) => (!t.durationSec && learnt.has(t.id) ? { ...t, durationSec: learnt.get(t.id) } : t))
+    : scanned.tracks.map((t) => {
+      let next = t
+      if (!t.durationSec && learnt.has(t.id)) next = { ...next, durationSec: learnt.get(t.id) }
+      if (t.hasLyrics === undefined && words.has(t.id)) next = { ...next, hasLyrics: words.get(t.id) }
+      return next
+    })
   const tracks = [...kept, ...rescanned]
 
   const byId = new Map<string, Album>()

@@ -364,12 +364,13 @@ export async function prepareSong(track: Track): Promise<NativeFile> {
  * shows), or null. The copy made for playback can't be trusted for these: an
  * MP3's copy carries no tags at all (`AppleMusicPlugin.lyrics`).
  */
-export async function musicLibraryLyrics(track: Track): Promise<string | null> {
+export async function musicLibraryLyrics(track: Track, quiet = false): Promise<string | null> {
   const id = songIdOf(track.path)
   if (!id || !hasMusicLibrary()) return null
   await load()
   const { text, from, formats } = await plugin!.lyrics({ id })
   // Where they came from, or which tags the file had when there were none.
-  console.info(`[jukebox] library lyrics “${track.title}”: ${from ?? '?'}${formats ? ` (${formats})` : ''}`)
+  // `quiet` for the background pass over every song (`lib/lyricsPresence.ts`).
+  if (!quiet) console.info(`[jukebox] library lyrics “${track.title}”: ${from ?? '?'}${formats ? ` (${formats})` : ''}`)
   return text?.trim() ? text : null
 }

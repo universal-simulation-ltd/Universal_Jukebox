@@ -184,6 +184,10 @@ Muitos arquivos de música trazem a letra dentro das tags, colocada ali pela loj
 
 Um arquivo de letra salvo ao lado de uma música também é lido, desde que tenha o nome da música e termine em **.lrc**: *Musica.mp3* e *Musica.lrc*. Ele é lido quando a pasta é verificada, então, depois de adicionar arquivos de letra, verifique sua música de novo. Um arquivo de letra que você adiciona a uma música pelo painel de letras vem antes dos dois.
 
+## Quais músicas têm letra
+
+Um pequeno balão depois do nome de uma música indica que a letra pode ser mostrada: do arquivo, de um arquivo de letra ou de uma busca on-line feita antes. Um álbum mostra o balão quando pelo menos uma das músicas tem letra. O app verifica em segundo plano uma biblioteca que já tinha, uma música de cada vez, então numa biblioteca grande os balões podem levar alguns minutos para aparecer.
+
 ## Letras para toda a sua biblioteca
 
 Se os seus arquivos não têm letras, um programa gratuito para computador chamado **LRCGET** pode buscá-las para uma pasta inteira de uma vez, seja como arquivos .lrc ao lado das músicas, seja gravadas dentro das próprias músicas. O artigo **Letras para toda a sua biblioteca, com o LRCGET** mostra como fazer, passo a passo.
