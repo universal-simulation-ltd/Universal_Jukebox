@@ -54,8 +54,10 @@ const about: Draft['about'] = {
   'app_built_with_heading': 'Şununla geliştirildi',
   'app_built_with': 'Bu uygulama şu açık kaynak projelerin emeği üzerine kurulu.',
   'app_all_packages': 'Tüm {count} paket ve lisansları',
-  'app_footer': 'Her Universal App gibi ücretsiz ve açık kaynak. Yapan: {unisim} · {source}.',
+  'app_footer': 'Her Universal App gibi ücretsiz ve açık kaynak. Yapan: {james} ve {team} · {source}.',
   'app_footer_source': 'GitHub’daki kaynak kodu',
+  'app_footer_team': 'UNI·SIM ekibi',
+  'app_made_by': '{james} ve {team} tarafından yapıldı',
 }
 
 export default about

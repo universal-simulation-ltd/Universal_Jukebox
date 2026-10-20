@@ -63,6 +63,8 @@ export default {
   'app_built_with_heading': 'Built with', // heading over the list of open-source projects the app ships
   'app_built_with': 'This app stands on the work of these open-source projects.', // under that heading
   'app_all_packages': 'All {count} packages and their licences', // link to the full licence texts; {count} is a number
-  'app_footer': 'Free and open source, like every Universal App. Built by {unisim} · {source}.', // {unisim} is a link reading "UNI·SIM"; {source} is a link reading "the source on GitHub"
+  'app_footer': 'Free and open source, like every Universal App. Made by {james} and {team} · {source}.', // {james} is a link reading "James Markey MBE" (to jamesmarkey.co.uk), {team} one reading app_footer_team (to unisim.co.uk); {source} is a link reading "the source on GitHub"
   'app_footer_source': 'the source on GitHub', // link to the app's code
+  'app_footer_team': 'the UNI·SIM team', // link to unisim.co.uk; keep the name UNI·SIM as it is
+  'app_made_by': 'Made by {james} and {team}', // credit at the foot of Tune this app; {james} is a link reading "James Markey MBE", {team} one reading app_footer_team
 } as const

@@ -9,6 +9,7 @@
 
 import { goHome, navigate } from '../lib/route'
 import { useT } from '../i18n'
+import { creditLinks } from './creditLinks'
 import { isNativeShell, nativePlatform } from '../lib/nativeFile'
 // Generated — `npm run credits` after any dependency change. Never edit by hand.
 import credits from '../generated/credits.json'
@@ -165,11 +166,7 @@ export default function About() {
           {/* The two links the page footer carries on the web. The phone apps
               have no footer (`App.tsx`), so this is where they live there. */}
           {t.rich('about.app_footer', {
-            unisim: (
-              <a href="https://www.unisim.co.uk" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
-                UNI·SIM
-              </a>
-            ),
+            ...creditLinks(t, 'text-orange-700 underline-offset-2 hover:underline dark:text-orange-400'),
             source: (
               <a href="https://github.com/universal-simulation-ltd/Universal_Jukebox" target="_blank" rel="noreferrer" className="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400">
                 {t('about.app_footer_source')}
@@ -181,3 +178,4 @@ export default function About() {
     </div>
   )
 }
+

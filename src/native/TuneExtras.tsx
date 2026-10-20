@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { useT } from '../i18n'
+import { creditLinks } from '../components/creditLinks'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { hasNativeImporter } from '../lib/nativeImport'
 import { goHome, navigate } from '../lib/route'
@@ -224,6 +225,7 @@ export function AboutAndHelp() {
         </span>
         <span className="jx-chev" aria-hidden>›</span>
       </button>
+      <p className="jx-credit">{t.rich('about.app_made_by', creditLinks(t, 'jx-credit-link'))}</p>
     </section>
   )
 }

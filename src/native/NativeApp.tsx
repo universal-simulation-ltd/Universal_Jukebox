@@ -37,7 +37,8 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { NAVIGATED, arrivedByHistory, currentRoute, entryBelow, goHome, navigate, type Route, type View } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
-import { useSettingsStore, type HomeTab, type ListTab } from '../stores/settingsStore'
+import { adoptOnce, useSettingsStore, type HomeTab, type ListTab } from '../stores/settingsStore'
+import { discoverFirst } from '../lib/resume'
 import { albumsOfBigArtists, isFullAlbum, orderFrom, type LibraryOrder } from '../lib/libraryView'
 import { libraryInGenre } from '../lib/genres'
 import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
@@ -54,6 +55,41 @@ import { ArticleScreen, HelpScreen } from './HelpScreens'
 import { useT, type MessageKey } from '../i18n'
 import './native.css'
 import { applyListDefaults, useHold } from './listDefaults'
+
+// The Albums shelf is the phone app's front door, with "Listen to this" under
+// it the first time (James, 2026-10-20: "I would like this to be the first
+// view after importing a library (including existing) with the now resume
+// playing card being the discovery card"). New installs get it from
+// `DEFAULTS.homeTab`; phones already using the app are moved there ONCE —
+// a tab or layout chosen afterwards sticks, as with every move in
+// `settingsStore`'s `read()`.
+const ALBUMS_HOME_KEY = 'jukebox:phone-albums-home-2026-10-20'
+/** Moved this launch: the first render goes to the shelf, whatever screen it reopened on. */
+let movedToAlbums = false
+function adoptAlbumsHome(): void {
+  if (!adoptOnce(ALBUMS_HOME_KEY)) return
+  const s = useSettingsStore.getState()
+  s.set('homeTab', 'albums')
+  s.set('libraryColumns', { ...s.libraryColumns, albums: 'jukebox' })
+  // Or `applyListDefaults` below would put the old layout straight back.
+  const d = s.listDefaults
+  if (d) s.set('listDefaults', { ...d, libraryColumns: { ...d.libraryColumns, albums: 'jukebox' } })
+  discoverFirst(true)
+  movedToAlbums = true
+}
+adoptAlbumsHome()
+
+// …and after an import: from no library to one, Albums — even for somebody
+// who starred another tab, because this is the first look at the new
+// library. ⚠️ Not on the way back from the example library (`before.trying`):
+// there "Resume listening" is how you get back to your own music (`resume.ts`).
+useLibraryStore.subscribe((now, before) => {
+  if (before.status !== 'empty' || before.trying) return
+  if (now.status !== 'scanning' && now.status !== 'ready') return
+  discoverFirst(true)
+  if (useSettingsStore.getState().homeTab === 'albums') goHome()
+  else navigate({ view: 'albums' })
+})
 
 // The lists open with their defaults (a tap on a list option lasts until the
 // app is next opened; holding one makes it the default — `listDefaults.ts`).
@@ -173,6 +209,23 @@ export default function NativeApp() {
   const [homeFlash, setHomeFlash] = useState<TabView | null>(null)
 
   const view: View = route.home ? homeTab : route.view
+
+  // The first look's "Listen to this" lasts until that Albums view is left
+  // (`discoverFirst` above); after it, "Resume listening" as ever.
+  const lastView = useRef(view)
+  // A launch that reopened on an album or Tune (a WebView reload keeps the
+  // address) still starts on the shelf. ⚠️ From here, not at load: `goHome`
+  // can step back through history, and the `popstate` that ends it would
+  // land before `useRoute` above was listening.
+  useEffect(() => {
+    if (!movedToAlbums) return
+    movedToAlbums = false
+    goHome()
+  }, [])
+  useEffect(() => {
+    if (lastView.current === 'albums' && view !== 'albums') discoverFirst(false)
+    lastView.current = view
+  }, [view])
 
   // While searching, each library tab says how many it has (the website's tab
   // counts) — the only way to know the tab you are NOT on has answers. From

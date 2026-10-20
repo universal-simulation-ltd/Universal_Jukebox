@@ -15,8 +15,19 @@ import { useSettingsStore } from '../stores/settingsStore'
  * "Hide" lasts until the app is next opened. `read` counts the times the saved
  * session must be read again while the page is open — see below.
  */
-const useHidden = create<{ hidden: boolean; read: number }>(() => ({ hidden: false, read: 0 }))
+const useHidden = create<{ hidden: boolean; read: number; discover: boolean }>(() => ({ hidden: false, read: 0, discover: false }))
 export const hideResume = (): void => useHidden.setState({ hidden: true })
+
+// ⚠️ THE FIRST LOOK AT A NEW LIBRARY IS "LISTEN TO THIS" (James, 2026-10-20:
+// the Albums shelf is "the first view after importing a library (including
+// existing) with the now resume playing card being the discovery card"). The
+// phone app sets this when a library is imported, and once on phones that
+// had one already; it lasts until that Albums view is left, and then "Resume
+// listening" comes back whenever there is something to resume.
+export const discoverFirst = (on: boolean): void => {
+  if (useHidden.getState().discover !== on) useHidden.setState({ discover: on })
+}
+export const isDiscoveringFirst = (): boolean => useHidden.getState().discover
 
 // ⚠️ BACK FROM TRYING THE EXAMPLE LIBRARY, the card is how you get back to
 // what you were playing (the player stopped it on the way in — see the end of
@@ -38,6 +49,7 @@ export interface Resumable {
 export function useResumable(): Resumable | null {
   const enabled = useSettingsStore((s) => s.resumeCard)
   const hidden = useHidden((s) => s.hidden)
+  const discover = useHidden((s) => s.discover)
   // Shown only while nothing is playing: once something is, the player bar is
   // the way back.
   const queued = usePlayerStore((s) => s.queue.length)
@@ -48,11 +60,11 @@ export function useResumable(): Resumable | null {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `read` is the signal to read again, not an input
   const session = useMemo(() => readSession(), [read])
   return useMemo(() => {
-    if (!enabled || hidden || queued > 0 || !session) return null
+    if (!enabled || hidden || discover || queued > 0 || !session) return null
     const track = tracks.find((t) => t.id === session.trackId)
     if (!track) return null
     return { session, track, album: albums.find((a) => a.id === track.albumId) }
-  }, [enabled, hidden, queued, session, tracks, albums])
+  }, [enabled, hidden, discover, queued, session, tracks, albums])
 }
 
 /**

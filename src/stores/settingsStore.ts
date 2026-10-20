@@ -1,5 +1,6 @@
 import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
 import { barsPocketPlayer } from '../lib/nativeFile'
+import { phoneScreens } from '../native/shell'
 import { create } from 'zustand'
 import { perTab } from '../lib/perTab'
 import { ORDER_KINDS, type OrderKind } from '../lib/order'
@@ -352,8 +353,11 @@ export const DEFAULTS: Settings = {
   // The library's standard look (James, 2026-09-27: "Default to opening on
   // tracks / Artist - A-Z, min 3, 3 per row / Albums - A-Z, full albums, 4 per
   // row / Tracks - A-Z, Jukebox") — adopted once on devices that were already
-  // using the app, `LIBRARY_STANDARD_KEY` below.
-  homeTab: 'tracks',
+  // using the app, `LIBRARY_STANDARD_KEY` below. The phone app opens on the
+  // Albums shelf instead (James, 2026-10-20: "I would like this to be the
+  // first view after importing a library") — moved once on phones already
+  // using it, `adoptAlbumsHome` in `native/NativeApp.tsx`.
+  homeTab: phoneScreens() ? 'albums' : 'tracks',
   deck: 'vinyl',
   deckEras: DEFAULT_ERAS,
   needleDrop: true,
@@ -608,7 +612,7 @@ function adoptShelf(): boolean {
 }
 
 /** True the first time `key` is asked about on this device — see `adoptShelf`. */
-function adoptOnce(key: string): boolean {
+export function adoptOnce(key: string): boolean {
   try {
     if (localStorage.getItem(key) !== null) return false
     localStorage.setItem(key, '1')

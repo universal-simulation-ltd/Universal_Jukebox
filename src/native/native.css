@@ -486,6 +486,10 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
 .jx-help-card .jx-row small { white-space: normal; line-height: 1.35; margin-top: 2px; }
 /* Tune ▸ About & help: the lines under each row wrap too (German cut them off). */
 .jx-tune-wrap .jx-row small { white-space: normal; line-height: 1.35; margin-top: 2px; }
+/* Made by James Markey MBE and the UNI·SIM team, each name its own link (About.tsx `creditLinks`). */
+.jx-credit { margin: 4px 0 0; padding-top: 10px; font-size: 13px; line-height: 1.4; color: var(--jx-mute); border-top: 1px solid var(--jx-line); }
+.jx-credit-link { color: var(--jx-acc); font-weight: 600; text-decoration: none; }
+.jx-credit-link:active { opacity: 0.6; }
 .jx-article { gap: 10px; padding-bottom: 32px; }
 .jx-article .jx-h1 { font-size: 26px; }
 .jx-article-body { font-size: 16.5px; line-height: 1.55; }

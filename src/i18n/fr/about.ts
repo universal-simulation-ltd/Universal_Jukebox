@@ -57,8 +57,10 @@ const about: Draft['about'] = {
   'app_built_with_heading': 'Développée avec',
   'app_built_with': 'Cette application repose sur le travail de ces projets open source.',
   'app_all_packages': 'Les {count} paquets et leurs licences',
-  'app_footer': 'Gratuit et open source, comme toutes les Universal Apps. Créé par {unisim} · {source}.',
+  'app_footer': 'Gratuit et open source, comme toutes les Universal Apps. Créé par {james} et {team} · {source}.',
   'app_footer_source': 'le code source sur GitHub',
+  'app_footer_team': 'l’équipe UNI·SIM',
+  'app_made_by': 'Créé par {james} et {team}',
 }
 
 export default about
