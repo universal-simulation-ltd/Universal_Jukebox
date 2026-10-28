@@ -6,6 +6,7 @@ import {
   translateNav,
   useGlobalPreferences,
   useResetAppDefaults,
+  signOut,
   useUniversal,
   type Language,
 } from '@unisim/sdk'
@@ -628,6 +629,7 @@ export default function Settings() {
             onClick={() => s.set('tipsSeen', [])}
           />
         </Section>
+        <AccountSection />
       </div>
 
       <ResetDefaults />
@@ -1119,6 +1121,44 @@ function NotifyToggle() {
  * for Wikipedia, for the same reason: a claim about stored data the person
  * cannot see or clear is worth very little.
  */
+/**
+ * "Your Universal ID" — the website only, and only when somebody is signed in
+ * to the suite somewhere else (the hub, BlackBook…): Jukebox asks nobody to
+ * sign in, but recognises the shared session and says so in the top bar
+ * ("James’ Jukebox", `lib/personalTitle.ts`). This is where that account is
+ * managed and left — the SDK's own copy of this section is in ITS Tune this
+ * app, which Jukebox replaces with this page (`showAppPreferences={false}`).
+ * The suite rule, James 2026-10-26: "On the tuning page there should be an
+ * account management".
+ */
+function AccountSection() {
+  const t = useT()
+  const { config, session, supabase } = useUniversal()
+  const user = session?.user
+  if (config.noAccounts || !user || (user as { is_anonymous?: boolean }).is_anonymous || !user.email) return null
+  const hub = 'https://app.unisim.co.uk/profile'
+  return (
+    <Section title={t('settings.account_title')} summary={user.email}>
+      <div className="px-5 py-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="min-w-0 flex-1 text-[14px] font-semibold break-all text-slate-900 dark:text-slate-100">{user.email}</p>
+          <a href={hub} target="_blank" rel="noopener" className="text-[13px] font-medium whitespace-nowrap text-orange-700 hover:underline dark:text-orange-400">
+            {t('settings.account_manage')} →
+          </a>
+        </div>
+        <p className="mt-2 text-[12.5px] text-slate-500 dark:text-slate-400">{t('settings.account_note')}</p>
+        <button
+          type="button"
+          onClick={() => void signOut(supabase)}
+          className="mt-2.5 text-[13px] font-semibold text-slate-700 hover:text-orange-700 dark:text-slate-200 dark:hover:text-orange-400"
+        >
+          {t('settings.sign_out')}
+        </button>
+      </div>
+    </Section>
+  )
+}
+
 function SavedAbout() {
   const t = useT()
   const [count, setCount] = useState<number | null>(null)

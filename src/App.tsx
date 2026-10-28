@@ -1,9 +1,10 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
-// that is the only event this app will ever send. Since 2026-10-20 nobody is
-// ever signed in (`noAccounts: true` in main.tsx), so in practice it sends
-// nothing at all. No event may carry a
+// that is the only event this app will ever send. Nobody signs in to Jukebox,
+// but since 2026-10-28 the WEBSITE recognises somebody already signed in to
+// the suite (`noAccounts` in main.tsx), and for them it sends that one row, as
+// every other suite app does. The phone and desktop builds send nothing. No event may carry a
 // filename, an artist, an album, a track count or a byte count: this app reads
 // someone's whole music collection, and the front page promises we never
 // build a picture of what people own.
@@ -45,6 +46,7 @@ import { usePrefersReducedMotion } from './lib/usePrefersReducedMotion'
 import { isNativeShell } from './lib/nativeFile'
 import { phoneScreens } from './native/shell'
 import { useT, type MessageKey } from './i18n'
+import { possessive } from './lib/personalTitle'
 
 // The phone app has screens of its own (src/native/, see shell.ts). Loaded on
 // demand, so the website's bundle never carries them.
@@ -487,6 +489,13 @@ function WebApp() {
         // Global Tuning: the SDK's default since 0.165.0 — a signed-in
         // account panel only, never a guest's list (James, 2026-09-28).
         suiteSwitcherIconSrc={`${import.meta.env.BASE_URL}unisim-icon.png`}
+        // Signed in to the suite elsewhere = "James’ Jukebox" in place of the
+        // product's name, and the account under Tune this app ▸ Your Universal
+        // ID, not an avatar (the suite rule, James 2026-10-26). Jukebox asks
+        // nobody to sign in; the website just recognises the shared session.
+        // Inert in the phone and desktop builds, which have `noAccounts`.
+        accountInTune
+        personalTitle={(name) => (name ? t('app.personal_title', { owner: possessive(t.lang, name) }) : t('app.my_jukebox'))}
       />
 
       {/* `empty:hidden` is load-bearing: UpdateNotice renders null unless this

@@ -34,6 +34,10 @@ export default {
   'home_jukebox': 'Jukebox', // the library tab's name. Stays "Jukebox" in every language (GLOSSARY)
   'hide_resume': 'Hide “Resume listening”', // tick box; “Resume listening” is the card's title
   'hide_resume_hint': 'Tick to take away the card above your albums, artists and tracks that shows the song you were last playing, on its machine, so you can tap it to carry on where you left off.',
+  'account_title': 'Your Universal ID', // section title, only when signed in to UNI·SIM; “Universal ID” is the suite's name for an account
+  'account_manage': 'Manage on the hub', // link to the account's page on app.unisim.co.uk
+  'account_note': 'Signing out here signs you out of every UNI·SIM app on this device.',
+  'sign_out': 'Sign out', // button
   'hide_most_played': 'Hide the Most played shelf', // tick box; “Most played” is the shelf's name
   'hide_most_played_hint': 'Tick to take away the shelf at the top of Shelves that fills itself with the songs you play most. Plays are counted on this device only.',
   'tidy_up': 'Tidy up library', // row with an Open button
