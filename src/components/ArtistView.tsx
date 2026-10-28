@@ -11,6 +11,9 @@ import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import type { Album, Track } from '../lib/types'
 import { compareBase } from '../lib/collate'
+import { useWorldFacts, WorldLine } from './WorldFacts'
+import { useHitsStore } from '../stores/hitsStore'
+import { biggestSongs } from '../lib/hitsView'
 
 // One artist: every album of theirs, and every song on them to play or shuffle
 // (James, 2026-09-10: "Once inside the album though we could add a button to go
@@ -55,6 +58,10 @@ export default function ArtistView({ name, songs = false }: { name: string; song
     [albums, t],
   )
 
+  const world = useWorldFacts()
+  const records = useHitsStore((h) => h.records)
+  const biggest = useMemo(() => biggestSongs(tracks, records), [tracks, records])
+
   if (albums.length === 0) {
     return (
       <div className="py-16 text-center">
@@ -97,6 +104,7 @@ export default function ArtistView({ name, songs = false }: { name: string; song
       <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
         {[t.plural('common.albums', albums.length), t.plural('common.songs', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}
       </p>
+      <WorldLine className="mt-1 text-[13px] font-medium text-orange-700 dark:text-orange-400" facts={world.ofSongs(tracks)} />
 
       <div className="mt-5 flex flex-wrap gap-2.5">
         <button
@@ -120,6 +128,19 @@ export default function ArtistView({ name, songs = false }: { name: string; song
         <AddToQueue tracks={tracks} />
         <AddToShelf tracks={tracks} variant="pill" />
       </div>
+
+      {/* Their songs the world plays most, from the Hits lookups: a tap plays
+          on through these, biggest first. */}
+      {biggest.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-[12px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">{t('shelves.hits_biggest')}</h2>
+          <ul className="mt-1 divide-y divide-slate-200 dark:divide-slate-800">
+            {biggest.map((track, i) => (
+              <SongRow key={track.id} track={track} onPlay={() => playTracks(biggest, i)} subtitle={albumLine.get(track.albumId)} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       {songs ? (
         <>

@@ -18,6 +18,7 @@ import { compareName } from '../lib/collate'
 import { useT } from '../i18n'
 import LyricsMark from './LyricsMark'
 import { useLyricsCheck } from '../lib/lyricMarks'
+import { useSongFacts } from './WorldFacts'
 
 // Every track, in one list.
 //
@@ -212,6 +213,7 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
 export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () => void; subtitle?: string }) {
   const t = useT()
   const hasLyrics = useLyricsCheck()(track)
+  const world = useSongFacts(track)
   // One number per row, so pausing or changing track re-renders the row(s)
   // concerned rather than every row in the list: 0 not this song, 1 this song
   // paused, 2 this song playing.
@@ -242,6 +244,8 @@ export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () 
           </span>
           <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
             {subtitle ?? ([track.artist, track.album].filter(Boolean).join(' — ') || t('library.unknown'))}
+            {/* Its plays in the world, once Hits has looked it up. */}
+            {world && <span className="text-orange-700 dark:text-orange-400"> · {world}</span>}
           </span>
         </span>
         {/* Hidden below 560px (tier T5): the format chip is the first

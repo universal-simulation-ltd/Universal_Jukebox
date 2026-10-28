@@ -53,6 +53,9 @@ export default {
   'hits_awards_one': '{count} award', // under a record on Hits
   'hits_awards_other': '{count} awards',
   'hits_credit': 'Ranked by plays on ListenBrainz, ratings on MusicBrainz and awards on Wikidata.', // under the shelf
+  'hits_plays_short_one': '{count} play', // after a song's name in lists, from Hits' lookups; {count} is short, like "1.2M"
+  'hits_plays_short_other': '{count} plays',
+  'hits_biggest': 'Biggest hits', // on an artist's page: their songs the world plays most
   'name_for_shelf': 'Name for {name}', // screen-reader name of the box for renaming a shelf
   'tap_to_rename': 'Tap to rename', // tooltip on a shelf's name
   'shelf_empty': 'empty', // lower case, after the shelf's name where its song count would be

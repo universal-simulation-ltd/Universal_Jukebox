@@ -23,6 +23,9 @@ import { SearchBox, SongList } from './LibraryScreens'
 import { byYearThenTitle } from '../lib/libraryView'
 import { useCollectionHold } from './CollectionHold'
 import { useHold } from './listDefaults'
+import { useWorldFacts, WorldLine } from '../components/WorldFacts'
+import { useHitsStore } from '../stores/hitsStore'
+import { biggestSongs } from '../lib/hitsView'
 
 function usePlayShuffle() {
   const playTracks = usePlayerStore((s) => s.playTracks)
@@ -106,6 +109,7 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
   // 2026-10-12). A new key restarts the animation on every hold.
   const sleeveHold = useHold()
   const [slides, setSlides] = useState(0)
+  const world = useWorldFacts()
 
   if (!album) return <p className="jx-empty">{t('native.album_gone')}</p>
 
@@ -148,6 +152,7 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
           {shownName(album.artist)}
         </button>
         <p className="jx-sub">{[album.year, t.plural('common.tracks', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
+        <WorldLine className="jx-sub jx-world" facts={world.ofSongs(tracks)} />
       </div>
       <Actions tracks={tracks} onPlay={() => playTracks(tracks, 0)} onShuffle={() => shuffleThese(tracks)} />
       </>
@@ -202,6 +207,9 @@ export function ArtistScreen({ name }: { name: string }) {
   const [middleId, setMiddleId] = useState<string>(DISCOGRAPHY)
   const shownAlbum = albums.find((a) => a.id === middleId) ?? (albums.length === 1 ? albums[0] : undefined)
   const shown = shownAlbum ? (byAlbum.get(shownAlbum.id) ?? []) : tracks
+  const world = useWorldFacts()
+  const records = useHitsStore((h) => h.records)
+  const biggest = useMemo(() => biggestSongs(tracks, records), [tracks, records])
 
   if (albums.length === 0) return <p className="jx-empty">{t('native.artist_gone')}</p>
 
@@ -213,6 +221,7 @@ export function ArtistScreen({ name }: { name: string }) {
       <div className="jx-hero">
         <h1 className="jx-h1">{shownName(name)}</h1>
         <p className="jx-sub">{[t.plural('common.albums', albums.length), t.plural('common.tracks', tracks.length), totalTime(tracks)].filter(Boolean).join(' · ')}</p>
+        <WorldLine className="jx-sub jx-world" facts={world.ofSongs(tracks)} />
       </div>
       {held.sheet}
       {/* Their albums as ONE shelf you swipe along, not a grid (James,
@@ -240,6 +249,19 @@ export function ArtistScreen({ name }: { name: string }) {
         />
       </div>
       <Actions tracks={shown} onPlay={() => playTracks(shown, 0)} onShuffle={() => shuffleThese(shown)} />
+      {/* Their songs the world plays most, from the Hits lookups: a tap plays
+          on through these, biggest first. */}
+      {biggest.length > 0 && (
+        <>
+          <p className="jx-label">{t('shelves.hits_biggest')}</p>
+          <SongList
+            tracks={biggest}
+            albums={allAlbums}
+            onPlay={(i) => playTracks(biggest, i)}
+            subtitle={(track) => [shownName(track.album), albumYear.get(track.albumId)].filter(Boolean).join(' · ')}
+          />
+        </>
+      )}
       </>
       )}
       {/* Searching looks through every song of theirs, whichever record is in

@@ -30,6 +30,7 @@ import { useSettingsStore, type LibraryColumns, type ListTab } from '../stores/s
 import { IconBack, IconClose, IconMore, IconPreview, IconSearch, IconShuffle, IconStop } from './icons'
 import { PREVIEW_RUN_SEC, PREVIEW_START_SEC } from '../lib/audio'
 import TrackOptions from '../components/TrackOptions'
+import { useWorldFacts } from '../components/WorldFacts'
 import ResumeCard from '../components/ResumeCard'
 import { haptic } from '../lib/haptics'
 import { useCollectionHold } from './CollectionHold'
@@ -650,6 +651,7 @@ export function SongList({
   const t = useT()
   const playingId = usePlayerStore((s) => currentTrack(s)?.id)
   const hasLyrics = useLyricsCheck()
+  const world = useWorldFacts()
   const albumOf = useMemo(() => new Map(albums.map((a) => [a.id, a])), [albums])
   const [options, setOptions] = useState<number | null>(null)
   const hold = useRef<{ timer: number; fired: boolean } | null>(null)
@@ -697,9 +699,11 @@ export function SongList({
               <span>
                 <b className="jx-named"><span>{track.title}</span>{hasLyrics(track) && <LyricsMark className="jx-lyrics-mark" />}</b>
                 <small>
-                  {subtitle
-                    ? subtitle(track)
-                    : [shownName(track.artist ?? track.albumArtist), showAlbum ? shownName(track.album) : null].filter(Boolean).join(' · ')}
+                  {/* Its plays in the world after it, once Hits has looked it up. */}
+                  {[
+                    subtitle ? subtitle(track) : [shownName(track.artist ?? track.albumArtist), showAlbum ? shownName(track.album) : null].filter(Boolean).join(' · '),
+                    world.ofSong(track),
+                  ].filter(Boolean).join(' · ')}
                 </small>
               </span>
             </button>

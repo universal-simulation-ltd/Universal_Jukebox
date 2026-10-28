@@ -12,6 +12,7 @@ import { navigate } from '../lib/route'
 import { matchTracks } from '../lib/search'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
+import { useWorldFacts, WorldLine } from './WorldFacts'
 
 // One album: the cover big, the tracks in running order, and the two buttons
 // that matter.
@@ -60,6 +61,7 @@ export default function AlbumView({ albumId }: { albumId: string }) {
   const found = useMemo(() => matchTracks(tracks, query), [tracks, query])
   const searching = query.trim() !== ''
   const shown = searching ? found : tracks
+  const world = useWorldFacts()
 
   if (!album) {
     return (
@@ -208,6 +210,9 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               ? t.plural('library.tracks_matching', tracks.length, { found: t.num(found.length), query: query.trim() })
               : [album.year, t.plural('common.tracks', tracks.length), total].filter(Boolean).join(' · ')}
           </p>
+          {!searching && (
+            <WorldLine className="mt-1 text-[13px] font-medium text-orange-700 dark:text-orange-400" facts={world.ofSongs(tracks)} />
+          )}
 
           <div className="mt-5 flex flex-wrap gap-2.5">
             <button
@@ -303,6 +308,11 @@ export default function AlbumView({ albumId }: { albumId: string }) {
                     </span>
                   )}
                 </span>
+                {/* Its plays in the world, from the Hits lookups; the first
+                    thing to go on a narrow row. */}
+                {world.ofSong(track) && (
+                  <span className="hidden shrink-0 text-[12px] text-orange-700 sm:inline dark:text-orange-400">{world.ofSong(track)}</span>
+                )}
                 <span className="shrink-0 text-[12px] tabular-nums text-slate-400 dark:text-slate-500">
                   {clock(track.durationSec)}
                 </span>

@@ -4,6 +4,7 @@ import { navigate } from '../lib/route'
 import { clock } from '../lib/format'
 import { usePlayerStore } from '../stores/playerStore'
 import type { Track } from '../lib/types'
+import { useSongFacts, WorldLine } from './WorldFacts'
 import { ShelfSheet } from './AddToShelf'
 import { TickGlyph } from './DoneBubble'
 import { useDialogFocus } from '../lib/useDialogFocus'
@@ -23,6 +24,7 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
   const queued = usePlayerStore((s) => s.queue.length)
   const [said, setSaid] = useState<string | null>(null)
   const [shelving, setShelving] = useState(false)
+  const world = useSongFacts(track, false)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -76,6 +78,7 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
           <p className="truncate text-[12.5px] text-slate-500 dark:text-slate-400">
             {[track.artist ?? track.albumArtist, track.album].filter(Boolean).join(' — ') || t('common.unknown_artist')}
           </p>
+          <WorldLine className="truncate text-[12.5px] font-medium text-orange-700 dark:text-orange-400" facts={world} />
         </div>
         {said ? (
           <p aria-live="polite" className="flex items-center justify-center gap-2 px-3 py-6 text-[15px] font-semibold text-emerald-700 dark:text-emerald-400">

@@ -181,6 +181,8 @@ html.dark .jx {
 .jx-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .jx-h1 { margin: 0; font-size: 30px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.1; }
 .jx-sub { margin: 2px 0 0; color: var(--jx-mute); font-size: 14px; }
+/* The Hits lookups' line under it: the world's plays, rating and awards (WorldFacts.tsx). */
+.jx-world { color: var(--jx-acc); font-size: 13px; font-weight: 600; }
 .jx-label { margin: 8px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--jx-mute); }
 .jx-fine { margin: -4px 0 0; color: var(--jx-mute); font-size: 13px; text-align: center; }
 .jx-empty { color: var(--jx-mute); font-size: 15px; padding: 24px 4px; text-align: center; }
