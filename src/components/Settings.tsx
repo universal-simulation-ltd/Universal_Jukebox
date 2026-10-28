@@ -31,6 +31,7 @@ import ModeGlyph from './ModeGlyph'
 import TryExampleDialog from './TryExampleDialog'
 import { DeckMiniature } from './Deck'
 import { useAboutStore } from '../stores/aboutStore'
+import { useHitsStore } from '../stores/hitsStore'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { useRequestsStore } from '../stores/requestsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -233,6 +234,23 @@ export default function Settings() {
             checked={!s.mostPlayedShelf}
             onChange={(v) => s.set('mostPlayedShelf', !v)}
           />
+          {/* James, 2026-10-28: Hits ranks your songs by the world's plays,
+              ratings and awards — online, so off until turned on. See `lib/hits.ts`. */}
+          <Toggle
+            label={t('settings.hide_hits')}
+            hint={t('settings.hide_hits_hint')}
+            checked={!s.hitsShelf}
+            onChange={(v) => s.set('hitsShelf', !v)}
+          />
+          {s.hitsShelf && (
+            <Toggle
+              label={t('settings.hits_online')}
+              hint={t('settings.hits_online_hint')}
+              checked={s.hitsOnline}
+              onChange={(v) => s.set('hitsOnline', v)}
+            />
+          )}
+          <SavedHits />
           {/* This, the theme and the tips were in the Actions menu (James,
               2026-09-11: "Appearance, tidy, show tips again should all go into
               settings"). */}
@@ -1119,6 +1137,26 @@ function NotifyToggle() {
  * for Wikipedia, for the same reason: a claim about stored data the person
  * cannot see or clear is worth very little.
  */
+/** How many songs the Hits shelf has looked up, and a way to forget them. */
+function SavedHits() {
+  const t = useT()
+  const count = useHitsStore((h) => h.records.size)
+  const forget = useHitsStore((h) => h.forget)
+  if (count === 0) return null
+  return (
+    <div className="px-5 py-4">
+      <p className="text-[13px] text-slate-600 dark:text-slate-300">{t.plural('settings.hits_looked_up', count)}</p>
+      <button
+        type="button"
+        onClick={() => void forget()}
+        className="mt-1.5 text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400"
+      >
+        {t('settings.forget_them')}
+      </button>
+    </div>
+  )
+}
+
 function SavedAbout() {
   const t = useT()
   const [count, setCount] = useState<number | null>(null)

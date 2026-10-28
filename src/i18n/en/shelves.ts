@@ -40,6 +40,19 @@ export default {
   'most_played_removed': 'Most played is gone. Bring it back in Tune this app, under Your library.', // said after removing it
   'played_times_one': 'Played once',
   'played_times_other': 'Played {count} times', // under a record on the Most played shelf
+  'hits': 'Hits', // the shelf at the top that fills itself with your songs the world plays most
+  'hits_offer': 'Your songs, ranked by how the world plays, rates and awards them. Turning this on looks each song up on ListenBrainz, MusicBrainz and Wikidata. Only the song’s title and the artist’s name are sent.', // on the Hits card before it is turned on
+  'hits_turn_on': 'Turn on', // button on that card; short
+  'hits_no_thanks': 'No thanks', // button on that card: removes the shelf; short
+  'hits_remove_label': 'Remove the Hits shelf', // screen reader for the Remove / No thanks buttons
+  'hits_removed': 'Hits is gone. Bring it back in Tune this app, under Your library.', // said after removing it
+  'hits_looking_up': 'Looking up your songs: {done} of {total}', // while the shelf fills
+  'hits_none_yet': 'None of your songs has turned up as a hit yet.', // when every song was looked up and none is known
+  'hits_plays_one': '{count} play worldwide', // under a record on Hits; {count} is short, like "1.2M"
+  'hits_plays_other': '{count} plays worldwide',
+  'hits_awards_one': '{count} award', // under a record on Hits
+  'hits_awards_other': '{count} awards',
+  'hits_credit': 'Ranked by plays on ListenBrainz, ratings on MusicBrainz and awards on Wikidata.', // under the shelf
   'name_for_shelf': 'Name for {name}', // screen-reader name of the box for renaming a shelf
   'tap_to_rename': 'Tap to rename', // tooltip on a shelf's name
   'shelf_empty': 'empty', // lower case, after the shelf's name where its song count would be

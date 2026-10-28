@@ -11,6 +11,9 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { starterShelfId, useShelvesStore } from '../stores/shelvesStore'
 import { mostPlayed, usePlayCounts } from '../lib/playCounts'
+import { RATING_MIN_VOTES, rankHits, recordFresh } from '../lib/hits'
+import { askable, useHitsStore } from '../stores/hitsStore'
+import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
 import type { Album, Track } from '../lib/types'
@@ -53,9 +56,24 @@ export default function JukeboxShelves() {
     return () => window.clearTimeout(timer)
   }, [removed])
   const starterId = starterShelfId()
+  // Hits, above everything (James, 2026-10-28) — not for the example's
+  // made-up songs, whether tried or loaded.
+  const showHits = useSettingsStore((s) => s.hitsShelf)
+  const exampleOnly = useLibraryStore((s) => s.trying || (s.roots.length > 0 && s.roots.every((r) => r.id === EXAMPLE_ROOT_ID)))
+  const [hitsRemoved, setHitsRemoved] = useState(false)
+  useEffect(() => {
+    if (!hitsRemoved) return
+    const timer = window.setTimeout(() => setHitsRemoved(false), 5000)
+    return () => window.clearTimeout(timer)
+  }, [hitsRemoved])
 
   return (
     <div className="space-y-12">
+      {exampleOnly ? null : showHits ? (
+        <HitsShelf tracks={tracks} albumOf={albumOf} onRemove={() => { setSetting('hitsShelf', false); setHitsRemoved(true) }} />
+      ) : hitsRemoved ? (
+        <p role="status" className="text-center text-[13px] text-slate-500 dark:text-slate-400">{t('shelves.hits_removed')}</p>
+      ) : null}
       {showMostPlayed ? (
         <MostPlayedShelf byId={byId} albumOf={albumOf} onRemove={() => { setSetting('mostPlayedShelf', false); setRemoved(true) }} />
       ) : removed ? (
@@ -189,6 +207,126 @@ function MostPlayedShelf({ byId, albumOf, onRemove }: { byId: ReadonlyMap<string
           detail: `${s.artist ?? s.albumArtist ?? t('common.unknown_artist')} · ${t.plural('shelves.played_times', counts[s.id]?.n ?? 0)}`,
         })}
       />
+    </div>
+  )
+}
+
+/**
+ * The shelf of the library's biggest songs in the world — plays on
+ * ListenBrainz, ratings on MusicBrainz, awards on Wikidata (`lib/hits.ts`,
+ * James, 2026-10-28). Off until it is turned on, here or in Tune this app:
+ * until then it is a card saying what turning it on sends.
+ */
+function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; albumOf(t: Track): Album | undefined; onRemove(): void }) {
+  const t = useT()
+  const online = useSettingsStore((s) => s.hitsOnline)
+  const setSetting = useSettingsStore((s) => s.set)
+  const records = useHitsStore((s) => s.records)
+  const busy = useHitsStore((s) => s.busy)
+  const songs = useMemo(() => rankHits(records, tracks), [records, tracks])
+  const progress = useMemo(() => {
+    const now = Date.now()
+    const asked = tracks.filter(askable)
+    return { done: asked.filter((track) => recordFresh(records.get(track.id), now)).length, total: asked.length }
+  }, [records, tracks])
+  const compact = useMemo(() => new Intl.NumberFormat(t.locale, { notation: 'compact', maximumFractionDigits: 1 }), [t.locale])
+  const playTracks = usePlayerStore((s) => s.playTracks)
+  const shuffle = usePlayerStore((s) => s.shuffle)
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
+  const name = t('shelves.hits')
+  const pill =
+    'inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1 text-[12.5px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400'
+  const remove = (
+    <button type="button" onClick={onRemove} aria-label={t('shelves.hits_remove_label')} className={pill}>
+      {t('shelves.most_played_remove')}
+    </button>
+  )
+
+  if (!online) {
+    return (
+      <div className="rounded-2xl border border-slate-200 px-5 py-4 dark:border-slate-800">
+        <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">{name}</p>
+        <p className="mt-1 text-[13px] text-slate-600 dark:text-slate-300">{t('shelves.hits_offer')}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSetting('hitsOnline', true)}
+            className="inline-flex items-center rounded-full bg-orange-600 px-3.5 py-1 text-[12.5px] font-semibold text-white transition hover:bg-orange-700"
+          >
+            {t('shelves.hits_turn_on')}
+          </button>
+          <button type="button" onClick={onRemove} aria-label={t('shelves.hits_remove_label')} className={pill}>
+            {t('shelves.hits_no_thanks')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const looking = busy && progress.done < progress.total && (
+    <p role="status" className="mb-1 text-[12.5px] text-slate-500 dark:text-slate-400">
+      {t('shelves.hits_looking_up', { done: t.num(progress.done), total: t.num(progress.total) })}
+    </p>
+  )
+  if (songs.length === 0) {
+    return (
+      <div>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">{name}</p>
+          {remove}
+        </div>
+        {looking || <p className="text-[12.5px] text-slate-500 dark:text-slate-400">{t('shelves.hits_none_yet')}</p>}
+      </div>
+    )
+  }
+  return (
+    <div>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+          {name}
+          <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">{t.plural('common.songs', songs.length)}</span>
+        </p>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={() => playTracks(songs, 0)} className={pill}>
+            ▶ {t('common.play')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!shuffle) toggleShuffle()
+              playTracks(songs, Math.floor(Math.random() * songs.length))
+            }}
+            className={pill}
+          >
+            <ShuffleGlyph />
+            {t('common.shuffle')}
+          </button>
+          {remove}
+        </div>
+      </div>
+      {looking}
+      <ShelfRow<Track>
+        items={songs}
+        label={name}
+        size="record"
+        verb="play_from"
+        keyOf={(s) => s.id}
+        nameOf={(s) => s.title}
+        artOf={(s) => albumOf(s)}
+        render={(s) => <Record45 album={albumOf(s)} grooves={grooveRings(s.durationSec)} />}
+        open={(_, i) => playTracks(songs, i)}
+        caption={(s) => {
+          const r = records.get(s.id)
+          const facts = [
+            s.artist ?? s.albumArtist ?? t('common.unknown_artist'),
+            ...(r?.listens ? [t.plural('shelves.hits_plays', r.listens, { count: compact.format(r.listens) })] : []),
+            ...(r?.rating != null && (r.votes ?? 0) >= RATING_MIN_VOTES ? [`★ ${t.num(Math.round(r.rating * 10) / 10)}`] : []),
+            ...(r?.awards ? [t.plural('shelves.hits_awards', r.awards)] : []),
+          ]
+          return { title: s.title, detail: facts.join(' · ') }
+        }}
+      />
+      <p className="mt-2 text-center text-[12px] text-slate-500 dark:text-slate-400">{t('shelves.hits_credit')}</p>
     </div>
   )
 }

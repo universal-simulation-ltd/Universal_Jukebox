@@ -18,7 +18,8 @@ import type { Album, Root, Track } from './types'
 const DB_NAME = 'unisim-jukebox'
 /**
  * ⚠️ Bumped to 2 for the `fixes` store (2026-09-08), to 3 for the `lyrics`
- * cache (2026-09-09), and to 4 for the `about` cache (2026-09-13).
+ * cache (2026-09-09), to 4 for the `about` cache (2026-09-13), and to 5 for
+ * the `hits` cache (2026-10-28).
  *
  * `onupgradeneeded` below creates only what is missing, so it runs correctly
  * for a brand-new database AND for one already holding somebody's library —
@@ -26,7 +27,7 @@ const DB_NAME = 'unisim-jukebox'
  * five thousand files, which is the sort of thing a version bump does when
  * nobody thinks about it.
  */
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 export const STORE_TRACKS = 'tracks'
 export const STORE_ALBUMS = 'albums'
@@ -34,6 +35,7 @@ export const STORE_ROOTS = 'roots'
 export const STORE_FIXES = 'fixes'
 export const STORE_LYRICS = 'lyrics'
 export const STORE_ABOUT = 'about'
+export const STORE_HITS = 'hits'
 
 let dbPromise: Promise<IDBDatabase | null> | null = null
 
@@ -90,6 +92,11 @@ function open(): Promise<IDBDatabase | null> {
       // reason as the lyrics: asked once, not on every play. See `aboutTrack.ts`.
       if (!db.objectStoreNames.contains(STORE_ABOUT)) {
         db.createObjectStore(STORE_ABOUT, { keyPath: 'id' })
+      }
+      // How each song does in the world (the Hits shelf), for the same reason
+      // again: asked once, not every time the shelf is drawn. See `hits.ts`.
+      if (!db.objectStoreNames.contains(STORE_HITS)) {
+        db.createObjectStore(STORE_HITS, { keyPath: 'id' })
       }
     }
     request.onsuccess = () => {
@@ -443,6 +450,44 @@ export async function clearAbout(): Promise<void> {
 
 export async function countAbout(): Promise<number> {
   return (await tx<number>(STORE_ABOUT, 'readonly', (s) => s.count())) ?? 0
+}
+
+// ── Hits ─────────────────────────────────────────────────────────────────────
+
+/**
+ * How one song does in the world, for the Hits shelf (`hits.ts`).
+ *
+ * ⚠️ All nulls is a real answer — "asked, none of them knows this song" — and
+ * is kept, so the next pass does not ask again; `hits.ts` asks again later.
+ */
+export interface HitRecord {
+  id: string
+  /** The song's MusicBrainz recording, as ListenBrainz matched it. */
+  mbid: string | null
+  /** Plays worldwide, on ListenBrainz. */
+  listens: number | null
+  /** People who played it, on ListenBrainz. */
+  listeners: number | null
+  /** MusicBrainz's community rating, 0–5, and how many voted. */
+  rating: number | null
+  votes: number | null
+  /** Awards the song received, on Wikidata. */
+  awards: number | null
+  at: number
+  v: number
+}
+
+export async function allHitRecords(): Promise<HitRecord[]> {
+  return (await tx<HitRecord[]>(STORE_HITS, 'readonly', (s) => s.getAll())) ?? []
+}
+
+export async function putHitRecord(record: HitRecord): Promise<void> {
+  await tx(STORE_HITS, 'readwrite', (s) => s.put(record))
+}
+
+/** "Forget them" under the Hits switch, on the Settings page. */
+export async function clearHits(): Promise<void> {
+  await tx(STORE_HITS, 'readwrite', (s) => s.clear())
 }
 
 // ── Wholesale ────────────────────────────────────────────────────────────────

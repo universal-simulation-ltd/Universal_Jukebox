@@ -277,6 +277,17 @@ export interface Settings {
   resumeCard: boolean
   /** The Most played shelf at the top of Shelves (`lib/playCounts.ts`); removed from there, back from Tune. */
   mostPlayedShelf: boolean
+  /** The Hits shelf at the very top of Shelves (`lib/hits.ts`); removed from there, back from Tune. */
+  hitsShelf: boolean
+  /**
+   * Whether the Hits shelf may look the library's songs up on ListenBrainz,
+   * MusicBrainz and Wikidata (James, 2026-10-28) — `lib/hits.ts`.
+   *
+   * ⚠️ The third setting that reaches the network, bound by the rules
+   * `lyricsOnline` and `aboutOnline` are: false by default, read `=== true`,
+   * turned on only beside a sentence saying what is sent.
+   */
+  hitsOnline: boolean
   /**
    * A change of RECORD crossfades too — both play while one machine slides out
    * and the next slides in, counting 3, 2, 1 (James, 2026-09-11). Off, it is
@@ -393,6 +404,8 @@ export const DEFAULTS: Settings = {
   listDefaults: null,
   resumeCard: true,
   mostPlayedShelf: true,
+  hitsShelf: true,
+  hitsOnline: false,
   recordCrossfade: true,
   xfTrackSec: 1.8,
   xfRecordSec: 4.5,
@@ -697,6 +710,9 @@ function readStored(given?: Record<string, unknown>): Settings {
     listDefaults: readListDefaults(stored.listDefaults),
     resumeCard: stored.resumeCard !== false,
     mostPlayedShelf: stored.mostPlayedShelf !== false,
+    hitsShelf: stored.hitsShelf !== false,
+    // `=== true`, for the reason `lyricsOnline` gives above.
+    hitsOnline: stored.hitsOnline === true,
     recordCrossfade: stored.recordCrossfade !== false,
     xfTrackSec: clamp(stored.xfTrackSec, ...CROSSFADE_LIMITS.track, DEFAULTS.xfTrackSec),
     xfRecordSec: clamp(stored.xfRecordSec, ...CROSSFADE_LIMITS.record, DEFAULTS.xfRecordSec),
@@ -837,6 +853,8 @@ export function settingsBlob(state: Settings): Settings {
     listDefaults: state.listDefaults,
     resumeCard: state.resumeCard,
     mostPlayedShelf: state.mostPlayedShelf,
+    hitsShelf: state.hitsShelf,
+    hitsOnline: state.hitsOnline,
     recordCrossfade: state.recordCrossfade,
     xfTrackSec: state.xfTrackSec,
     xfRecordSec: state.xfRecordSec,

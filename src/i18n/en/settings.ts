@@ -36,6 +36,12 @@ export default {
   'hide_resume_hint': 'Tick to take away the card above your albums, artists and tracks that shows the song you were last playing, on its machine, so you can tap it to carry on where you left off.',
   'hide_most_played': 'Hide the Most played shelf', // tick box; “Most played” is the shelf's name
   'hide_most_played_hint': 'Tick to take away the shelf at the top of Shelves that fills itself with the songs you play most. Plays are counted on this device only.',
+  'hide_hits': 'Hide the Hits shelf', // tick box; “Hits” is the shelf's name
+  'hide_hits_hint': 'Tick to take away the shelf at the top of Shelves that ranks your songs by how they do in the world.',
+  'hits_online': 'Look songs up for the Hits shelf', // tick box
+  'hits_online_hint': 'Ask ListenBrainz, MusicBrainz and Wikidata how often each of your songs is played worldwide, how it is rated and what awards it has won. This sends each song’s title and the artist’s name — nothing else, and nothing at all while this is off. It goes slowly, one song at a time, and the answers are kept on this device, so a song is only looked up again after three months.',
+  'hits_looked_up_one': '{count} song looked up for Hits', // above “Forget them”
+  'hits_looked_up_other': '{count} songs looked up for Hits',
   'tidy_up': 'Tidy up library', // row with an Open button
   'trying_example': 'Trying the example library',
   'trying_example_hint': 'Your own music is set aside exactly as it was.',
