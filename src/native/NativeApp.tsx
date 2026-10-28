@@ -20,7 +20,7 @@
 // `homeTab`, the same setting as the website's starred tab).
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { requestSearch } from '@unisim/sdk'
+import { requestSearch, useCallMe, useProfile, useUniversal } from '@unisim/sdk'
 import { BedsideHost } from '../components/Bedside'
 import ErrorBanner from '../components/ErrorBanner'
 import JukeboxShelves from '../components/JukeboxShelves'
@@ -53,6 +53,7 @@ import { AboutAndHelp, YourMusic } from './TuneExtras'
 import { isExampleOnly } from '../lib/exampleLibrary'
 import { ArticleScreen, HelpScreen } from './HelpScreens'
 import { useT, type MessageKey } from '../i18n'
+import { possessive } from '../lib/personalTitle'
 import './native.css'
 import { applyListDefaults, useHold } from './listDefaults'
 
@@ -535,10 +536,43 @@ function TopBar({ view, route }: { view: View; route: Route }) {
 const NEEDLE_DROP_MS = 2200
 
 /**
+ * "Bradley’s Jukebox" when somebody is signed in to the suite on this phone
+ * (BlackBook, PDF… — the shared phone session, `noAccounts` in main.tsx), "My
+ * Jukebox" when no name is known, null for a guest. The website's navbar
+ * builds the same title (`personalTitle`, App.tsx). Null until the profile is
+ * in, so a name doesn't arrive after "My Jukebox" has flashed.
+ */
+function useSignedInTitle(): { text: string; owner: string | null } | null {
+  const t = useT()
+  const { session } = useUniversal()
+  const { loading } = useProfile()
+  const name = useCallMe()
+  const user = session?.user
+  if (!user || (user as { is_anonymous?: boolean }).is_anonymous || loading) return null
+  if (!name) return { text: t('app.my_jukebox'), owner: null }
+  const owner = possessive(t.lang, name)
+  return { text: t('app.personal_title', { owner }), owner }
+}
+
+/** `text` with `bold` (the accent part of the name) in <b>, once. */
+function withBold(text: string, bold: string | null) {
+  const at = bold ? text.indexOf(bold) : -1
+  if (!bold || at < 0) return text
+  return (
+    <>
+      {text.slice(0, at)}
+      <b>{bold}</b>
+      {text.slice(at + bold.length)}
+    </>
+  )
+}
+
+/**
  * The name, with an easter egg (James, 2026-10-12): hold it and a little tone
  * arm swings over and drops its needle on the "o" of Jukebox, the light bar
  * above flickers like a level meter while it plays, and the arm lifts away.
- * The name is the brand and never translated, so the "o" is always there.
+ * "Jukebox" is the brand and never translated, so the "o" is always there —
+ * in "Bradley’s Jukebox" too, where the owner takes Universal's accent.
  */
 function Brand() {
   const reduced = usePrefersReducedMotion()
@@ -559,9 +593,15 @@ function Brand() {
     }, NEEDLE_DROP_MS)
   }
   const ref = useRef<HTMLSpanElement>(null)
+  const signedIn = useSignedInTitle()
+  const text = signedIn?.text ?? 'Universal Jukebox'
+  const at = text.indexOf('Jukebox')
+  // The owner in the accent; "My Jukebox" / "Mon Jukebox": the words before it.
+  const bold = !signedIn ? 'Universal' : (signedIn.owner ?? (text.slice(0, Math.max(0, at)).trim() || null))
+  if (at < 0) return <span className="jx-brand">{withBold(text, bold)}</span>
   return (
     <span ref={ref} className="jx-brand" {...hold.bind(() => drop(ref.current))}>
-      <b>Universal</b> Jukeb
+      {withBold(text.slice(0, at), bold)}Jukeb
       <span className="jx-brand-o">
         o
         {drops > 0 && (
@@ -572,7 +612,7 @@ function Brand() {
           </svg>
         )}
       </span>
-      x
+      {withBold(`x${text.slice(at + 'Jukebox'.length)}`, bold)}
     </span>
   )
 }

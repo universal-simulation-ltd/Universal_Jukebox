@@ -4,9 +4,10 @@
 // rather than the website squeezed onto one (James, 2026-10-10). A tab bar, a mini
 // player above it, the record full screen; no navbar, suite switcher, actions
 // menu or sign-in. The website, and the Electron desktop app, keep `App.tsx`'s
-// own layout and never download this folder (it is lazy-loaded). Since
-// 2026-10-20 they have no sign-in either (`noAccounts: true` in main.tsx), so
-// this no longer decides anything about accounts.
+// own layout and never download this folder (it is lazy-loaded). Nobody signs
+// in to Jukebox anywhere; the phones and the website only recognise a suite
+// session someone already has (`noAccounts` in main.tsx), so this decides
+// nothing about accounts.
 //
 // ⚠️ NOT `isNativeShell()`. That one answers "can I use the native file
 // plugins?" and is read all over the app; this one only picks the screens. In

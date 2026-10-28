@@ -4,7 +4,8 @@ import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // that is the only event this app will ever send. Nobody signs in to Jukebox,
 // but since 2026-10-28 the WEBSITE recognises somebody already signed in to
 // the suite (`noAccounts` in main.tsx), and for them it sends that one row, as
-// every other suite app does. The phone and desktop builds send nothing. No event may carry a
+// every other suite app does. The phone screens (which recognise a session
+// too) never mount it, and the Windows app has `noAccounts`: both send nothing. No event may carry a
 // filename, an artist, an album, a track count or a byte count: this app reads
 // someone's whole music collection, and the front page promises we never
 // build a picture of what people own.
@@ -493,7 +494,8 @@ function WebApp() {
         // product's name, and the account under Tune this app ▸ Your Universal
         // ID, not an avatar (the suite rule, James 2026-10-26). Jukebox asks
         // nobody to sign in; the website just recognises the shared session.
-        // Inert in the phone and desktop builds, which have `noAccounts`.
+        // The phone screens have their own bar (`Brand`, native/NativeApp.tsx);
+        // the Windows app has `noAccounts`.
         accountInTune
         personalTitle={(name) => (name ? t('app.personal_title', { owner: possessive(t.lang, name) }) : t('app.my_jukebox'))}
       />

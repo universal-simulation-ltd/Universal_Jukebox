@@ -10,6 +10,7 @@ import { watchAudioRoute } from './lib/nowPlayingNative'
 import './index.css'
 import { installShortcuts } from './lib/shortcuts'
 import { followThemeWithStatusBar } from './lib/systemBars'
+import { isNativeShell } from './lib/nativeFile'
 // Counts plays for the Most played shelf from the first song on (`lib/playCounts.ts`).
 import './lib/playCounts'
 
@@ -70,11 +71,20 @@ const universalConfig = {
   // in, and Jukebox stores nothing on the account. Universal PDF's website is
   // the template.
   //
-  // So `noAccounts` only in the `desktop` build mode, which is BOTH the phone
-  // apps (`cap:sync`) and the Windows app (`dist:win`): the phone's store
-  // privacy labels say nothing is collected, and the desktop app runs from
-  // disk where the unisim.co.uk cookie never reaches it.
-  noAccounts: import.meta.env.MODE === 'desktop',
+  // The PHONE APPS do the same with the suite's shared phone session (James,
+  // 2026-10-28: "Phone apps should have the silent sign in check too … for
+  // 'Bradley's Jukebox'"): the SDK's UnisimSuiteAuth plugin reads the Keychain
+  // group (iOS, App.entitlements) or the signed ContentProviders (Android)
+  // every suite app shares, so signed in to BlackBook on the phone = "Bradley’s
+  // Jukebox" in the phone's top bar (`Brand`, native/NativeApp.tsx) and Your
+  // Universal ID in Tune. The phone screens never mount <UsageTracker /> (it
+  // is in App.tsx's WebApp), so the phones still send no usage row.
+  //
+  // So `noAccounts` only for the Windows app: the `desktop` build mode outside
+  // a native shell (`cap:sync` uses the same mode for the phones). It runs
+  // from disk, where neither the unisim.co.uk cookie nor a phone's shared
+  // store reaches it.
+  noAccounts: import.meta.env.MODE === 'desktop' && !isNativeShell(),
   // Off everywhere, as `noAccounts` had it until now: the website did without
   // the SDK's anonymous daily open count from 2026-10-20 (0.187.0: once a day,
   // product + kind of device, no identifier), and recognising a session is no
