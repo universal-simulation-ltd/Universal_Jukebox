@@ -15,7 +15,8 @@ import './lib/playCounts'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
 // mount <UniversalProvider> so the shared navbar, suite switcher and language
-// work. There is no sign-in (see `noAccounts` below).
+// work. There is no sign-in (see `noAccounts` below) — the website only
+// recognises a suite session someone already has.
 //
 // The fallback is the REAL public suite project (publishable anon key — safe to
 // ship; RLS is the security boundary). Env overrides.
@@ -58,15 +59,27 @@ const universalConfig = {
   // first, 2026-10-10). Nothing in Jukebox needs an account. The backup FILE is
   // the feature (`lib/backupIo.ts`) and works without one; the only thing a
   // sign-in ever added was an online copy of that same backup in
-  // `app_settings_backups`, which had no rows on prod when it was removed. So
-  // the SDK hides every account affordance, never reads a suite session the
-  // browser holds, and there is no Delete my account to provide.
+  // `app_settings_backups`, which had no rows on prod when it was removed.
   //
-  // `noAccounts` also turns OFF the SDK's anonymous daily open count (0.187.0:
-  // once a day, product + kind of device, no identifier), which the website
-  // used to send. Since this change no build sends it, so there is no
-  // `openCount` line: it would be ignored.
-  noAccounts: true,
+  // ⚠️ BUT THE WEBSITE RECOGNISES SOMEBODY ALREADY SIGNED IN (James,
+  // 2026-10-28, the suite rule of 2026-10-26: "If signed in it should be clear
+  // from the personalisation — 'Bradley's Book'"). Signed in on the hub or any
+  // unisim.co.uk app, the shared cookie session makes the bar say "James’
+  // Jukebox" and puts Your Universal ID in Tune this app (`accountInTune` and
+  // `personalTitle` on the navbar, App.tsx). Still nothing asks anyone to sign
+  // in, and Jukebox stores nothing on the account. Universal PDF's website is
+  // the template.
+  //
+  // So `noAccounts` only in the `desktop` build mode, which is BOTH the phone
+  // apps (`cap:sync`) and the Windows app (`dist:win`): the phone's store
+  // privacy labels say nothing is collected, and the desktop app runs from
+  // disk where the unisim.co.uk cookie never reaches it.
+  noAccounts: import.meta.env.MODE === 'desktop',
+  // Off everywhere, as `noAccounts` had it until now: the website did without
+  // the SDK's anonymous daily open count from 2026-10-20 (0.187.0: once a day,
+  // product + kind of device, no identifier), and recognising a session is no
+  // reason to start sending it again.
+  openCount: false,
 }
 
 // ⚠️ THE LIBRARY IS READ BEFORE REACT RENDERS, not from an effect afterwards.
