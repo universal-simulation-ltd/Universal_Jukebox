@@ -21,8 +21,9 @@
 #     realtime), the suite changelog, Google sign-in, and the four lookups a
 #     user asks for: lrclib.net (lyrics), en.wikipedia.org (About this track),
 #     itunes.apple.com plus the chosen picture on *.mzstatic.com (Find a
-#     picture, on a request), and api.listenbrainz.org, musicbrainz.org,
-#     www.wikidata.org and en.wikipedia.org again (the Hits shelf, 2026-10-28).
+#     picture, on a request), and api.listenbrainz.org,
+#     labs.api.listenbrainz.org, musicbrainz.org, www.wikidata.org and
+#     en.wikipedia.org again (the Hits shelf, 2026-10-28).
 #   • worker-src 'self' blob:: the service worker, and Supabase realtime's
 #     heartbeat worker (a blob:).
 #   • media-src: the music is played from blob: URLs of the user's own files;
@@ -43,4 +44,4 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: SAMEORIGIN
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-3mZLT8QvXfr7EO+IvEUeiA7ljcfRRFIjG77C5UGG//4=' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' data: blob: https://rygfxgalojojppxmhddo.supabase.co wss://rygfxgalojojppxmhddo.supabase.co https://changelog.unisim.co.uk https://accounts.google.com/gsi/ https://lrclib.net https://en.wikipedia.org https://itunes.apple.com https://*.mzstatic.com https://api.listenbrainz.org https://musicbrainz.org https://www.wikidata.org; worker-src 'self' blob:; frame-src 'self' https://accounts.google.com/gsi/; media-src 'self' blob: data: https:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-3mZLT8QvXfr7EO+IvEUeiA7ljcfRRFIjG77C5UGG//4=' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' data: blob: https://rygfxgalojojppxmhddo.supabase.co wss://rygfxgalojojppxmhddo.supabase.co https://changelog.unisim.co.uk https://accounts.google.com/gsi/ https://lrclib.net https://en.wikipedia.org https://itunes.apple.com https://*.mzstatic.com https://api.listenbrainz.org https://labs.api.listenbrainz.org https://musicbrainz.org https://www.wikidata.org; worker-src 'self' blob:; frame-src 'self' https://accounts.google.com/gsi/; media-src 'self' blob: data: https:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'

@@ -70,9 +70,10 @@ describe('the Hits shelf', () => {
 
 describe('reading the answers', () => {
   it('ListenBrainz lookup: the recording, or nothing', () => {
-    expect(parseLookup({ artist_credit_name: 'Queen', recording_mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69', recording_name: 'Bohemian Rhapsody' }))
+    expect(parseLookup([{ index: 0, artist_credit_name: 'Queen', recording_mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69', recording_name: 'Bohemian Rhapsody' }]))
       .toBe('b1a9c0e9-d987-4042-ae91-78d6a3267d69')
-    expect(parseLookup({})).toBeNull()
+    expect(parseLookup([])).toBeNull()
+    expect(parseLookup({ code: 401, error: 'You need to provide an Authorization header.' })).toBeNull()
     expect(parseLookup(null)).toBeNull()
   })
   it('ListenBrainz popularity: this recording’s row', () => {

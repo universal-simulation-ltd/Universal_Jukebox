@@ -24,11 +24,19 @@ describe.skipIf(!live)('lookUpHit, asking the world', () => {
     )
   })
 
-  it('a famous song is played, rated and awarded', async () => {
+  it('a famous song is played and rated', async () => {
     const r = await lookUpHit({ id: 'q', title: 'Bohemian Rhapsody', artist: 'Queen' } as Track)
     console.log(r, hitScore(r))
-    expect(r.mbid).toBeTruthy()
+    expect(r.mbid).toBe('b1a9c0e9-d987-4042-ae91-78d6a3267d69')
     expect(r.listens ?? 0).toBeGreaterThan(10_000)
+    expect(r.votes ?? 0).toBeGreaterThan(1)
+  }, 60_000)
+
+  // ⚠️ Wikidata's awards are sparse: on 2026-10-28 Bohemian Rhapsody, Hey Jude,
+  // Billie Jean and Imagine had no P166 at all. Rolling in the Deep has two.
+  it('an awarded song is awarded', async () => {
+    const r = await lookUpHit({ id: 'r', title: 'Rolling in the Deep', artist: 'Adele' } as Track)
+    console.log(r, hitScore(r))
     expect(r.awards ?? 0).toBeGreaterThan(0)
   }, 60_000)
 

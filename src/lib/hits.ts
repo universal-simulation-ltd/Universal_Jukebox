@@ -10,6 +10,13 @@
 //
 //   • **Top played — ListenBrainz** (MetaBrainz). Matches the title and artist
 //     to a MusicBrainz recording, then gives its plays and listeners worldwide.
+//     ⚠️ The match is the LABS `acr-lookup`, not `/1/metadata/lookup/`: that
+//     one answers 401 without a user token since (at least) 2026-10-28, and a
+//     token can't ship in an app. Labs is MetaBrainz's experimental host (the
+//     same mapping data); if it moves, the shelf just stops filling (any error
+//     ends the pass, and it tries again later). MusicBrainz's own search is no
+//     stand-in: "Bohemian Rhapsody" by Queen is 228 equal-scored recordings,
+//     mostly live, and the album one isn't in the first 25.
 //   • **Best rated — MusicBrainz**, the community's 0–5 rating of that same
 //     recording. Asked by its id alone, so it learns nothing ListenBrainz
 //     wasn't already told. Sparse: most songs have no votes, and then it
@@ -39,10 +46,9 @@
 // thousands of album tracks would be thousands of questions to Wikipedia for
 // answers that are almost all "none".
 //
-// ⚠️ NOT CHECKED LIVE when written: the session that wrote it could not reach
-// any of the three. The answers are read by the pure `parse*` functions below,
-// tested against the documented shapes; `hits.live.test.ts` asks the real
-// services and is the first thing to run on a machine that can.
+// The answers are read by the pure `parse*` functions below; `hits.live.test.ts`
+// asks the real services (first run 2026-10-28, which is how the 401 above was
+// found) — run it after touching any of them.
 
 import { putHitRecord, type HitRecord } from './library'
 import { searchTitle } from './lrclib'
@@ -52,6 +58,7 @@ import type { Track } from './types'
 export type { HitRecord }
 
 const LISTENBRAINZ = 'https://api.listenbrainz.org/1'
+const LISTENBRAINZ_LABS = 'https://labs.api.listenbrainz.org'
 const MUSICBRAINZ = 'https://musicbrainz.org/ws/2'
 const WIKIPEDIA = 'https://en.wikipedia.org/w/api.php'
 const WIKIDATA = 'https://www.wikidata.org/w/api.php'
@@ -121,9 +128,9 @@ export function recordFresh(record: HitRecord | undefined, now: number): boolean
 
 // ── Reading the answers, pure ────────────────────────────────────────────────
 
-/** ListenBrainz `GET /1/metadata/lookup/` → the recording's MBID, or null (`{}` when nothing matched). */
+/** ListenBrainz labs `GET /acr-lookup/json` → the recording's MBID, or null (`[]` when nothing matched). */
 export function parseLookup(body: unknown): string | null {
-  const mbid = (body as { recording_mbid?: unknown } | null)?.recording_mbid
+  const mbid = (Array.isArray(body) ? (body[0] as { recording_mbid?: unknown } | undefined) : null)?.recording_mbid
   return typeof mbid === 'string' && mbid.length > 0 ? mbid : null
 }
 
@@ -178,7 +185,7 @@ export async function lookUpHit(track: Track, signal?: AbortSignal): Promise<Hit
   if (!artist || !track.title) return keep(empty)
 
   const title = searchTitle(track.title)
-  const lookup = await getJson(`${LISTENBRAINZ}/metadata/lookup/?${new URLSearchParams({ artist_name: artist, recording_name: title })}`, signal)
+  const lookup = await getJson(`${LISTENBRAINZ_LABS}/acr-lookup/json?${new URLSearchParams({ artist_credit_name: artist, recording_name: title })}`, signal)
   const mbid = parseLookup(lookup)
   if (!mbid) return keep(empty)
 
