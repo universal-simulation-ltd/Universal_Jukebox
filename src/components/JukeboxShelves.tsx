@@ -11,8 +11,8 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { starterShelfId, useShelvesStore } from '../stores/shelvesStore'
 import { mostPlayed, usePlayCounts } from '../lib/playCounts'
-import { RATING_MIN_VOTES, rankHits, recordFresh } from '../lib/hits'
-import { askable, useHitsStore } from '../stores/hitsStore'
+import { RATING_MIN_VOTES, rankHits } from '../lib/hits'
+import { hitsProgress, useHitsStore } from '../stores/hitsStore'
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
@@ -226,11 +226,7 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
   const paused = useHitsStore((s) => s.paused)
   const setPaused = useHitsStore((s) => s.setPaused)
   const songs = useMemo(() => rankHits(records, tracks), [records, tracks])
-  const progress = useMemo(() => {
-    const now = Date.now()
-    const asked = tracks.filter(askable)
-    return { done: asked.filter((track) => recordFresh(records.get(track.id), now)).length, total: asked.length }
-  }, [records, tracks])
+  const progress = useMemo(() => hitsProgress(records, tracks), [records, tracks])
   const compact = useMemo(() => new Intl.NumberFormat(t.locale, { notation: 'compact', maximumFractionDigits: 1 }), [t.locale])
   const playTracks = usePlayerStore((s) => s.playTracks)
   const shuffle = usePlayerStore((s) => s.shuffle)

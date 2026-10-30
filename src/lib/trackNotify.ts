@@ -34,10 +34,16 @@ export type NotifyPermission = 'granted' | 'denied' | 'prompt'
 interface NotifyPlugin {
   permission(): Promise<{ state: NotifyPermission }>
   request(): Promise<{ state: NotifyPermission }>
-  /** `image` is a base64 PNG, without the `data:` prefix. */
-  show(options: { title: string; body: string; image: string | null }): Promise<void>
-  clear(): Promise<void>
+  /**
+   * `image` is a base64 PNG, without the `data:` prefix. `tag: 'hits'` is the
+   * Hits shelf's card (`noticeOnPhone`) — its own, so the song's stays.
+   */
+  show(options: { title: string; body: string; image: string | null; tag?: NoticeTag }): Promise<void>
+  clear(options?: { tag?: NoticeTag }): Promise<void>
 }
+
+/** A card of its own beside the song's — only the Hits shelf's so far. */
+export type NoticeTag = 'hits'
 
 let plugin: NotifyPlugin | null = null
 
@@ -66,7 +72,7 @@ async function native(): Promise<NotifyPlugin> {
     permission: () => p.permission(),
     request: () => p.request(),
     show: (options) => p.show(options),
-    clear: () => p.clear(),
+    clear: (options) => p.clear(options),
   }
 }
 
@@ -176,6 +182,26 @@ export function announceTrack(track: Track, coverUrl: string | null): void {
   })().catch(() => {
     /* a notification is a nicety — never the reason a song does not play */
   })
+}
+
+/**
+ * A card of its own in the phone apps, if notifications are already allowed
+ * — never asked for here: this is said as the app goes away, when no prompt
+ * could be answered. Nothing in a browser, whose page carries on regardless.
+ */
+export function noticeOnPhone(tag: NoticeTag, title: string, body: string): void {
+  if (notifySupport() !== 'native') return
+  void (async () => {
+    const p = await native()
+    if ((await p.permission()).state !== 'granted') return
+    await p.show({ title, body, image: null, tag })
+  })().catch(() => { /* a nicety */ })
+}
+
+/** Take that card away again. */
+export function withdrawNotice(tag: NoticeTag): void {
+  if (notifySupport() !== 'native') return
+  void native().then((p) => p.clear({ tag })).catch(() => {})
 }
 
 /** Take the card away: the music has stopped, or the setting went off. */

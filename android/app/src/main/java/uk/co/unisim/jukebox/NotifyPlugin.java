@@ -35,6 +35,11 @@ import com.getcapacitor.annotation.PermissionCallback;
  * High is what makes each song's card drop down over whatever is on screen;
  * the silence is because it arrives while music is playing. A channel's
  * settings are the user's once it exists, so this only ever creates it.
+ *
+ * ⚠️ A SECOND CARD, tag "hits": how far the Hits shelf's lookups have got while
+ * the app is away (James, 2026-10-30, src/stores/hitsStore.ts). Its own id and
+ * its own LOW channel: it is updated as the count goes up, so it sits in the
+ * shade quietly and alerts once at most, rather than dropping down each time.
  */
 @CapacitorPlugin(
     name = "JukeboxNotify",
@@ -44,6 +49,8 @@ public class NotifyPlugin extends Plugin {
 
     private static final String CHANNEL = "now_playing";
     private static final int CARD = 1;
+    private static final String HITS_CHANNEL = "hits";
+    private static final int HITS = 2;
 
     @PluginMethod
     public void permission(PluginCall call) {
@@ -74,6 +81,10 @@ public class NotifyPlugin extends Plugin {
             call.reject("Notifications are not allowed.", "NOT_ALLOWED");
             return;
         }
+        if (isHits(call)) {
+            showHits(context, call);
+            return;
+        }
         ensureChannel(context);
         NotificationCompat.Builder card = new NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_jukebox)
@@ -97,8 +108,41 @@ public class NotifyPlugin extends Plugin {
 
     @PluginMethod
     public void clear(PluginCall call) {
-        NotificationManagerCompat.from(getContext()).cancel(CARD);
+        NotificationManagerCompat.from(getContext()).cancel(isHits(call) ? HITS : CARD);
         call.resolve();
+    }
+
+    private static boolean isHits(PluginCall call) {
+        return "hits".equals(call.getString("tag"));
+    }
+
+    @SuppressLint("MissingPermission")
+    private void showHits(Context context, PluginCall call) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationManager system = context.getSystemService(NotificationManager.class);
+            if (system != null && system.getNotificationChannel(HITS_CHANNEL) == null) {
+                NotificationChannel channel = new NotificationChannel(HITS_CHANNEL, "Hits", NotificationManager.IMPORTANCE_LOW);
+                channel.setDescription("How far looking up your songs for the Hits shelf has got.");
+                channel.setShowBadge(false);
+                system.createNotificationChannel(channel);
+            }
+        }
+        NotificationCompat.Builder card = new NotificationCompat.Builder(context, HITS_CHANNEL)
+            .setSmallIcon(R.drawable.ic_stat_jukebox)
+            .setContentTitle(call.getString("title", ""))
+            .setContentText(call.getString("body", ""))
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setSilent(true)
+            .setOnlyAlertOnce(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setAutoCancel(true)
+            .setContentIntent(openTheApp(context));
+        try {
+            NotificationManagerCompat.from(context).notify(HITS, card.build());
+            call.resolve();
+        } catch (SecurityException e) {
+            call.reject("Notifications are not allowed.", "NOT_ALLOWED");
+        }
     }
 
     private void answer(PluginCall call) {

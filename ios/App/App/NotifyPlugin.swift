@@ -16,6 +16,10 @@ import Capacitor
 /// ⚠️ NO SOUND, and `.alert` is all that is ever asked for: it arrives while
 /// music is playing.
 ///
+/// ⚠️ A SECOND CARD, `tag: "hits"`: the Hits shelf's lookups, paused while the
+/// app is away (James, 2026-10-30, `src/stores/hitsStore.ts`). Its own fixed
+/// identifier, so it replaces only itself and never the song's card.
+///
 /// ⚠️ THE BANNER WHILE THE APP IS OPEN needs this plugin to be the bridge's
 /// LOCAL-notification handler. With none, iOS files a notification that arrives
 /// in the foreground straight into Notification Centre, with no banner.
@@ -34,6 +38,12 @@ public class NotifyPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProto
     ]
 
     static let card = "uk.co.unisim.jukebox.now-playing"
+    static let hits = "uk.co.unisim.jukebox.hits"
+
+    /// The card a call is about: the song's, unless it names the Hits one.
+    private static func cardId(for call: CAPPluginCall) -> String {
+        call.getString("tag") == "hits" ? hits : card
+    }
     private let centre = UNUserNotificationCenter.current()
 
     override public func load() {
@@ -52,7 +62,7 @@ public class NotifyPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProto
 
     @objc func show(_ call: CAPPluginCall) {
         let cover = call.getString("image").flatMap { Self.attachment($0) }
-        Self.add(title: call.getString("title") ?? "", body: call.getString("body") ?? "", cover: cover) { error in
+        Self.add(id: Self.cardId(for: call), title: call.getString("title") ?? "", body: call.getString("body") ?? "", cover: cover) { error in
             if let error = error {
                 call.reject(error.localizedDescription)
             } else {
@@ -65,16 +75,16 @@ public class NotifyPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProto
     /// cover it already holds. Not allowed to post? `add` just fails, quietly.
     static func post(title: String, body: String, image: UIImage?) {
         let cover = image.flatMap { attachment(thumbnail($0)) }
-        add(title: title, body: body, cover: cover) { _ in }
+        add(id: card, title: title, body: body, cover: cover) { _ in }
     }
 
-    private static func add(title: String, body: String, cover: UNNotificationAttachment?, done: @escaping (Error?) -> Void) {
+    private static func add(id: String, title: String, body: String, cover: UNNotificationAttachment?, done: @escaping (Error?) -> Void) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = nil
         if let cover = cover { content.attachments = [cover] }
-        let request = UNNotificationRequest(identifier: card, content: content, trigger: nil)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request, withCompletionHandler: done)
     }
 
@@ -89,8 +99,9 @@ public class NotifyPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProto
     }
 
     @objc func clear(_ call: CAPPluginCall) {
-        centre.removeDeliveredNotifications(withIdentifiers: [Self.card])
-        centre.removePendingNotificationRequests(withIdentifiers: [Self.card])
+        let id = Self.cardId(for: call)
+        centre.removeDeliveredNotifications(withIdentifiers: [id])
+        centre.removePendingNotificationRequests(withIdentifiers: [id])
         call.resolve()
     }
 

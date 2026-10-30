@@ -51,6 +51,9 @@ export default {
   'hits_resume': 'Resume', // button beside that line; short
   'hits_pause_label': 'Pause looking up your songs', // screen reader for the Pause button there
   'hits_resume_label': 'Resume looking up your songs', // screen reader for Resume
+  'hits_notice_title': 'Looking up your songs for Hits', // a phone notification while the app is in the background
+  'hits_notice_paused': 'Paused at {done} of {total} while Jukebox is in the background. Open it to carry on.', // that notification on iPhone, where the lookups stop
+  'hits_notice_progress': '{done} of {total} so far', // that notification on Android, counting up
   'hits_none_yet': 'None of your songs has turned up as a hit yet.', // when every song was looked up and none is known
   'hits_plays_one': '{count} play worldwide', // under a record on Hits; {count} is short, like "1.2M"
   'hits_plays_other': '{count} plays worldwide',
