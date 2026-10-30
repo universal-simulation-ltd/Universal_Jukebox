@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { useLibraryStore, wholeLibrary } from './libraryStore'
 import { haptic } from '../lib/haptics'
-import { addToShelf, moveOnShelf, parseShelves, renameShelf, starterPicks, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
+import { addToShelf, moveOnShelf, parseShelves, renameShelf, retireStarter, starterPicks, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
+import { mostPlayed, usePlayCounts } from '../lib/playCounts'
+import { useSettingsStore } from './settingsStore'
 import { getT } from '../i18n/runtime.ts'
 import type { Album, Track } from '../lib/types'
 
@@ -45,6 +47,7 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
   // A store first opened mid-trial starts on the demo's (empty) shelves too.
   shelves: useLibraryStore.getState().trying ? [] : read(),
   toggle(shelfId, trackId) {
+    keepStarter(shelfId)
     const result = toggleOnShelf(get().shelves, shelfId, trackId, newId())
     if (result.shelves.find((s) => s.id === result.shelfId)?.trackIds.includes(trackId)) haptic('thunk')
     set({ shelves: result.shelves })
@@ -52,6 +55,7 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
     return result.shelfId
   },
   add(shelfId, trackIds) {
+    keepStarter(shelfId)
     const result = addToShelf(get().shelves, shelfId, trackIds, newId())
     // A record set down on a shelf — see `lib/haptics.ts`.
     if (trackIds.length > 0) haptic('thunk')
@@ -60,11 +64,13 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
     return result.shelfId
   },
   rename(shelfId, name) {
+    keepStarter(shelfId)
     const shelves = renameShelf(get().shelves, shelfId, name)
     set({ shelves })
     persist(shelves)
   },
   move(shelfId, trackId, delta) {
+    keepStarter(shelfId)
     const shelves = moveOnShelf(get().shelves, shelfId, trackId, delta)
     set({ shelves })
     persist(shelves)
@@ -121,6 +127,7 @@ useLibraryStore.subscribe((now, before) => {
   }
   // After the sweep, so shelves that just went don't count as yours.
   seedStarterShelf(now.tracks, now.albums)
+  retireStarterShelf(now.tracks)
 })
 
 // ⚠️ ONE SHELF ALREADY FILLED (James, 2026-10-11: "I would like one shelf to
@@ -152,6 +159,36 @@ function seedStarterShelf(tracks: readonly Track[], albums: readonly Album[]): v
   persist([starter])
   // The shelf's id, so Shelves can say what a shelf is under this one (`starterShelfId`).
   try { localStorage.setItem(STARTER_KEY, starter.id) } catch { /* ignore */ }
+}
+
+// ⚠️ AND IT STEPS ASIDE ONCE MOST PLAYED HAS A SONG ON IT (James, 2026-10-30:
+// "When there's something displayed in most played shelf quietly retire the a
+// few to start with shelf"). By then a shelf of your own listening shows what a
+// shelf is. Quietly: as the library comes ready — at launch, before the page
+// has drawn it — never with a word, and never in front of you as a song counts.
+// Not while Most played is hidden (nothing is displayed there), and never once
+// you have made it yours (`keepStarter`): then it is just one of your shelves.
+const STARTER_KEPT_KEY = 'jukebox:starter-kept'
+
+/** Something done to the starter shelf by hand: it is yours now, and stays. */
+function keepStarter(shelfId: string): void {
+  if (shelfId !== starterShelfId()) return
+  try { localStorage.setItem(STARTER_KEPT_KEY, '1') } catch { /* ignore */ }
+}
+
+function retireStarterShelf(tracks: readonly Track[]): void {
+  const id = starterShelfId()
+  if (!id || !useSettingsStore.getState().mostPlayedShelf) return
+  let kept = false
+  try { kept = localStorage.getItem(STARTER_KEPT_KEY) !== null } catch { return }
+  const byId = new Map(tracks.map((t) => [t.id, t]))
+  const songs = mostPlayed(usePlayCounts.getState().counts, byId).length
+  const rest = retireStarter(useShelvesStore.getState().shelves, id, songs, kept, getT()('shelves.starter_name'))
+  if (!rest) return
+  useShelvesStore.setState({ shelves: rest })
+  persist(rest)
+  // Gone for good: 'had-shelves' is what stops `seedStarterShelf` making another.
+  try { localStorage.setItem(STARTER_KEY, 'had-shelves') } catch { /* ignore */ }
 }
 
 /** The starter shelf's id, while there is one — Shelves puts a line under it saying what a shelf is. */

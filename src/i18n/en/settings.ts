@@ -40,6 +40,12 @@ export default {
   'sign_out': 'Sign out', // button
   'hide_most_played': 'Hide the Most played shelf', // tick box; “Most played” is the shelf's name
   'hide_most_played_hint': 'Tick to take away the shelf at the top of Shelves that fills itself with the songs you play most. Plays are counted on this device only.',
+  'plays_counted_one': 'Plays counted for {count} song', // above “Reset play counts”; plays of your own songs on this device
+  'plays_counted_other': 'Plays counted for {count} songs',
+  'reset_plays': 'Reset play counts', // link: empties Most played
+  'reset_plays_confirm': 'Reset every play count? Most played starts again from nothing, and this can’t be undone.',
+  'reset_plays_yes': 'Reset', // button after that question; short
+  'reset_plays_done': 'Play counts reset.',
   'hide_hits': 'Hide the Hits shelf', // tick box; “Hits” is the shelf's name
   'hide_hits_hint': 'Tick to take away the shelf at the top of Shelves that ranks your songs by how they do in the world.',
   'hits_online': 'Look songs up for the Hits shelf', // tick box

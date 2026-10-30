@@ -47,6 +47,10 @@ export default {
   'hits_remove_label': 'Remove the Hits shelf', // screen reader for the Remove / No thanks buttons
   'hits_removed': 'Hits is gone. Bring it back in Tune this app, under Your library.', // said after removing it
   'hits_looking_up': 'Looking up your songs: {done} of {total}', // while the shelf fills
+  'hits_paused': 'Looking up paused: {done} of {total}', // instead of “Looking up your songs” while paused
+  'hits_resume': 'Resume', // button beside that line; short
+  'hits_pause_label': 'Pause looking up your songs', // screen reader for the Pause button there
+  'hits_resume_label': 'Resume looking up your songs', // screen reader for Resume
   'hits_none_yet': 'None of your songs has turned up as a hit yet.', // when every song was looked up and none is known
   'hits_plays_one': '{count} play worldwide', // under a record on Hits; {count} is short, like "1.2M"
   'hits_plays_other': '{count} plays worldwide',

@@ -21,11 +21,29 @@ const GAP_MS = 1100
 const PUBLISH_MS = 4000
 /** Offline, or a service down: try again after this. */
 const RETRY_MS = 5 * 60 * 1000
+/**
+ * Paused from the shelf (James, 2026-10-30: "allow the user to pause the
+ * download"). Kept on the device until Resume — a pause for being on mobile
+ * data should not quietly end at the next launch. Not a setting: it is where
+ * this device's lookups got to, not how the app is tuned.
+ */
+const PAUSED_KEY = 'jukebox:hits-paused'
+
+function readPaused(): boolean {
+  try {
+    return localStorage.getItem(PAUSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 interface HitsState {
   records: ReadonlyMap<string, HitRecord>
   /** The pass is running now. */
   busy: boolean
+  /** Paused from the shelf: nothing is asked until Resume. */
+  paused: boolean
+  setPaused(paused: boolean): void
   /** Settings ▸ "Forget them": every answer gone, asked again while the switch is on. */
   forget(): Promise<void>
 }
@@ -33,6 +51,15 @@ interface HitsState {
 export const useHitsStore = create<HitsState>((set) => ({
   records: new Map(),
   busy: false,
+  paused: readPaused(),
+  setPaused(paused) {
+    try {
+      if (paused) localStorage.setItem(PAUSED_KEY, '1')
+      else localStorage.removeItem(PAUSED_KEY)
+    } catch { /* storage off — paused until the app closes */ }
+    set({ paused })
+    kick()
+  },
   async forget() {
     stop()
     await clearHits()
@@ -57,7 +84,7 @@ let loaded = false
 function wanted(): boolean {
   const s = useSettingsStore.getState()
   const lib = useLibraryStore.getState()
-  return loaded && s.hitsOnline === true && s.hitsShelf && !lib.trying && lib.status === 'ready' && lib.tracks.length > 0
+  return loaded && !useHitsStore.getState().paused && s.hitsOnline === true && s.hitsShelf && !lib.trying && lib.status === 'ready' && lib.tracks.length > 0
 }
 
 function stop(): void {
@@ -127,7 +154,9 @@ async function pass(): Promise<void> {
   } finally {
     flush()
     if (controller === mine) controller = null
-    useHitsStore.setState({ busy: false })
+    // ⚠️ Only if no newer pass has started: a Resume straight after a Pause
+    // starts one while this one is still in its gap between songs.
+    if (!controller) useHitsStore.setState({ busy: false })
   }
 }
 

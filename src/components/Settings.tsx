@@ -33,6 +33,7 @@ import TryExampleDialog from './TryExampleDialog'
 import { DeckMiniature } from './Deck'
 import { useAboutStore } from '../stores/aboutStore'
 import { useHitsStore } from '../stores/hitsStore'
+import { resetPlays, usePlayCounts } from '../lib/playCounts'
 import { useLyricsStore } from '../stores/lyricsStore'
 import { useRequestsStore } from '../stores/requestsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -235,6 +236,7 @@ export default function Settings() {
             checked={!s.mostPlayedShelf}
             onChange={(v) => s.set('mostPlayedShelf', !v)}
           />
+          <SavedPlays />
           {/* James, 2026-10-28: Hits ranks your songs by the world's plays,
               ratings and awards — online, so off until turned on. See `lib/hits.ts`. */}
           <Toggle
@@ -1131,6 +1133,56 @@ function NotifyToggle() {
         })
       }}
     />
+  )
+}
+
+/**
+ * How many songs Most played has counted, and a way to start again (James,
+ * 2026-10-30: "For the most played stats have an option to 'Reset' the played
+ * statistics"). Asked in place first, like Reset to defaults: there is no
+ * getting the counts back.
+ */
+function SavedPlays() {
+  const t = useT()
+  const count = usePlayCounts((p) => Object.keys(p.counts).length)
+  const [step, setStep] = useState<'idle' | 'ask' | 'done'>('idle')
+  const link =
+    'text-[12.5px] text-slate-600 underline-offset-2 hover:text-orange-700 hover:underline dark:text-slate-400 dark:hover:text-orange-400'
+  if (step === 'done') {
+    return (
+      <p role="status" className="px-5 py-4 text-[13px] text-slate-500 dark:text-slate-400">
+        ✓ {t('settings.reset_plays_done')}
+      </p>
+    )
+  }
+  if (count === 0) return null
+  return (
+    <div className="px-5 py-4">
+      {step === 'ask' ? (
+        <>
+          <p className="text-[13px] text-slate-700 dark:text-slate-200">{t('settings.reset_plays_confirm')}</p>
+          <div className="mt-2 flex gap-4">
+            <button
+              type="button"
+              onClick={() => { resetPlays(); setStep('done') }}
+              className="text-[13px] font-semibold text-red-700 underline-offset-2 hover:underline dark:text-red-400"
+            >
+              {t('settings.reset_plays_yes')}
+            </button>
+            <button type="button" onClick={() => setStep('idle')} className={link}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-[13px] text-slate-600 dark:text-slate-300">{t.plural('settings.plays_counted', count)}</p>
+          <button type="button" onClick={() => setStep('ask')} className={`mt-1.5 ${link}`}>
+            {t('settings.reset_plays')}
+          </button>
+        </>
+      )}
+    </div>
   )
 }
 

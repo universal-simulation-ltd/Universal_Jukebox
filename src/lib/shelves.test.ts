@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NEW_SHELF, addToShelf, moveOnShelf, parseShelves, renameShelf, shelfName, shelvesToShow, toggleOnShelf } from './shelves'
+import { NEW_SHELF, addToShelf, moveOnShelf, parseShelves, renameShelf, retireStarter, shelfName, shelvesToShow, toggleOnShelf } from './shelves'
 
 describe('jukebox shelves', () => {
   it('always shows one empty shelf after the ones with songs on', () => {
@@ -49,5 +49,22 @@ describe('naming, moving and adding many', () => {
   })
   it('keeps a stored name', () => {
     expect(parseShelves([{ id: 's2', trackIds: ['d'], name: 'Road trip' }])).toEqual([{ id: 's2', trackIds: ['d'], name: 'Road trip' }])
+  })
+})
+
+describe('the starter shelf stepping aside', () => {
+  const NAME = 'A few to start with'
+  const shelves = [{ id: 'mine', trackIds: ['x'] }, { id: 'st', trackIds: ['a', 'b', 'c'], name: NAME }]
+  it('goes once Most played has a song on it', () => {
+    expect(retireStarter(shelves, 'st', 0, false, NAME)).toBeNull()
+    expect(retireStarter(shelves, 'st', 1, false, NAME)).toEqual([{ id: 'mine', trackIds: ['x'] }])
+  })
+  it('stays once it has been made yours', () => {
+    expect(retireStarter(shelves, 'st', 3, true, NAME)).toBeNull()
+    const renamed = [{ id: 'st', trackIds: ['a'], name: 'Sunday' }]
+    expect(retireStarter(renamed, 'st', 3, false, NAME)).toBeNull()
+  })
+  it('leaves everything alone when it has already gone', () => {
+    expect(retireStarter([{ id: 'mine', trackIds: ['x'] }], 'st', 3, false, NAME)).toBeNull()
   })
 })

@@ -176,3 +176,23 @@ export function starterPicks(
   }
   return picks
 }
+
+/**
+ * The shelves without the starter shelf, once Most played has a song on it —
+ * or null while it stays (`shelvesStore`, retireStarterShelf). It stays for
+ * good once it has been made yours: `kept` (a song put on or taken off, a
+ * record moved, a new name), or a name that is not the one the app gave it,
+ * which also catches a rename from before `kept` was recorded. Pure.
+ */
+export function retireStarter(
+  shelves: readonly JukeboxShelf[],
+  starterId: string,
+  mostPlayedSongs: number,
+  kept: boolean,
+  starterName: string,
+): JukeboxShelf[] | null {
+  if (mostPlayedSongs === 0 || kept) return null
+  const starter = shelves.find((s) => s.id === starterId)
+  if (!starter || (starter.name ?? '') !== starterName) return null
+  return shelves.filter((s) => s.id !== starterId)
+}

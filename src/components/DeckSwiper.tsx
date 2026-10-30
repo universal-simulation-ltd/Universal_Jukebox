@@ -18,6 +18,7 @@ import { grooveRings } from '../lib/grooves'
 import { haptic } from '../lib/haptics'
 import { shownName } from '../lib/format'
 import { useT } from '../i18n'
+import { useSwipeWords } from '../lib/swipeWords'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
@@ -161,6 +162,11 @@ export default function DeckSwiper({
    * out with the rest instead of vanishing as it starts.
    */
   const [queued, setQueued] = useState<'left' | 'right' | null>(null)
+  /**
+   * The songs whose words follow the row (`lib/swipeWords.ts`), from the first
+   * move of a swipe until it has landed or sprung back; null otherwise.
+   */
+  const [wordsFor, setWordsFor] = useState<ReadonlyMap<number, Track> | null>(null)
 
   /** The order index `delta` away, honouring repeat-all at either end. */
   const indexAt = (delta: number): number | null => {
@@ -362,6 +368,12 @@ export default function DeckSwiper({
     if (unqueue.current !== null) window.clearTimeout(unqueue.current)
   }, [])
 
+  // The words follow the row — before paint, so they never lag the records by a frame.
+  useLayoutEffect(() => {
+    useSwipeWords.setState({ row: wordsFor ? { drag, animate, ms, songs: wordsFor } : null })
+  }, [wordsFor, drag, animate, ms])
+  useEffect(() => () => useSwipeWords.setState({ row: null }), [])
+
   /** From the centre of the deck to the centre of each peek. */
   const measure = () => {
     const centre = (el: Element | null) => {
@@ -513,6 +525,7 @@ export default function DeckSwiper({
     unqueue.current = window.setTimeout(() => {
       unqueue.current = null
       setQueued(null)
+      setWordsFor(null)
     }, SETTLE_MS)
   }
 
@@ -670,6 +683,14 @@ export default function DeckSwiper({
           const dx = e.clientX - from.x
           const dy = e.clientY - from.y
           if (Math.abs(dx) <= 8 || Math.abs(dx) <= Math.abs(dy)) return
+          if (!wordsFor) {
+            const songs = new Map<number, Track>()
+            for (let k = -roomFor(-1); k <= roomFor(1); k++) {
+              const track = k === 0 ? undefined : trackAt(indexAt(k))
+              if (track) songs.set(k, track)
+            }
+            setWordsFor(songs)
+          }
           const travelPx = dx < 0 ? from.toRight : from.toLeft
           // Towards a side with no record, the deck only gives a little.
           const room = roomFor(dx < 0 ? 1 : -1)
@@ -737,6 +758,8 @@ export default function DeckSwiper({
               // the one the row left at its place, so the hand-over cannot be
               // seen — but only if both happen in one frame.
               setQueued(null)
+              // The words have landed too: the heading is the new song's now.
+              setWordsFor(null)
               // Landing where the row was taking it: the well, if the player stayed.
               setArriving({ album, style, track, seat })
               // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried

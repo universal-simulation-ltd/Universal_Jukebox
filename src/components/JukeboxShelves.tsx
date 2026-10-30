@@ -223,6 +223,8 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
   const setSetting = useSettingsStore((s) => s.set)
   const records = useHitsStore((s) => s.records)
   const busy = useHitsStore((s) => s.busy)
+  const paused = useHitsStore((s) => s.paused)
+  const setPaused = useHitsStore((s) => s.setPaused)
   const songs = useMemo(() => rankHits(records, tracks), [records, tracks])
   const progress = useMemo(() => {
     const now = Date.now()
@@ -263,10 +265,22 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
     )
   }
 
-  const looking = busy && progress.done < progress.total && (
-    <p role="status" className="mb-1 text-[12.5px] text-slate-500 dark:text-slate-400">
-      {t('shelves.hits_looking_up', { done: t.num(progress.done), total: t.num(progress.total) })}
-    </p>
+  // With its Pause, or Resume once paused (James, 2026-10-30).
+  const counts = { done: t.num(progress.done), total: t.num(progress.total) }
+  const looking = (busy || paused) && progress.done < progress.total && (
+    <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+      <p role="status" className="text-[12.5px] text-slate-500 dark:text-slate-400">
+        {paused ? t('shelves.hits_paused', counts) : t('shelves.hits_looking_up', counts)}
+      </p>
+      <button
+        type="button"
+        onClick={() => setPaused(!paused)}
+        aria-label={paused ? t('shelves.hits_resume_label') : t('shelves.hits_pause_label')}
+        className="text-[12.5px] font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+      >
+        {paused ? t('shelves.hits_resume') : t('common.pause')}
+      </button>
+    </div>
   )
   if (songs.length === 0) {
     return (

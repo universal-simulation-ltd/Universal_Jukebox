@@ -7,11 +7,13 @@
 // and a song counts again only when it starts again. Nothing leaves the
 // device; the example library being TRIED counts nothing (its songs aren't
 // yours, and the trial ends).
+//
+// ⚠️ THE COUNTING ITSELF IS `playCounting.ts`, which watches the player. Kept
+// apart so the counts can be read — by the shelves, deciding whether the
+// starter shelf has done its job — without loading the player and its audio.
 
 import { create } from 'zustand'
 import type { Track } from './types'
-import { useLibraryStore } from '../stores/libraryStore'
-import { currentTrack, usePlayerStore } from '../stores/playerStore'
 
 const KEY = 'jukebox:plays'
 /** Songs on the Most played shelf, at most. */
@@ -52,6 +54,18 @@ export function countPlay(trackId: string, now = Date.now()): void {
   } catch { /* storage full or off — counted until the app closes */ }
 }
 
+/**
+ * Every count gone, so Most played starts again from nothing (James,
+ * 2026-10-30: "For the most played stats have an option to 'Reset' the played
+ * statistics") — Tune this app ▸ Your library.
+ */
+export function resetPlays(): void {
+  usePlayCounts.setState({ counts: {} })
+  try {
+    localStorage.removeItem(KEY)
+  } catch { /* storage off — the counts were only ever in memory */ }
+}
+
 /** When a play of a song this long has been heard: half of it, at most four minutes. */
 export function countsAfter(durationSec: number): number {
   return durationSec > 0 ? Math.min(durationSec / 2, 240) : 30
@@ -65,26 +79,3 @@ export function mostPlayed(counts: Record<string, PlayCount>, byId: ReadonlyMap<
     .slice(0, MOST_PLAYED_MAX)
     .map(([id]) => byId.get(id) as Track)
 }
-
-// ── Counting ────────────────────────────────────────────────────────────────
-// One play at a time: `session` is the song on the deck and whether it has
-// counted. A new song, or the same one started again from the top, is a new
-// play.
-let session: { id: string; counted: boolean; at: number } | null = null
-usePlayerStore.subscribe((state) => {
-  const track = currentTrack(state)
-  if (!track) {
-    session = null
-    return
-  }
-  const sec = state.currentSec
-  if (!session || session.id !== track.id || (session.counted && sec < 1 && session.at > 2)) {
-    session = { id: track.id, counted: false, at: sec }
-  }
-  session.at = sec
-  if (session.counted || !state.playing) return
-  if (sec < countsAfter(state.durationSec || track.durationSec || 0)) return
-  session.counted = true
-  if (useLibraryStore.getState().trying) return
-  countPlay(track.id)
-})

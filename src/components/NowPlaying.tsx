@@ -13,7 +13,9 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import Deck, { CeremonyCount } from './Deck'
 import DeckSwiper from './DeckSwiper'
-import type { Album } from '../lib/types'
+import type { Album, Track } from '../lib/types'
+import { useSwipeWords } from '../lib/swipeWords'
+import { ARC_ACROSS } from './decks/slide'
 import Lyrics from './Lyrics'
 import AboutTrack from './AboutTrack'
 import { useAboutStore } from '../stores/aboutStore'
@@ -172,30 +174,7 @@ export default function NowPlaying() {
             <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{t('player.changing_records')}</p>
           </div>
         ) : (
-          <div className={`flex flex-col justify-center ${landscape ? 'min-h-0' : 'min-h-[8rem]'} ${startAligned}`}>
-            <h1
-              className={`font-semibold text-balance text-slate-900 dark:text-slate-100 ${
-                // Lying down: two lines at most, so a long title cannot push
-                // the transport under it off the screen.
-                landscape ? 'line-clamp-2 text-xl' : 'text-2xl sm:text-3xl'
-              }`}
-            >
-              {track.title}
-            </h1>
-            <p className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 lg:text-slate-700 dark:text-slate-300 lg:dark:text-slate-200`}>
-              {track.artist ?? track.albumArtist ?? t('common.unknown_artist')}
-            </p>
-            {track.album && (
-              <button
-                type="button"
-                onClick={() => navigate({ view: 'album', albumId: track.albumId })}
-                className="mt-1 text-[14px] text-slate-500 underline-offset-2 hover:text-orange-700 hover:underline lg:text-slate-600 dark:text-slate-400 dark:hover:text-orange-400 lg:dark:text-slate-300"
-              >
-                {track.album}
-                {track.year ? ` · ${track.year}` : ''}
-              </button>
-            )}
-          </div>
+          <SongWords track={track} landscape={landscape} />
         )}
     </>
   )
@@ -234,7 +213,7 @@ export default function NowPlaying() {
         className={landscape ? 'hidden' : 'relative w-full text-center lg:hidden'}
         style={!landscape && nudge ? { transform: `translateY(${nudge}px)` } : undefined}
       >
-        {heading}
+        <SwipeWords landscape={landscape}>{heading}</SwipeWords>
       </div>
 
       {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
@@ -274,7 +253,9 @@ export default function NowPlaying() {
         }`}
       >
         {landscape && <BackToLibrary compact />}
-        <div className={landscape ? 'block' : 'hidden lg:block'}>{heading}</div>
+        <div className={landscape ? 'block' : 'hidden lg:block'}>
+          <SwipeWords landscape={landscape}>{heading}</SwipeWords>
+        </div>
 
         {/* Spec chips — the honest technical facts about the file that is
             playing. Hidden below 980px (T3), and lying down, where the column
@@ -379,6 +360,87 @@ export default function NowPlaying() {
  * click; a button that appears and disappears between tracks is a control
  * nobody can learn.
  */
+/**
+ * A song's title, artist and album, as the heading draws them. `still` is for
+ * a song the row is only passing through on a swipe (`SwipeWords`): its album
+ * is words, not a link, since it is not the song playing.
+ */
+function SongWords({ track, landscape, still = false }: { track: Track; landscape: boolean; still?: boolean }) {
+  const t = useT()
+  const album = 'mt-1 text-[14px] text-slate-500 lg:text-slate-600 dark:text-slate-400 lg:dark:text-slate-300'
+  return (
+    <div className={`flex flex-col justify-center ${landscape ? 'min-h-0 items-start' : 'min-h-[8rem] items-center lg:items-start'}`}>
+      <h1
+        className={`font-semibold text-balance text-slate-900 dark:text-slate-100 ${
+          // Lying down: two lines at most, so a long title cannot push
+          // the transport under it off the screen.
+          landscape ? 'line-clamp-2 text-xl' : 'text-2xl sm:text-3xl'
+        }`}
+      >
+        {track.title}
+      </h1>
+      <p className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 lg:text-slate-700 dark:text-slate-300 lg:dark:text-slate-200`}>
+        {track.artist ?? track.albumArtist ?? t('common.unknown_artist')}
+      </p>
+      {track.album && (still ? (
+        <p className={album}>
+          {track.album}
+          {track.year ? ` · ${track.year}` : ''}
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={() => navigate({ view: 'album', albumId: track.albumId })}
+          className={`${album} underline-offset-2 hover:text-orange-700 hover:underline dark:hover:text-orange-400`}
+        >
+          {track.album}
+          {track.year ? ` · ${track.year}` : ''}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * The heading, moving with a swipe of the record (James, 2026-10-30: "have
+ * the title and track info swipe out too so you can see what is queued
+ * properly"). The song playing keeps its own heading at the row's middle; each
+ * song the swipe brings in is drawn a whole width of the words further along —
+ * the words' own row, at the records' place in theirs (`lib/swipeWords.ts`) —
+ * and fades as it leaves the middle, as the records do. At rest it is just the
+ * heading.
+ *
+ * ⚠️ `overflow-x: clip`, not `hidden`: it trims the words travelling off to
+ * the side without making a scroll box, and leaves a long title free to run
+ * past the bottom of the box.
+ */
+function SwipeWords({ landscape, children }: { landscape: boolean; children: React.ReactNode }) {
+  const row = useSwipeWords((s) => s.row)
+  if (!row) return <>{children}</>
+  const place = (slot: number): React.CSSProperties => {
+    const at = slot + row.drag
+    return {
+      transform: `translateX(${at * 100}%)`,
+      opacity: Math.max(0, 1 - Math.abs(at)),
+      transition: row.animate ? `transform ${row.ms}ms ${ARC_ACROSS}, opacity ${row.ms}ms ease-out` : 'none',
+    }
+  }
+  return (
+    <div className="relative" style={{ overflowX: 'clip' }}>
+      <div style={place(0)}>{children}</div>
+      {/* Within two places of the middle, so one gliding out on a release
+          stays drawn until it has gone, rather than vanishing as it starts. */}
+      {[...row.songs]
+        .filter(([slot]) => Math.abs(slot + row.drag) < 2)
+        .map(([slot, song]) => (
+          <div key={slot} className="pointer-events-none absolute inset-0" style={place(slot)} aria-hidden>
+            <SongWords track={song} landscape={landscape} still />
+          </div>
+        ))}
+    </div>
+  )
+}
+
 function LyricsToggle() {
   const track = usePlayerStore(currentTrack)
   const shownFor = useLyricsStore((s) => s.shownFor)
