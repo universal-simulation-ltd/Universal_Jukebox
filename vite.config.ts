@@ -113,6 +113,9 @@ export default defineConfig(({ mode }) => {
           // load when somebody opens the example, not on every install.
           // Offline, the example falls back to its drawn sleeves.
           globIgnores: ['**/exampleCovers-*.js'],
+          // The main chunk passed workbox's 2 MiB default with SDK 0.213;
+          // without this it drops out of the precache and offline breaks.
+          maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         },
         devOptions: { enabled: false },
       })]),
