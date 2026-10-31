@@ -16,8 +16,10 @@ import './lib/playCounting'
 
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
 // mount <UniversalProvider> so the shared navbar, suite switcher and language
-// work. There is no sign-in (see `noAccounts` below) — the website only
-// recognises a suite session someone already has.
+// work. Nothing here needs a sign-in (see `noAccounts` below): the website
+// and the phones recognise a suite session someone already has, and since SDK
+// 0.211.0 Tune this app offers a discreet Sign in on the website and the
+// Windows app (the phone screens have their own Tune, with no Sign in).
 //
 // The fallback is the REAL public suite project (publishable anon key — safe to
 // ship; RLS is the security boundary). Env overrides.
@@ -55,7 +57,7 @@ const universalConfig = {
   supabaseAnonKey: import.meta.env.VITE_PLATFORM_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5Z2Z4Z2Fsb2pvanBweG1oZGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTY4MjUsImV4cCI6MjA5NDMzMjgyNX0.hLy_vt9vY_rdPKF3nL32yAuMCD604E3CH5VM7D7CaNE',
   product: 'jukebox' as const,
   cookieDomain: import.meta.env.PROD ? '.unisim.co.uk' : undefined,
-  // ⚠️ No sign-in anywhere: phone, website or desktop (James, 2026-10-20, "avoid
+  // ⚠️ No sign-in needed: phone, website or desktop (James, 2026-10-20, "avoid
   // logins except where it really improves experience"; the phone app went
   // first, 2026-10-10). Nothing in Jukebox needs an account. The backup FILE is
   // the feature (`lib/backupIo.ts`) and works without one; the only thing a
@@ -67,8 +69,9 @@ const universalConfig = {
   // from the personalisation — 'Bradley's Book'"). Signed in on the hub or any
   // unisim.co.uk app, the shared cookie session makes the bar say "James’
   // Jukebox" and puts Your Universal ID in Tune this app (`accountInTune` and
-  // `personalTitle` on the navbar, App.tsx). Still nothing asks anyone to sign
-  // in, and Jukebox stores nothing on the account. Universal PDF's website is
+  // `personalTitle` on the navbar, App.tsx). Nothing asks anyone to sign in
+  // beyond the discreet Sign in the SDK puts in Tune this app (0.211.0), and
+  // Jukebox stores nothing on the account. Universal PDF's website is
   // the template.
   //
   // The PHONE APPS do the same with the suite's shared phone session (James,
@@ -83,7 +86,9 @@ const universalConfig = {
   // So `noAccounts` only for the Windows app: the `desktop` build mode outside
   // a native shell (`cap:sync` uses the same mode for the phones). It runs
   // from disk, where neither the unisim.co.uk cookie nor a phone's shared
-  // store reaches it.
+  // store reaches it. Since SDK 0.211.0 `noAccounts` no longer keeps it signed
+  // out: a session signed in from Tune this app's discreet Sign in is read and
+  // followed like anywhere else; the flag only drops the account rows.
   noAccounts: import.meta.env.MODE === 'desktop' && !isNativeShell(),
   // Off everywhere, as `noAccounts` had it until now: the website did without
   // the SDK's anonymous daily open count from 2026-10-20 (0.187.0: once a day,

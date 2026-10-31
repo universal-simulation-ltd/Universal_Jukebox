@@ -621,7 +621,7 @@ export default function Settings() {
                   value: FOLLOW_GLOBAL,
                   label: t('settings.follow_global', { value: labelOf(THEME_OPTIONS, themeGlobal) }),
                   // No hint pointing at Global Tuning: it is a signed-in menu,
-                  // and Jukebox has no sign-in since 2026-10-20.
+                  // and Jukebox needs no sign-in (since 2026-10-20).
                 },
                 ...THEME_OPTIONS,
               ]}
