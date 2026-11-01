@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { BusyError, lookUpHit, recordFresh, type HitRecord } from '../lib/hits'
+import { AWARDS_MIN_LISTENERS, BusyError, PLAYS_BATCH, lookUpDeep, lookUpPlays, recordFresh, wantsDeep, type HitRecord } from '../lib/hits'
 import { allHitRecords, clearHits } from '../lib/library'
 import { isExampleTrack } from '../lib/exampleLibrary'
 import { useLibraryStore } from './libraryStore'
@@ -14,12 +14,16 @@ import { noticeOnPhone, withdrawNotice } from '../lib/trackNotify'
 // is on, the shelf is wanted, and a real library is ready — never during a
 // trial of the example library.
 //
-// ⚠️ The shape of `lyricsPresence.ts`: one song at a time with a pause
-// between (`GAP_MS` — MusicBrainz asks for a second), and the answers
-// published per batch, never per song, because every publish re-ranks the shelf.
+// Two passes, one after the other (James, 2026-11-01): plays for every song,
+// `PLAYS_BATCH` at a time, then — only with `hitsDeep` on — ratings and awards
+// for the songs the world plays (`wantsDeep`), one song at a time with a pause
+// between (`GAP_MS` — MusicBrainz asks for a second). Answers are published
+// every `PUBLISH_MS`, never per song, because every publish re-ranks the shelf.
 
-/** Between songs: MusicBrainz asks for no more than one request a second. */
+/** Between songs in the ratings-and-awards pass: MusicBrainz asks for no more than one request a second. */
 const GAP_MS = 1100
+/** Between plays batches: ListenBrainz allows 30 requests in 10 s, and each batch is two. */
+const BATCH_GAP_MS = 1000
 /** How often answers found so far are shown. */
 const PUBLISH_MS = 4000
 /** Offline, or a service down: try again after this. */
@@ -83,8 +87,38 @@ export function hitsProgress(records: ReadonlyMap<string, HitRecord>, tracks: re
   return { done: asked.filter((track) => recordFresh(records.get(track.id), now)).length, total: asked.length }
 }
 
-/** Unanswerable this session (a lookup that threw for that song alone) — not asked again until a reload. */
+/**
+ * How far ratings and awards have got: of the songs the world plays (enough
+ * listeners), those asked. Total 0 = nothing for that pass to do.
+ */
+export function deepProgress(records: ReadonlyMap<string, HitRecord>, tracks: readonly Track[], now = Date.now()): { done: number; total: number } {
+  let done = 0
+  let total = 0
+  for (const track of tracks) {
+    const r = records.get(track.id)
+    if (!askable(track) || !r || !recordFresh(r, now) || !r.mbid) continue
+    if (wantsDeep(r)) total++
+    else if (r.deep === true && (r.listeners ?? 0) >= AWARDS_MIN_LISTENERS) {
+      done++
+      total++
+    }
+  }
+  return { done, total }
+}
+
+/**
+ * The pass going on now, for a progress line: plays until every song has them,
+ * then ratings and awards while `hitsDeep` (`deepOn`) is on. `deep` says which.
+ */
+export function activeProgress(records: ReadonlyMap<string, HitRecord>, tracks: readonly Track[], deepOn: boolean, now = Date.now()): { done: number; total: number; deep: boolean } {
+  const plays = hitsProgress(records, tracks, now)
+  if (plays.done < plays.total || !deepOn) return { ...plays, deep: false }
+  return { ...deepProgress(records, tracks, now), deep: true }
+}
+
+/** Unanswerable this session (a lookup that threw for those songs) — not asked again until a reload. */
 const skipped = new Set<string>()
+const skippedDeep = new Set<string>()
 let controller: AbortController | null = null
 let retry: ReturnType<typeof setTimeout> | null = null
 /** The kept answers are in — before that, every song would look unasked. */
@@ -133,29 +167,54 @@ async function pass(): Promise<void> {
     found.clear()
     lastPublish = Date.now()
   }
+  /** True: carry on. False: stop this pass (asked to wait, or offline — `later` is set). */
+  const survive = (error: unknown, ids: readonly string[], into: Set<string>): boolean => {
+    if (mine.signal.aborted) return false
+    if (error instanceof BusyError) {
+      later(error.retryAfterMs)
+      return false
+    }
+    // Offline is the ordinary case for a local-file player: stop, come back.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      later(RETRY_MS)
+      return false
+    }
+    for (const id of ids) into.add(id)
+    return true
+  }
   try {
+    // 1. Plays, `PLAYS_BATCH` songs at a time.
     for (;;) {
-      if (mine.signal.aborted || !wanted()) break
+      if (mine.signal.aborted || !wanted()) return
       const now = Date.now()
       const { records } = useHitsStore.getState()
-      const track = useLibraryStore
+      const batch = useLibraryStore
         .getState()
-        .tracks.find((t) => askable(t) && !skipped.has(t.id) && !found.has(t.id) && !recordFresh(records.get(t.id), now))
-      if (!track) break
+        .tracks.filter((t) => askable(t) && !skipped.has(t.id) && !found.has(t.id) && !recordFresh(records.get(t.id), now))
+        .slice(0, PLAYS_BATCH)
+      if (batch.length === 0) break
       try {
-        found.set(track.id, await lookUpHit(track, mine.signal))
+        for (const record of await lookUpPlays(batch, mine.signal)) found.set(record.id, record)
       } catch (error) {
-        if (mine.signal.aborted) break
-        if (error instanceof BusyError) {
-          later(error.retryAfterMs)
-          break
-        }
-        // Offline is the ordinary case for a local-file player: stop, come back.
-        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-          later(RETRY_MS)
-          break
-        }
-        skipped.add(track.id)
+        if (!survive(error, batch.map((t) => t.id), skipped)) return
+      }
+      if (Date.now() - lastPublish >= PUBLISH_MS) flush()
+      await new Promise((r) => setTimeout(r, BATCH_GAP_MS))
+    }
+    flush()
+    // 2. Ratings and awards, once asked for, one song at a time.
+    for (;;) {
+      if (mine.signal.aborted || !wanted() || useSettingsStore.getState().hitsDeep !== true) return
+      const now = Date.now()
+      const records = new Map([...useHitsStore.getState().records, ...found])
+      const due = (r: HitRecord | undefined): r is HitRecord => !!r && recordFresh(r, now) && wantsDeep(r)
+      const track = useLibraryStore.getState().tracks.find((t) => askable(t) && !skippedDeep.has(t.id) && due(records.get(t.id)))
+      const record = track && records.get(track.id)
+      if (!track || !due(record)) break
+      try {
+        found.set(track.id, await lookUpDeep(record, track, mine.signal))
+      } catch (error) {
+        if (!survive(error, [track.id], skippedDeep)) return
       }
       if (Date.now() - lastPublish >= PUBLISH_MS) flush()
       await new Promise((r) => setTimeout(r, GAP_MS))
@@ -181,7 +240,7 @@ void (barsHits() ? Promise.resolve([]) : allHitRecords()).then((list) => {
 })
 
 useSettingsStore.subscribe((now, before) => {
-  if (now.hitsOnline !== before.hitsOnline || now.hitsShelf !== before.hitsShelf) kick()
+  if (now.hitsOnline !== before.hitsOnline || now.hitsShelf !== before.hitsShelf || now.hitsDeep !== before.hitsDeep) kick()
 })
 useLibraryStore.subscribe((now, before) => {
   if (now.trying !== before.trying || now.status !== before.status || now.tracks !== before.tracks) kick()
@@ -206,7 +265,7 @@ let noticed = false
 function noticeAway(): void {
   if (typeof document === 'undefined') return
   const away = document.visibilityState === 'hidden' && useHitsStore.getState().busy
-  const { done, total } = away ? hitsProgress(useHitsStore.getState().records, useLibraryStore.getState().tracks) : { done: 0, total: 0 }
+  const { done, total } = away ? activeProgress(useHitsStore.getState().records, useLibraryStore.getState().tracks, useSettingsStore.getState().hitsDeep === true) : { done: 0, total: 0 }
   if (!away || done >= total) {
     if (noticed) withdrawNotice('hits')
     noticed = false

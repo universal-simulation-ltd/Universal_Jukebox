@@ -41,7 +41,7 @@ export default {
   'played_times_one': 'Played once',
   'played_times_other': 'Played {count} times', // under a record on the Most played shelf
   'hits': 'Hits', // the shelf at the top that fills itself with your songs the world plays most
-  'hits_offer': 'Your songs, ranked by how the world plays, rates and awards them. Turning this on looks each song up on ListenBrainz, MusicBrainz and Wikidata. Only the song’s title and the artist’s name are sent.', // on the Hits card before it is turned on
+  'hits_offer': 'Your songs, ranked by how often the world plays them. Turning this on looks your songs up on ListenBrainz; ratings and awards can be added after. Only the song’s title and the artist’s name are sent.', // on the Hits card before it is turned on
   'hits_turn_on': 'Turn on', // button on that card; short
   'hits_no_thanks': 'No thanks', // button on that card: removes the shelf; short
   'hits_remove_label': 'Remove the Hits shelf', // screen reader for the Remove / No thanks buttons
@@ -51,6 +51,10 @@ export default {
   'hits_resume': 'Resume', // button beside that line; short
   'hits_pause_label': 'Pause looking up your songs', // screen reader for the Pause button there
   'hits_resume_label': 'Resume looking up your songs', // screen reader for Resume
+  'hits_add_deep': 'Add ratings and awards', // button on Hits once every song has its plays; short
+  'hits_add_deep_hint': 'Asks MusicBrainz and Wikidata about the songs the world plays, about one a second, so it takes a while.', // beside that button
+  'hits_deep_looking': 'Adding ratings and awards: {done} of {total}', // instead of “Looking up your songs” during the second, slower pass
+  'hits_deep_paused': 'Ratings and awards paused: {done} of {total}', // that line while paused
   'hits_notice_title': 'Looking up your songs for Hits', // a phone notification while the app is in the background
   'hits_notice_paused': 'Paused at {done} of {total} while Jukebox is in the background. Open it to carry on.', // that notification on iPhone, where the lookups stop
   'hits_notice_progress': '{done} of {total} so far', // that notification on Android, counting up

@@ -473,6 +473,12 @@ export interface HitRecord {
   votes: number | null
   /** Awards the song received, on Wikidata. */
   awards: number | null
+  /**
+   * False: only plays asked so far (the fast pass, `lookUpPlays`); the rating
+   * and awards wait for "Add ratings and awards" (`lookUpDeep`). Absent on
+   * answers kept before 2026-11-01, which asked all three at once.
+   */
+  deep?: boolean
   at: number
   v: number
 }

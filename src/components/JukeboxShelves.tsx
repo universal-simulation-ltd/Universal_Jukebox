@@ -12,7 +12,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { starterShelfId, useShelvesStore } from '../stores/shelvesStore'
 import { mostPlayed, usePlayCounts } from '../lib/playCounts'
 import { RATING_MIN_VOTES, rankHits } from '../lib/hits'
-import { hitsProgress, useHitsStore } from '../stores/hitsStore'
+import { activeProgress, deepProgress, hitsProgress, useHitsStore } from '../stores/hitsStore'
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import { barsHits } from '../lib/nativeFile'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -221,13 +221,20 @@ function MostPlayedShelf({ byId, albumOf, onRemove }: { byId: ReadonlyMap<string
 function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; albumOf(t: Track): Album | undefined; onRemove(): void }) {
   const t = useT()
   const online = useSettingsStore((s) => s.hitsOnline)
+  const deepOn = useSettingsStore((s) => s.hitsDeep)
   const setSetting = useSettingsStore((s) => s.set)
   const records = useHitsStore((s) => s.records)
   const busy = useHitsStore((s) => s.busy)
   const paused = useHitsStore((s) => s.paused)
   const setPaused = useHitsStore((s) => s.setPaused)
   const songs = useMemo(() => rankHits(records, tracks), [records, tracks])
-  const progress = useMemo(() => hitsProgress(records, tracks), [records, tracks])
+  const progress = useMemo(() => activeProgress(records, tracks, deepOn), [records, tracks, deepOn])
+  // Plays done, ratings and awards not asked for yet, and songs that would get them.
+  const offerDeep = useMemo(() => {
+    if (deepOn) return false
+    const plays = hitsProgress(records, tracks)
+    return plays.done >= plays.total && deepProgress(records, tracks).total > 0
+  }, [records, tracks, deepOn])
   const compact = useMemo(() => new Intl.NumberFormat(t.locale, { notation: 'compact', maximumFractionDigits: 1 }), [t.locale])
   const playTracks = usePlayerStore((s) => s.playTracks)
   const shuffle = usePlayerStore((s) => s.shuffle)
@@ -262,12 +269,16 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
     )
   }
 
-  // With its Pause, or Resume once paused (James, 2026-10-30).
+  // With its Pause, or Resume once paused (James, 2026-10-30). Plays first,
+  // then ratings and awards once asked for (James, 2026-11-01).
   const counts = { done: t.num(progress.done), total: t.num(progress.total) }
-  const looking = (busy || paused) && progress.done < progress.total && (
+  const status = progress.deep
+    ? t(paused ? 'shelves.hits_deep_paused' : 'shelves.hits_deep_looking', counts)
+    : t(paused ? 'shelves.hits_paused' : 'shelves.hits_looking_up', counts)
+  const looking = (busy || paused) && progress.done < progress.total ? (
     <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
       <p role="status" className="text-[12.5px] text-slate-500 dark:text-slate-400">
-        {paused ? t('shelves.hits_paused', counts) : t('shelves.hits_looking_up', counts)}
+        {status}
       </p>
       <button
         type="button"
@@ -278,6 +289,14 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
         {paused ? t('shelves.hits_resume') : t('common.pause')}
       </button>
     </div>
+  ) : null
+  const offer = !looking && offerDeep && (
+    <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+      <button type="button" onClick={() => setSetting('hitsDeep', true)} className={pill}>
+        {t('shelves.hits_add_deep')}
+      </button>
+      <p className="text-[12px] text-slate-500 dark:text-slate-400">{t('shelves.hits_add_deep_hint')}</p>
+    </div>
   )
   if (songs.length === 0) {
     return (
@@ -287,6 +306,7 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
           {remove}
         </div>
         {looking || <p className="text-[12.5px] text-slate-500 dark:text-slate-400">{t('shelves.hits_none_yet')}</p>}
+        {offer}
       </div>
     )
   }
@@ -316,6 +336,7 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
         </div>
       </div>
       {looking}
+      {offer}
       <ShelfRow<Track>
         items={songs}
         label={name}

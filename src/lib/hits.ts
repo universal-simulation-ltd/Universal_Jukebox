@@ -37,14 +37,22 @@
 //      person or device. `no-referrer` and no cookies.
 //   4. **Asked once per track**, answers — "nothing known" included — kept in
 //      the `hits` store (`library.ts`) and asked again only after `TTL_MS`.
-//   5. **One song at a time, in the background, slowly** (`GAP_MS`), and
-//      never for the example library's made-up songs. MusicBrainz asks for no
-//      more than one request a second; a 429 or 503 is a pause, not a fault.
+//   5. **In the background**, never for the example library's made-up songs,
+//      and a 429 or 503 is a pause, not a fault.
 //
-// ⚠️ THE AWARDS ARE ONLY ASKED FOR SONGS THE WORLD ALREADY PLAYS
-// (`AWARDS_MIN_LISTENERS`). Two more requests per song across a library of
-// thousands of album tracks would be thousands of questions to Wikipedia for
-// answers that are almost all "none".
+// TWO PASSES (James, 2026-11-01: "the hits data is so slow … start with total
+// plays then when that's done a button to add award data"):
+//
+//   • **Plays** (`lookUpPlays`): ListenBrainz takes a list, so `PLAYS_BATCH`
+//     songs go in one acr-lookup and one popularity request. A library of
+//     2,000 songs is about a minute, where one song at a time was hours.
+//     Measured 2026-11-01: 120 songs = 10 s for the match, 0.2 s for plays.
+//   • **Ratings and awards** (`lookUpDeep`), only once asked for (the shelf's
+//     "Add ratings and awards", `settings().hitsDeep`): one song at a time,
+//     `GAP_MS` apart, because MusicBrainz asks for no more than one request a
+//     second. ⚠️ ONLY FOR SONGS THE WORLD ALREADY PLAYS (`AWARDS_MIN_LISTENERS`,
+//     `wantsDeep`): three more requests per song across thousands of album
+//     tracks would be hours of questions for answers almost all "none".
 //
 // The answers are read by the pure `parse*` functions below; `hits.live.test.ts`
 // asks the real services (first run 2026-10-28, which is how the 401 above was
@@ -63,6 +71,9 @@ const MUSICBRAINZ = 'https://musicbrainz.org/ws/2'
 const WIKIPEDIA = 'https://en.wikipedia.org/w/api.php'
 const WIKIDATA = 'https://www.wikidata.org/w/api.php'
 const TIMEOUT_MS = 10_000
+/** Songs per plays request. 120 took the match 10 s (2026-11-01), so 50 sits well inside `BATCH_TIMEOUT_MS`. */
+export const PLAYS_BATCH = 50
+const BATCH_TIMEOUT_MS = 30_000
 export const CACHE_VERSION = 1
 /** Asked again after ninety days: songs climb, and new ones get matched. */
 export const TTL_MS = 90 * 24 * 60 * 60 * 1000
@@ -128,10 +139,35 @@ export function recordFresh(record: HitRecord | undefined, now: number): boolean
 
 // ── Reading the answers, pure ────────────────────────────────────────────────
 
-/** ListenBrainz labs `GET /acr-lookup/json` → the recording's MBID, or null (`[]` when nothing matched). */
-export function parseLookup(body: unknown): string | null {
-  const mbid = (Array.isArray(body) ? (body[0] as { recording_mbid?: unknown } | undefined) : null)?.recording_mbid
-  return typeof mbid === 'string' && mbid.length > 0 ? mbid : null
+/**
+ * ListenBrainz labs `POST /acr-lookup/json` → each asked row's recording MBID,
+ * in the order asked, or null. Rows come back in any order, each with the
+ * `index` it was asked at; a row nothing matched is simply missing.
+ */
+export function parseLookups(body: unknown, count: number): Array<string | null> {
+  const mbids: Array<string | null> = Array.from({ length: count }, () => null)
+  if (!Array.isArray(body)) return mbids
+  for (const row of body as Array<{ index?: unknown; recording_mbid?: unknown } | null>) {
+    const index = row?.index
+    const mbid = row?.recording_mbid
+    if (typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < count && typeof mbid === 'string' && mbid.length > 0) mbids[index] = mbid
+  }
+  return mbids
+}
+
+/** Whether a kept answer still waits for its rating and awards: plays only so far, and a song the world plays. */
+export function wantsDeep(r: HitRecord): boolean {
+  return r.deep === false && !!r.mbid && (r.listeners ?? 0) >= AWARDS_MIN_LISTENERS
+}
+
+/**
+ * The same song for ListenBrainz, however its tags spell it: letters and digits
+ * only, lower case. ⚠️ Two rows it would read as one get ONE answer between
+ * them (100 rows that differed by a trailing space came back as 5), so they
+ * are asked once and the answer shared.
+ */
+function squash(text: string): string {
+  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
 }
 
 /** ListenBrainz `POST /1/popularity/recording` → plays and listeners for this MBID (nulls when it has none). */
@@ -174,31 +210,61 @@ export class BusyError extends Error {
 }
 
 /**
- * Everything the three services know about this song, kept, and returned.
+ * Plays worldwide for up to `PLAYS_BATCH` songs: one ListenBrainz match for
+ * them all, then one popularity request. Every song gets an answer ("nothing
+ * known" included), kept with `deep: false`, and returned.
  *
- * Throws `BusyError` when asked to wait, and anything else when offline — the
- * caller stops and tries later, and nothing half-asked is kept.
+ * Throws `BusyError` when asked to wait, and anything else when offline or a
+ * service fails — the caller stops and tries later, and nothing is kept.
  */
-export async function lookUpHit(track: Track, signal?: AbortSignal): Promise<HitRecord> {
+export async function lookUpPlays(tracks: readonly Track[], signal?: AbortSignal): Promise<HitRecord[]> {
+  const at = Date.now()
+  const empty = (id: string): HitRecord => ({ id, mbid: null, listens: null, listeners: null, rating: null, votes: null, awards: null, deep: false, at, v: CACHE_VERSION })
+  const out: HitRecord[] = []
+  const groups = new Map<string, { artist: string; title: string; ids: string[] }>()
+  for (const track of tracks) {
+    const artist = track.artist ?? track.albumArtist
+    if (!artist || !track.title) {
+      out.push(empty(track.id))
+      continue
+    }
+    const title = searchTitle(track.title)
+    const key = `${squash(artist)}\u0000${squash(title)}`
+    const group = groups.get(key)
+    if (group) group.ids.push(track.id)
+    else groups.set(key, { artist, title, ids: [track.id] })
+  }
+  const asked = [...groups.values()]
+  if (asked.length > 0) {
+    const rows = asked.map((g) => ({ artist_credit_name: g.artist, recording_name: g.title }))
+    const mbids = parseLookups(await postJson(`${LISTENBRAINZ_LABS}/acr-lookup/json`, rows, signal, BATCH_TIMEOUT_MS), asked.length)
+    const found = [...new Set(mbids.filter((m): m is string => !!m))]
+    const plays = found.length > 0 ? await postJson(`${LISTENBRAINZ}/popularity/recording`, { recording_mbids: found }, signal, BATCH_TIMEOUT_MS) : []
+    asked.forEach((group, i) => {
+      const mbid = mbids[i]
+      for (const id of group.ids) out.push(mbid ? { ...empty(id), mbid, ...parsePopularity(plays, mbid) } : empty(id))
+    })
+  }
+  for (const record of out) await keep(record)
+  return out
+}
+
+/**
+ * The rating (MusicBrainz) and awards (Wikipedia → Wikidata) for one song whose
+ * plays are in, kept with `deep: true`, and returned. Throws as `lookUpPlays` does.
+ */
+export async function lookUpDeep(record: HitRecord, track: Track, signal?: AbortSignal): Promise<HitRecord> {
   const artist = track.artist ?? track.albumArtist
-  const empty: HitRecord = { id: track.id, mbid: null, listens: null, listeners: null, rating: null, votes: null, awards: null, at: Date.now(), v: CACHE_VERSION }
-  if (!artist || !track.title) return keep(empty)
-
-  const title = searchTitle(track.title)
-  const lookup = await getJson(`${LISTENBRAINZ_LABS}/acr-lookup/json?${new URLSearchParams({ artist_credit_name: artist, recording_name: title })}`, signal)
-  const mbid = parseLookup(lookup)
-  if (!mbid) return keep(empty)
-
-  const popularity = parsePopularity(await postJson(`${LISTENBRAINZ}/popularity/recording`, { recording_mbids: [mbid] }, signal), mbid)
-  // A rating that cannot be had now is not worth losing the rest for.
-  const rating = await getJson(`${MUSICBRAINZ}/recording/${encodeURIComponent(mbid)}?inc=ratings&fmt=json`, signal)
+  if (!record.mbid || !artist || !track.title) return keep({ ...record, deep: true })
+  // A rating that cannot be had now is not worth losing the awards for.
+  const rating = await getJson(`${MUSICBRAINZ}/recording/${encodeURIComponent(record.mbid)}?inc=ratings&fmt=json`, signal)
     .then(parseRating)
     .catch((e: unknown) => {
       if (signal?.aborted) throw e
       return { rating: null, votes: null }
     })
-  const awards = (popularity.listeners ?? 0) >= AWARDS_MIN_LISTENERS ? await awardsFor(title, artist, signal) : null
-  return keep({ ...empty, mbid, ...popularity, ...rating, awards })
+  const awards = (record.listeners ?? 0) >= AWARDS_MIN_LISTENERS ? await awardsFor(searchTitle(track.title), artist, signal) : null
+  return keep({ ...record, ...rating, awards, deep: true })
 }
 
 /** The song's Wikipedia article, by `pickSong`; then its Wikidata item's awards. */
@@ -242,16 +308,16 @@ async function keep(record: HitRecord): Promise<HitRecord> {
 
 const getJson = (url: string, signal?: AbortSignal) => request(url, { method: 'GET' }, signal)
 
-const postJson = (url: string, body: unknown, signal?: AbortSignal) =>
-  request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal)
+const postJson = (url: string, body: unknown, signal?: AbortSignal, timeoutMs = TIMEOUT_MS) =>
+  request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, timeoutMs)
 
-async function request(url: string, init: RequestInit, signal?: AbortSignal): Promise<unknown> {
+async function request(url: string, init: RequestInit, signal?: AbortSignal, timeoutMs = TIMEOUT_MS): Promise<unknown> {
   // `no-referrer` and `omit`: each service is told the question, not which
   // page asked it or who is asking.
   // A timeout of its own beside the caller's signal — by hand, because
   // `AbortSignal.any` is newer than the oldest iPhones this app runs on.
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   const stop = () => controller.abort()
   signal?.addEventListener('abort', stop)
   if (signal?.aborted) controller.abort()

@@ -256,6 +256,15 @@ export default function Settings() {
                   onChange={(v) => s.set('hitsOnline', v)}
                 />
               )}
+              {/* The slow second pass (James, 2026-11-01); the shelf offers it too. */}
+              {s.hitsShelf && s.hitsOnline && (
+                <Toggle
+                  label={t('settings.hits_deep')}
+                  hint={t('settings.hits_deep_hint')}
+                  checked={s.hitsDeep}
+                  onChange={(v) => s.set('hitsDeep', v)}
+                />
+              )}
               <SavedHits />
             </>
           )}

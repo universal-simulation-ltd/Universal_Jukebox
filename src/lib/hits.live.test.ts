@@ -2,8 +2,14 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./library', () => ({ putHitRecord: vi.fn(async () => {}) }))
 
-import { lookUpHit, hitScore } from './hits'
+import { lookUpDeep, lookUpPlays, hitScore, type HitRecord } from './hits'
 import type { Track } from './types'
+
+/** Both passes for one song, as the shelf ends up with them. */
+async function lookUpHit(track: Track): Promise<HitRecord> {
+  const [plays] = await lookUpPlays([track])
+  return plays.mbid ? lookUpDeep(plays, track) : plays
+}
 
 // The Hits shelf against the REAL ListenBrainz, MusicBrainz and Wikidata. Off
 // unless asked for — it needs the network, and the numbers move:
@@ -15,7 +21,7 @@ import type { Track } from './types'
 
 const live = process.env.LIVE_HITS === '1'
 
-describe.skipIf(!live)('lookUpHit, asking the world', () => {
+describe.skipIf(!live)('Hits, asking the world', () => {
   beforeAll(() => {
     const real = globalThis.fetch
     // Node's own User-Agent is refused by Wikimedia and MusicBrainz; a browser sends its own.
@@ -51,4 +57,19 @@ describe.skipIf(!live)('lookUpHit, asking the world', () => {
     const r = await lookUpHit({ id: 'z', title: 'Qwxzv Plorb Snarf', artist: 'Nobody Atall' } as Track)
     expect(r.mbid).toBeNull()
   }, 30_000)
+
+  it('plays for many songs in one batch, each matched to its own row', async () => {
+    const tracks = [
+      { id: '1', title: 'Grace Kelly', artist: 'MIKA' },
+      { id: '2', title: 'Hello', artist: 'Adele' },
+      { id: '3', title: 'Qwxzv Plorb Snarf', artist: 'Nobody Atall' },
+      { id: '4', title: 'Wonderwall', artist: 'Oasis' },
+    ] as Track[]
+    const out = new Map((await lookUpPlays(tracks)).map((r) => [r.id, r]))
+    console.log(out)
+    expect(out.get('1')?.mbid).toBe('f507b892-4dab-4c08-b517-4626a84041d3')
+    expect(out.get('2')?.listens ?? 0).toBeGreaterThan(10_000)
+    expect(out.get('3')?.mbid).toBeNull()
+    expect(out.get('4')?.listens ?? 0).toBeGreaterThan(10_000)
+  }, 60_000)
 })

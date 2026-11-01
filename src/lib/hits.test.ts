@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('./library', () => ({ putHitRecord: vi.fn(async () => {}) }))
 
 import {
-  CACHE_VERSION, HITS_MAX, TTL_MS, countAwards, hitScore, isHit, parseLookup, parsePopularity, parseRating, rankHits, recordFresh,
+  AWARDS_MIN_LISTENERS, CACHE_VERSION, HITS_MAX, TTL_MS, countAwards, hitScore, isHit, lookUpPlays, parseLookups, parsePopularity, parseRating, rankHits,
+  recordFresh, wantsDeep,
   type HitRecord,
 } from './hits'
 import type { Track } from './types'
@@ -69,12 +70,17 @@ describe('the Hits shelf', () => {
 })
 
 describe('reading the answers', () => {
-  it('ListenBrainz lookup: the recording, or nothing', () => {
-    expect(parseLookup([{ index: 0, artist_credit_name: 'Queen', recording_mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69', recording_name: 'Bohemian Rhapsody' }]))
-      .toBe('b1a9c0e9-d987-4042-ae91-78d6a3267d69')
-    expect(parseLookup([])).toBeNull()
-    expect(parseLookup({ code: 401, error: 'You need to provide an Authorization header.' })).toBeNull()
-    expect(parseLookup(null)).toBeNull()
+  it('ListenBrainz lookup: each row by its index, nothing for a row not matched', () => {
+    // As answered on 2026-11-01: any order, and an unmatched row simply missing.
+    const body = [
+      { index: 2, artist_credit_name: 'Adele', recording_mbid: 'mb-hello', recording_name: 'Hello' },
+      { index: 0, artist_credit_name: 'Queen', recording_mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69', recording_name: 'Bohemian Rhapsody' },
+    ]
+    expect(parseLookups(body, 3)).toEqual(['b1a9c0e9-d987-4042-ae91-78d6a3267d69', null, 'mb-hello'])
+    expect(parseLookups([{ index: 5, recording_mbid: 'x' }, { index: 0, recording_mbid: '' }], 2)).toEqual([null, null])
+    expect(parseLookups([], 2)).toEqual([null, null])
+    expect(parseLookups({ code: 401, error: 'You need to provide an Authorization header.' }, 1)).toEqual([null])
+    expect(parseLookups(null, 1)).toEqual([null])
   })
   it('ListenBrainz popularity: this recording’s row', () => {
     const body = [
@@ -96,5 +102,62 @@ describe('reading the answers', () => {
     expect(countAwards(body, 'Q1')).toBe(2)
     expect(countAwards({ entities: { Q1: { claims: {} } } }, 'Q1')).toBe(0)
     expect(countAwards(body, 'Q2')).toBe(0)
+  })
+})
+
+describe('the two passes', () => {
+  it('asks for ratings and awards only after plays, and only for songs the world plays', () => {
+    expect(wantsDeep(record('a', { deep: false, listeners: AWARDS_MIN_LISTENERS }))).toBe(true)
+    expect(wantsDeep(record('a', { deep: false, listeners: AWARDS_MIN_LISTENERS - 1 }))).toBe(false)
+    expect(wantsDeep(record('a', { deep: false, listeners: 9999, mbid: null }))).toBe(false)
+    expect(wantsDeep(record('a', { deep: true, listeners: 9999 }))).toBe(false)
+    // Kept before 2026-11-01: all three were asked at once.
+    expect(wantsDeep(record('a', { listeners: 9999 }))).toBe(false)
+  })
+
+  it('plays: one match and one popularity request for the whole batch; the same song asked once', async () => {
+    const calls: Array<{ url: string; body: unknown }> = []
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body))
+      calls.push({ url, body })
+      const answer = url.includes('acr-lookup')
+        ? [{ index: 1, recording_mbid: 'mb-hello' }, { index: 0, recording_mbid: 'mb-bo' }]
+        : [{ recording_mbid: 'mb-bo', total_listen_count: 2_000_000, total_user_count: 200_000 }, { recording_mbid: 'mb-hello', total_listen_count: 50, total_user_count: 5 }]
+      return new Response(JSON.stringify(answer), { status: 200 })
+    })
+    try {
+      const tracks = [
+        track('t1', 'Bohemian Rhapsody', 'Queen'),
+        track('t2', 'Hello', 'Adele'),
+        track('t3', 'Bohemian  Rhapsody ', 'QUEEN'), // the same song, tagged differently
+        track('t4', 'Qwxzv', 'Nobody'),
+        { id: 't5', title: 'No artist' } as unknown as Track,
+      ]
+      const out = new Map((await lookUpPlays(tracks)).map((r) => [r.id, r]))
+      expect(calls.map((c) => c.url.includes('acr-lookup'))).toEqual([true, false])
+      expect(calls[0].body).toEqual([
+        { artist_credit_name: 'Queen', recording_name: 'Bohemian Rhapsody' },
+        { artist_credit_name: 'Adele', recording_name: 'Hello' },
+        { artist_credit_name: 'Nobody', recording_name: 'Qwxzv' },
+      ])
+      expect(calls[1].body).toEqual({ recording_mbids: ['mb-bo', 'mb-hello'] })
+      expect(out.get('t1')).toMatchObject({ mbid: 'mb-bo', listens: 2_000_000, listeners: 200_000, rating: null, awards: null, deep: false })
+      expect(out.get('t3')).toMatchObject({ mbid: 'mb-bo', listens: 2_000_000 })
+      expect(out.get('t2')).toMatchObject({ mbid: 'mb-hello', listens: 50 })
+      expect(out.get('t4')).toMatchObject({ mbid: null, listens: null, deep: false })
+      expect(out.get('t5')).toMatchObject({ mbid: null })
+      expect(out.size).toBe(5)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('plays: a failed request keeps nothing and throws', async () => {
+    vi.stubGlobal('fetch', async () => new Response('down', { status: 500 }))
+    try {
+      await expect(lookUpPlays([track('t1', 'Hello', 'Adele')])).rejects.toThrow('HTTP 500')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

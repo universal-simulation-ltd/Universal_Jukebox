@@ -289,6 +289,13 @@ export interface Settings {
    */
   hitsOnline: boolean
   /**
+   * Hits asks for ratings (MusicBrainz) and awards (Wikidata) too, after the
+   * plays (James, 2026-11-01): the slow pass, one song a second, so off until
+   * the shelf's "Add ratings and awards" or its Tune switch. Only counts
+   * while `hitsOnline` is on; read `=== true` for the same reason.
+   */
+  hitsDeep: boolean
+  /**
    * A change of RECORD crossfades too — both play while one machine slides out
    * and the next slides in, counting 3, 2, 1 (James, 2026-09-11). Off, it is
    * the lift, the gap and the drop. See `planHandover`.
@@ -406,6 +413,7 @@ export const DEFAULTS: Settings = {
   mostPlayedShelf: true,
   hitsShelf: true,
   hitsOnline: false,
+  hitsDeep: false,
   recordCrossfade: true,
   xfTrackSec: 1.8,
   xfRecordSec: 4.5,
@@ -713,6 +721,7 @@ function readStored(given?: Record<string, unknown>): Settings {
     hitsShelf: stored.hitsShelf !== false,
     // `=== true`, for the reason `lyricsOnline` gives above.
     hitsOnline: stored.hitsOnline === true,
+    hitsDeep: stored.hitsDeep === true,
     recordCrossfade: stored.recordCrossfade !== false,
     xfTrackSec: clamp(stored.xfTrackSec, ...CROSSFADE_LIMITS.track, DEFAULTS.xfTrackSec),
     xfRecordSec: clamp(stored.xfRecordSec, ...CROSSFADE_LIMITS.record, DEFAULTS.xfRecordSec),
@@ -855,6 +864,7 @@ export function settingsBlob(state: Settings): Settings {
     mostPlayedShelf: state.mostPlayedShelf,
     hitsShelf: state.hitsShelf,
     hitsOnline: state.hitsOnline,
+    hitsDeep: state.hitsDeep,
     recordCrossfade: state.recordCrossfade,
     xfTrackSec: state.xfTrackSec,
     xfRecordSec: state.xfRecordSec,

@@ -49,7 +49,9 @@ export default {
   'hide_hits': 'Hide the Hits shelf', // tick box; “Hits” is the shelf's name
   'hide_hits_hint': 'Tick to take away the shelf at the top of Shelves that ranks your songs by how they do in the world.',
   'hits_online': 'Look songs up for the Hits shelf', // tick box
-  'hits_online_hint': 'Ask ListenBrainz, MusicBrainz and Wikidata how often each of your songs is played worldwide, how it is rated and what awards it has won. This sends each song’s title and the artist’s name — nothing else, and nothing at all while this is off. It goes slowly, one song at a time, and the answers are kept on this device, so a song is only looked up again after three months.',
+  'hits_online_hint': 'Ask ListenBrainz how often each of your songs is played worldwide. This sends each song’s title and the artist’s name — nothing else, and nothing at all while this is off. Songs go fifty at a time, and the answers are kept on this device, so a song is only looked up again after three months.',
+  'hits_deep': 'Ratings and awards too', // tick box, under “Look songs up for the Hits shelf”
+  'hits_deep_hint': 'After the plays, also ask MusicBrainz how each song the world plays is rated, and Wikidata what awards it has won. Slower: about one song a second.',
   'hits_looked_up_one': '{count} song looked up for Hits', // above “Forget them”
   'hits_looked_up_other': '{count} songs looked up for Hits',
   'tidy_up': 'Tidy up library', // row with an Open button
