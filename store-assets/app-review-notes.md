@@ -9,7 +9,7 @@ the text below is about 2,700).
 
 ## Before pasting, check
 
-- [ ] **Widget** line: only if the widget shipped in this build. Otherwise delete it.
+- [x] **Widget** line: filled in. The widget ships in 1.0.15 (`ios/App/JukeboxWidget`).
 - [ ] **Siri** line: `130f524` is in the build (it's in everything after 1.0.13).
 - [ ] **Testing** line: "tested internally" (James, 2026-10-20) unless an
       external TestFlight group has run first; then say so, with how many testers.
@@ -29,7 +29,7 @@ the text below is about 2,700).
 >
 > NEW IN THIS BUILD:
 > • Siri: "Hey Siri, play Mika on Jukebox" (SiriKit INPlayMediaIntent, handled in the app)
-> • [WIDGET: Home Screen and Lock Screen widget: resume the last album from its sleeve]
+> • A "Resume listening" widget for the Home Screen (small, medium) and Lock Screen (rectangular, circular, inline): the last song on the record that played it; one tap carries on from the same second
 > • A Discography card on each artist page, lyric marks on every song and album with lyrics, and the Albums shelf as the first screen
 >
 > NATIVE iOS FEATURES: our own AVPlayer audio engine, so crossfades, fades, the sleep fade and ReplayGain play in the background; lock-screen and Control Centre controls showing the current lyric; AirPlay; import from the Music library or Files; Bedside mode.
@@ -46,7 +46,7 @@ the text below is about 2,700).
 
 ## Resolution Center reply (send once the new build is submitted)
 
-> Thank you for your review. We have submitted a new build, 1.0.15, which adds features built for iPhone and iPad: Siri ("Hey Siri, play Mika on Jukebox")[, a Home Screen and Lock Screen widget] and more. We have answered each of your questions in the App Review notes. If a particular screen still reads as template-like, please tell us which one and we will change it.
+> Thank you for your review. We have submitted a new build, 1.0.15, which adds features built for iPhone and iPad: Siri ("Hey Siri, play Mika on Jukebox"), a Home Screen and Lock Screen "Resume listening" widget, and more. We have answered each of your questions in the App Review notes. If a particular screen still reads as template-like, please tell us which one and we will change it.
 
 If 1.0.15 is rejected again under 4.3: appeal to the App Review Board
 (developer.apple.com/contact/app-store/?topic=appeal), not another Resolution Center message.

@@ -51,6 +51,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
 
+        // A tap on the "Resume listening" widget that launched the app.
+        connectionOptions.urlContexts.forEach { WidgetLink.receive($0.url) }
+
         // A Home Screen shortcut that launched the app. Under scenes it is
         // here, not in `didFinishLaunchingWithOptions`'s `launchOptions`.
         // `ShortcutsBridge` keeps it pending until `ShortcutsPlugin` and the
@@ -91,11 +94,32 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+        // The widget's taps are ours; everything else is Capacitor's.
+        let others = URLContexts.filter { !WidgetLink.receive($0.url) }
+        if !others.isEmpty { SceneDelegateProxy.shared.scene(scene, openURLContexts: others) }
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         SiriMedia.receive(userActivity)
         SceneDelegateProxy.shared.scene(scene, continue: userActivity)
+    }
+}
+
+/// `unisim-jukebox://widget/…` from the "Resume listening" widget
+/// (`ios/App/JukeboxWidget`). `resume` is Siri's "play": carry on with what is
+/// loaded, else the saved session (`src/lib/shortcuts.ts` → `playMusic`), the
+/// same as the in-app card. `open` (nothing played yet) just opens the app.
+///
+/// ⚠️ ON A COLD LAUNCH the URL also reaches `SceneDelegateProxy` through
+/// `connectionOptions`, so the page's `getLaunchUrl()` sees it. Nothing in the
+/// page acts on a `widget` host, so it is harmless; it is not filtered there
+/// because the options object cannot be rebuilt without it.
+enum WidgetLink {
+    /// True when the URL was the widget's, and has been dealt with.
+    @discardableResult
+    static func receive(_ url: URL) -> Bool {
+        guard url.scheme == "unisim-jukebox", url.host == "widget" else { return false }
+        if url.lastPathComponent == "resume" { ShortcutsBridge.receive("play") }
+        return true
     }
 }

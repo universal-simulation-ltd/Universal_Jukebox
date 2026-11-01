@@ -160,6 +160,8 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         let rate = call.getDouble("rate") ?? 0
 
         DispatchQueue.main.async {
+            // The "Resume listening" widget follows the lock screen, in either mode.
+            WidgetShare.save(title: title, artist: artist, album: album, still: still)
             // ⚠️ WITH THE NATIVE ENGINE ON, THE ENTRY IS THE ENGINE'S. It knows
             // exactly what is playing and where, and answers the buttons itself
             // when the page cannot (a locked phone). So this plugin draws the
