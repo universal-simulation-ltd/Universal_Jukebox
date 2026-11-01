@@ -14,6 +14,7 @@ import { mostPlayed, usePlayCounts } from '../lib/playCounts'
 import { RATING_MIN_VOTES, rankHits } from '../lib/hits'
 import { hitsProgress, useHitsStore } from '../stores/hitsStore'
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
+import { barsHits } from '../lib/nativeFile'
 import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
 import type { Album, Track } from '../lib/types'
@@ -58,7 +59,7 @@ export default function JukeboxShelves() {
   const starterId = starterShelfId()
   // Hits, above everything (James, 2026-10-28) — not for the example's
   // made-up songs, whether tried or loaded.
-  const showHits = useSettingsStore((s) => s.hitsShelf)
+  const showHits = useSettingsStore((s) => s.hitsShelf) && !barsHits()
   const exampleOnly = useLibraryStore((s) => s.trying || (s.roots.length > 0 && s.roots.every((r) => r.id === EXAMPLE_ROOT_ID)))
   const [hitsRemoved, setHitsRemoved] = useState(false)
   useEffect(() => {

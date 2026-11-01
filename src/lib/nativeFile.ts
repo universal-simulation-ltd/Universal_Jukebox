@@ -336,6 +336,18 @@ export function barsOnlineLyrics(): boolean {
 }
 
 /**
+ * No Hits shelf on iPhone and iPad (James, 2026-11-01), until App Review has
+ * passed the app. Hits sends song titles to ListenBrainz, MusicBrainz and
+ * Wikidata, which a reviewer reads against the listing's "offline player" and
+ * App Privacy's "Data not collected". Nothing is looked up, kept answers are
+ * not loaded, and the shelf and its switches are not offered. Android and the
+ * website keep it.
+ */
+export function barsHits(): boolean {
+  return isNativeShell() && nativePlatform() === 'ios'
+}
+
+/**
  * No pocket player on iPhone and iPad (James, 2026-10-14). Its white body,
  * click wheel and MENU read as Apple's iPod, and App Review turns down apps
  * that look like an Apple product (5.2.5). The store screenshots, captured in

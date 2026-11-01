@@ -6,7 +6,7 @@ import { useLibraryStore } from './libraryStore'
 import { useSettingsStore } from './settingsStore'
 import type { Track } from '../lib/types'
 import { getT } from '../i18n/runtime.ts'
-import { nativePlatform } from '../lib/nativeFile'
+import { barsHits, nativePlatform } from '../lib/nativeFile'
 import { noticeOnPhone, withdrawNotice } from '../lib/trackNotify'
 
 // The Hits shelf's answers, and the slow pass that fills them in. `lib/hits.ts`
@@ -93,7 +93,7 @@ let loaded = false
 function wanted(): boolean {
   const s = useSettingsStore.getState()
   const lib = useLibraryStore.getState()
-  return loaded && !useHitsStore.getState().paused && s.hitsOnline === true && s.hitsShelf && !lib.trying && lib.status === 'ready' && lib.tracks.length > 0
+  return loaded && !barsHits() && !useHitsStore.getState().paused && s.hitsOnline === true && s.hitsShelf && !lib.trying && lib.status === 'ready' && lib.tracks.length > 0
 }
 
 function stop(): void {
@@ -171,7 +171,9 @@ async function pass(): Promise<void> {
 
 // ── Wiring ───────────────────────────────────────────────────────────────────
 
-void allHitRecords().then((list) => {
+// iPhone/iPad (`barsHits`): answers kept from an earlier build stay unread, so
+// no plays line, rating or award shows anywhere.
+void (barsHits() ? Promise.resolve([]) : allHitRecords()).then((list) => {
   // Anything learnt before the stored answers arrived wins: it is newer.
   useHitsStore.setState({ records: new Map([...list.map((r) => [r.id, r] as const), ...useHitsStore.getState().records]) })
   loaded = true

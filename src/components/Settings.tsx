@@ -15,7 +15,7 @@ import { graphAllowed, graphUnavailable, quietUnavailable } from '../lib/audioGr
 import { playTransportCue } from '../lib/crackle'
 import { DECKS, deckCopy, resolveDeck, sanitiseEras, startSummary, type DeckEras } from '../lib/decks'
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
-import { barsOnlineLyrics, barsPocketPlayer, isNativeShell, nativePlatform } from '../lib/nativeFile'
+import { barsHits, barsOnlineLyrics, barsPocketPlayer, isNativeShell, nativePlatform } from '../lib/nativeFile'
 import { lockLyricsAvailable } from '../lib/lockLyrics'
 import { nativeCommandLog } from '../lib/nowPlayingNative'
 import { formatPlaybackLog } from '../lib/playbackLog'
@@ -238,22 +238,27 @@ export default function Settings() {
           />
           <SavedPlays />
           {/* James, 2026-10-28: Hits ranks your songs by the world's plays,
-              ratings and awards — online, so off until turned on. See `lib/hits.ts`. */}
-          <Toggle
-            label={t('settings.hide_hits')}
-            hint={t('settings.hide_hits_hint')}
-            checked={!s.hitsShelf}
-            onChange={(v) => s.set('hitsShelf', !v)}
-          />
-          {s.hitsShelf && (
-            <Toggle
-              label={t('settings.hits_online')}
-              hint={t('settings.hits_online_hint')}
-              checked={s.hitsOnline}
-              onChange={(v) => s.set('hitsOnline', v)}
-            />
+              ratings and awards — online, so off until turned on. See `lib/hits.ts`.
+              Not on iPhone/iPad (`barsHits`). */}
+          {!barsHits() && (
+            <>
+              <Toggle
+                label={t('settings.hide_hits')}
+                hint={t('settings.hide_hits_hint')}
+                checked={!s.hitsShelf}
+                onChange={(v) => s.set('hitsShelf', !v)}
+              />
+              {s.hitsShelf && (
+                <Toggle
+                  label={t('settings.hits_online')}
+                  hint={t('settings.hits_online_hint')}
+                  checked={s.hitsOnline}
+                  onChange={(v) => s.set('hitsOnline', v)}
+                />
+              )}
+              <SavedHits />
+            </>
           )}
-          <SavedHits />
           {/* This, the theme and the tips were in the Actions menu (James,
               2026-09-11: "Appearance, tidy, show tips again should all go into
               settings"). */}
