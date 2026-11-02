@@ -10,7 +10,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore, type DeckStyle } from '../stores/settingsStore'
 import { ARC_ACROSS, ARC_RISE, DeckSlideContext, type DeckSlide } from './decks/slide'
 import { Medium } from './UpNextReel'
-import { VinylRecord } from './decks/VinylRecord'
+import { Sleeve, VinylRecord } from './decks/VinylRecord'
 import PocketDeck from './decks/PocketDeck'
 import ReelToReelDeck from './decks/ReelToReelDeck'
 import { coverUrl, fallbackHue } from '../lib/art'
@@ -76,6 +76,9 @@ const HOLD_MAX_MS = 2500
  * waits for it.
  */
 const UPRIGHT_MS = 380
+
+/** How long the sleeve takes to slide off the record that came in it. */
+const SLEEVE_OFF_MS = 560
 
 interface Arriving {
   album: Album | undefined
@@ -152,6 +155,20 @@ export default function DeckSwiper({
   const [reach, setReach] = useState({ toLeft: size, toRight: size })
   /** After a swipe: the record that came in, held at the centre. */
   const [arriving, setArriving] = useState<Arriving | null>(null)
+  /** The sleeve sliding off the record that has just come on — see `SlidingSleeve`. */
+  const [uncover, setUncover] = useState<{ album: Album | undefined; dir: -1 | 1; key: number } | null>(null)
+  const uncoverTimer = useRef<number | null>(null)
+  const uncoverWith = (album: Album | undefined, dir: -1 | 1) => {
+    if (uncoverTimer.current !== null) window.clearTimeout(uncoverTimer.current)
+    setUncover({ album, dir, key: Date.now() })
+    uncoverTimer.current = window.setTimeout(() => {
+      uncoverTimer.current = null
+      setUncover(null)
+    }, SLEEVE_OFF_MS + 80)
+  }
+  useEffect(() => () => {
+    if (uncoverTimer.current !== null) window.clearTimeout(uncoverTimer.current)
+  }, [])
   /** A record crossfade's incoming record, on its way from the right. */
   const [incoming, setIncoming] = useState<(Arriving & { run: boolean }) | null>(null)
   /** How long the records take to move: a swipe's settle, or a whole crossfade. */
@@ -321,6 +338,7 @@ export default function DeckSwiper({
       slideFor.current = null
       setIncoming(null)
       setArriving({ album, style, track, seat })
+      if (style === 'vinyl') uncoverWith(album, -1)
     }, left)
     // `measure` reads refs only; the rest comes through `latest`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -655,9 +673,21 @@ export default function DeckSwiper({
         >
           {/* At the medium's seat — see `incoming` above. */}
           <div className="relative h-full w-full" style={{ transform: `translateY(${seatPx.y}px) scale(${seatPx.scale})` }}>
-            <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} grooves={standInGrooves(arriving.track)} />
+            <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} grooves={standInGrooves(arriving.track)} record />
           </div>
         </div>
+      )}
+      {/* The sleeve the record came in, sliding off it — see `SlidingSleeve`. */}
+      {uncover && (
+        <SlidingSleeve
+          key={uncover.key}
+          album={uncover.album}
+          size={size}
+          top={centreY}
+          seatY={seatPx.y}
+          to={uncover.dir * (size + Math.max(reach.toLeft, reach.toRight))}
+          reduced={reduced}
+        />
       )}
       <div
         ref={deckWrap}
@@ -762,6 +792,8 @@ export default function DeckSwiper({
               setWordsFor(null)
               // Landing where the row was taking it: the well, if the player stayed.
               setArriving({ album, style, track, seat })
+              // Its sleeve, which carried it in, slides on off it the way it came.
+              if (style === 'vinyl') uncoverWith(album, way > 0 ? -1 : 1)
               // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
               // it to the middle and is holding a still picture of it there;
               // without this the player runs its own record change over the
@@ -783,6 +815,57 @@ export default function DeckSwiper({
         }}
       >
         <DeckSlideContext.Provider value={slide}>{children}</DeckSlideContext.Provider>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The sleeve a record came in on, sliding off it once it is in the middle
+ * (James, 2026-11-02: "on change the sleeve moves to the center and then the
+ * sleeve slides out to the left") — on, the way the record was travelling,
+ * and away. Drawn over the deck, at the deck's size and place, from the moment
+ * the sleeve that carried the record in is swapped for the record: so the
+ * first frame is that same sleeve, and the record shows as it slides.
+ */
+function SlidingSleeve({ album, size, top, seatY, to, reduced }: {
+  album: Album | undefined
+  size: number
+  top: number
+  seatY: number
+  /** Pixels across to finish at — off the side it is heading for. */
+  to: number
+  reduced: boolean
+}) {
+  const [go, setGo] = useState(false)
+  useEffect(() => {
+    // Two frames: the first paints it covering the record, the second moves it.
+    let second = 0
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setGo(true))
+    })
+    return () => {
+      cancelAnimationFrame(first)
+      cancelAnimationFrame(second)
+    }
+  }, [])
+  return (
+    <div
+      className="pointer-events-none absolute left-1/2 z-20"
+      style={{ top, width: size, height: size, transform: `translate(-50%, -50%) translateY(${seatY}px)` }}
+      aria-hidden
+    >
+      <div
+        className="h-full w-full"
+        style={{
+          transform: go ? `translateX(${to}px)` : 'translateX(0)',
+          opacity: go ? 0 : 1,
+          transition: reduced
+            ? 'opacity 200ms ease-out'
+            : `transform ${SLEEVE_OFF_MS}ms cubic-bezier(.5,0,.75,.4), opacity ${SLEEVE_OFF_MS}ms cubic-bezier(.7,0,.9,.6)`,
+        }}
+      >
+        <Sleeve album={album} />
       </div>
     </div>
   )
@@ -945,8 +1028,28 @@ const WHOLE: Partial<Record<DeckStyle, React.ComponentType<DeckFaceProps>>> = {
 }
 
 function Drawn({
-  album, style, deck, shown, grooves,
-}: { album: Album | undefined; style: DeckStyle; deck: number; shown: number; grooves?: number }) {
+  album, style, deck, shown, grooves, record = false,
+}: {
+  album: Album | undefined
+  style: DeckStyle
+  deck: number
+  shown: number
+  grooves?: number
+  /** The record itself, not its sleeve — the one just come on, under the sleeve sliding off it. */
+  record?: boolean
+}) {
+  // ⚠️ A RECORD BESIDE THE TURNTABLE IS ITS SLEEVE (James, 2026-11-02: "Side
+  // records only show their sleeve album and then on change the sleeve moves
+  // to the center and then the sleeve slides out to the left"). Peeks, the
+  // records queued beyond them and a crossfade's incoming record are all
+  // sleeves; the record comes out once it is in the middle (`SlidingSleeve`).
+  if (style === 'vinyl' && !record) {
+    return (
+      <span className="absolute left-0 top-0 block" style={{ width: shown, height: shown }}>
+        <Sleeve album={album} />
+      </span>
+    )
+  }
   const Whole = WHOLE[style]
   if (Whole) {
     const tall = shown * SHAPES[style].frame.ratio

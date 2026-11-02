@@ -4,7 +4,7 @@ import type { ScrubMap } from '../../lib/scrub'
 import { Scrubber } from './scrub'
 import { useT } from '../../i18n'
 import { slideInner, slideOuter } from './slide'
-import { VinylRecordFace } from './VinylRecord'
+import { Sleeve, VinylRecordFace } from './VinylRecord'
 
 // The record and the tonearm — the original deck, and still the default.
 //
@@ -130,6 +130,23 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           "When swiping left right the lyrics need to go with the record
           too"). Not inside the spinning disc: they must not turn. */}
       {underArm}
+      {/* Its sleeve, closing over it as a swipe or a change of song takes it
+          to the side, where the records are drawn as their sleeves
+          (`DeckSwiper`): by the side it IS one, so the hand-over is unseen. */}
+      {/* Always there (at nothing) while a slide is: mounted only once it
+          was needed, it would arrive already closed, with no fade. */}
+      {slide && (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            opacity: slide.away ?? 0,
+            transition: slide.animate ? `opacity ${slide.ms ?? 240}ms ease-in` : 'none',
+          }}
+          aria-hidden
+        >
+          <Sleeve url={url} hue={hue} />
+        </div>
+      )}
       </div>
       </div>
 

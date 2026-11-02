@@ -50,3 +50,31 @@ export function VinylRecord({ album, grooves }: { album: Album | undefined; groo
     </div>
   )
 }
+
+/**
+ * The record's album sleeve, filling its parent (James, 2026-11-02: "Side
+ * records only show their sleeve album and then on change the sleeve moves to
+ * the center and then the sleeve slides out to the left"). What the records
+ * either side of the turntable are drawn as (`DeckSwiper`), what the record
+ * leaving turns into on its way there (`VinylDeck`), and what slides off the
+ * record that has just come on.
+ */
+export function Sleeve({ album, url: given, hue: givenHue }: { album?: Album; url?: string | null; hue?: number }) {
+  const url = given !== undefined ? given : album ? coverUrl(album.id, album.cover) : null
+  const hue = givenHue ?? (album ? fallbackHue(album.id) : 24)
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-[3%] bg-slate-800 shadow-xl ring-1 ring-black/10">
+      {url ? (
+        <img src={url} alt="" draggable={false} className="h-full w-full object-cover" />
+      ) : (
+        <div
+          className="h-full w-full"
+          style={{ background: `linear-gradient(135deg, hsl(${hue} 46% 62%), hsl(${(hue + 28) % 360} 44% 44%))` }}
+        />
+      )}
+      {/* Card, not glass: a little light along the top, a little shade at the
+          open edge where a record comes out. */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/15" />
+    </div>
+  )
+}
