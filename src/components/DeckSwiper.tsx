@@ -866,7 +866,7 @@ const Peek = forwardRef<
           : t(side === 'left' ? 'common.previous' : 'common.next')
       }
       className="absolute hover:opacity-90 focus-visible:opacity-100 lg:hidden"
-      style={rowStyle(side, size, top, motion)}
+      style={rowStyle(side, size, top, motion, style)}
     >
       <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} />
     </button>
@@ -890,14 +890,26 @@ function Queued({ album, style, side, size, deck, grooves, top, motion }: {
   motion: PeekMotion
 }) {
   return (
-    <div className="pointer-events-none absolute lg:hidden" style={rowStyle(side, size, top, motion)} aria-hidden>
+    <div className="pointer-events-none absolute lg:hidden" style={rowStyle(side, size, top, motion, style)} aria-hidden>
       <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} />
     </div>
   )
 }
 
 /** Where a peek, or a record queued beyond one, is drawn — and how it gets there. */
-function rowStyle(side: 'left' | 'right', size: number, top: number, motion: PeekMotion): React.CSSProperties {
+/**
+ * How much further out the next record's sleeve sits on the record player, so
+ * the words going round the record (`LyricsAround`, 18px out and up to 18px
+ * tall) pass in front of the gap rather than over the sleeve (James,
+ * 2026-11-02: "Move the next sleeve on the right a little further right so the
+ * lyrics don't overlap"). The previous one, on the left, is under the playing
+ * record's own sleeve anyway. `measure` reads where the peeks really are, so
+ * a swipe still lands each record where the row draws it.
+ */
+const SLEEVE_CLEAR_PX = 30
+
+function rowStyle(side: 'left' | 'right', size: number, top: number, motion: PeekMotion, style?: DeckStyle): React.CSSProperties {
+  const clear = style === 'vinyl' && side === 'right' ? SLEEVE_CLEAR_PX : 0
   return {
     top,
     width: size,
@@ -913,7 +925,7 @@ function rowStyle(side: 'left' | 'right', size: number, top: number, motion: Pee
           : 'none',
     // Just under half of it on screen: enough to see WHICH record, and on
     // what, not enough to compete with the one that is playing.
-    [side]: -Math.round(size * 0.58),
+    [side]: -Math.round(size * 0.58) - clear,
   }
 }
 
