@@ -445,7 +445,11 @@ export default function DeckSwiper({
    */
   const intoSleeve = sameSleeve && drag < 0
   const slide: DeckSlide = {
-    x: intoSleeve ? Math.max(-1, drag) * (size / 2) : x,
+    // ⚠️ AHEAD OF THE ONE COMING (James, 2026-11-02: "Current needs to go in
+    // the sleeve quicker or next one slower to avoid overlap without it taking
+    // too long"): all the way in by `INTO_SLEEVE_AT` of the swipe, and in that
+    // share of the time once let go, while the next comes at its usual pace.
+    x: intoSleeve ? Math.max(-1, drag / INTO_SLEEVE_AT) * (size / 2) : x,
     // Against the medium's own seat: the whole deck for a record, the well for a disc.
     y: intoSleeve ? 0 : deckPose.y - seatPx.y,
     scale: intoSleeve ? 1 : deckPose.scale / seatPx.scale,
@@ -453,7 +457,7 @@ export default function DeckSwiper({
     away: Math.min(1, Math.abs(drag)),
     discOnly: seat !== undefined,
     animate,
-    ms,
+    ms: intoSleeve ? Math.round(ms * INTO_SLEEVE_AT) : ms,
     // Past the point where letting go would change track — not for a nudge
     // that springs back, and not for the little give towards an empty side.
     lifted: Math.abs(x) >= SWIPE_PX || arriving !== null || incoming !== null,
@@ -852,6 +856,9 @@ interface PeekMotion {
  * out of (`SHAPES[style].seat`: the CD player's disc). Undefined when the record
  * is the deck (vinyl already moves just its record) or the machine is changing.
  */
+/** How far through a same-album change the record playing is all the way into its sleeve. */
+const INTO_SLEEVE_AT = 0.55
+
 /** A record from the album already on the record player — it comes and goes bare, under that sleeve. */
 function isSame(style: DeckStyle, onDeck: DeckStyle, albumId: string | undefined, showing: string | undefined): boolean {
   return style === 'vinyl' && onDeck === 'vinyl' && !!albumId && albumId === showing
