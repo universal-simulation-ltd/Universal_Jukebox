@@ -141,6 +141,8 @@ export default function FoldUp({
     if (frame.current && target.current === to) return
     stop()
     target.current = to
+    // Clipped while it moves (that is the fold) — see `done` for why not after.
+    el.style.overflow = ''
     const from = el.offsetHeight
     const tall = full()
     const follow = to > from && atEnd()
@@ -156,6 +158,11 @@ export default function FoldUp({
     const done = () => {
       frame.current = 0
       if (to > 0) el.style.height = 'auto'
+      // ⚠️ AND NOTHING CLIPPED ONCE OPEN (James, 2026-11-02: "When tapping ♥
+      // the green comment gets cut off by the line of the reveal"): the "On
+      // your Loved shelf" / "Added to shelf" bubbles stand above their
+      // buttons, over the fold's top edge.
+      if (to > 0) el.style.overflow = 'visible'
       // ⚠️ ONE last anchor, once the height has stopped moving. On iOS a
       // `scrollBy` made while the page grows is clamped to the length the
       // scroller last heard about, so the steps above can fall short, and the
