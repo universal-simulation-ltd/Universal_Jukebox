@@ -487,6 +487,14 @@ export default function DeckSwiper({
       scale: pose.scale / peekScale,
       opacity: pose.opacity,
       transition: animate ? 'move' : 'fade',
+      // ⚠️ ON THE RECORD PLAYING'S OWN CURVE AND CLOCK (James, 2026-11-02: "If
+      // swipe quickly the current overlaps the oncoming next - it shouldn't").
+      // A quick swipe leaves most of the move to this glide; on the old
+      // fast-start ease the record coming ran ahead of the one going (which
+      // glides on `ARC_ACROSS`) and over it. On one curve, every frame is a
+      // place the finger could have held the row at — where they never touch.
+      ms,
+      ease: ARC_ACROSS,
       // ⚠️ A disc coming on to a player that is staying has to pass OVER the
       // player to reach its well. Only while it is coming on: at rest a peek
       // sits under the player's edge, as it always has.
