@@ -12,6 +12,7 @@ export default {
   // Library tabs (App)
   'personal_title': '{owner} Jukebox', // the app's name in the top bar once signed in to UNI·SIM; {owner} is the person's name already made possessive in code (“James’”, “Bradley’s”), so add no ’s here
   'my_jukebox': 'My Jukebox', // the same, signed in but with no name known
+  'your_jukebox': 'Your Jukebox', // the App name choice “Your Jukebox”
   'tabs_label': 'Library views', // screen reader: the row of tabs
   'tab_artists': 'Artists', // tab, keep to ~9 characters: all four share one line on a phone
   'tab_albums': 'Albums', // tab, keep to ~9 characters

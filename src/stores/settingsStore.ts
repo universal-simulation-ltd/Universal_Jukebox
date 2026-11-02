@@ -151,6 +151,9 @@ export type LibraryColumns = 1 | 2 | 3 | 4 | 'jukebox'
 /** The order the "per row" button cycles through. */
 export const COLUMN_CYCLE: LibraryColumns[] = [2, 3, 4, 'jukebox', 1]
 
+/** The longest name "Whose jukebox is this?" takes — the SDK's App name limit. */
+export const OWNER_NAME_MAX = 40
+
 export interface Settings {
   ceremonyMode: CeremonyMode
   /**
@@ -168,6 +171,14 @@ export interface Settings {
    */
   tabOrder: HomeTab[]
   hiddenTabs: HomeTab[]
+  /**
+   * Whose jukebox this is, for someone with no Universal ID here (James,
+   * 2026-11-02: "If no account just ask whose jukebox is this"): typed in
+   * Tune, it names the top bar "Bradley’s Jukebox". Empty = Universal
+   * Jukebox. Signed in, the account's name and its App name choice win
+   * (`lib/jukeboxTitle.ts`). Kept on this device and in backups.
+   */
+  ownerName: string
   /**
    * Which player the deck draws, and which start-up sound it makes — or
    * `automatic`, for a different one per track.
@@ -387,6 +398,7 @@ export const DEFAULTS: Settings = {
   homeTab: phoneScreens() ? 'albums' : 'tracks',
   tabOrder: [...PHONE_TABS],
   hiddenTabs: [],
+  ownerName: '',
   deck: 'vinyl',
   deckEras: DEFAULT_ERAS,
   needleDrop: true,
@@ -679,6 +691,7 @@ function readStored(given?: Record<string, unknown>): Settings {
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' || tab === 'jukebox' ? tab : DEFAULTS.homeTab,
     tabOrder: normaliseOrder((stored as { tabOrder?: unknown }).tabOrder),
     hiddenTabs: normaliseHidden((stored as { hiddenTabs?: unknown }).hiddenTabs),
+    ownerName: typeof (stored as { ownerName?: unknown }).ownerName === 'string' ? ((stored as { ownerName: string }).ownerName).slice(0, OWNER_NAME_MAX) : '',
     // `automatic` was retired for `automatic` on 2026-09-10; somebody who had
     // chosen "a different machine each time" gets the closest thing to it.
     deck: deck === 'random' ? 'automatic' : deckSettings().includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
@@ -854,6 +867,7 @@ export function settingsBlob(state: Settings): Settings {
     homeTab: state.homeTab,
     tabOrder: state.tabOrder,
     hiddenTabs: state.hiddenTabs,
+    ownerName: state.ownerName,
     deck: state.deck,
     deckEras: state.deckEras,
     needleDrop: state.needleDrop,

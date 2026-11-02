@@ -7,6 +7,7 @@ import {
   useGlobalPreferences,
   useResetAppDefaults,
   signOut,
+  useAppTitleChoice,
   useUniversal,
   type Language,
 } from '@unisim/sdk'
@@ -17,6 +18,8 @@ import { DECKS, deckCopy, resolveDeck, sanitiseEras, startSummary, type DeckEras
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
 import { barsHits, barsOnlineLyrics, barsPocketPlayer, isNativeShell, nativePlatform } from '../lib/nativeFile'
 import { lockLyricsAvailable } from '../lib/lockLyrics'
+import { PRODUCT_TITLE, usePersonalTitle, useSignedIn } from '../lib/jukeboxTitle'
+import { possessive } from '../lib/personalTitle'
 import { phoneScreens } from '../native/shell'
 import { TabsPreference } from '../native/TabsPreference'
 import { nativeCommandLog } from '../lib/nowPlayingNative'
@@ -52,6 +55,7 @@ import {
   MODE_LABELS,
   NEEDLE_STEP_MAX,
   NEEDLE_STEP_MIN,
+  OWNER_NAME_MAX,
   levelToStep,
   stepToLevel,
   useSettingsStore,
@@ -215,6 +219,10 @@ export default function Settings() {
           rather than the old headings-and-panels run: shut, they read as
           a list of what Settings CONTAINS. */}
       <div className="mt-8 space-y-3">
+        {/* First, as BlackBook has it: the account is what names the app at
+            the top (James, 2026-11-02). The phone puts it above everything
+            on its Tune tab instead (native/NativeApp.tsx). */}
+        {!phoneScreens() && <YourJukebox />}
         <Section
           title={t('settings.library_title')}
           note={t('settings.library_note')}
@@ -667,7 +675,6 @@ export default function Settings() {
             onClick={() => s.set('tipsSeen', [])}
           />
         </Section>
-        <AccountSection />
       </div>
 
       <ResetDefaults />
@@ -1225,31 +1232,103 @@ function SavedHits() {
 }
 
 /**
- * "Your Universal ID" — the website only, and only when somebody is signed in
- * to the suite somewhere else (the hub, BlackBook…): Jukebox asks nobody to
- * sign in, but recognises the shared session and says so in the top bar
- * ("James’ Jukebox", `lib/personalTitle.ts`). This is where that account is
- * managed and left — the SDK's own copy of this section is in ITS Tune this
- * app, which Jukebox replaces with this page (`showAppPreferences={false}`).
- * The suite rule, James 2026-10-26: "On the tuning page there should be an
- * account management".
+ * The top of Tune this app, like BlackBook's Account group (James, 2026-11-02:
+ * "update the your universal id to be more like Blackbook. Put it at the top,
+ * ask how you want the jukebox to read. If no account just ask whose jukebox
+ * is this"). What it says is what the bar says (`lib/jukeboxTitle.ts`).
+ *
+ * - Signed in to the suite (Jukebox asks nobody to sign in; it recognises a
+ *   session from any UNI·SIM app): "Your Universal ID" — who is in, the hub
+ *   for the rest, Sign out — and "How should your jukebox read?": the
+ *   personal name, "Your Jukebox" or "Universal Jukebox". That choice is the
+ *   SDK's App name, kept on the account, so the website's bar follows it.
+ * - Nobody signed in, on the phone: "Whose jukebox is this?", a name box
+ *   (`ownerName`, on this device). Not on the website, whose bar is the SDK's
+ *   and names only a signed-in account.
  */
-function AccountSection() {
+export function YourJukebox() {
   const t = useT()
-  const { config, session, supabase } = useUniversal()
-  const user = session?.user
-  if (config.noAccounts || !user || (user as { is_anonymous?: boolean }).is_anonymous || !user.email) return null
+  const { supabase } = useUniversal()
+  const { signedIn, email } = useSignedIn()
+  const personal = usePersonalTitle()
+  const choice = useAppTitleChoice()
+  const ownerName = useSettingsStore((s) => s.ownerName)
+  const setSetting = useSettingsStore((s) => s.set)
+  const card = 'overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+  const heading = 'text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400'
+
+  if (!signedIn) {
+    if (!phoneScreens()) return null
+    const typed = ownerName.trim()
+    return (
+      <div className={card}>
+        <label className="block px-5 py-4">
+          <span className={heading}>{t('settings.whose_jukebox')}</span>
+          <input
+            className="mt-3 block min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[16px] text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            value={ownerName}
+            maxLength={OWNER_NAME_MAX}
+            placeholder={t('settings.whose_jukebox_placeholder')}
+            autoComplete="given-name"
+            autoCapitalize="words"
+            enterKeyHint="done"
+            onChange={(e) => setSetting('ownerName', e.target.value)}
+            onBlur={() => setSetting('ownerName', ownerName.trim())}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+            }}
+          />
+          <span className="mt-2 block text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+            {typed ? `${t('app.personal_title', { owner: possessive(t.lang, typed) })} · ` : ''}
+            {t('settings.whose_jukebox_hint')}
+          </span>
+        </label>
+      </div>
+    )
+  }
+
+  // "Your Jukebox" is App name's typed name, in the words of the language it
+  // was picked in (BlackBook's way), so the website shows the same.
+  const yours = t('app.your_jukebox')
+  const typedName = choice.mode === 'custom' ? choice.custom.trim() : ''
+  type Pick = 'personal' | 'yours' | 'typed' | 'product'
+  const value: Pick =
+    choice.mode === 'product' ? 'product' : !typedName ? 'personal' : typedName === yours ? 'yours' : 'typed'
+  const options: Option<Pick>[] = [
+    { value: 'personal', label: personal },
+    { value: 'yours', label: yours },
+    // A name typed on the website, kept as one of the choices.
+    ...(value === 'typed' ? [{ value: 'typed' as const, label: typedName }] : []),
+    { value: 'product', label: PRODUCT_TITLE },
+  ]
   const hub = 'https://app.unisim.co.uk/profile'
   return (
-    <Section title={t('settings.account_title')} summary={user.email}>
-      <div className="px-5 py-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <p className="min-w-0 flex-1 text-[14px] font-semibold break-all text-slate-900 dark:text-slate-100">{user.email}</p>
+    <div className={card}>
+      <div className="px-5 pt-4">
+        <span className={heading}>{t('settings.account_title')}</span>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="min-w-0 flex-1 text-[14px] font-semibold break-all text-slate-900 dark:text-slate-100">{email}</p>
           <a href={hub} target="_blank" rel="noopener" className="text-[13px] font-medium whitespace-nowrap text-orange-700 hover:underline dark:text-orange-400">
             {t('settings.account_manage')} →
           </a>
         </div>
-        <p className="mt-2 text-[12.5px] text-slate-500 dark:text-slate-400">{t('settings.account_note')}</p>
+      </div>
+      <Choice<Pick>
+        label={t('settings.jukebox_reads')}
+        value={value}
+        options={options}
+        onChange={(v) => {
+          if (v === 'product') choice.setMode('product')
+          else if (v === 'personal') choice.setMode('personal')
+          else if (v === 'yours') {
+            choice.setCustom(yours)
+            choice.setMode('custom')
+          } else choice.setMode('custom')
+        }}
+      />
+      <p className="-mt-2 px-5 text-[12.5px] text-slate-500 dark:text-slate-400">{t('settings.jukebox_reads_hint')}</p>
+      <div className="px-5 py-4">
+        <p className="text-[12.5px] text-slate-500 dark:text-slate-400">{t('settings.account_note')}</p>
         <button
           type="button"
           onClick={() => void signOut(supabase)}
@@ -1258,7 +1337,7 @@ function AccountSection() {
           {t('settings.sign_out')}
         </button>
       </div>
-    </Section>
+    </div>
   )
 }
 

@@ -5,6 +5,7 @@ import type { Draft } from '../en/index.ts'
 const app: Draft['app'] = {
   'personal_title': 'O Jukebox de {owner}',
   'my_jukebox': 'O meu Jukebox',
+  'your_jukebox': 'O seu Jukebox',
   'tabs_label': 'Vistas da biblioteca',
   'tab_artists': 'Artistas',
   'tab_albums': 'Álbuns',

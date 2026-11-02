@@ -37,6 +37,11 @@ export default {
   'account_title': 'Your Universal ID', // section title, only when signed in to UNI·SIM; “Universal ID” is the suite's name for an account
   'account_manage': 'Manage on the hub', // link to the account's page on app.unisim.co.uk
   'account_note': 'Signing out here signs you out of every UNI·SIM app on this device.',
+  'jukebox_reads': 'How should your jukebox read?', // Tune ▸ Your Universal ID (signed in): the App name choice — Bradley’s Jukebox / Your Jukebox / Universal Jukebox
+  'jukebox_reads_hint': 'It’s the name at the top of the app, on every device you’re signed in on.', // under it
+  'whose_jukebox': 'Whose jukebox is this?', // the same card when nobody is signed in: a name box
+  'whose_jukebox_hint': 'Your name goes at the top of the app. Leave it empty for Universal Jukebox. It stays on this device.', // under it
+  'whose_jukebox_placeholder': 'Your name', // the box’s placeholder
   'sign_out': 'Sign out', // button
   'hide_most_played': 'Hide the Most played shelf', // tick box; “Most played” is the shelf's name
   'hide_most_played_hint': 'Tick to take away the shelf at the top of Shelves that fills itself with the songs you play most. Plays are counted on this device only.',

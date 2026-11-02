@@ -6,6 +6,7 @@ const app: Draft['app'] = {
   // Library tabs (App)
   'personal_title': 'Le Jukebox {owner}',
   'my_jukebox': 'Mon Jukebox',
+  'your_jukebox': 'Votre Jukebox',
   'tabs_label': 'Vues de la bibliothèque',
   'tab_artists': 'Artistes',
   'tab_albums': 'Albums',

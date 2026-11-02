@@ -20,14 +20,14 @@
 // `homeTab`, the same setting as the website's starred tab).
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { requestSearch, useCallMe, useProfile, useUniversal } from '@unisim/sdk'
+import { requestSearch } from '@unisim/sdk'
 import { BedsideHost } from '../components/Bedside'
 import ErrorBanner from '../components/ErrorBanner'
 import JukeboxShelves from '../components/JukeboxShelves'
 import NowPlaying from '../components/NowPlaying'
 import PlayerBar from '../components/PlayerBar'
 import ScanBanner from '../components/ScanBanner'
-import Settings from '../components/Settings'
+import Settings, { YourJukebox } from '../components/Settings'
 import SkippedBanner from '../components/SkippedBanner'
 import About from '../components/About'
 import Tidy from '../components/Tidy'
@@ -54,7 +54,7 @@ import { AboutAndHelp, YourMusic } from './TuneExtras'
 import { isExampleOnly } from '../lib/exampleLibrary'
 import { ArticleScreen, HelpScreen } from './HelpScreens'
 import { useT, type MessageKey } from '../i18n'
-import { possessive } from '../lib/personalTitle'
+import { PRODUCT_TITLE, useJukeboxTitle } from '../lib/jukeboxTitle'
 import './native.css'
 import { applyListDefaults, useHold } from './listDefaults'
 
@@ -503,6 +503,8 @@ export default function NativeApp() {
           // this app's own sections; its heading is this page's (native.css).
           <div className="jx-page jx-tune jx-tune-settings">
             <h1 className="jx-h1">{t('native.tune_title')}</h1>
+            {/* Who it belongs to, first (James, 2026-11-02: "Put it at the top"). */}
+            <YourJukebox />
             <YourMusic />
             <AboutAndHelp />
             <Settings />
@@ -685,25 +687,6 @@ function TopBar({ view, route }: { view: View; route: Route }) {
 /** How long the needle-drop egg takes, arm in to arm away (native.css). */
 const NEEDLE_DROP_MS = 2200
 
-/**
- * "Bradley’s Jukebox" when somebody is signed in to the suite on this phone
- * (BlackBook, PDF… — the shared phone session, `noAccounts` in main.tsx), "My
- * Jukebox" when no name is known, null for a guest. The website's navbar
- * builds the same title (`personalTitle`, App.tsx). Null until the profile is
- * in, so a name doesn't arrive after "My Jukebox" has flashed.
- */
-function useSignedInTitle(): { text: string; owner: string | null } | null {
-  const t = useT()
-  const { session } = useUniversal()
-  const { loading } = useProfile()
-  const name = useCallMe()
-  const user = session?.user
-  if (!user || (user as { is_anonymous?: boolean }).is_anonymous || loading) return null
-  if (!name) return { text: t('app.my_jukebox'), owner: null }
-  const owner = possessive(t.lang, name)
-  return { text: t('app.personal_title', { owner }), owner }
-}
-
 /** `text` with `bold` (the accent part of the name) in <b>, once. */
 function withBold(text: string, bold: string | null) {
   const at = bold ? text.indexOf(bold) : -1
@@ -743,11 +726,12 @@ function Brand() {
     }, NEEDLE_DROP_MS)
   }
   const ref = useRef<HTMLSpanElement>(null)
-  const signedIn = useSignedInTitle()
-  const text = signedIn?.text ?? 'Universal Jukebox'
+  // "Bradley’s Jukebox", "Your Jukebox" or "Universal Jukebox" — the account's
+  // choice, or "Whose jukebox is this?" with no account (`lib/jukeboxTitle.ts`).
+  const title = useJukeboxTitle()
+  const text = title?.text ?? PRODUCT_TITLE
   const at = text.indexOf('Jukebox')
-  // The owner in the accent; "My Jukebox" / "Mon Jukebox": the words before it.
-  const bold = !signedIn ? 'Universal' : (signedIn.owner ?? (text.slice(0, Math.max(0, at)).trim() || null))
+  const bold = title ? title.accent : 'Universal'
   if (at < 0) return <span className="jx-brand">{withBold(text, bold)}</span>
   return (
     <span ref={ref} className="jx-brand" {...hold.bind(() => drop(ref.current))}>

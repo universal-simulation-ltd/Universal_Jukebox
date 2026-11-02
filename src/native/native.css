@@ -493,7 +493,12 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   border: 0; background: none; color: var(--jx-mute); font-size: 10.5px; font-weight: 600;
   touch-action: manipulation;
+  /* A long press picks the tab up (or opens "Set as default"); it must never
+     select the label or bring up iOS's copy / look-up callout (James,
+     2026-11-02: "on long tap don't highlight the text in navigation"). */
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
+.jx-tabs, .jx-tabbin { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .jx-tab svg { width: 25px; height: 25px; }
 .jx-tab[aria-current='page'] { color: var(--jx-acc); }
 /* The tab the app opens on: a short rule under its name, not a dot (a dot
