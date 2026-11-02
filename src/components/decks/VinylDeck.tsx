@@ -57,6 +57,14 @@ const HEAD = { x: 0.52 + 0.45 * 0.62 - PIVOT.x, y: -0.06 + 0.68 * 0.62 - PIVOT.y
 /** The head's direction from the bearing with the arm at 0°, in degrees. */
 const HEAD_BEARING = (Math.atan2(HEAD.y, HEAD.x) * 180) / Math.PI
 
+/** The fade the record and its sleeve share as they leave — see where it is used. */
+function groupFade(slide: NonNullable<DeckFaceProps['slide']>): React.CSSProperties {
+  return {
+    opacity: slide.sameSleeve ? 1 : slide.opacity,
+    transition: slide.animate ? `opacity ${slide.ms ?? 240}ms ease-out` : 'none',
+  }
+}
+
 export default function VinylDeck({ progress, engaged, spinning, reduced, url, hue, labelFade, slide, grooves, underArm, controls, turn = 0 }: DeckFaceProps) {
   // While the arm is in a hand it goes where the hand puts it, not where the
   // music is — see `ArmGrab`.
@@ -71,7 +79,14 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           arrives or leaves (`labelFade` in `face.ts`); the record stays put —
           except under a swipe, when it alone follows the finger and the
           tonearm below stays where it is (`slide`). */}
-      <div className="absolute inset-0" style={slide ? slideOuter(slide) : undefined}>
+      {/* ⚠️ THE RECORD AND ITS SLEEVE FADE AS ONE (James, 2026-11-02: "When
+          swiping forward the previous record is then seen partly through its
+          sleeve - it shouldn't be"). Each fading on its own, half-faded, the
+          record showed through the sleeve closed over it; faded together, as
+          one picture, it cannot. Not on a change within the album, where the
+          sleeve stays and only the record goes (`sameSleeve`). */}
+      <div className="absolute inset-0" style={slide ? groupFade(slide) : undefined}>
+      <div className="absolute inset-0" style={slide ? { ...slideOuter(slide), opacity: slide.sameSleeve ? slide.opacity : 1 } : undefined}>
       <div className="absolute inset-0" style={slide ? slideInner(slide) : undefined}>
       {/* ⚠️ THE SHADOW STAYS STILL (James, 2026-09-11: "There's a strange shadow
           that appears only as it rotates past"). A box-shadow turns with its
@@ -148,7 +163,7 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           ⚠️ ONE element either way, only its styles change — remounted, the
           `HalfSleeve` would replay its slide off the record. */}
       {slide && (
-        <div className="pointer-events-none absolute inset-0" style={slide.sameSleeve ? undefined : slideOuter(slide)} aria-hidden>
+        <div className="pointer-events-none absolute inset-0" style={slide.sameSleeve ? undefined : { ...slideOuter(slide), opacity: 1 }} aria-hidden>
           <div className="absolute inset-0" style={slide.sameSleeve ? undefined : slideInner(slide)}>
             <div
               className="absolute inset-0"
@@ -168,6 +183,7 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           </div>
         </div>
       )}
+      </div>
 
 
       {/* The tonearm, pivoting about its bearing at the top right — the same
