@@ -245,6 +245,8 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         DispatchQueue.main.async {
             // The engine's entry runs on the engine's own clock.
             if JukeboxEngine.shared.enabled { call.resolve(); return }
+            // The widget's "Now playing" (the engine reports its own).
+            WidgetShare.playback(playing: rate > 0, elapsed: elapsed, duration: duration)
             // ⚠️ IN `merge` MODE THIS SETS THE PLAY/PAUSE STATE AND NOTHING ELSE,
             // which is why it is above the guard rather than below it.
             //
@@ -315,6 +317,7 @@ public class NowPlayingPlugin: CAPPlugin, CAPBridgedPlugin {
         DispatchQueue.main.async {
             // The engine's entry goes when the engine stops (`stop`).
             if JukeboxEngine.shared.enabled { call.resolve(); return }
+            WidgetShare.playback(playing: false, elapsed: 0, duration: 0)
             self.keeper?.invalidate()
             self.keeper = nil
             if self.mode == .own {

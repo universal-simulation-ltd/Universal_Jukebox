@@ -22,7 +22,8 @@ import WidgetKit
 /// (`keychain-access-groups` in `App.entitlements` + `JukeboxWidget.entitlements`).
 ///
 /// ⚠️ THE GROUP, SERVICE AND ACCOUNT ARE SHARED with `JukeboxWidget.swift`'s
-/// `ResumeStore`, and the JSON shape with its `Saved`. Change one, change both.
+/// `ResumeStore`, and so are the two JSON shapes (`resume`, `playback`).
+/// Change one, change both.
 enum WidgetShare {
     /// ⚠️ SECOND in `App.entitlements`' list, never first: the first group is
     /// where the SDK's keychain writes land when they name no group.
@@ -48,27 +49,69 @@ enum WidgetShare {
                 "at": Date().timeIntervalSince1970,
                 "sleeve": sleeve ?? "",
             ]
-            guard let data = try? JSONSerialization.data(withJSONObject: saved) else { return }
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: account,
-                kSecAttrAccessGroup as String: accessGroup,
-            ]
-            var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-            if status == errSecItemNotFound {
-                var add = query
-                add[kSecValueData as String] = data
-                // The Lock Screen widget reloads while the phone is locked.
-                add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-                status = SecItemAdd(add as CFDictionary, nil)
-            }
-            if status != errSecSuccess {
-                print("[jukebox:native] widget: keychain write failed, OSStatus \(status)")
-                return
-            }
+            guard store(saved, as: account) else { return }
             WidgetCenter.shared.reloadAllTimelines()
         }
+    }
+
+    // ── Playing or not ──────────────────────────────────────────────────────
+    // While a song plays the widget says "Now playing" with the song's own
+    // progress bar (James, 2026-11-02: "when playing could it show that?").
+    // `NowPlayingPlugin.update` (the page's player) and
+    // `JukeboxEngine.publishNowPlaying` (the native engine) both report here.
+    //
+    // ⚠️ RELOADS ONLY ON A CHANGE: play ↔ pause, a new length (a new song), or
+    // a jump of more than 3 s (a seek). Both callers fire far more often than
+    // that, and the widget draws the bar moving on its own from `start` and
+    // `duration` (`ProgressView(timerInterval:)`). The widget also stops
+    // saying "Now playing" once the song should have ended, so an app that
+    // was closed mid-song doesn't leave it claiming to play forever.
+
+    static let playbackAccount = "playback"
+    private static var sentPlaying: Bool?
+    private static var sentStart: Double = 0
+    private static var sentDuration: Double = -1
+
+    /// Main thread.
+    static func playback(playing: Bool, elapsed: Double, duration: Double) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { playback(playing: playing, elapsed: elapsed, duration: duration) }
+            return
+        }
+        let length = duration.isFinite && duration > 0 ? duration : 0
+        let start = Date().timeIntervalSince1970 - (elapsed.isFinite ? elapsed : 0)
+        if playing == sentPlaying, length == sentDuration, !playing || abs(start - sentStart) <= 3 { return }
+        sentPlaying = playing
+        sentStart = start
+        sentDuration = length
+        let item: [String: Any] = ["playing": playing, "start": start, "duration": length]
+        DispatchQueue.global(qos: .utility).async {
+            if store(item, as: playbackAccount) { WidgetCenter.shared.reloadAllTimelines() }
+        }
+    }
+
+    /// One JSON item in the shared group, replaced in place.
+    private static func store(_ object: [String: Any], as itemAccount: String) -> Bool {
+        guard let data = try? JSONSerialization.data(withJSONObject: object) else { return false }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: itemAccount,
+            kSecAttrAccessGroup as String: accessGroup,
+        ]
+        var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if status == errSecItemNotFound {
+            var add = query
+            add[kSecValueData as String] = data
+            // The Lock Screen widget reloads while the phone is locked.
+            add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            status = SecItemAdd(add as CFDictionary, nil)
+        }
+        if status != errSecSuccess {
+            print("[jukebox:native] widget: keychain write (\(itemAccount)) failed, OSStatus \(status)")
+            return false
+        }
+        return true
     }
 
     private static func scaled(_ image: UIImage, to side: CGFloat) -> UIImage {

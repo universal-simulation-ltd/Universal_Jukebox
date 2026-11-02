@@ -1371,6 +1371,7 @@ final class JukeboxEngine: NSObject {
         guard let e = decks[active].entry else {
             centre.nowPlayingInfo = nil
             centre.playbackState = .stopped
+            WidgetShare.playback(playing: false, elapsed: 0, duration: 0)
             return
         }
         var info: [String: Any] = [
@@ -1386,6 +1387,8 @@ final class JukeboxEngine: NSObject {
         if artworkAlbum == e.albumId { for (key, value) in animatedArtwork { info[key] = value } }
         centre.nowPlayingInfo = info
         centre.playbackState = isPlaying ? .playing : .paused
+        // The widget's "Now playing" — it reloads only on a real change.
+        WidgetShare.playback(playing: isPlaying, elapsed: position, duration: duration)
     }
 
     /// The page's lock-screen picture (`NowPlayingPlugin.show`): the record it

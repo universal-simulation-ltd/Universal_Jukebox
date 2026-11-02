@@ -13,6 +13,13 @@ import Security
 // what is loaded, else the saved session — the same thing the in-app
 // "Resume listening" card does.
 //
+// WHILE A SONG PLAYS it says "Now playing" instead, with the song's progress
+// bar running on its own (James, 2026-11-02: "when playing could it show
+// that?"), and a tap just opens the app. The app reports play/pause, length
+// and position (`WidgetShare.playback`); the timeline turns back into
+// "Resume listening" a few seconds after the song should have ended, so a
+// closed app can't leave the widget saying "Now playing" for ever.
+//
 // ⚠️ NO NETWORK, NO LIBRARY ACCESS. Everything here comes from that item;
 // the widget never reads the music folder or asks anything of anyone.
 
@@ -22,21 +29,35 @@ private enum ResumeStore {
     static let accessGroup = "ZH9C5TS86A.uk.co.unisim.jukebox.widget"
     static let service = "uk.co.unisim.jukebox.widget"
     static let account = "resume"
+    static let playbackAccount = "playback"
 
-    static func load() -> ResumeEntry {
+    private static func read(_ itemAccount: String) -> [String: Any]? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+            kSecAttrAccount as String: itemAccount,
             kSecAttrAccessGroup as String: accessGroup,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var result: AnyObject?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data,
-              let saved = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let title = saved["title"] as? String, !title.isEmpty else {
+              let data = result as? Data else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    }
+
+    /// Where the song is, if one is playing: from when position 0 would have
+    /// been, to its end (nil when the app didn't know the length).
+    static func playing() -> Playing? {
+        guard let item = read(playbackAccount), item["playing"] as? Bool == true,
+              let start = item["start"] as? Double else { return nil }
+        let length = item["duration"] as? Double ?? 0
+        let from = Date(timeIntervalSince1970: start)
+        return Playing(start: from, end: length > 0 ? from.addingTimeInterval(length) : nil)
+    }
+
+    static func load() -> ResumeEntry {
+        guard let saved = read(account), let title = saved["title"] as? String, !title.isEmpty else {
             return ResumeEntry(date: Date(), song: nil)
         }
         let sleeve = (saved["sleeve"] as? String)
@@ -57,13 +78,21 @@ struct Song {
     let sleeve: UIImage?
 }
 
+struct Playing {
+    let start: Date
+    let end: Date?
+}
+
 struct ResumeEntry: TimelineEntry {
     let date: Date
     /// nil until the app has played something.
     let song: Song?
+    /// Set while the song is playing.
+    var playing: Playing? = nil
 
+    /// Playing: just open the app. Otherwise carry on from where it stopped.
     var link: URL {
-        URL(string: song == nil ? "unisim-jukebox://widget/open" : "unisim-jukebox://widget/resume")!
+        URL(string: song == nil || playing != nil ? "unisim-jukebox://widget/open" : "unisim-jukebox://widget/resume")!
     }
 }
 
@@ -77,13 +106,28 @@ struct ResumeProvider: TimelineProvider {
     func placeholder(in context: Context) -> ResumeEntry { sample }
 
     func getSnapshot(in context: Context, completion: @escaping (ResumeEntry) -> Void) {
-        let entry = ResumeStore.load()
+        let entry = Self.entries().first ?? ResumeStore.load()
         completion(context.isPreview && entry.song == nil ? sample : entry)
     }
 
-    /// Changes only when the app says so (`reloadAllTimelines` on a new song).
+    /// Changes when the app says so (`reloadAllTimelines` on a new song, play,
+    /// pause or seek), and by itself once a playing song should have ended.
     func getTimeline(in context: Context, completion: @escaping (Timeline<ResumeEntry>) -> Void) {
-        completion(Timeline(entries: [ResumeStore.load()], policy: .never))
+        completion(Timeline(entries: Self.entries(), policy: .never))
+    }
+
+    static func entries(now: Date = Date()) -> [ResumeEntry] {
+        let resting = ResumeStore.load()
+        guard resting.song != nil, let playing = ResumeStore.playing() else { return [resting] }
+        // Unknown length: give it ten minutes, then stop claiming.
+        let over = (playing.end ?? now.addingTimeInterval(600)).addingTimeInterval(5)
+        guard over > now else { return [resting] }
+        var live = resting
+        live.playing = playing
+        return [
+            ResumeEntry(date: now, song: live.song, playing: playing),
+            ResumeEntry(date: over, song: resting.song),
+        ]
     }
 }
 
@@ -128,18 +172,48 @@ private struct Sleeve: View {
 
 private struct ResumeLabel: View {
     let scheme: ColorScheme
+    var playing = false
 
     var body: some View {
         Label {
-            Text("Resume listening").textCase(.uppercase)
+            (playing ? Text("Now playing") : Text("Resume listening")).textCase(.uppercase)
         } icon: {
-            Image(systemName: "play.fill")
+            Image(systemName: playing ? "waveform" : "play.fill")
         }
         .font(.caption2.weight(.bold))
         .foregroundColor(Palette.accent(scheme))
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .widgetAccentable()
+    }
+}
+
+/// The song's progress, moving on its own between reloads.
+private struct ProgressBar: View {
+    let playing: Playing
+    let tint: Color
+    var remaining = false
+
+    var body: some View {
+        if let end = playing.end, end > playing.start {
+            HStack(spacing: 6) {
+                ProgressView(timerInterval: playing.start...end, countsDown: false) {
+                    EmptyView()
+                } currentValueLabel: {
+                    EmptyView()
+                }
+                .progressViewStyle(.linear)
+                .tint(tint)
+                .widgetAccentable()
+                if remaining {
+                    Text(timerInterval: playing.start...end, countsDown: true)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 40, alignment: .trailing)
+                }
+            }
+        }
     }
 }
 
@@ -161,11 +235,14 @@ struct SmallView: View {
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             Spacer(minLength: 0)
-            ResumeLabel(scheme: scheme)
+            ResumeLabel(scheme: scheme, playing: entry.playing != nil)
             if let song = entry.song {
-                Text(song.title).font(.subheadline.weight(.semibold)).lineLimit(2)
+                Text(song.title).font(.subheadline.weight(.semibold)).lineLimit(entry.playing == nil ? 2 : 1)
                 if !song.artist.isEmpty {
                     Text(song.artist).font(.caption).foregroundColor(.secondary).lineLimit(1)
+                }
+                if let playing = entry.playing {
+                    ProgressBar(playing: playing, tint: Palette.accent(scheme)).padding(.top, 2)
                 }
             } else {
                 EmptyMessage()
@@ -185,7 +262,7 @@ struct MediumView: View {
                 .aspectRatio(1, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {
-                ResumeLabel(scheme: scheme)
+                ResumeLabel(scheme: scheme, playing: entry.playing != nil)
                 if let song = entry.song {
                     Text(song.title).font(.headline).lineLimit(2)
                     if !song.artist.isEmpty {
@@ -199,10 +276,14 @@ struct MediumView: View {
                     EmptyMessage()
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "play.circle.fill")
-                    .font(.title)
-                    .foregroundColor(Palette.accent(scheme))
-                    .widgetAccentable()
+                if let playing = entry.playing {
+                    ProgressBar(playing: playing, tint: Palette.accent(scheme), remaining: true)
+                } else {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title)
+                        .foregroundColor(Palette.accent(scheme))
+                        .widgetAccentable()
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -216,15 +297,19 @@ struct RectangularView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             Label {
-                Text("Resume listening")
+                entry.playing == nil ? Text("Resume listening") : Text("Now playing")
             } icon: {
-                Image(systemName: "play.fill")
+                Image(systemName: entry.playing == nil ? "play.fill" : "waveform")
             }
             .font(.caption2.weight(.bold))
             .widgetAccentable()
             if let song = entry.song {
                 Text(song.title).font(.headline).lineLimit(1)
-                if !song.artist.isEmpty { Text(song.artist).font(.caption).lineLimit(1) }
+                if let playing = entry.playing, playing.end != nil {
+                    ProgressBar(playing: playing, tint: .primary).padding(.top, 3)
+                } else if !song.artist.isEmpty {
+                    Text(song.artist).font(.caption).lineLimit(1)
+                }
             } else {
                 Text(verbatim: "Universal Jukebox").font(.headline).lineLimit(1)
             }
@@ -233,13 +318,18 @@ struct RectangularView: View {
     }
 }
 
-/// Lock Screen, a round button: a record with ▶ on its label.
+/// Lock Screen, a round button: a record with ▶ on its label, or a waveform
+/// while a song plays. (No progress ring: a circular timer ProgressView's size
+/// in this family wasn't something we could check off a device.)
 struct CircularView: View {
+    let entry: ResumeEntry
+
     var body: some View {
         ZStack {
             AccessoryWidgetBackground()
             Circle().stroke(lineWidth: 1).opacity(0.35).padding(7)
-            Image(systemName: "play.fill").font(.title3.weight(.bold)).widgetAccentable()
+            Image(systemName: entry.playing == nil ? "play.fill" : "waveform")
+                .font(.title3.weight(.bold)).widgetAccentable()
         }
     }
 }
@@ -252,7 +342,7 @@ struct InlineView: View {
         Label {
             if let song = entry.song { Text(song.title) } else { Text("Resume listening") }
         } icon: {
-            Image(systemName: "play.fill")
+            Image(systemName: entry.playing == nil ? "play.fill" : "waveform")
         }
     }
 }
@@ -277,7 +367,7 @@ struct ResumeWidgetView: View {
         switch family {
         case .systemMedium: MediumView(entry: entry)
         case .accessoryRectangular: RectangularView(entry: entry)
-        case .accessoryCircular: CircularView()
+        case .accessoryCircular: CircularView(entry: entry)
         case .accessoryInline: InlineView(entry: entry)
         default: SmallView(entry: entry)
         }
