@@ -36,9 +36,8 @@
    "Elige tu",
    "*aparato*"
   ],
-  "caption": "Vinilo, CD, casete, magnetófono de bobinas o jukebox",
+  "caption": "O cualquiera de estos, cada uno con su aspecto y su sonido de arranque",
   "chips": [
-   "Vinilo",
    "CD",
    "Casete",
    "Magnetófono",

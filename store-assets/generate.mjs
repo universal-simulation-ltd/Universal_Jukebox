@@ -133,10 +133,30 @@ const CAPTURES = {
       await top(page)
     },
   },
+  // 04: the other machines, one page of four (James, 2026-11-02: "focus on
+  // the vinyl, just one page to show the other players available"). Every
+  // other screen is the record; these are the alternatives, a different
+  // record on each.
+  'now-cd': {
+    settings: settings({ deck: 'cd' }),
+    async run(page) {
+      await play(page, 'Wax and Wane')
+      await page.waitForTimeout(15000)
+      await top(page)
+    },
+  },
   'now-cassette': {
     settings: settings({ deck: 'cassette' }),
     async run(page) {
       await play(page, 'Crackle')
+      await page.waitForTimeout(15000)
+      await top(page)
+    },
+  },
+  'now-reel': {
+    settings: settings({ deck: 'reel' }),
+    async run(page) {
+      await play(page, 'Bass Trap')
       await page.waitForTimeout(15000)
       await top(page)
     },
@@ -178,13 +198,25 @@ const CAPTURES = {
   album: {
     settings: settings(),
     async run(page) {
-      // Through the artist, as a person would: the example library's names
-      // are the same in every language.
-      await tab(page, 'artists')
-      await page.locator('.jx-tile', { hasText: 'The Tone Arms' }).first().click()
-      await page.waitForTimeout(800)
-      await page.locator('.jx-tile', { hasText: 'Second Pressing' }).first().click()
-      await page.waitForTimeout(900)
+      // The record in the Albums carousel, found by its title (the example
+      // library's names are the same in every language; the button's label
+      // is "Open <title>" in each). Not by position: the carousel is shuffled,
+      // and the artist page's albums became a Discography carousel
+      // (2026-11-02). Not through the search either, which leaves result
+      // counts on the tabs. A tap on a record off to the side brings it to
+      // the middle; the next one opens it.
+      await tab(page, 'albums')
+      const record = page.locator('button[aria-label*="Second Pressing"]').first()
+      // ⚠️ Exactly one tap once it is in the middle: the carousel stays
+      // "visible" under the album page, and a tap too many plays the record.
+      const width = page.viewportSize().width
+      for (let i = 0; i < 4; i++) {
+        const box = await record.boundingBox()
+        const centred = box && Math.abs(box.x + box.width / 2 - width / 2) < 30
+        await record.click()
+        await page.waitForTimeout(900)
+        if (centred) break
+      }
       await top(page)
     },
   },
@@ -205,20 +237,6 @@ const CAPTURES = {
         button.click()
       })
       await page.waitForTimeout(2500)
-    },
-  },
-  // Tune this app, the machines open (its third card, in every language).
-  tune: {
-    settings: settings({ deck: 'vinyl' }),
-    async run(page) {
-      await tab(page, 'tune')
-      await page.evaluate(() => {
-        const machines = document.querySelectorAll('.jx-tune-settings details')[2]
-        if (!machines) throw new Error('no machines section in Tune')
-        machines.open = true
-        window.scrollTo(0, machines.getBoundingClientRect().top + window.scrollY - 70)
-      })
-      await page.waitForTimeout(800)
     },
   },
 }

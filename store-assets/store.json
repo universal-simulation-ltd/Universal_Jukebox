@@ -48,9 +48,13 @@
     },
     {
       "id": "04-machines",
-      "layout": "sleeve-dark",
-      "raw": "tune",
-      "hot": 0
+      "layout": "sleeve-machines-dark",
+      "raw": [
+        "now-cd",
+        "now-cassette",
+        "now-reel",
+        "now-jukebox"
+      ]
     },
     {
       "id": "05-bedside",
