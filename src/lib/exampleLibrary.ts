@@ -1,5 +1,6 @@
 import { albumKey, trackKey } from './keys'
 import type { LyricSheet } from './lyrics'
+import type { PlayCount } from './playCounts'
 import type { Album, Track } from './types'
 
 // An example library, so somebody with no music to hand can take the app for a
@@ -16,8 +17,8 @@ import type { Album, Track } from './types'
 //   • The app is about YOUR files. A demo that quietly downloads somebody
 //     else's contradicts the front page.
 //
-// So: four artists, nine records, thirty-one tracks of synthesised music, none
-// of which exists until it is asked for. The sleeves are CC0 photos with the
+// So: five artists, ten records, thirty-five tracks of synthesised music, none
+// of which exists until it is asked for — sung, since 2026-11-02 (`planVocal`). The sleeves are CC0 photos with the
 // album name set on top (James, 2026-10-20), in a chunk of their own that only
 // loads with the example (`exampleCovers.ts`); the drawn sleeves below stay as
 // the fallback.
@@ -70,6 +71,12 @@ interface Recipe {
   drums: boolean
   /** How loud the pad sits under everything. */
   pad: number
+  /**
+   * Beats in a bar: 4 unless said otherwise. 3 is a waltz — the bass on one,
+   * the chord on two and three ("oom-pah-pah"), the kick on one only. Lyrics
+   * are timed in the same bars (`lyricBeats`).
+   */
+  meter?: 3 | 4
 }
 
 interface ExampleAlbum {
@@ -510,6 +517,60 @@ const ALBUMS: ExampleAlbum[] = [
       ],
     },
   },
+  {
+    // The fifth artist, in a style none of the others has: folk, in waltz time
+    // (2026-11-02, James: "go ahead with all library richer suggestions").
+    // Named for the first records of all, which held about two minutes each.
+    artist: 'The Wax Cylinders',
+    title: 'Parlour Songs',
+    year: 2017,
+    serif: true,
+    genre: 'Folk',
+    recipe: { root: 55, minor: false, bpm: 132, bite: 0.34, density: 0.5, drums: true, pad: 0.6, meter: 3 },
+    tracks: ['Wax and Wane', 'Speak Into the Horn', 'Two Minutes Each', 'The Parlour Waltz'],
+    lyrics: {
+      0: [
+        'The moon came up on the old mill lane',
+        'Round as a record and turning again',
+        'Fuller each night as the summer grew long',
+        'And thinner each night as we sang the same song',
+        'Wax and wane, wax and wane',
+        'Everything leaves and comes back again',
+        'Wax and wane, wax and wane',
+        'Turn me around and I’ll sing it again',
+      ],
+      1: [
+        'Lean to the horn and say it slow',
+        'Say it the way that you want it to go',
+        'The needle will listen and carve what you say',
+        'And keep it for someone a hundred years away',
+        'Speak into the horn, love',
+        'Sing it while you’re young',
+        'Speak into the horn, love',
+        'Hold the note and leave it sung',
+      ],
+      2: [
+        'Two minutes each was all they would hold',
+        'A fiddle, a voice and a story told',
+        'So say what you mean and say it quick',
+        'Before the end of the candle wick',
+        'Two minutes each, two minutes each',
+        'Everything worth it is in our reach',
+        'Two minutes each, then turn it round',
+        'Before the wax runs out of sound',
+      ],
+      3: [
+        'Roll back the rug and light the lamp',
+        'Open the window against the damp',
+        'Grandmother’s fiddle is down from the wall',
+        'There’s room for a waltz if there’s room for us all',
+        'One, two, three, round we go',
+        'Under the beams where the candles glow',
+        'One, two, three, round again',
+        'Dancing till the clock strikes ten',
+      ],
+    },
+  },
 ]
 
 // ── Building the library ─────────────────────────────────────────────────────
@@ -605,11 +666,17 @@ export function exampleTrackPaths(): { path: string; drums: boolean }[] {
 export function renderExampleVoice(path: string, voice: Voice): Float32Array | null {
   const entry = albumFor(path)
   if (!entry) return null
-  return render(path, entry.recipe, trackSeconds(path), voice)
+  return render(path, entry.recipe, trackSeconds(path), voice, linesOf(entry, path))
 }
 
 function albumFor(path: string): ExampleAlbum | undefined {
   return ALBUMS.find((a) => path.includes(`/${a.title}/`) && path.includes(`/${a.artist}/`))
+}
+
+/** The words of the song at `path` on this record, or undefined. */
+function linesOf(entry: ExampleAlbum, path: string): string[] | undefined {
+  const index = entry.tracks.findIndex((_, i) => trackPath(entry, i) === path)
+  return index < 0 ? undefined : entry.lyrics?.[index]
 }
 
 /**
@@ -633,24 +700,65 @@ export function exampleLyrics(track: Track): LyricSheet | null {
   return {
     synced: true,
     source: 'file',
-    lines: lyricBeats(lines.length, trackSeconds(track.path), entry.recipe.bpm).map((at, i) => ({
+    lines: lyricBeats(lines.length, trackSeconds(track.path), entry.recipe.bpm, entry.recipe.meter).map((at, i) => ({
       timeSec: Math.round(at * 100) / 100,
       text: lines[i],
     })),
   }
 }
 
-/** When each of `count` lines starts, in seconds. Exported for the test. */
-export function lyricBeats(count: number, seconds: number, bpm: number): number[] {
+/**
+ * When each of `count` lines starts, in seconds — in bars of `meter` beats.
+ * Exported for the test, and used by the singing (`planVocal`), so the words
+ * on screen and the tune you hear cannot drift apart.
+ */
+export function lyricBeats(count: number, seconds: number, bpm: number, meter = 4): number[] {
   const beat = 60 / bpm
-  const intro = 4
-  const outro = 4
+  const intro = meter
+  const outro = meter
   const room = Math.floor(seconds / beat) - intro - outro
   let each = Math.max(1, Math.floor(room / count))
-  if (each >= 4) each -= each % 4
-  const pause = room - each * count >= 4 ? 4 : 0
+  if (each >= meter) each -= each % meter
+  const pause = room - each * count >= meter ? meter : 0
   const half = Math.ceil(count / 2)
   return Array.from({ length: count }, (_, i) => (intro + i * each + (i >= half ? pause : 0)) * beat)
+}
+
+/**
+ * Listening already done in the example library, by song title (2026-11-02,
+ * James: "go ahead with all library richer suggestions"). Without it, Most
+ * played — a shelf that only appears once a song has been played twice — is
+ * missing from the demo, and a reviewer would have to sit through two plays
+ * of a song to learn it exists. A spread across all five artists, as somebody
+ * who had owned the records a while might have it.
+ */
+const EXAMPLE_PLAYS: Readonly<Record<string, number>> = {
+  'Counterweight': 9,
+  'Crackle': 8,
+  'The Parlour Waltz': 7,
+  'Morning, First Light': 6,
+  'Lead-in Groove': 6,
+  'Bass Trap': 5,
+  'Repress': 5,
+  'Wax and Wane': 4,
+  'Locked Groove': 4,
+  'The Blue Hour': 3,
+  'Wow and Flutter': 3,
+  'Half-speed': 2,
+  'Slipmat': 2,
+}
+
+/**
+ * The example library's play counts, for `seedPlays` — each last heard a day
+ * or more before `now`, the most played most recently.
+ */
+export function examplePlays(tracks: readonly Track[], now = Date.now()): Record<string, PlayCount> {
+  const out: Record<string, PlayCount> = {}
+  for (const track of tracks) {
+    const n = isExampleTrack(track) ? EXAMPLE_PLAYS[track.title ?? ''] : undefined
+    if (n) out[track.id] = { n, last: now - (10 - n) * 86_400_000 }
+  }
+  return out
 }
 
 /** Is this one of ours? Read after a reload, when the store has no idea. */
@@ -682,11 +790,11 @@ export function exampleFile(track: Track): File | null {
   const entry = albumFor(track.path)
   if (!entry) return null
 
-  const samples = render(track.path, entry.recipe, trackSeconds(track.path))
+  const samples = render(track.path, entry.recipe, trackSeconds(track.path), undefined, linesOf(entry, track.path))
   const file = new File([wav(samples)], track.name, { type: 'audio/wav' })
 
   cache.set(track.path, file)
-  // ⚠️ A cap, because a File holds its bytes and thirty-one of these is tens of
+  // ⚠️ A cap, because a File holds its bytes and thirty-five of these is tens of
   // megabytes for a demo. Evicting is safe even mid-play: `audio.ts` has
   // already minted an object URL, and a URL keeps its blob alive regardless of
   // who else is holding the File.
@@ -706,7 +814,7 @@ const cache = new Map<string, File>()
  *
  * Between 26 and 46 seconds, from the path's own hash — long enough to be a
  * piece of music and to leave room for the 1.8-second crossfade lead, short
- * enough that eleven records is a demo rather than a download.
+ * enough that ten records is a demo rather than a download.
  */
 function trackSeconds(path: string): number {
   return 26 + (hash(path) % 21)
@@ -730,9 +838,14 @@ const MINOR = [0, 2, 3, 5, 7, 8, 10]
 const PENTA_MAJOR = [0, 2, 4, 7, 9]
 const PENTA_MINOR = [0, 3, 5, 7, 10]
 
-/** The four parts a track is built from. */
-export type Voice = 'pad' | 'bass' | 'lead' | 'drums'
-export const VOICES: readonly Voice[] = ['pad', 'bass', 'lead', 'drums']
+/** The parts a track is built from. */
+export type Voice = 'pad' | 'bass' | 'lead' | 'drums' | 'vocal'
+export const VOICES: readonly Voice[] = ['pad', 'bass', 'lead', 'drums', 'vocal']
+
+/** A four-bar loop of chord degrees — the ones every listener already knows. */
+function progressionOf(recipe: Recipe): number[] {
+  return recipe.minor ? [0, 5, 3, 4] : [0, 4, 5, 3]
+}
 
 /**
  * A whole track — or, with `only`, one voice of it and nothing else.
@@ -740,9 +853,10 @@ export const VOICES: readonly Voice[] = ['pad', 'bass', 'lead', 'drums']
  * ⚠️ `only` gates the WRITES and never the dice. The lead and the hats both
  * draw from the seeded PRNG, so skipping a voice's `random()` calls would shift
  * every note after it and a soloed voice would no longer be the one in the
- * mix. Every draw below happens whichever voice is asked for.
+ * mix. Every draw below happens whichever voice is asked for. (The singing
+ * has dice of its own, seeded by each line's words — `planVocal`.)
  */
-function render(seed: string, recipe: Recipe, seconds: number, only?: Voice): Float32Array {
+function render(seed: string, recipe: Recipe, seconds: number, only?: Voice, lines?: readonly string[]): Float32Array {
   const plays = (voice: Voice) => only === undefined || only === voice
   const random = mulberry32(hash(seed))
   const frames = Math.round(seconds * RATE)
@@ -750,57 +864,85 @@ function render(seed: string, recipe: Recipe, seconds: number, only?: Voice): Fl
 
   const scale = recipe.minor ? MINOR : MAJOR
   const penta = recipe.minor ? PENTA_MINOR : PENTA_MAJOR
+  const meter = recipe.meter ?? 4
   const beat = 60 / recipe.bpm
-  const bar = beat * 4
+  const bar = beat * meter
 
-  // A four-bar loop of chord degrees. Both progressions below are the ones
-  // every listener already knows, which is the point: a demo track has about
-  // four seconds to sound deliberate.
-  const progression = recipe.minor ? [0, 5, 3, 4] : [0, 4, 5, 3]
+  // A demo track has about four seconds to sound deliberate.
+  const progression = progressionOf(recipe)
+
+  // The words, sung (2026-11-02). Planned first because the lead steps back
+  // while a line is sung, the way a band plays under a singer.
+  const sung = lines?.length ? planVocal(lines, recipe, seconds) : []
+  const singing = (t: number) => sung.some((n) => t >= n.at - 0.05 && t < n.at + n.dur + 0.1)
 
   const bars = Math.ceil(seconds / bar)
   for (let b = 0; b < bars; b++) {
     const at = b * bar
     const degree = progression[b % progression.length]
     const rootNote = recipe.root + scale[degree % scale.length]
+    const third = recipe.minor ? 3 : 4
 
     // The pad: a triad held for the bar, quiet and slow to arrive.
     if (plays('pad')) {
-      for (const interval of [0, recipe.minor ? 3 : 4, 7]) {
+      for (const interval of [0, third, 7]) {
         addTone(out, at, bar * 0.98, midi(rootNote + interval), 0.055 * recipe.pad, {
           attack: 0.25, release: bar * 0.5, bite: 0.06,
         })
       }
+      // A waltz's "pah-pah": the chord again, short, on two and three.
+      if (meter === 3) {
+        for (const k of [1, 2]) {
+          for (const interval of [third, 7, 12]) {
+            addTone(out, at + k * beat, beat * 0.5, midi(rootNote + interval), 0.045, {
+              attack: 0.006, release: beat * 0.3, bite: 0.18,
+            })
+          }
+        }
+      }
     }
 
-    // The bass: the root on one and three, an octave down.
+    // The bass: the root on one and three (one only, in a waltz), an octave down.
     if (plays('bass')) {
-      for (const b3 of [0, 2]) {
+      for (const b3 of meter === 3 ? [0] : [0, 2]) {
         addTone(out, at + b3 * beat, beat * 1.6, midi(rootNote - 12), 0.16, {
           attack: 0.008, release: beat * 1.2, bite: 0.04,
         })
       }
     }
 
-    // The lead: eighth notes, some of them, from the pentatonic.
-    for (let e = 0; e < 8; e++) {
+    // The lead: eighth notes, some of them, from the pentatonic — and quieter
+    // while somebody is singing over it.
+    for (let e = 0; e < meter * 2; e++) {
       if (random() > recipe.density) continue
       const step = penta[Math.floor(random() * penta.length)]
       const octave = random() < 0.25 ? 12 : 0
       if (!plays('lead')) continue
-      addTone(out, at + e * beat * 0.5, beat * 0.5, midi(recipe.root + step + octave + 12), 0.1, {
+      const t = at + e * beat * 0.5
+      addTone(out, t, beat * 0.5, midi(recipe.root + step + octave + 12), singing(t) ? 0.055 : 0.1, {
         attack: 0.006, release: beat * 0.42, bite: recipe.bite,
       })
     }
 
     if (recipe.drums) {
-      if (plays('drums')) for (const k of [0, 2]) addKick(out, at + k * beat)
-      for (let e = 0; e < 8; e++) {
-        const hit = e % 2 === 1 || random() < 0.4
-        if (hit && plays('drums')) addHat(out, at + e * beat * 0.5, e % 2 === 1 ? 0.03 : 0.018)
+      if (meter === 3) {
+        // A waltz: the kick on one, the hats on two and three.
+        if (plays('drums')) addKick(out, at)
+        for (let e = 0; e < 6; e++) {
+          const hit = e === 2 || e === 4 || random() < 0.25
+          if (hit && plays('drums')) addHat(out, at + e * beat * 0.5, e === 2 || e === 4 ? 0.03 : 0.015)
+        }
+      } else {
+        if (plays('drums')) for (const k of [0, 2]) addKick(out, at + k * beat)
+        for (let e = 0; e < 8; e++) {
+          const hit = e % 2 === 1 || random() < 0.4
+          if (hit && plays('drums')) addHat(out, at + e * beat * 0.5, e % 2 === 1 ? 0.03 : 0.018)
+        }
       }
     }
   }
+
+  if (plays('vocal')) for (const note of sung) addSung(out, note)
 
   // ⚠️ Fade both ends, always. A track that starts or stops mid-waveform is a
   // click, and a click at the seam is precisely what the crossfade this library
@@ -812,10 +954,222 @@ function render(seed: string, recipe: Recipe, seconds: number, only?: Voice): Fl
     out[frames - 1 - i] *= g
   }
 
-  // Soft clip rather than hard limit: four voices can add up past 1, and tanh
+  // Soft clip rather than hard limit: five voices can add up past 1, and tanh
   // rounds those peaks off instead of squaring them into distortion.
   for (let i = 0; i < frames; i++) out[i] = Math.tanh(out[i] * 1.25) * 0.82
   return out
+}
+
+// ── The singing ──────────────────────────────────────────────────────────────
+//
+// (2026-11-02, James: "go ahead with all library richer suggestions" — a tune
+// that follows the words, so they read as SUNG rather than laid over an
+// instrumental.) Not a speech synthesiser: a wordless voice that sings each
+// line's syllables to a little tune, on the vowel of each syllable, with a
+// breath of consonant in front. Enough for the words on screen to be heard
+// arriving with the voice; not trying to be intelligible.
+//
+// ⚠️ THE TIMING IS `lyricBeats`, the same function the lyric sheet uses, so
+// the line lights up as the voice starts it. And the tune is seeded by the
+// line's own WORDS, not its position: a chorus that repeats is sung to the
+// same tune every time.
+
+/** One sung syllable. */
+interface SungNote {
+  at: number
+  dur: number
+  /** MIDI note. */
+  note: number
+  vowel: Vowel
+  /** The consonant in front: hissed (s, f, sh…), struck (t, k, p…) or none. */
+  onset: 'hiss' | 'strike' | null
+  /** Seeds the consonant's noise, so the track is the same every time. */
+  seed: number
+}
+
+type Vowel = 'a' | 'e' | 'i' | 'o' | 'u'
+
+/**
+ * A line's syllables: one per group of vowels in each word, with a word's
+ * silent final "e" left out ("Wane" is one, "again" is two). English
+ * spelling is not this tidy, and it does not matter — a syllable more or
+ * less is a note more or less.
+ */
+export function syllables(line: string): { vowel: Vowel; onset: 'hiss' | 'strike' | null }[] {
+  const out: { vowel: Vowel; onset: 'hiss' | 'strike' | null }[] = []
+  for (const raw of line.toLowerCase().split(/[^a-z’']+/)) {
+    const word = raw.replace(/[’']/g, '')
+    if (!word) continue
+    const groups = [...word.matchAll(/[aeiouy]+/g)].filter((m, i, all) => {
+      // "y" at the start of a word is a consonant ("young", "you").
+      if (m.index === 0 && m[0] === 'y') return false
+      // A silent final "e": "wane", "slow" has none; "the" and "be" keep theirs.
+      const last = i === all.length - 1 && all.length > 1
+      return !(last && m[0] === 'e' && m.index === word.length - 1 && !word.endsWith('le'))
+    })
+    if (groups.length === 0) groups.push(...word.matchAll(/[aeiouy]/g))
+    let from = 0
+    for (const g of groups) {
+      const before = word.slice(from, g.index)
+      // "you", "your": the "y" is the consonant, the rest the vowel.
+      const vowels = g.index === 0 && g[0].length > 1 && g[0][0] === 'y' ? g[0].slice(1) : g[0]
+      out.push({ vowel: vowelOf(vowels), onset: onsetOf(before) })
+      from = (g.index ?? 0) + g[0].length
+    }
+  }
+  return out
+}
+
+function vowelOf(group: string): Vowel {
+  if (/^(ee|ea|ie|y|i)/.test(group)) return 'i'
+  if (/^(oo|ou|u)/.test(group)) return 'u'
+  if (/^(ai|ay|ei|ey|e)/.test(group)) return 'e'
+  if (/^o/.test(group)) return 'o'
+  return 'a'
+}
+
+function onsetOf(consonants: string): 'hiss' | 'strike' | null {
+  if (/[sfzxh]|ch|th/.test(consonants)) return 'hiss'
+  if (/[tkpbdgcq]/.test(consonants)) return 'strike'
+  return null
+}
+
+/**
+ * Every syllable of every line: when, how long, and on which note.
+ *
+ * Each line gets the time until the next one, less a breath. Its syllables
+ * share it in sixteenths (an eighth or a quarter when there are few), and the
+ * last syllable is held. The tune walks the pentatonic in steps from a note
+ * of the chord the line starts on, and comes home to the root of the chord it
+ * ends on.
+ */
+function planVocal(lines: readonly string[], recipe: Recipe, seconds: number): SungNote[] {
+  const meter = recipe.meter ?? 4
+  const beat = 60 / recipe.bpm
+  const bar = beat * meter
+  const scale = recipe.minor ? MINOR : MAJOR
+  const penta = recipe.minor ? PENTA_MINOR : PENTA_MAJOR
+  const progression = progressionOf(recipe)
+  // The singer's register: the record's key, moved into about A3–G#4.
+  let home = recipe.root
+  while (home < 57) home += 12
+  while (home >= 69) home -= 12
+  const chordDegree = (t: number) => progression[Math.floor(t / bar) % progression.length]
+  const chordRoot = (t: number) => scale[chordDegree(t) % scale.length]
+  const pitch = (step: number) => home + penta[((step % 5) + 5) % 5] + 12 * Math.floor(step / 5)
+
+  const starts = lyricBeats(lines.length, seconds, recipe.bpm, meter)
+  const notes: SungNote[] = []
+  lines.forEach((line, li) => {
+    const parts = syllables(line)
+    if (parts.length === 0) return
+    const at = starts[li]
+    const until = li + 1 < starts.length ? starts[li + 1] : seconds - bar
+    const room = Math.max(beat, until - at - beat * 0.5)
+    const sixteenth = beat / 4
+    // Held last syllable counts as three.
+    let each = room / (parts.length + 2)
+    each = each >= sixteenth ? Math.min(4, Math.floor(each / sixteenth)) * sixteenth : Math.max(0.09, each)
+    const random = mulberry32(hash(line))
+    // Start on the chord's root, third or fifth, as a pentatonic step.
+    const target = scale[(chordDegree(at) + [0, 2, 4][Math.floor(random() * 3)]) % scale.length]
+    let step = penta.reduce((best, p, i) => (Math.abs(p - target) < Math.abs(penta[best] - target) ? i : best), 0)
+    let t = at
+    parts.forEach((part, i) => {
+      const last = i === parts.length - 1
+      const dur = last ? Math.min(each * 3, Math.max(each, until - t - beat * 0.25)) : each
+      let note = pitch(step)
+      if (last) {
+        // Home: the root of the chord under the held note, nearest the tune.
+        const root = home + chordRoot(t)
+        note = [root - 12, root, root + 12].reduce((a, b) => (Math.abs(b - note) < Math.abs(a - note) ? b : a))
+      }
+      notes.push({ at: t, dur: dur * 0.94, note, vowel: part.vowel, onset: part.onset, seed: hash(`${line}|${i}`) })
+      t += dur
+      // A step up or down, now and then a leap; kept to about an octave.
+      const move = random()
+      step += move < 0.4 ? 1 : move < 0.8 ? -1 : move < 0.9 ? 2 : -2
+      step = Math.max(-2, Math.min(6, step))
+    })
+  })
+  return notes
+}
+
+// Formants — the resonances that make a vowel that vowel — in Hz, for a
+// voice in the singer's register.
+const FORMANTS: Record<Vowel, [number, number, number]> = {
+  a: [780, 1240, 2600],
+  e: [520, 1820, 2550],
+  i: [330, 2250, 2950],
+  o: [520, 880, 2550],
+  u: [360, 760, 2450],
+}
+const FORMANT_LEVEL = [1, 0.55, 0.25]
+const FORMANT_WIDTH = [90, 120, 170]
+const TABLE = 512
+const tables = new Map<string, Float32Array>()
+
+/**
+ * One cycle of a sung vowel at this note: its harmonics, each as loud as the
+ * vowel's resonances make it. Cached — a song reuses a handful.
+ */
+function vowelTable(vowel: Vowel, note: number): Float32Array {
+  const key = `${vowel}${note}`
+  const cached = tables.get(key)
+  if (cached) return cached
+  const f0 = midi(note)
+  const formants = FORMANTS[vowel]
+  const table = new Float32Array(TABLE)
+  for (let h = 1; h * f0 < 5000; h++) {
+    const f = h * f0
+    let level = 0.02
+    formants.forEach((fk, k) => { level += FORMANT_LEVEL[k] / (1 + ((f - fk) / FORMANT_WIDTH[k]) ** 2) })
+    // The voice's own slope: each harmonic quieter than the one below.
+    level /= h
+    for (let i = 0; i < TABLE; i++) table[i] += level * Math.sin((2 * Math.PI * h * i) / TABLE)
+  }
+  let peak = 0
+  for (const v of table) peak = Math.max(peak, Math.abs(v))
+  for (let i = 0; i < TABLE; i++) table[i] /= peak || 1
+  tables.set(key, table)
+  return table
+}
+
+/**
+ * One syllable, mixed in: a scoop up into the note, vibrato that grows as it
+ * is held, and the consonant's breath of noise in front.
+ */
+function addSung(out: Float32Array, n: SungNote): void {
+  const gain = 0.13
+  const table = vowelTable(n.vowel, n.note)
+  const start = Math.round(n.at * RATE)
+  const length = Math.round(n.dur * RATE)
+  const f0 = midi(n.note)
+  const attack = (n.onset === 'strike' ? 0.012 : 0.035) * RATE
+  const release = Math.min(0.08 * RATE, length / 2)
+  const noise = mulberry32(n.seed)
+  let phase = 0
+  let previous = 0
+  for (let i = 0; i < length; i++) {
+    const at = start + i
+    if (at >= out.length) break
+    const t = i / RATE
+    const scoop = -0.6 * Math.exp(-t * 28)
+    const vibrato = t > 0.15 ? 0.28 * Math.min(1, (t - 0.15) / 0.25) * Math.sin(2 * Math.PI * 5.4 * t) : 0
+    phase += (f0 * 2 ** ((scoop + vibrato) / 12) * TABLE) / RATE
+    const p = phase % TABLE
+    const j = Math.floor(p)
+    const sample = table[j] + (table[(j + 1) % TABLE] - table[j]) * (p - j)
+    const env = Math.min(1, i / attack, (length - i) / release) * (1 - 0.15 * (i / length))
+    out[at] += gain * env * sample
+    // The consonant: high-passed noise over the first few dozen milliseconds.
+    if (n.onset && t < (n.onset === 'hiss' ? 0.07 : 0.015)) {
+      const white = noise() * 2 - 1
+      const high = white - previous
+      previous = white
+      out[at] += gain * (n.onset === 'hiss' ? 0.22 : 0.4) * Math.exp(-t * 40) * high
+    }
+  }
 }
 
 /** MIDI note number to Hz. */

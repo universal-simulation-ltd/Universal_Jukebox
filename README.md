@@ -217,8 +217,8 @@ apps; that has not been tried on a phone.
 
 ## The example library
 
-**Nothing to hand?** The landing page offers an example library: nine records
-by four artists who do not exist, with the music generated in the browser
+**Nothing to hand?** The landing page offers an example library: ten records
+by five artists who do not exist, with the music generated in the browser
 (`lib/exampleLibrary.ts`). No audio is shipped or downloaded — which is the
 only honest way for this app to have a demo, since bundling real music means
 licensing real music, and an app whose pitch is "it plays your own files"
@@ -228,7 +228,7 @@ in a chunk of their own that loads only with the example and is left out of
 the offline cache; without it the drawn sleeves stand in.
 
 ⚠️ **It stands aside for real music.** Adding a folder ADDS to the library, and
-the one thing that must never add is the demo — nine records by artists who do
+the one thing that must never add is the demo — ten records by artists who do
 not exist, mixed in among somebody's own albums, indistinguishable in the grid
 and removable only by knowing which names were fake. So the first real folder
 takes its place.
@@ -249,7 +249,24 @@ Three things about it are deliberate:
   own path, so a record sounds the same next time — and, more usefully, still
   plays after a reload, when the library has come back out of IndexedDB with no
   files anywhere to point at.
-- **Two of the four artists have three or more records**, because three is where
+- **Every song is sung** (2026-11-02). Each has its own words
+  (`lyrics` on the record), timed to its bars by `lyricBeats`, and a wordless
+  voice sings each line's syllables to a little tune on the vowels of the words
+  (`planVocal`, `addSung`: harmonics shaped by vowel formants, a scoop into each
+  note, vibrato on held ones). The lyric sheet and the voice share `lyricBeats`,
+  so a line lights up as it is sung; a chorus is sung to the same tune each
+  time, because the tune is seeded by the line's words. The lead plays quieter
+  under the voice. It adds about 20 ms to making a song.
+- **It comes with some listening done.** Loading it seeds play counts for
+  thirteen songs across all five artists (`examplePlays` → `seedPlays`), so the
+  Most played shelf is there from the start rather than after two full plays
+  of something. Only songs with no count of their own; Reset clears them; they
+  go when the example does (`removeFolder`). A TRIAL seeds nothing. The starter
+  shelf's retirement ignores example songs, because retiring is for good and
+  the demo would otherwise use it up before your own music arrived.
+- **One record is in waltz time** (`meter: 3` — The Wax Cylinders, folk), so
+  not everything is four on the floor.
+- **Two of the five artists have three or more records**, because three is where
   the album grid folds a run into a fan. A demo library that showed none of the
   grouping would be missing the part worth showing.
 
@@ -271,7 +288,7 @@ voice**, not per file. The whole-file peak was healthy the entire time the melod
 was missing, because the drums were never affected.
 
 That measurement is now a test: `lib/exampleLibrary.test.ts` renders every voice
-of all 31 tracks **on its own** and holds each to a peak and an RMS floor. With
+of all 35 tracks **on its own** (the voice too) and holds each to a peak and an RMS floor. With
 the old unguarded envelope put back it fails 93 times — the pad, the bass and
 the lead of every track — while the whole-track peak of the 27 tracks with drums
 stays above both floors, which is the point: a per-file version would have

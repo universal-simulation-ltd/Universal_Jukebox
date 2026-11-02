@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { useHiddenStore, visibleLibrary, withFilteredOut, type HiddenSet } from '../lib/hidden'
 import { releaseAllCovers, releaseCover } from '../lib/art'
 import * as db from '../lib/library'
-import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, isExampleTrack } from '../lib/exampleLibrary'
+import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, examplePlays, isExampleTrack } from '../lib/exampleLibrary'
+import { forgetPlays, seedPlays } from '../lib/playCounts'
 import {
   MUSIC_LIBRARY_LABEL,
   MUSIC_LIBRARY_ROOT_ID,
@@ -579,6 +580,10 @@ const rawStore = create<LibraryState>((set, get) => ({
     const { tracks, albums } = await buildExampleLibrary()
     const root = exampleRoot(tracks.length)
     await Promise.all([db.putTracks(tracks), db.putAlbums(albums), db.putRoot(root)])
+    // Some listening already done, so Most played is on the shelves from the
+    // start (`examplePlays`). Not for a TRIAL: that counts nothing, and its
+    // songs are not yours.
+    seedPlays(examplePlays(tracks))
 
     set({
       status: 'ready',
@@ -772,6 +777,9 @@ const rawStore = create<LibraryState>((set, get) => ({
     }
     const root = get().roots.find((r) => r.id === id)
     if (!root) return
+    // The demo's play counts go with it — made up or played, they were never
+    // about your music.
+    if (id === EXAMPLE_ROOT_ID) forgetPlays(get().tracks.filter(isExampleTrack).map((t) => t.id))
     const prefix = prefixOf(root)
     const merged = removeRoot({ tracks: get().tracks, albums: get().albums }, prefix)
     const roots = get().roots.filter((r) => r.id !== id)
@@ -1659,7 +1667,7 @@ async function runScan(
 
   // ⚠️ THE EXAMPLE LIBRARY STEPS ASIDE FOR REAL MUSIC. Adding a folder now ADDS,
   // which for every real folder is the point — and for the demo would mean
-  // eleven records by four artists who do not exist quietly mixed in among
+  // ten records by five artists who do not exist quietly mixed in among
   // somebody's own albums, indistinguishable in the grid and removable only by
   // knowing which names were fake. It is a demo; the moment there is real music
   // it has done its job.

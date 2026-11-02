@@ -18,7 +18,7 @@
 //
 // ⚠️ EVERYTHING ON SCREEN IS THE EXAMPLE LIBRARY. Its "Example library"
 // banner is hidden in the captures only (James, 2026-09-27), by `captureMode`
-// below; the app itself always shows it. Its four artists, nine
+// below; the app itself always shows it. Its five artists, ten
 // records, sleeves, music and lyrics are all made up and made by the app
 // (`src/lib/exampleLibrary.ts`), so no real artist, cover or lyric appears in a
 // store image — the store-listing rule that every name and face is invented.

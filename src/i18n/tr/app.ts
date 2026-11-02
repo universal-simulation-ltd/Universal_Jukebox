@@ -129,7 +129,7 @@ const app: Draft['app'] = {
   'use_own_music': 'Kendi müziğimi kullan',
 
   'try_title': 'Örnek kitaplığı denemek ister misiniz?',
-  'try_intro': 'Var olmayan dört sanatçının dokuz plağı — müzik de kapaklar da bu cihazda üretilir. Hiçbir şey indirilmez.',
+  'try_intro': 'Var olmayan beş sanatçının on plağı — müzik de kapaklar da bu cihazda üretilir. Hiçbir şey indirilmez.',
   'try_safe': '{lead} Olduğu gibi kenara ayrılır ve örnekte yaptığınız hiçbir şey — raflar, çaldıklarınız — ona kaydedilmez.',
   'try_safe_lead': 'Kitaplığınız güvende kalır.',
   'try_stops': '{lead} Geri döndüğünüzde “Dinlemeye devam et” aynı saniyeden sürdürür.',

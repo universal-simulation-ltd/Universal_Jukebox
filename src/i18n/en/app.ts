@@ -144,7 +144,7 @@ export default {
 
   // Try the example library? (TryExampleDialog)
   'try_title': 'Try the example library?',
-  'try_intro': 'Nine records by four artists that don’t exist — the music and the sleeves are both made on this device. Nothing is downloaded.',
+  'try_intro': 'Ten records by five artists that don’t exist — the music and the sleeves are both made on this device. Nothing is downloaded.',
   'try_safe': '{lead} It is set aside exactly as it is, and nothing you do in the example — shelves, what you play — is saved to it.', // {lead} is the next key, in bold
   'try_safe_lead': 'Your library stays safe.',
   'try_stops': '{lead} When you come back, “Resume listening” carries on from the same second.', // {lead} is the next key, in bold; “Resume listening” is the card's title in the library

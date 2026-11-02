@@ -17,7 +17,8 @@ it at run time (`drawSleeve` in `src/lib/exampleLibrary.ts`).
 | `master-lacquer.jpg` | Master Lacquer | Forest mist | Chris Barbalis | https://commons.wikimedia.org/w/index.php?curid=61758638 |
 | `quiet-rooms.jpg` | Quiet Rooms | A dining room in window light | Kelly Ishmael | https://stocksnap.io/photo/dining-room-DYTXNUKGP2 |
 | `surface-noise.jpg` | Surface Noise | A city street at night | Drakekiker | https://stocksnap.io/photo/city-stree-HJABYGGN1D |
+| `parlour-songs.jpg` | Parlour Songs | A dusty violin | Dan Gold | https://commons.wikimedia.org/wiki/File:Dusty_violin_(Unsplash).jpg |
 
-The people in them are silhouettes or seen from behind, so nobody can be
+Each was re-encoded with no EXIF or location data. The people in them are silhouettes or seen from behind, so nobody can be
 recognised. Keep it that way when a photo is swapped: a CC0 licence covers the
 photograph, not a model release for a recognisable face.

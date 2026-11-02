@@ -3,6 +3,7 @@ import { useLibraryStore, wholeLibrary } from './libraryStore'
 import { haptic } from '../lib/haptics'
 import { addToShelf, moveOnShelf, parseShelves, renameShelf, retireStarter, starterPicks, toggleOnShelf, type JukeboxShelf } from '../lib/shelves'
 import { mostPlayed, usePlayCounts } from '../lib/playCounts'
+import { isExampleTrack } from '../lib/exampleLibrary'
 import { useSettingsStore } from './settingsStore'
 import { getT } from '../i18n/runtime.ts'
 import type { Album, Track } from '../lib/types'
@@ -181,7 +182,10 @@ function retireStarterShelf(tracks: readonly Track[]): void {
   if (!id || !useSettingsStore.getState().mostPlayedShelf) return
   let kept = false
   try { kept = localStorage.getItem(STARTER_KEPT_KEY) !== null } catch { return }
-  const byId = new Map(tracks.map((t) => [t.id, t]))
+  // ⚠️ NOT THE EXAMPLE LIBRARY'S. It arrives with plays already counted
+  // (`examplePlays`), and retiring is for good ('had-shelves' below): counted,
+  // the demo would retire the starter shelf before your own music ever got one.
+  const byId = new Map(tracks.filter((t) => !isExampleTrack(t)).map((t) => [t.id, t]))
   const songs = mostPlayed(usePlayCounts.getState().counts, byId).length
   const rest = retireStarter(useShelvesStore.getState().shelves, id, songs, kept, getT()('shelves.starter_name'))
   if (!rest) return

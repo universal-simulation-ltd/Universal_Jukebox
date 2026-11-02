@@ -6,7 +6,8 @@
 // one — the rule scrobblers use — so skipping through a list counts nothing,
 // and a song counts again only when it starts again. Nothing leaves the
 // device; the example library being TRIED counts nothing (its songs aren't
-// yours, and the trial ends).
+// yours, and the trial ends). The example library LOADED comes with some
+// listening already done (`seedPlays`), which goes when it does.
 //
 // ⚠️ THE COUNTING ITSELF IS `playCounting.ts`, which watches the player. Kept
 // apart so the counts can be read — by the shelves, deciding whether the
@@ -47,11 +48,40 @@ export const usePlayCounts = create<{ counts: Record<string, PlayCount> }>(() =>
 
 export function countPlay(trackId: string, now = Date.now()): void {
   const counts = usePlayCounts.getState().counts
-  const next = { ...counts, [trackId]: { n: (counts[trackId]?.n ?? 0) + 1, last: now } }
+  save({ ...counts, [trackId]: { n: (counts[trackId]?.n ?? 0) + 1, last: now } })
+}
+
+function save(next: Record<string, PlayCount>): void {
   usePlayCounts.setState({ counts: next })
   try {
     localStorage.setItem(KEY, JSON.stringify(next))
   } catch { /* storage full or off — counted until the app closes */ }
+}
+
+/**
+ * Counts put in from outside: the example library's made-up listening
+ * (`examplePlays`, 2026-11-02), so Most played has something on it the first
+ * time somebody opens the demo. Only for songs with no count of their own, so
+ * loading the demo again never inflates one. Reset clears them like any other.
+ */
+export function seedPlays(seeds: Record<string, PlayCount>): void {
+  const counts = usePlayCounts.getState().counts
+  const fresh = Object.entries(seeds).filter(([id]) => !counts[id])
+  if (fresh.length > 0) save({ ...counts, ...Object.fromEntries(fresh) })
+}
+
+/** These songs' counts gone — the example library's, when it steps aside. */
+export function forgetPlays(ids: Iterable<string>): void {
+  const counts = usePlayCounts.getState().counts
+  const next = { ...counts }
+  let changed = false
+  for (const id of ids) {
+    if (next[id]) {
+      delete next[id]
+      changed = true
+    }
+  }
+  if (changed) save(next)
 }
 
 /**

@@ -57,9 +57,9 @@ function measure(pcm: Float32Array): { peak: number; rms: number } {
 const tracks = exampleTrackPaths()
 
 describe('the example library', () => {
-  it('has all 31 tracks, four of them from the record with no drums', () => {
+  it('has all 35 tracks, four of them from the record with no drums', () => {
     // Guards the walk below from quietly testing nothing.
-    expect(tracks.length).toBe(31)
+    expect(tracks.length).toBe(35)
     expect(tracks.filter((t) => !t.drums).length).toBe(4)
   })
 
@@ -119,5 +119,64 @@ describe('lyricBeats', () => {
     const { lyricBeats } = await import('./exampleLibrary')
     // 60 bpm, 26 s: 26 beats, 18 for words, six lines → 3 beats each, no break.
     expect(lyricBeats(6, 26, 60)).toEqual([4, 7, 10, 13, 16, 19])
+  })
+})
+
+describe('lyricBeats in waltz time', () => {
+  it('counts bars of three', async () => {
+    const { lyricBeats } = await import('./exampleLibrary')
+    // 120 bpm in 3/4: a bar is 1.5 s. 40 s = 80 beats, 74 for words (a bar
+    // in, a bar out); 74 / 8 = 9 beats, three bars a line; 2 spare, no break.
+    const times = lyricBeats(8, 40, 120, 3)
+    expect(times[0]).toBe(1.5)
+    expect(times).toEqual([1.5, 6, 10.5, 15, 19.5, 24, 28.5, 33])
+  })
+})
+
+describe('the singing', () => {
+  it('splits a line into syllables, leaving out a silent final e', async () => {
+    const { syllables } = await import('./exampleLibrary')
+    expect(syllables('Wax and wane').map((s) => s.vowel)).toEqual(['a', 'a', 'a'])
+    expect(syllables('Round again').length).toBe(3)
+    expect(syllables('Candle').length).toBe(2)
+    // "y" leading a word is a consonant.
+    expect(syllables('you').map((s) => s.vowel)).toEqual(['u'])
+    expect(syllables('Speak slow')[0].onset).toBe('hiss')
+    expect(syllables('Turn')[0].onset).toBe('strike')
+  })
+
+  it.each(tracks)('starts singing $path when its first line shows, not before', async ({ path }) => {
+    const { exampleLyrics } = await import('./exampleLibrary')
+    const sheet = exampleLyrics({ path } as Parameters<typeof exampleLyrics>[0])!
+    const first = sheet.lines[0].timeSec!
+    const pcm = renderExampleVoice(path, 'vocal')!
+    const rate = 22_050
+    const before = measure(pcm.subarray(0, Math.floor((first - 0.05) * rate)))
+    const after = measure(pcm.subarray(Math.floor(first * rate), Math.floor((first + 1) * rate)))
+    expect(before.peak).toBe(0)
+    expect(after.peak).toBeGreaterThan(PEAK_FLOOR)
+  })
+})
+
+describe('examplePlays', () => {
+  it('gives some songs from every artist a count of two or more, and only example songs', async () => {
+    const { examplePlays } = await import('./exampleLibrary')
+    const songs = tracks.map(({ path }, i) => ({
+      id: `t${i}`,
+      path,
+      title: path.split('/').pop()!.replace(/^\d+ /, '').replace(/\.wav$/, ''),
+      artist: path.split('/')[1],
+    }))
+    const mine = { id: 'mine', path: 'Music/Counterweight.mp3', title: 'Counterweight', artist: 'Me' }
+    const now = Date.UTC(2026, 10, 2)
+    const plays = examplePlays([...songs, mine] as unknown as Parameters<typeof examplePlays>[0], now)
+    expect(plays.mine).toBeUndefined()
+    const counted = songs.filter((s) => plays[s.id])
+    expect(counted.length).toBeGreaterThanOrEqual(10)
+    expect(new Set(counted.map((s) => s.artist)).size).toBe(5)
+    for (const s of counted) {
+      expect(plays[s.id].n).toBeGreaterThanOrEqual(2)
+      expect(plays[s.id].last).toBeLessThan(now)
+    }
   })
 })

@@ -129,7 +129,7 @@ const app: Draft['app'] = {
   'use_own_music': 'Meine eigene Musik verwenden',
 
   'try_title': 'Beispiel-Mediathek ausprobieren?',
-  'try_intro': 'Neun Platten von vier Interpreten, die es nicht gibt – Musik und Hüllen entstehen beide auf diesem Gerät. Es wird nichts heruntergeladen.',
+  'try_intro': 'Zehn Platten von fünf Interpreten, die es nicht gibt – Musik und Hüllen entstehen beide auf diesem Gerät. Es wird nichts heruntergeladen.',
   'try_safe': '{lead} Sie wird genau so beiseitegelegt, wie sie ist, und nichts, was du im Beispiel machst – Regale, was du abspielst –, wird darin gespeichert.',
   'try_safe_lead': 'Deine Mediathek bleibt sicher.',
   'try_stops': '{lead} Wenn du zurückkommst, macht „Weiterhören“ an derselben Sekunde weiter.',

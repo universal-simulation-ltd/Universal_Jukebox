@@ -138,7 +138,7 @@ const app: Draft['app'] = {
 
   // Try the example library?
   'try_title': 'Experimentar a biblioteca de exemplo?',
-  'try_intro': 'Nove discos de quatro artistas que não existem — as músicas e as capas são feitas neste aparelho. Nada é baixado.',
+  'try_intro': 'Dez discos de cinco artistas que não existem — as músicas e as capas são feitas neste aparelho. Nada é baixado.',
   'try_safe': '{lead} Ela fica guardada exatamente como está, e nada do que você fizer no exemplo — estantes, o que você tocar — é salvo nela.',
   'try_safe_lead': 'Sua biblioteca fica a salvo.',
   'try_stops': '{lead} Quando você voltar, “Continuar ouvindo” retoma do mesmo segundo.',

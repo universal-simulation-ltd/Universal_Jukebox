@@ -129,7 +129,7 @@ const app: Draft['app'] = {
   'use_own_music': 'Usa la mia musica',
 
   'try_title': 'Provare la libreria di esempio?',
-  'try_intro': 'Nove dischi di quattro artisti che non esistono: musica e copertine sono create entrambe su questo dispositivo. Non viene scaricato nulla.',
+  'try_intro': 'Dieci dischi di cinque artisti che non esistono: musica e copertine sono create entrambe su questo dispositivo. Non viene scaricato nulla.',
   'try_safe': '{lead} Viene messa da parte esattamente com’è e niente di ciò che fai nell’esempio (scaffali, ciò che ascolti) viene salvato al suo interno.',
   'try_safe_lead': 'La tua libreria resta al sicuro.',
   'try_stops': '{lead} Quando torni, «Riprendi l’ascolto» riparte dallo stesso secondo.',

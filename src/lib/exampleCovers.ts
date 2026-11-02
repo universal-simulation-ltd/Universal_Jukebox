@@ -11,6 +11,7 @@
 
 import cuttingHead from '../assets/example-covers/cutting-head.jpg?inline'
 import masterLacquer from '../assets/example-covers/master-lacquer.jpg?inline'
+import parlourSongs from '../assets/example-covers/parlour-songs.jpg?inline'
 import quietRooms from '../assets/example-covers/quiet-rooms.jpg?inline'
 import runOut from '../assets/example-covers/run-out.jpg?inline'
 import secondPressing from '../assets/example-covers/second-pressing.jpg?inline'
@@ -30,4 +31,5 @@ export const EXAMPLE_PHOTOS: Readonly<Record<string, string>> = {
   'Master Lacquer': masterLacquer,
   'Quiet Rooms': quietRooms,
   'Surface Noise': surfaceNoise,
+  'Parlour Songs': parlourSongs,
 }

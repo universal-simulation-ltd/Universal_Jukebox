@@ -138,7 +138,7 @@ const app: Draft['app'] = {
 
   // Try the example library? (TryExampleDialog)
   'try_title': 'Essayer la bibliothèque d’exemple ?',
-  'try_intro': 'Neuf disques de quatre artistes qui n’existent pas — la musique comme les pochettes sont créées sur cet appareil. Rien n’est téléchargé.',
+  'try_intro': 'Dix disques de cinq artistes qui n’existent pas — la musique comme les pochettes sont créées sur cet appareil. Rien n’est téléchargé.',
   'try_safe': '{lead} Elle est mise de côté telle quelle, et rien de ce que vous faites dans l’exemple — étagères, écoutes — n’y est enregistré.',
   'try_safe_lead': 'Votre bibliothèque ne risque rien.',
   'try_stops': '{lead} À votre retour, « Reprendre l’écoute » repart à la seconde près.',

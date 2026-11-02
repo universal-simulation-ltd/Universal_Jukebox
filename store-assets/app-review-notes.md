@@ -40,7 +40,7 @@ the text below is about 2,700).
 >
 > SHARED AND THIRD-PARTY CODE: our apps share our own internal code library, not a template. Open-source components: Capacitor, React, Zustand. No app builder, white-label service or AI app generator. Not made for a client.
 >
-> HOW TO TRY IT: no account is needed. On first launch choose "Example library" for a ready set of albums (music synthesised on the device, sleeves from public-domain photos). Every song in it has its own timed words, written for it, so the lyrics around the record, the lyric sheet and the lock-screen line can all be tried. Hold the "Universal Jukebox" title for a small surprise.
+> HOW TO TRY IT: no account is needed. On first launch choose "Example library": ten albums by five made-up artists, from indie to a folk waltz (music and a sung melody synthesised on the device, sleeves from public-domain photos). Every song has its own words, sung and timed, so the lyrics around the record, the lyric sheet and the lock-screen line can all be tried. Some plays are already counted, so the Shelves tab shows a Most played shelf. Hold the "Universal Jukebox" title for a small surprise.
 >
 > If a particular screen reads as duplicated or template-like, please tell us which one and we will change it.
 
