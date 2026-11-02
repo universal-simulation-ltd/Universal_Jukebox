@@ -50,6 +50,14 @@ body {
 
 /* 33⅓ rpm — 1.8s a revolution. Slow enough to read as a record turning rather
    than as a loading spinner, which is the whole difference. */
+/* The heading during a swipe: the lines that stay the same between the songs
+   are left still, the rest move (`SwipeWords` in NowPlaying.tsx). */
+.jb-hide-title [data-w="title"],
+.jb-hide-artist [data-w="artist"],
+.jb-hide-album [data-w="album"] {
+  visibility: hidden;
+}
+
 /* The playing record's sleeve, sliding half off it and staying there
    (James, 2026-11-02: "try the active record sleeve just coming half off and
    the track playing inside of it") — `HalfSleeve` in decks/VinylRecord.tsx. */

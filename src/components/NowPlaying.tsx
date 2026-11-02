@@ -371,6 +371,7 @@ function SongWords({ track, landscape, still = false }: { track: Track; landscap
   return (
     <div className={`flex flex-col justify-center ${landscape ? 'min-h-0 items-start' : 'min-h-[8rem] items-center lg:items-start'}`}>
       <h1
+        data-w="title"
         className={`font-semibold text-balance text-slate-900 dark:text-slate-100 ${
           // Lying down: two lines at most, so a long title cannot push
           // the transport under it off the screen.
@@ -379,17 +380,18 @@ function SongWords({ track, landscape, still = false }: { track: Track; landscap
       >
         {track.title}
       </h1>
-      <p className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 lg:text-slate-700 dark:text-slate-300 lg:dark:text-slate-200`}>
+      <p data-w="artist" className={`${landscape ? 'mt-1 truncate' : 'mt-2'} text-[15px] text-slate-600 lg:text-slate-700 dark:text-slate-300 lg:dark:text-slate-200`}>
         {track.artist ?? track.albumArtist ?? t('common.unknown_artist')}
       </p>
       {track.album && (still ? (
-        <p className={album}>
+        <p data-w="album" className={album}>
           {track.album}
           {track.year ? ` · ${track.year}` : ''}
         </p>
       ) : (
         <button
           type="button"
+          data-w="album"
           onClick={() => navigate({ view: 'album', albumId: track.albumId })}
           className={`${album} underline-offset-2 hover:text-orange-700 hover:underline dark:hover:text-orange-400`}
         >
@@ -416,6 +418,11 @@ function SongWords({ track, landscape, still = false }: { track: Track; landscap
  */
 function SwipeWords({ landscape, children }: { landscape: boolean; children: React.ReactNode }) {
   const row = useSwipeWords((s) => s.row)
+  const track = usePlayerStore(currentTrack)
+  // The way the row last went — kept through a spring back to the middle, so
+  // the lines that stay put don't snap to moving as it settles.
+  const way = useRef(0)
+  if (row && row.drag !== 0) way.current = Math.sign(row.drag)
   if (!row) return <>{children}</>
   const place = (slot: number): React.CSSProperties => {
     const at = slot + row.drag
@@ -425,15 +432,49 @@ function SwipeWords({ landscape, children }: { landscape: boolean; children: Rea
       transition: row.animate ? `transform ${row.ms}ms ${ARC_ACROSS}, opacity ${row.ms}ms ease-out` : 'none',
     }
   }
+  // ⚠️ WHAT DOESN'T CHANGE STAYS PUT (James, 2026-11-02: "Equally don't move
+  // the artist / album name if they remain the same", after a song from the
+  // same album started coming bare, under the same sleeve). A line the songs
+  // coming in share with the one playing is left where it is and only the
+  // rest travel: the title alone, between two songs of one album. Decided by
+  // every song on the side the row is going, so a long swipe that reaches
+  // another album moves everything, as before.
+  const coming = [...row.songs].filter(([slot]) => Math.sign(slot) === -way.current).map(([, song]) => song)
+  const artistOf = (song: Track) => song.artist ?? song.albumArtist ?? ''
+  const keep = {
+    artist: !!track && coming.length > 0 && coming.every((song) => artistOf(song) === artistOf(track)),
+    album: !!track && coming.length > 0 && coming.every((song) => song.albumId === track.albumId && song.year === track.year),
+  }
+  if (!keep.artist && !keep.album) {
+    return (
+      <div className="relative" style={{ overflowX: 'clip' }}>
+        <div style={place(0)}>{children}</div>
+        {/* Within two places of the middle, so one gliding out on a release
+            stays drawn until it has gone, rather than vanishing as it starts. */}
+        {[...row.songs]
+          .filter(([slot]) => Math.abs(slot + row.drag) < 2)
+          .map(([slot, song]) => (
+            <div key={slot} className="pointer-events-none absolute inset-0" style={place(slot)} aria-hidden>
+              <SongWords track={song} landscape={landscape} still />
+            </div>
+          ))}
+      </div>
+    )
+  }
+  // Two copies of the heading: one still, without the lines that move; one
+  // moving, with only them — and each song coming in likewise only them.
+  const still = `jb-hide-title${keep.artist ? '' : ' jb-hide-artist'}${keep.album ? '' : ' jb-hide-album'}`
+  const moving = `${keep.artist ? 'jb-hide-artist' : ''}${keep.album ? ' jb-hide-album' : ''}`
   return (
     <div className="relative" style={{ overflowX: 'clip' }}>
-      <div style={place(0)}>{children}</div>
-      {/* Within two places of the middle, so one gliding out on a release
-          stays drawn until it has gone, rather than vanishing as it starts. */}
+      <div className={still}>{children}</div>
+      <div className={`pointer-events-none absolute inset-0 ${moving}`} style={place(0)} aria-hidden>
+        {children}
+      </div>
       {[...row.songs]
         .filter(([slot]) => Math.abs(slot + row.drag) < 2)
         .map(([slot, song]) => (
-          <div key={slot} className="pointer-events-none absolute inset-0" style={place(slot)} aria-hidden>
+          <div key={slot} className={`pointer-events-none absolute inset-0 ${moving}`} style={place(slot)} aria-hidden>
             <SongWords track={song} landscape={landscape} still />
           </div>
         ))}
