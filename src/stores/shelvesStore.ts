@@ -42,6 +42,23 @@ interface ShelvesState {
   move(shelfId: string, trackId: string, delta: -1 | 1): void
   /** The whole set at once — a restore from a backup, already merged (`lib/backup.ts`). */
   replaceAll(shelves: JukeboxShelf[]): void
+  /** ♥: on the Loved shelf if it isn't, off if it is. Returns whether it is loved now. */
+  toggleLoved(trackId: string): boolean
+}
+
+/**
+ * The Loved shelf (James, 2026-11-02: "In the reveal menu need an option to ♥
+ * a song"): an ordinary shelf with a fixed id, so it survives a backup and a
+ * restore as itself (`lib/backup.ts` keeps ids), and the ♥ finds it again after
+ * you rename it or move songs about on it. Made by the first ♥, named in the
+ * language of that moment like the starter shelf; emptied, it goes like any
+ * shelf, and the next ♥ makes it again.
+ */
+export const LOVED_SHELF = 'loved'
+
+/** Whether this song is on the Loved shelf. */
+export function useLoved(trackId: string | undefined): boolean {
+  return useShelvesStore((s) => !!trackId && !!s.shelves.find((shelf) => shelf.id === LOVED_SHELF)?.trackIds.includes(trackId))
 }
 
 export const useShelvesStore = create<ShelvesState>((set, get) => ({
@@ -79,6 +96,23 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
   replaceAll(shelves) {
     set({ shelves })
     persist(shelves)
+  },
+  toggleLoved(trackId) {
+    const shelves = get().shelves
+    const loved = shelves.find((s) => s.id === LOVED_SHELF)
+    let next: JukeboxShelf[]
+    let now: boolean
+    if (!loved) {
+      next = [...shelves, { id: LOVED_SHELF, trackIds: [trackId], name: getT()('shelves.loved_name') }]
+      now = true
+    } else {
+      now = !loved.trackIds.includes(trackId)
+      next = toggleOnShelf(shelves, LOVED_SHELF, trackId, LOVED_SHELF).shelves
+    }
+    if (now) haptic('thunk')
+    set({ shelves: next })
+    persist(next)
+    return now
   },
 }))
 

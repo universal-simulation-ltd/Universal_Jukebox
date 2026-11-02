@@ -147,6 +147,16 @@ const decks: Draft['decks'] = {
   'group_screen': 'Pantalla',
   'customise': 'Personalizar',
   'customise_aria': 'Elige qué botones aparecen aquí, en Ajustar esta app',
+  'loved': 'Favorita',
+  'love_aria': 'Poner «{title}» en tu estante de favoritas',
+  'loved_aria': '«{title}» está en tus favoritas. Toca para quitarla',
+  'added_to_loved': 'En tus favoritas',
+  'edit_title': 'Botones bajo la canción',
+  'edit_hint': 'Toca − para quitar un botón, o + para añadir uno.',
+  'edit_add': 'Añadir',
+  'edit_add_one': 'Añadir {button}',
+  'edit_remove': 'Quitar {button}',
+  'edit_done': 'Listo',
 }
 
 export default decks

@@ -24,7 +24,7 @@ const settings: Draft['settings'] = {
   'hide_resume': 'Ocultar “Continuar ouvindo”',
   'hide_resume_hint': 'Marque para tirar o cartão que fica acima dos seus álbuns, artistas e faixas e mostra a última música que você estava ouvindo, no aparelho dela, para você tocar nele e continuar de onde parou.',
   'account_title': 'Seu Universal ID',
-  'account_manage': 'Gerenciar no hub',
+  'account_manage': 'Gerenciar no Hub',
   'account_note': 'Sair aqui desconecta você de todos os apps da UNI·SIM neste aparelho.',
   'jukebox_reads': 'Como você quer que seu jukebox se chame?',
   'jukebox_reads_hint': 'É o nome no topo do app, em todos os aparelhos em que você entrou.',
@@ -167,6 +167,9 @@ const settings: Draft['settings'] = {
   'mode_keep_awake': 'Tela ligada',
   'mode_sleep': 'Dormir',
   'mode_bedside': 'Cabeceira',
+  'mode_love': 'Amei',
+  'your_name': 'Seu nome',
+  'your_name_hint': 'O mesmo nome de “Me chame de” no Hub UNI·SIM. Mude aqui ou lá e os dois mudam.',
 
   // Lyrics
   'lyrics_title': 'Letra',

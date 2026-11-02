@@ -26,6 +26,7 @@ const shelves: Draft['shelves'] = {
   'jukebox_intro': 'Seu jukebox. Toque em + para colocar uma música na estante — cada estante toca como uma playlist.',
   'start_another_shelf': 'Começar outra estante',
   'starter_name': 'Algumas para começar',
+  'loved_name': 'Favoritas',
   'starter_hint': 'Uma estante é sua própria playlist. Toque em + para adicionar uma música, em Ajustar para tirar estas ou no nome para mudá-lo.',
   'most_played': 'Mais tocadas',
   'most_played_remove': 'Remover',

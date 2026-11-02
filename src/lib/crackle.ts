@@ -344,6 +344,57 @@ function tickParts(downbeat: boolean): ToneSpec[] {
   return TICK.map((part) => ({ ...part, from: part.from * pitch, to: part.to * pitch }))
 }
 
+/**
+ * The double tap on Now Playing's machine (James, 2026-11-02: "If double
+ * tapping the record in now playing then rewind 3 seconds with a scratchy
+ * mixing sound"): the music jumps back three seconds under one of these.
+ *
+ * `scratch` is a DJ's hand on the record — three strokes, back, forward, back,
+ * each a swept sawtooth (the music's pitch dragged) under a band of noise (the
+ * stylus in the groove). `spool` is tape winding back: the key, a whine rising
+ * as the reels speed up, the key again. Under a second, like every cue.
+ */
+const FX: Record<'scratch' | 'spool', CuePart[]> = {
+  scratch: [
+    { kind: 'tone', at: 0, wave: 'sawtooth', from: 380, to: 120, peak: 0.16, seconds: 0.16 },
+    { kind: 'noise', at: 0, freq: 1500, q: 0.9, peak: 0.36, seconds: 0.16, pops: 0 },
+    { kind: 'tone', at: 0.17, wave: 'sawtooth', from: 140, to: 460, peak: 0.14, seconds: 0.13 },
+    { kind: 'noise', at: 0.17, freq: 1100, q: 0.9, peak: 0.3, seconds: 0.13, pops: 0 },
+    { kind: 'tone', at: 0.31, wave: 'sawtooth', from: 520, to: 90, peak: 0.16, seconds: 0.24 },
+    { kind: 'noise', at: 0.31, freq: 1700, q: 0.8, peak: 0.34, seconds: 0.24, pops: 0.0012 },
+  ],
+  spool: [
+    { kind: 'noise', at: 0, freq: 700, q: 1.2, peak: 0.3, seconds: 0.05, pops: 0 },
+    { kind: 'tone', at: 0.03, wave: 'triangle', from: 220, to: 900, peak: 0.1, seconds: 0.58 },
+    { kind: 'noise', at: 0.04, freq: 4000, q: 0.7, peak: 0.2, seconds: 0.58, pops: 0 },
+    { kind: 'noise', at: 0.62, freq: 600, q: 1.2, peak: 0.28, seconds: 0.05, pops: 0 },
+  ],
+}
+
+/** How long a double-tap sound lasts — for the test that holds it to a second. */
+export function fxSeconds(kind: keyof typeof FX): number {
+  return Math.max(...FX[kind].map((part) => part.at + part.seconds))
+}
+
+/** The rewind's sound — see `FX`. Rides the app volume and the start-up sound's level. */
+export function playRewindFx(kind: keyof typeof FX, volume = 0.8, level = 1): void {
+  if (output === 'clip') {
+    playClip(`fx:${kind}`, FX[kind], gainOf(volume, level))
+    return
+  }
+  const audio = ctx()
+  if (!audio) return
+  if (audio.state === 'suspended') void audio.resume().catch(() => {})
+  const gain = gainOf(volume, level)
+  if (gain <= 0) return
+  const now = audio.currentTime
+  for (const part of FX[kind]) {
+    if (part.kind === 'tone') tone(audio, now + part.at, gain, part)
+    else noise(audio, now + part.at, gain, part)
+  }
+  idleAfter(fxSeconds(kind))
+}
+
 /** Each part clamped on its own, so a corrupt stored setting cannot produce a bang. */
 function gainOf(volume: number, level: number): number {
   return Math.max(0, Math.min(1, volume)) * Math.max(0, Math.min(MAX_LEVEL, level))
@@ -445,6 +496,7 @@ export function setCueOutput(mode: 'context' | 'clip'): void {
   for (const style of Object.keys(CUES) as DeckStyle[]) void clipFor(`cue:${style}`, CUES[style])
   void clipFor('tick:up', tickParts(false))
   void clipFor('tick:down', tickParts(true))
+  for (const kind of Object.keys(FX) as (keyof typeof FX)[]) void clipFor(`fx:${kind}`, FX[kind])
 }
 
 /**
@@ -529,6 +581,7 @@ export function setClipSink(fn: ((key: string, url: string, volume: number) => v
 /** A rendered clip by key (`cue:vinyl`, `tick:up`…), for the engine to keep. */
 export function clipUrl(key: string): Promise<string | null> {
   if (key === 'tick:up' || key === 'tick:down') return clipFor(key, tickParts(key === 'tick:down'))
+  if (key === 'fx:scratch' || key === 'fx:spool') return clipFor(key, FX[key.slice(3) as keyof typeof FX])
   const style = key.startsWith('cue:') ? (key.slice(4) as DeckStyle) : null
   return style ? clipFor(key, CUES[style] ?? CUES.vinyl) : Promise.resolve(null)
 }

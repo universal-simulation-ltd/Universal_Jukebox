@@ -93,7 +93,7 @@ const player: Draft['player'] = {
   'output_aria_away': 'Ses başka bir cihaza gidiyor — sesin nereden çıkacağını seçin',
   'output_aria_here': 'Sesin nereden çıkacağını seçin',
 
-  'player_aria': 'Çalar: {deck}. {next} için dokunun, hepsinden seçmek için basılı tutun',
+  'player_aria': 'Çalar: {deck}. {next} için dokunun',
 
   'preview_stop_aria': '{title} için ön dinlemeyi durdur',
   'preview_aria_one': '{title} için ön dinleme — {start}. saniyeden itibaren {count} saniye',

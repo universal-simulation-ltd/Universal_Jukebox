@@ -24,6 +24,7 @@ const shelves: Draft['shelves'] = {
   'jukebox_intro': 'Jukebox’ınız. Rafa şarkı koymak için + simgesine dokunun — her raf bir çalma listesi olarak çalar.',
   'start_another_shelf': 'Başka bir raf başlat',
   'starter_name': 'Başlamak için birkaç şarkı',
+  'loved_name': 'Sevdiklerim',
   'starter_hint': 'Raf, kendi çalma listenizdir. Şarkı eklemek için + simgesine, bunları kaldırmak için İnce ayar’a, adını değiştirmek için ada dokunun.',
   'most_played': 'En çok çalınanlar',
   'most_played_remove': 'Kaldır',

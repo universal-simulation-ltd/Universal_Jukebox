@@ -11,7 +11,24 @@
 //   resolves the same choice itself.
 // - Nobody signed in: "Whose jukebox is this?" in Tune (`ownerName`, on this
 //   device): "Bradley’s Jukebox", or "Universal Jukebox" while it's empty.
+//
+// ⚠️ ONE NAME, NOT TWO (James, 2026-11-02: "There's an issue between the name
+// given in the app e.g. James' jukebox and that given in the app.unisim — they
+// should be synced instead of one overriding the other. The custom field is
+// primarily for guests"). The name IS the suite's "Call me" (Global Tuning,
+// kept on the Universal ID and shown on the Hub), and `ownerName` is this
+// device's copy of it — `useOwnerNameSync` below keeps the two together:
+//
+// - signed in, the account's name comes down to `ownerName`, so signing out
+//   leaves the jukebox called what it was;
+// - signed out, the guest's name goes into the stored "Call me", which the SDK
+//   uses to SEED an account that has no name yet on the next sign-in (an
+//   account that has one keeps it — the SDK's rule: a row that exists wins).
+//
+// Signed in, Tune's name box edits "Call me" itself, so a change there shows on
+// the Hub and a change on the Hub shows here.
 
+import { useEffect } from 'react'
 import { resolveAppTitle, useAppTitleChoice, useCallMe, useProfile, useUniversal } from '@unisim/sdk'
 import { useT } from '../i18n'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -59,4 +76,22 @@ export function useJukeboxTitle(): { text: string; accent: string | null } | nul
   if (!ownerName) return product
   const owner = possessive(t.lang, ownerName)
   return { text: t('app.personal_title', { owner }), accent: owner }
+}
+
+/** Keeps `ownerName` and the suite's "Call me" as one name — see the top of this file. Mounted once, in `App`. */
+export function useOwnerNameSync(): void {
+  const { loading: authLoading, globalCallMe, setGlobalCallMe } = useUniversal()
+  const { signedIn, loading } = useSignedIn()
+  const callMe = useCallMe()
+  const ownerName = useSettingsStore((s) => s.ownerName.trim())
+  const setSetting = useSettingsStore((s) => s.set)
+  useEffect(() => {
+    if (authLoading || loading) return
+    if (signedIn) {
+      if (callMe && callMe !== ownerName) setSetting('ownerName', callMe)
+    } else if ((ownerName || null) !== globalCallMe) {
+      setGlobalCallMe(ownerName || null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, loading, signedIn, callMe, ownerName, globalCallMe])
 }

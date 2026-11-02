@@ -161,6 +161,16 @@ const decks: Draft['decks'] = {
   'group_screen': 'Écran',
   'customise': 'Modifier',
   'customise_aria': 'Choisir les boutons affichés ici, dans Régler cette application',
+  'loved': 'Adoré',
+  'love_aria': 'Ajouter « {title} » à vos coups de cœur',
+  'loved_aria': '« {title} » est dans vos coups de cœur. Touchez pour l’en retirer',
+  'added_to_loved': 'Dans vos coups de cœur',
+  'edit_title': 'Boutons sous le morceau',
+  'edit_hint': 'Touchez − pour retirer un bouton, ou + pour en ajouter un.',
+  'edit_add': 'Ajouter',
+  'edit_add_one': 'Ajouter {button}',
+  'edit_remove': 'Retirer {button}',
+  'edit_done': 'OK',
 }
 
 export default decks

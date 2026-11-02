@@ -23,7 +23,7 @@ const settings: Draft['settings'] = {
   'hide_resume': 'Nascondi «Riprendi l’ascolto»',
   'hide_resume_hint': 'Spunta per togliere la scheda sopra album, artisti e brani che mostra l’ultimo brano che stavi ascoltando, sul suo apparecchio, da toccare per riprendere da dove avevi lasciato.',
   'account_title': 'Il tuo Universal ID',
-  'account_manage': 'Gestisci sull’hub',
+  'account_manage': 'Gestisci sull’Hub',
   'account_note': 'Uscendo qui esci da tutte le app UNI·SIM su questo dispositivo.',
   'jukebox_reads': 'Come vuoi che si chiami il tuo jukebox?',
   'jukebox_reads_hint': 'È il nome in cima all’app, su ogni dispositivo in cui hai effettuato l’accesso.',
@@ -161,6 +161,9 @@ const settings: Draft['settings'] = {
   'mode_keep_awake': 'Resta acceso',
   'mode_sleep': 'Timer',
   'mode_bedside': 'Comodino',
+  'mode_love': 'Preferito',
+  'your_name': 'Il tuo nome',
+  'your_name_hint': 'Lo stesso nome di «Chiamami» sull’Hub UNI·SIM. Cambialo qui o lì e cambiano entrambi.',
 
   'lyrics_title': 'Testi',
   'lyrics_note': 'Jukebox legge i testi contenuti nei tag dei tuoi file e un file .lrc salvato accanto a un brano con lo stesso nome (ripeti la scansione dopo averli aggiunti). La maggior parte dei file non ha né l’uno né l’altro.',

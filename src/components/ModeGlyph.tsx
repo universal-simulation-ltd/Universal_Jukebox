@@ -7,6 +7,9 @@ import { LoudGlyph, QuietGlyph } from './LevelButton'
 import { OutputGlyph } from './OutputButton'
 import { RepeatGlyph, RepeatOneGlyph } from './PlayModes'
 import { MoonGlyph } from './SleepButton'
+import { HeartGlyph } from './LoveButton'
+import { DeckMiniature } from './Deck'
+import { useSettingsStore } from '../stores/settingsStore'
 import type { ModeKey } from '../stores/settingsStore'
 
 /**
@@ -23,6 +26,8 @@ export default function ModeGlyph({ mode }: { mode: ModeKey }) {
       return <RepeatGlyph />
     case 'repeatOne':
       return <RepeatOneGlyph />
+    case 'love':
+      return <HeartGlyph />
     case 'shelf':
       return <ShelfGlyph />
     case 'about':
@@ -39,5 +44,13 @@ export default function ModeGlyph({ mode }: { mode: ModeKey }) {
       return <MoonGlyph />
     case 'bedside':
       return <BedsideGlyph />
+    case 'player':
+      return <PlayerGlyph />
   }
+}
+
+/** The machine on now, as the Player button shows it. */
+function PlayerGlyph() {
+  const deck = useSettingsStore((s) => s.deck)
+  return <DeckMiniature setting={deck} box={20} />
 }

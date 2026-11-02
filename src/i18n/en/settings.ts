@@ -35,7 +35,7 @@ export default {
   'hide_resume': 'Hide “Resume listening”', // tick box; “Resume listening” is the card's title
   'hide_resume_hint': 'Tick to take away the card above your albums, artists and tracks that shows the song you were last playing, on its machine, so you can tap it to carry on where you left off.',
   'account_title': 'Your Universal ID', // section title, only when signed in to UNI·SIM; “Universal ID” is the suite's name for an account
-  'account_manage': 'Manage on the hub', // link to the account's page on app.unisim.co.uk
+  'account_manage': 'Manage on the Hub', // link to the account's page on app.unisim.co.uk
   'account_note': 'Signing out here signs you out of every UNI·SIM app on this device.',
   'jukebox_reads': 'How should your jukebox read?', // Tune ▸ Your Universal ID (signed in): the App name choice — Bradley’s Jukebox / Your Jukebox / Universal Jukebox
   'jukebox_reads_hint': 'It’s the name at the top of the app, on every device you’re signed in on.', // under it
@@ -194,6 +194,9 @@ export default {
   'mode_keep_awake': 'Keep awake', // keeps the screen on
   'mode_sleep': 'Sleep', // the sleep timer
   'mode_bedside': 'Bedside', // the bedside clock screen
+  'mode_love': 'Love', // the word under the ♥ button in Now Playing's row; keep to ~10 characters
+  'your_name': 'Your name', // label of the name box when signed in
+  'your_name_hint': 'The same name as “Call me” on the UNI·SIM Hub. Change it here or there and both change.', // under the name box when signed in
 
   // Lyrics (section)
   'lyrics_title': 'Lyrics', // section title

@@ -8,6 +8,8 @@ import {
   useResetAppDefaults,
   signOut,
   useAppTitleChoice,
+  useCallMe,
+  CALL_ME_MAX,
   useUniversal,
   type Language,
 } from '@unisim/sdk'
@@ -1246,9 +1248,44 @@ function SavedHits() {
  *   (`ownerName`, on this device). Not on the website, whose bar is the SDK's
  *   and names only a signed-in account.
  */
+/** The name box when signed in: the suite's "Call me", committed on leaving it. */
+function CallMeField({ placeholder }: { placeholder: string }) {
+  const t = useT()
+  const { globalCallMe, setGlobalCallMe } = useUniversal()
+  const [draft, setDraft] = useState(globalCallMe ?? '')
+  // A change from the Hub (or another device) arriving while the box is shown.
+  useEffect(() => setDraft(globalCallMe ?? ''), [globalCallMe])
+  const commit = () => {
+    const next = draft.trim()
+    if (next !== (globalCallMe ?? '')) setGlobalCallMe(next || null)
+  }
+  return (
+    <label className="block px-5 pt-4">
+      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-200">{t('settings.your_name')}</span>
+      <input
+        className="mt-2 block min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[16px] text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+        value={draft}
+        maxLength={CALL_ME_MAX}
+        placeholder={placeholder}
+        autoComplete="given-name"
+        autoCapitalize="words"
+        enterKeyHint="done"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+        }}
+      />
+      <span className="mt-2 block text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">{t('settings.your_name_hint')}</span>
+    </label>
+  )
+}
+
 export function YourJukebox() {
   const t = useT()
   const { supabase } = useUniversal()
+  // With no "Call me" set this is the name the account gives (profile, email).
+  const callMePlaceholder = useCallMe() ?? t('settings.whose_jukebox_placeholder')
   const { signedIn, email } = useSignedIn()
   const personal = usePersonalTitle()
   const choice = useAppTitleChoice()
@@ -1306,13 +1343,16 @@ export function YourJukebox() {
     <div className={card}>
       <div className="px-5 pt-4">
         <span className={heading}>{t('settings.account_title')}</span>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <p className="min-w-0 flex-1 text-[14px] font-semibold break-all text-slate-900 dark:text-slate-100">{email}</p>
-          <a href={hub} target="_blank" rel="noopener" className="text-[13px] font-medium whitespace-nowrap text-orange-700 hover:underline dark:text-orange-400">
-            {t('settings.account_manage')} →
-          </a>
-        </div>
+        {/* One line, cut with … (James, 2026-11-02: "email should be one line
+            (with … if too long) and next line manage on hub"). */}
+        <p className="mt-2 truncate text-[14px] font-semibold text-slate-900 dark:text-slate-100" title={email ?? undefined}>{email}</p>
+        <a href={hub} target="_blank" rel="noopener" className="mt-0.5 inline-block text-[13px] font-medium text-orange-700 hover:underline dark:text-orange-400">
+          {t('settings.account_manage')} →
+        </a>
       </div>
+      {/* The suite's "Call me", the same name the Hub shows — see
+          `lib/jukeboxTitle.ts` (James, 2026-11-02: synced, not overridden). */}
+      <CallMeField placeholder={callMePlaceholder} />
       <Choice<Pick>
         label={t('settings.jukebox_reads')}
         value={value}

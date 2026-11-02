@@ -147,6 +147,16 @@ const decks: Draft['decks'] = {
   'group_screen': 'Ekran',
   'customise': 'Özelleştir',
   'customise_aria': 'Burada hangi düğmelerin görüneceğini seçin (Bu uygulamayı ayarla)',
+  'loved': 'Sevildi',
+  'love_aria': '“{title}” şarkısını Sevdiklerim rafına koy',
+  'loved_aria': '“{title}” Sevdiklerim rafında. Çıkarmak için dokunun',
+  'added_to_loved': 'Sevdiklerim rafında',
+  'edit_title': 'Şarkının altındaki düğmeler',
+  'edit_hint': 'Bir düğmeyi kaldırmak için −, eklemek için + simgesine dokunun.',
+  'edit_add': 'Ekle',
+  'edit_add_one': '{button} ekle',
+  'edit_remove': '{button} kaldır',
+  'edit_done': 'Bitti',
 }
 
 export default decks

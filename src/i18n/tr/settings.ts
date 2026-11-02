@@ -160,6 +160,9 @@ const settings: Draft['settings'] = {
   'mode_keep_awake': 'Ekran açık',
   'mode_sleep': 'Uyku',
   'mode_bedside': 'Başucu',
+  'mode_love': 'Sevdim',
+  'your_name': 'Adınız',
+  'your_name_hint': 'UNI·SIM Hub’daki “Hitap adı” ile aynı ad. Burada ya da orada değiştirin, ikisi de değişir.',
 
   'lyrics_title': 'Şarkı sözleri',
   'lyrics_note': 'Jukebox, dosyalarınızın etiketlerindeki şarkı sözlerini ve bir şarkının yanına aynı adla kaydedilmiş .lrc dosyasını okur (ekledikten sonra yeniden tarayın). Çoğu dosyada ikisi de yoktur.',

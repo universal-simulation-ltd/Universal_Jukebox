@@ -149,6 +149,16 @@ const decks: Draft['decks'] = {
   'group_screen': 'Schermo',
   'customise': 'Modifica',
   'customise_aria': 'Scegli quali pulsanti mostrare qui, in Regola questa app',
+  'loved': 'Preferito',
+  'love_aria': 'Metti «{title}» tra le preferite',
+  'loved_aria': '«{title}» è tra le tue preferite. Tocca per toglierla',
+  'added_to_loved': 'Tra le tue preferite',
+  'edit_title': 'Pulsanti sotto il brano',
+  'edit_hint': 'Tocca − per togliere un pulsante, o + per aggiungerne uno.',
+  'edit_add': 'Aggiungi',
+  'edit_add_one': 'Aggiungi {button}',
+  'edit_remove': 'Togli {button}',
+  'edit_done': 'Fine',
 }
 
 export default decks

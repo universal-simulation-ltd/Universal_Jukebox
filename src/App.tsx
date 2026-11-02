@@ -1,4 +1,5 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useOwnerNameSync } from './lib/jukeboxTitle'
 import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. Nobody signs in to Jukebox,
@@ -181,6 +182,8 @@ function useMiniMode(): boolean {
 }
 
 export default function App() {
+  // The jukebox's name and the Hub's "Call me" kept as one (`lib/jukeboxTitle.ts`).
+  useOwnerNameSync()
   return phoneScreens() ? (
     <Suspense fallback={null}>
       <NativeApp />

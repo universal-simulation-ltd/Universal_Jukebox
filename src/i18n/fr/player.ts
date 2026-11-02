@@ -103,7 +103,7 @@ const player: Draft['player'] = {
   'output_aria_here': 'Choisissez où sort le son',
 
   // The machine (PlayerButton)
-  'player_aria': 'Platine : {deck}. Touchez pour {next}, ou maintenez pour choisir parmi toutes',
+  'player_aria': 'Platine : {deck}. Touchez pour {next}',
 
   // Preview (PreviewButton)
   'preview_stop_aria': 'Arrêter la pré-écoute de {title}',

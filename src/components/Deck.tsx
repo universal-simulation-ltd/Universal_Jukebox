@@ -18,7 +18,7 @@ import Tip from './Tip'
 import { markTipSeen } from '../lib/tips'
 import { DeckSlideContext, slideInner, slideOuter } from './decks/slide'
 import { DeckOutlineContext } from './decks/outline'
-import { scratchDeck } from '../lib/scratch'
+import { rewindDeck } from '../lib/scratch'
 import { grooveRings } from '../lib/grooves'
 import { haptic } from '../lib/haptics'
 import { shownName } from '../lib/format'
@@ -299,21 +299,22 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
     else if (album) navigate({ view: 'album', albumId: album.id })
   }
 
-  // The easter egg (`lib/scratch.ts`): a DOUBLE tap on Now Playing's machine
-  // scratches it. ⚠️ So the single tap waits DOUBLE_TAP_MS to be sure it is
-  // one — only here, and not when motion is reduced (no egg, no wait).
+  // A DOUBLE tap on Now Playing's machine scratches it and takes the song back
+  // three seconds (`lib/scratch.ts`). ⚠️ So the single tap waits DOUBLE_TAP_MS
+  // to be sure it is one — only here. With motion reduced it still rewinds,
+  // with the sound, without the wobble.
   const deckEl = useRef<HTMLDivElement>(null)
   const firstTap = useRef<number | null>(null)
   useEffect(() => () => {
     if (firstTap.current !== null) window.clearTimeout(firstTap.current)
   }, [])
   const tapDeck = () => {
-    if (!ceremonial || reduced || longPressed.current) return openAlbum()
+    if (!ceremonial || longPressed.current) return openAlbum()
     if (firstTap.current !== null) {
       window.clearTimeout(firstTap.current)
       firstTap.current = null
       haptic('tap')
-      if (deckEl.current) scratchDeck(deckEl.current, style)
+      rewindDeck(deckEl.current, style, usePlayerStore.getState(), useSettingsStore.getState().needleDropLevel, !reduced)
       return
     }
     firstTap.current = window.setTimeout(() => {

@@ -109,7 +109,7 @@ export default {
   'output_aria_here': 'Choose where the sound comes out',
 
   // The machine (PlayerButton) — {deck} and {next} are machine names: Vinyl, CD, Cassette…
-  'player_aria': 'Player: {deck}. Tap for {next}, or hold to choose from them all',
+  'player_aria': 'Player: {deck}. Tap for {next}',
 
   // Preview (PreviewButton) — a short listen from a song list
   'preview_stop_aria': 'Stop previewing {title}',

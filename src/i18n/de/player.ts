@@ -93,7 +93,7 @@ const player: Draft['player'] = {
   'output_aria_away': 'Der Ton geht an ein anderes Gerät – wählen, wo er herauskommt',
   'output_aria_here': 'Wählen, wo der Ton herauskommt',
 
-  'player_aria': 'Abspielgerät: {deck}. Tippen für {next}, gedrückt halten für alle zur Auswahl',
+  'player_aria': 'Abspielgerät: {deck}. Tippen für {next}',
 
   'preview_stop_aria': 'Vorhören von {title} beenden',
   'preview_aria_one': '{title} vorhören – {count} Sekunde ab Sekunde {start}',

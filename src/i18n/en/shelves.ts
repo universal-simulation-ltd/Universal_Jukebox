@@ -33,6 +33,7 @@ export default {
   'jukebox_intro': 'Your jukebox. Tap + to put a song on the shelf — each shelf plays as a playlist.',
   'start_another_shelf': 'Start another shelf',
   'starter_name': 'A few to start with', // the name of the shelf the app fills with five songs the first time, to show what a shelf is
+  'loved_name': 'Loved', // the name the ♥ button gives the shelf it makes
   'starter_hint': 'A shelf is your own playlist. Tap + to add a song, Fine-tune to take these off, or tap the name to rename it.', // under that shelf; “Fine-tune” is the shelf's button
   'most_played': 'Most played', // the shelf that fills itself with the songs played most
   'most_played_remove': 'Remove', // small button on that shelf; short

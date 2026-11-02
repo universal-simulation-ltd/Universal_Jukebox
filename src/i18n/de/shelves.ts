@@ -24,6 +24,7 @@ const shelves: Draft['shelves'] = {
   'jukebox_intro': 'Deine Jukebox. Tippe auf +, um einen Song ins Regal zu stellen – jedes Regal wird als Playlist abgespielt.',
   'start_another_shelf': 'Neues Regal anlegen',
   'starter_name': 'Ein paar zum Start',
+  'loved_name': 'Lieblingssongs',
   'starter_hint': 'Ein Regal ist deine eigene Playlist. Tippe auf +, um einen Song hinzuzufügen, auf „Bearbeiten“, um diese herauszunehmen, oder auf den Namen, um ihn zu ändern.',
   'most_played': 'Meistgespielt',
   'most_played_remove': 'Entfernen',

@@ -22,7 +22,7 @@ const settings: Draft['settings'] = {
   'hide_resume': 'Ocultar «Seguir escuchando»',
   'hide_resume_hint': 'Márcalo para quitar la tarjeta que aparece encima de tus álbumes, artistas y pistas con la última canción que estabas escuchando, en su aparato, para que la toques y sigas donde lo dejaste.',
   'account_title': 'Tu Universal ID',
-  'account_manage': 'Gestionar en el hub',
+  'account_manage': 'Gestionar en el Hub',
   'account_note': 'Cerrar sesión aquí la cierra en todas las apps de UNI·SIM de este dispositivo.',
   'jukebox_reads': '¿Cómo quieres que se llame tu jukebox?',
   'jukebox_reads_hint': 'Es el nombre de arriba de la app, en cada dispositivo donde hayas iniciado sesión.',
@@ -160,6 +160,9 @@ const settings: Draft['settings'] = {
   'mode_keep_awake': 'No apagar',
   'mode_sleep': 'Dormir',
   'mode_bedside': 'Mesilla',
+  'mode_love': 'Me encanta',
+  'your_name': 'Tu nombre',
+  'your_name_hint': 'El mismo nombre que «Llámame» en el Hub de UNI·SIM. Cámbialo aquí o allí y cambian los dos.',
 
   'lyrics_title': 'Letras',
   'lyrics_note': 'Jukebox lee las letras con las que se etiquetaron tus archivos y los archivos .lrc guardados junto a una canción con el mismo nombre (vuelve a escanear después de añadirlos). La mayoría de los archivos no tienen ni lo uno ni lo otro.',

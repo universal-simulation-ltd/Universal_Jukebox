@@ -160,6 +160,9 @@ const settings: Draft['settings'] = {
   'mode_keep_awake': 'Bildschirm an',
   'mode_sleep': 'Sleep-Timer',
   'mode_bedside': 'Nacht­tisch',
+  'mode_love': 'Favorit',
+  'your_name': 'Dein Name',
+  'your_name_hint': 'Derselbe Name wie „Nenn mich“ im UNI·SIM Hub. Änderst du ihn hier oder dort, ändert er sich an beiden Stellen.',
 
   'lyrics_title': 'Songtexte',
   'lyrics_note': 'Jukebox liest die Songtexte aus den Tags deiner Dateien und aus einer .lrc-Datei, die mit demselben Namen neben einem Song gespeichert ist (lies nach dem Hinzufügen neu ein). Die meisten Dateien haben weder das eine noch das andere.',

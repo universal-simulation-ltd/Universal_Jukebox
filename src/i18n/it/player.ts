@@ -93,7 +93,7 @@ const player: Draft['player'] = {
   'output_aria_away': 'L’audio va a un altro dispositivo: scegli da dove esce',
   'output_aria_here': 'Scegli da dove esce l’audio',
 
-  'player_aria': 'Apparecchio: {deck}. Tocca per {next}, o tieni premuto per sceglierne uno',
+  'player_aria': 'Apparecchio: {deck}. Tocca per {next}',
 
   'preview_stop_aria': 'Interrompi l’anteprima di {title}',
   'preview_aria_one': 'Anteprima di {title}: {count} secondo a partire dal secondo {start}',

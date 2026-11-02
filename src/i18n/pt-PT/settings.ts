@@ -22,7 +22,7 @@ const settings: Draft['settings'] = {
   'hide_resume': 'Ocultar «Continuar a ouvir»',
   'hide_resume_hint': 'Marque para retirar o cartão por cima dos álbuns, artistas e faixas que mostra a última música que estava a ouvir, na sua aparelhagem, para lhe tocar e continuar onde parou.',
   'account_title': 'O seu Universal ID',
-  'account_manage': 'Gerir no hub',
+  'account_manage': 'Gerir no Hub',
   'account_note': 'Terminar sessão aqui termina-a em todas as apps UNI·SIM deste dispositivo.',
   'jukebox_reads': 'Como quer que o seu jukebox se chame?',
   'jukebox_reads_hint': 'É o nome no topo da app, em todos os dispositivos onde iniciou sessão.',
@@ -160,6 +160,9 @@ const settings: Draft['settings'] = {
   'mode_keep_awake': 'Ecrã ligado',
   'mode_sleep': 'Dormir',
   'mode_bedside': 'Cabeceira',
+  'mode_love': 'Adoro',
+  'your_name': 'O seu nome',
+  'your_name_hint': 'O mesmo nome que “Tratar-me por” no Hub UNI·SIM. Mude-o aqui ou lá e mudam os dois.',
 
   'lyrics_title': 'Letras',
   'lyrics_note': 'O Jukebox lê as letras incluídas nas etiquetas dos seus ficheiros e um ficheiro .lrc guardado ao lado de uma música com o mesmo nome (analise novamente depois de os adicionar). A maioria dos ficheiros não tem nenhum dos dois.',

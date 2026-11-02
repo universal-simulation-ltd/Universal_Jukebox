@@ -24,7 +24,7 @@ const settings: Draft['settings'] = {
   'hide_resume': 'Masquer « Reprendre l’écoute »',
   'hide_resume_hint': 'Cochez pour retirer la carte, au-dessus de vos albums, artistes et morceaux, qui montre le dernier morceau écouté sur sa platine, et que vous touchez pour reprendre là où vous en étiez.',
   'account_title': 'Votre Universal ID',
-  'account_manage': 'Gérer sur le hub',
+  'account_manage': 'Gérer sur le Hub',
   'account_note': 'Vous déconnecter ici vous déconnecte de toutes les apps UNI·SIM sur cet appareil.',
   'jukebox_reads': 'Comment votre jukebox doit-il s’appeler ?',
   'jukebox_reads_hint': 'Le nom en haut de l’app, sur chaque appareil où vous êtes connecté.',
@@ -172,6 +172,9 @@ const settings: Draft['settings'] = {
   'mode_keep_awake': 'Anti-veille',
   'mode_sleep': 'Veille',
   'mode_bedside': 'Chevet',
+  'mode_love': 'J’adore',
+  'your_name': 'Votre prénom',
+  'your_name_hint': 'Le même nom que « Appelez-moi » sur le Hub UNI·SIM. Changez-le ici ou là-bas, les deux suivent.',
 
   // Lyrics (section)
   'lyrics_title': 'Paroles',

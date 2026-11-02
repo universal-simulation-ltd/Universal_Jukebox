@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cueSeconds, wav } from './crackle'
+import { cueSeconds, fxSeconds, wav } from './crackle'
 import { DECK_SETTINGS, type DeckStyle } from '../stores/settingsStore'
 
 describe('wav', () => {
@@ -32,6 +32,15 @@ describe('the start-up cues', () => {
       const seconds = cueSeconds(style)
       expect(seconds, style).toBeGreaterThan(0)
       expect(seconds, style).toBeLessThan(1)
+    }
+  })
+})
+
+describe('the double tap\'s rewind sounds', () => {
+  it('is over inside a second, scratch and spool alike', () => {
+    for (const kind of ['scratch', 'spool'] as const) {
+      expect(fxSeconds(kind), kind).toBeGreaterThan(0.3)
+      expect(fxSeconds(kind), kind).toBeLessThan(1)
     }
   })
 })

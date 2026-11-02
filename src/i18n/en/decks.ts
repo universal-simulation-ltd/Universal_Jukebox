@@ -172,4 +172,14 @@ export default {
   'group_screen': 'Screen', // screen reader: names the player, keep-awake, sleep and bedside buttons as a group
   'customise': 'Customise', // the word under a button; keep to ~10 characters
   'customise_aria': 'Choose which buttons show here, in Tune this app', // screen reader and hover text for that button
+  'loved': 'Loved', // the word under the ♥ button once the song is loved; keep to ~10 characters
+  'love_aria': 'Love “{title}”: it goes on your Loved shelf', // screen reader text for the ♥ button
+  'loved_aria': '“{title}” is on your Loved shelf. Tap to take it off', // screen reader text for the lit ♥ button
+  'added_to_loved': 'On your Loved shelf', // bubble after tapping ♥
+  'edit_title': 'Buttons under the song', // screen reader name for the row while it is being edited
+  'edit_hint': 'Tap − to take a button away, or + to add one.', // shown above the row while editing it (after holding a button)
+  'edit_add': 'Add', // small heading over the buttons that are not in the row
+  'edit_add_one': 'Add {button}', // screen reader text; {button} is a button’s word, e.g. Shuffle
+  'edit_remove': 'Take away {button}', // screen reader text; {button} is a button’s word, e.g. Shuffle
+  'edit_done': 'Done', // ends editing the row
 } as const

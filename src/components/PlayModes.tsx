@@ -8,8 +8,12 @@ import KeepAwakeButton from './KeepAwakeButton'
 import SleepButton from './SleepButton'
 import { BedsideButton } from './Bedside'
 import PlayerButton from './PlayerButton'
+import LoveButton from './LoveButton'
+import ModeGlyph from './ModeGlyph'
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { haptic } from '../lib/haptics'
 import { currentTrack, usePlayerStore, type Repeat } from '../stores/playerStore'
-import { MODE_LABELS, useSettingsStore, type ModeKey } from '../stores/settingsStore'
+import { MODE_KEYS, MODE_LABELS, useSettingsStore, type ModeKey } from '../stores/settingsStore'
 import { openSettingsAt } from '../lib/settingsSection'
 import { useT } from '../i18n'
 
@@ -31,6 +35,22 @@ import { useT } from '../i18n'
 // Repeat all and repeat one are either/or: tapping the one that is on turns
 // repeat off. (The mini player no longer has a repeat button at all; shuffle is
 // in its queue popup.)
+//
+// ♥ (James, 2026-11-02) is about the song, so it leads that second group.
+//
+// ⚠️ HOLD ANY BUTTON TO EDIT THE ROW (James, 2026-11-02: "If tap and hold any
+// options in the reveal then show all the other available options and if you
+// tap one it adds it to the dock"). The row's buttons each get a − to take
+// them off, the ones not in it are shown under it with a +, and Done puts the
+// row back. It writes the same `hiddenModes` as Tune ▸ Buttons under the song.
+// The hold is caught here, around the row, so no button needs to know — which
+// is why the Player button no longer opens its machine picker on a hold
+// (holding the record still does).
+
+/** How long a press is held before the row goes into editing. */
+const HOLD_MS = 500
+/** Movement that makes a press a scroll instead. */
+const HOLD_SLOP = 10
 
 export default function PlayModes() {
   const t = useT()
@@ -43,13 +63,52 @@ export default function PlayModes() {
   const hidden = useSettingsStore((s) => s.hiddenModes)
   const customiseSeen = useSettingsStore((s) => s.customiseSeen)
   const setSetting = useSettingsStore((s) => s.set)
+  const [editing, setEditing] = useState(false)
+  const hold = useRef<{ timer: number; x: number; y: number } | null>(null)
+  /** A hold that turned into editing: the click its release makes is eaten. */
+  const held = useRef(false)
   if (queued === 0) return null
+  if (editing) return <EditRow onDone={() => setEditing(false)} />
+  const cancelHold = () => {
+    if (hold.current) window.clearTimeout(hold.current.timer)
+    hold.current = null
+  }
+  const holdHandlers = {
+    onPointerDownCapture: (e: ReactPointerEvent) => {
+      if (e.button > 0 || !(e.target as Element).closest('button')) return
+      cancelHold()
+      held.current = false
+      const timer = window.setTimeout(() => {
+        hold.current = null
+        held.current = true
+        haptic('thunk')
+        setEditing(true)
+      }, HOLD_MS)
+      hold.current = { timer, x: e.clientX, y: e.clientY }
+    },
+    onPointerMoveCapture: (e: ReactPointerEvent) => {
+      const at = hold.current
+      if (at && Math.hypot(e.clientX - at.x, e.clientY - at.y) > HOLD_SLOP) cancelHold()
+    },
+    onPointerUpCapture: cancelHold,
+    onPointerCancelCapture: cancelHold,
+    onClickCapture: (e: React.MouseEvent) => {
+      if (!held.current) return
+      held.current = false
+      e.preventDefault()
+      e.stopPropagation()
+    },
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  }
   const pick = (mode: Exclude<Repeat, 'off'>) => setRepeat(repeat === mode ? 'off' : mode)
   const shows = (key: ModeKey) => !hidden.includes(key)
   const any = (...keys: ModeKey[]) => keys.some(shows)
 
   return (
-    <div className="mt-5 flex flex-wrap justify-center gap-x-1 gap-y-3 sm:gap-x-5">
+    <div
+      {...holdHandlers}
+      className="mt-5 flex flex-wrap justify-center gap-x-1 gap-y-3 select-none sm:gap-x-5 [-webkit-touch-callout:none]"
+    >
       {any('shuffle', 'repeatAll', 'repeatOne') && (
         <div role="group" aria-label={t('decks.group_play_order')} className="flex gap-x-1 sm:gap-x-5">
           {shows('shuffle') && (
@@ -69,8 +128,9 @@ export default function PlayModes() {
           )}
         </div>
       )}
-      {track && any('shelf', 'about') && (
+      {track && any('love', 'shelf', 'about') && (
         <div className="flex gap-x-1 sm:gap-x-5">
+          {shows('love') && <LoveButton track={track} />}
           {shows('shelf') && <AddToShelf tracks={[track]} variant="mode" />}
           {shows('about') && <AboutToggle />}
         </div>
@@ -120,6 +180,103 @@ export default function PlayModes() {
         </ModeButton>
       )}
     </div>
+  )
+}
+
+/**
+ * The row being edited: what's in it, each with a − to take it off, then
+ * what isn't, each with a + to add it, then Done. The last button left can't
+ * be taken off — a row of nothing has nothing to hold to bring them back.
+ */
+function EditRow({ onDone }: { onDone(): void }) {
+  const t = useT()
+  const hidden = useSettingsStore((s) => s.hiddenModes)
+  const setSetting = useSettingsStore((s) => s.set)
+  const shown = MODE_KEYS.filter((key) => !hidden.includes(key))
+  const rest = MODE_KEYS.filter((key) => hidden.includes(key))
+  return (
+    <div className="mt-5 flex flex-col items-center select-none [-webkit-touch-callout:none]" role="group" aria-label={t('decks.edit_title')}>
+      <p className="max-w-xs px-4 text-center text-[12.5px] text-slate-600 dark:text-slate-400">{t('decks.edit_hint')}</p>
+      <div className="mt-3 flex flex-wrap justify-center gap-x-1 gap-y-3 sm:gap-x-5">
+        {shown.map((key) => (
+          <EditTile
+            key={key}
+            mode={key}
+            sign="−"
+            disabled={shown.length <= 1}
+            ariaLabel={t('decks.edit_remove', { button: MODE_LABELS[key] })}
+            onClick={() => setSetting('hiddenModes', [...hidden, key])}
+          />
+        ))}
+      </div>
+      {rest.length > 0 && (
+        <>
+          <p className="mt-5 text-[11px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">{t('decks.edit_add')}</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-x-1 gap-y-3 sm:gap-x-5">
+            {rest.map((key) => (
+              <EditTile
+                key={key}
+                mode={key}
+                sign="+"
+                ariaLabel={t('decks.edit_add_one', { button: MODE_LABELS[key] })}
+                onClick={() => {
+                  haptic('tap')
+                  setSetting('hiddenModes', hidden.filter((k) => k !== key))
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={onDone}
+        className="mt-5 min-h-[44px] rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 text-[14px] font-semibold text-white shadow-sm"
+      >
+        {t('decks.edit_done')}
+      </button>
+    </div>
+  )
+}
+
+function EditTile({ mode, sign, disabled = false, ariaLabel, onClick }: {
+  mode: ModeKey
+  sign: '−' | '+'
+  disabled?: boolean
+  ariaLabel: string
+  onClick(): void
+}) {
+  const adding = sign === '+'
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      data-mode={mode}
+      className="group flex w-16 flex-col items-center gap-1.5 focus:outline-none disabled:opacity-60 sm:w-20"
+    >
+      <span
+        className={`relative flex h-11 w-11 items-center justify-center rounded-full border text-slate-600 dark:text-slate-300 ${
+          adding ? 'border-dashed border-slate-400 dark:border-slate-600' : 'border-slate-300 dark:border-slate-700'
+        } group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-[#E05504]`}
+      >
+        <ModeGlyph mode={mode} />
+        {!disabled && (
+          <span
+            aria-hidden
+            className={`absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-[14px] leading-none font-bold text-white shadow ${
+              adding ? 'bg-[#E05504]' : 'bg-slate-600 dark:bg-slate-500'
+            }`}
+          >
+            {sign}
+          </span>
+        )}
+      </span>
+      <span className="text-center text-[11px] leading-tight font-medium text-slate-500 sm:text-[11.5px] dark:text-slate-400">
+        {MODE_LABELS[mode]}
+      </span>
+    </button>
   )
 }
 
