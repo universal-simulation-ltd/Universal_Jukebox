@@ -79,9 +79,22 @@ export function isCircle(width: number, height: number, corners: Corners): boole
  * every distance given to a word falls inside the path and none has to wrap
  * round its end.
  */
-export function loopPath(width: number, height: number, corners: Corners, gap: number): EdgePath & { top: number } {
+export function loopPath(
+  width: number,
+  height: number,
+  corners: Corners,
+  gap: number,
+  /**
+   * Where along the top the word being sung is read, across from the left —
+   * the middle unless given. Kept on the straight part of the top. The record
+   * half in its sleeve reads at the record's top, the middle of the screen,
+   * rather than over the sleeve towards the edge (`LyricsAround`).
+   */
+  readX?: number,
+): EdgePath & { top: number } {
   const g = grow(width, height, corners, gap)
   const cx = width / 2
+  const rx = Math.max(g.left + g.tl.rx, Math.min(g.right - g.tr.rx, readX ?? cx))
   const d = [
     `M ${n(cx)} ${n(g.bottom)}`,
     `L ${n(g.left + g.bl.rx)} ${n(g.bottom)}`,
@@ -99,7 +112,7 @@ export function loopPath(width: number, height: number, corners: Corners, gap: n
     quarter(g.bl) +
     run(g.bottom - g.bl.ry - (g.top + g.tl.ry)) +
     quarter(g.tl) +
-    run(cx - (g.left + g.tl.rx))
+    run(rx - (g.left + g.tl.rx))
   const rest =
     run(g.right - g.tr.rx - cx) +
     quarter(g.tr) +

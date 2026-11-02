@@ -95,6 +95,8 @@ interface Shape {
   corners: Corners
   /** The record — a circle, which `Orbit` and the arc draw as a ring. */
   round: boolean
+  /** Where along the top the line is read, from the left — the middle unless given (`loopPath`). */
+  readX?: number
 }
 
 export default function LyricsAround({ size }: { size: number }) {
@@ -122,6 +124,25 @@ export default function LyricsAround({ size }: { size: number }) {
     const corners = cornerRadii(frame?.radius ?? '50%', width, height)
     return { width, height, corners, round: isCircle(width, height, corners) }
   }, [frame, size])
+  // ⚠️ ON NOW PLAYING THE RECORD IS HALF IN ITS SLEEVE (`HalfSleeve`), and the
+  // words go round the two together (James, 2026-11-02: "make the lyrics follow
+  // the top of the sleeve"): along the sleeve's top, round the half of the
+  // record out of it, back along the bottom and up the sleeve's far side. That
+  // outline IS a rounded rectangle — half a record wider than the record, out
+  // to the left, its sleeve corners the sleeve's 3% and its other two corners
+  // the record's own quarter circles — so the paths for every other machine
+  // draw it as they are. The line being sung is read at the middle of its
+  // top, which is on the sleeve.
+  const sleeved = !!slide && shape.round
+  const drawn = useMemo<Shape>(() => {
+    if (!sleeved) return shape
+    const h = shape.height
+    const card = { rx: 0.03 * h, ry: 0.03 * h }
+    const disc = { rx: h / 2, ry: h / 2 }
+    // Read at the record's top — the deck's middle, half a record in from the
+    // sleeve's left edge — not over the sleeve, half off the screen.
+    return { width: shape.width + h / 2, height: h, corners: { tl: card, tr: disc, br: disc, bl: card }, round: false, readX: h }
+  }, [sleeved, shape])
 
   // Fetched for the record, whether or not the lyrics list is open.
   useEffect(() => {
@@ -162,7 +183,14 @@ export default function LyricsAround({ size }: { size: number }) {
     // Keyed on the song, so the next song's words start clean rather than
     // inheriting the fade.
     <div key={words.trackId} className="pointer-events-none absolute inset-0" style={leave}>
-      <Words size={size} shape={shape} lines={words.lines} currentSec={words.sec} style={style} reduced={reduced} />
+      {sleeved ? (
+        // The outline's own box: from the sleeve's left edge, half a record out.
+        <div className="absolute top-0" style={{ left: -shape.height / 2, width: drawn.width, height: drawn.height }}>
+          <Words size={size} shape={drawn} lines={words.lines} currentSec={words.sec} style={style} reduced={reduced} />
+        </div>
+      ) : (
+        <Words size={size} shape={shape} lines={words.lines} currentSec={words.sec} style={style} reduced={reduced} />
+      )}
     </div>
   )
 }
@@ -483,7 +511,7 @@ function Orbit({ size, lines, currentSec }: { size: number; lines: LyricLine[]; 
  */
 function PathOrbit({ size, shape, lines, currentSec }: { size: number; shape: Shape; lines: LyricLine[]; currentSec: number }) {
   const font = orbitFont(size)
-  const loop = useMemo(() => loopPath(shape.width, shape.height, shape.corners, ORBIT_GAP), [shape])
+  const loop = useMemo(() => loopPath(shape.width, shape.height, shape.corners, ORBIT_GAP, shape.readX), [shape])
   const ribbon = useMemo(
     () => orbitRibbon(lines, loop.length / (2 * Math.PI), font, wordWidths(font)),
     [lines, loop, font],
