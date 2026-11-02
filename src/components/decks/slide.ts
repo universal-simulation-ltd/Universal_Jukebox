@@ -64,6 +64,12 @@ export interface DeckSlide {
    * and the stand-in's run as one. Unset: the sleeve slides from when it is drawn.
    */
   sleeveAt?: number
+  /**
+   * The record going on next (or the one arriving) is from the same album: its
+   * sleeve stays where it is, the record playing slides into it, and the one
+   * coming slides in under it, bare (`VinylDeck`, `DeckSwiper`).
+   */
+  sameSleeve?: boolean
 }
 
 export const DeckSlideContext = createContext<DeckSlide | null>(null)

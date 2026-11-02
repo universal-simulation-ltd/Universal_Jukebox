@@ -129,27 +129,45 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           swipe carries the lyrics off with the record (James, 2026-09-11:
           "When swiping left right the lyrics need to go with the record
           too"). Not inside the spinning disc: they must not turn. */}
-      {/* Its sleeve, half off it and the record turning in it (`HalfSleeve`).
-          Over the record, under the words round it. As a swipe or a change of
-          song takes the record to the side, the sleeve closes back over it —
-          by the side it IS a sleeve, as the records there are drawn
-          (`DeckSwiper`), so the hand-over is unseen. Only on Now Playing
-          (`slide` is the swiper's), never the mini player's little deck. */}
-      {slide && (
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            transform: `translateX(${50 * (slide.away ?? 0)}%)`,
-            transition: slide.animate ? `transform ${slide.ms ?? 240}ms ${ARC_ACROSS}` : 'none',
-          }}
-          aria-hidden
-        >
-          <HalfSleeve key={`${url ?? hue}|${slide.sleeveAt ?? 0}`} since={slide.sleeveAt} url={url} hue={hue} reduced={reduced} />
-        </div>
-      )}
       {underArm}
       </div>
       </div>
+      {/* Its sleeve, half off it and the record turning in it (`HalfSleeve`).
+          Over the record and the words round it (which run outside it), under
+          the arm. Only on Now Playing (`slide` is the swiper's), never the
+          mini player's little deck.
+          - A swipe or change to ANOTHER album: the sleeve goes with the record
+            (the same slide layers) and closes back over it — by the side it IS
+            a sleeve, as the records there are drawn, so the hand-over is unseen.
+          - To a song on the SAME album (`sameSleeve`, James, 2026-11-02: "If
+            next song is the same album could it be a record without a sleeve
+            and as the current one goes back in the sleeve, then the new one
+            slides into the sleeve to play"): the sleeve stays where it is, the
+            record slides back into it, and the next one, bare, slides in under
+            it to play.
+          ⚠️ ONE element either way, only its styles change — remounted, the
+          `HalfSleeve` would replay its slide off the record. */}
+      {slide && (
+        <div className="pointer-events-none absolute inset-0" style={slide.sameSleeve ? undefined : slideOuter(slide)} aria-hidden>
+          <div className="absolute inset-0" style={slide.sameSleeve ? undefined : slideInner(slide)}>
+            <div
+              className="absolute inset-0"
+              style={{
+                transform: `translateX(${slide.sameSleeve ? 0 : 50 * (slide.away ?? 0)}%)`,
+                transition: slide.animate ? `transform ${slide.ms ?? 240}ms ${ARC_ACROSS}` : 'none',
+              }}
+            >
+              <HalfSleeve
+                key={`${url ?? hue}|${slide.sleeveAt ?? 0}`}
+                since={slide.sleeveAt}
+                url={url}
+                hue={hue}
+                reduced={reduced}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
 
       {/* The tonearm, pivoting about its bearing at the top right — the same

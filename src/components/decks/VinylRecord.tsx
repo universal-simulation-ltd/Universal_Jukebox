@@ -95,8 +95,10 @@ export const SLEEVE_HALF_MS = 620
  * from that one time so the hand-over between them is unseen. Read once, at
  * mount — a later render must not move a slide already under way.
  */
-export function HalfSleeve({ since, album, url, hue, reduced = false }: {
+export function HalfSleeve({ since, album, url, hue, reduced = false, settled = false }: {
   since?: number
+  /** Already half off — a record of the same album has come in under it. */
+  settled?: boolean
   album?: Album
   url?: string | null
   hue?: number
@@ -112,7 +114,7 @@ export function HalfSleeve({ since, album, url, hue, reduced = false }: {
     <div
       className="pointer-events-none absolute inset-0"
       style={
-        reduced
+        reduced || settled
           ? { transform: 'translateX(-50%)' }
           : { animation: `jb-sleeve-half ${SLEEVE_HALF_MS}ms cubic-bezier(.45,0,.3,1) ${-delay}ms both` }
       }

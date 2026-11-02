@@ -84,6 +84,8 @@ interface Arriving {
   track?: Track
   /** Where it lands, when the machine stays and only the medium changes — `seatOf`. */
   seat?: Seat
+  /** A record from the album already on the deck: it slides in under that sleeve (`sameSleeve`). */
+  same?: boolean
 }
 
 export default function DeckSwiper({
@@ -251,8 +253,8 @@ export default function DeckSwiper({
   // already moved the cursor, so the arrival is the CURRENT track, and the
   // peeks (now a track further on) hide until it lands. Read from a ref so the
   // effect runs once per blend and not on every render.
-  const latest = useRef({ queue, order, cursor, albums, setting, eras, arriving, reduced, deckStyle })
-  latest.current = { queue, order, cursor, albums, setting, eras, arriving, reduced, deckStyle }
+  const latest = useRef({ queue, order, cursor, albums, setting, eras, arriving, reduced, deckStyle, showing })
+  latest.current = { queue, order, cursor, albums, setting, eras, arriving, reduced, deckStyle, showing }
   const blendTimer = useRef<number | null>(null)
   /**
    * The blend whose slide is still to START, or null.
@@ -292,7 +294,7 @@ export default function DeckSwiper({
     const r = measure()
     setReach(r)
     setMs(left)
-    setIncoming({ album, style, track, run: false, seat })
+    setIncoming({ album, style, track, run: false, seat, same: isSame(style, now.deckStyle, album?.id, now.showing) })
     const serial = blend.n
     slideFor.current = serial
     const begun = Date.now()
@@ -325,9 +327,11 @@ export default function DeckSwiper({
       blendTimer.current = null
       // Over — a slide that never got its frames must not start now.
       slideFor.current = null
+      const same = isSame(style, latest.current.deckStyle, album?.id, latest.current.showing)
       setIncoming(null)
-      setArriving({ album, style, track, seat })
-      setSleeveAt(Date.now())
+      setArriving({ album, style, track, seat, same })
+      // Its sleeve slides half off it — unless it came in under the one already there.
+      if (!same) setSleeveAt(Date.now())
     }, left)
     // `measure` reads refs only; the rest comes through `latest`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -420,12 +424,32 @@ export default function DeckSwiper({
   // it becomes that peek, and the two are swapped where they meet, so any
   // difference is a jump.
   const deckPose = rowPose(drag, sag, peekScale, seatPx)
+  // The record going on is from the album on the deck: it comes bare, and the
+  // one playing slides back into the sleeve rather than away with it
+  // (`DeckSlide.sameSleeve`). Decided by the record arriving, during a
+  // crossfade or a hold; by the neighbour on the side the drag is going.
+  const sameSleeve = arriving
+    ? !!arriving.same
+    : incoming
+      ? !!incoming.same
+      : drag < 0
+        ? isSame(styleAt(nextIndex), deckStyle, albumAt(nextIndex)?.id, showing)
+        : drag > 0
+          ? isSame(styleAt(prevIndex), deckStyle, albumAt(prevIndex)?.id, showing)
+          : false
+  /**
+   * Going on to the NEXT song of the same album, the record playing slides
+   * left into its sleeve — no further, no smaller, no sinking: by the end it is
+   * all inside it. Going back to the previous one, it goes to the right-hand
+   * side as usual, where it is drawn bare.
+   */
+  const intoSleeve = sameSleeve && drag < 0
   const slide: DeckSlide = {
-    x,
+    x: intoSleeve ? Math.max(-1, drag) * (size / 2) : x,
     // Against the medium's own seat: the whole deck for a record, the well for a disc.
-    y: deckPose.y - seatPx.y,
-    scale: deckPose.scale / seatPx.scale,
-    opacity: arriving ? 0 : incoming ? 1 - 0.85 * Math.min(1, Math.abs(drag)) : deckPose.opacity,
+    y: intoSleeve ? 0 : deckPose.y - seatPx.y,
+    scale: intoSleeve ? 1 : deckPose.scale / seatPx.scale,
+    opacity: arriving ? 0 : intoSleeve ? 1 : incoming ? 1 - 0.85 * Math.min(1, Math.abs(drag)) : deckPose.opacity,
     away: Math.min(1, Math.abs(drag)),
     discOnly: seat !== undefined,
     animate,
@@ -435,6 +459,7 @@ export default function DeckSwiper({
     lifted: Math.abs(x) >= SWIPE_PX || arriving !== null || incoming !== null,
     holding: arriving !== null,
     sleeveAt,
+    sameSleeve,
   }
 
   /** A record crossfade is sliding the machines — the peeks are a track stale. */
@@ -584,6 +609,7 @@ export default function DeckSwiper({
             <Queued
               key={slot}
               album={albumAt(index)}
+              bare={isSame(styleAt(index), deckStyle, albumAt(index)?.id, showing)}
               grooves={grooveRings(trackAt(index)?.durationSec)}
               style={styleAt(index)}
               side={slot > 0 ? 'right' : 'left'}
@@ -598,6 +624,7 @@ export default function DeckSwiper({
         <Peek
           ref={leftPeek}
           album={albumAt(prevIndex)}
+          bare={isSame(styleAt(prevIndex), deckStyle, albumAt(prevIndex)?.id, showing)}
           grooves={grooveRings(trackAt(prevIndex)?.durationSec)}
           style={styleAt(prevIndex)}
           side="left"
@@ -612,6 +639,7 @@ export default function DeckSwiper({
         <Peek
           ref={rightPeek}
           album={albumAt(nextIndex)}
+          bare={isSame(styleAt(nextIndex), deckStyle, albumAt(nextIndex)?.id, showing)}
           grooves={grooveRings(trackAt(nextIndex)?.durationSec)}
           style={styleAt(nextIndex)}
           side="right"
@@ -648,7 +676,7 @@ export default function DeckSwiper({
                 transition: incoming.run ? `transform ${ms}ms ${ARC_RISE}` : 'none',
               }}
             >
-              <Drawn album={incoming.album} style={incoming.style} deck={size} shown={size} grooves={standInGrooves(incoming.track)} />
+              <Drawn album={incoming.album} style={incoming.style} deck={size} shown={size} grooves={standInGrooves(incoming.track)} record={incoming.same} />
             </div>
           </div>
         </div>
@@ -665,7 +693,7 @@ export default function DeckSwiper({
           <div className="relative h-full w-full" style={{ transform: `translateY(${seatPx.y}px) scale(${seatPx.scale})` }}>
             <Drawn album={arriving.album} style={arriving.style} deck={size} shown={size} grooves={standInGrooves(arriving.track)} record />
             {/* Coming half off it, in step with the deck's own beneath (`sleeveAt`). */}
-            {arriving.style === 'vinyl' && <HalfSleeve since={sleeveAt} album={arriving.album} reduced={reduced} />}
+            {arriving.style === 'vinyl' && <HalfSleeve since={sleeveAt} album={arriving.album} reduced={reduced} settled={arriving.same} />}
           </div>
         </div>
       )}
@@ -771,9 +799,11 @@ export default function DeckSwiper({
               // The words have landed too: the heading is the new song's now.
               setWordsFor(null)
               // Landing where the row was taking it: the well, if the player stayed.
-              setArriving({ album, style, track, seat })
-              // Its sleeve, which carried it in, starts sliding half off it.
-              setSleeveAt(Date.now())
+              const same = isSame(style, deckStyle, album?.id, showing)
+              setArriving({ album, style, track, seat, same })
+              // Its sleeve, which carried it in, starts sliding half off it —
+              // unless it came in bare, under the sleeve already there.
+              if (!same) setSleeveAt(Date.now())
               // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
               // it to the middle and is holding a still picture of it there;
               // without this the player runs its own record change over the
@@ -822,6 +852,11 @@ interface PeekMotion {
  * out of (`SHAPES[style].seat`: the CD player's disc). Undefined when the record
  * is the deck (vinyl already moves just its record) or the machine is changing.
  */
+/** A record from the album already on the record player — it comes and goes bare, under that sleeve. */
+function isSame(style: DeckStyle, onDeck: DeckStyle, albumId: string | undefined, showing: string | undefined): boolean {
+  return style === 'vinyl' && onDeck === 'vinyl' && !!albumId && albumId === showing
+}
+
 function seatOf(arriving: DeckStyle, onDeck: DeckStyle): Seat | undefined {
   return arriving === onDeck ? SHAPES[arriving]?.seat : undefined
 }
@@ -838,6 +873,8 @@ const Peek = forwardRef<
   HTMLButtonElement,
   {
     album: Album | undefined
+    /** The album on the deck's own — drawn as a bare record, not a sleeve. */
+    bare?: boolean
     style: DeckStyle
     side: 'left' | 'right'
     size: number
@@ -850,7 +887,7 @@ const Peek = forwardRef<
     motion: PeekMotion
     onClick(): void
   }
->(function Peek({ album, style, side, size, deck, grooves, top, motion, onClick }, ref) {
+>(function Peek({ album, bare, style, side, size, deck, grooves, top, motion, onClick }, ref) {
   const t = useT()
   return (
     <button
@@ -868,7 +905,7 @@ const Peek = forwardRef<
       className="absolute hover:opacity-90 focus-visible:opacity-100 lg:hidden"
       style={rowStyle(side, size, top, motion, style)}
     >
-      <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} />
+      <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} record={bare} />
     </button>
   )
 })
@@ -879,8 +916,9 @@ const Peek = forwardRef<
  * picture — it is out of sight unless a finger is bringing it in, so there is
  * never anything to tap.
  */
-function Queued({ album, style, side, size, deck, grooves, top, motion }: {
+function Queued({ album, bare, style, side, size, deck, grooves, top, motion }: {
   album: Album | undefined
+  bare?: boolean
   style: DeckStyle
   side: 'left' | 'right'
   size: number
@@ -891,7 +929,7 @@ function Queued({ album, style, side, size, deck, grooves, top, motion }: {
 }) {
   return (
     <div className="pointer-events-none absolute lg:hidden" style={rowStyle(side, size, top, motion, style)} aria-hidden>
-      <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} />
+      <Drawn album={album} style={style} deck={deck} shown={size} grooves={grooves} record={bare} />
     </div>
   )
 }
