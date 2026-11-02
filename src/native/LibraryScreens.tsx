@@ -269,6 +269,15 @@ function Screen({
           <h1 className="jx-h1">{genre ? shownGenre(genre) : title}</h1>
           <p className="jx-sub">{[count, ...(shown ? [] : notes)].join(' · ')}</p>
         </div>
+        {/* Shuffle always to hand, as an icon by the title (James, 2026-11-02:
+            "Have a shuffle button visible (just icon) without having to open
+            the reveal box"). It was the first chip in the drawer; one place
+            for it, not two. */}
+        {onShuffle && (
+          <button type="button" className="jx-round jx-shuffle" onClick={onShuffle} aria-label={t('common.shuffle')} title={t('common.shuffle')}>
+            <IconShuffle />
+          </button>
+        )}
       </div>
       <PullHint drawerShown={shown} onOpen={openDrawer} />
       <PullDrawer shown={shown} onOpen={openDrawer} onScrolledAway={query.trim() ? undefined : closeDrawer} onPullAgain={typeIntoSearch}>
@@ -285,11 +294,6 @@ function Screen({
         />
         {counts && query.trim() !== '' && <FoundIn tab={tab} counts={counts} genre={genre} />}
         <div className="jx-chips" role="group" aria-label={t('native.options_group')}>
-          {onShuffle && (
-            <button type="button" className="jx-chip play" onClick={onShuffle}>
-              <IconShuffle /> {t('common.shuffle')}
-            </button>
-          )}
           <button
             type="button"
             className={`jx-chip${order.kind !== defaults.libraryOrder[tab] ? ' on' : ''}`}
@@ -354,7 +358,7 @@ function FilterChip({ on, isDefault, label, offLabel, onToggle, hold, onHold }: 
 /** Whether the hold has been used once — then the hint under the chips goes. */
 const HOLD_KEY = 'jukebox:hold-default-learnt'
 /**
- * The first-run hint that the search box, Shuffle and the list options are
+ * The first-run hint that the search box and the list options are
  * folded away above the list (James, 2026-10-13: "New users - have a hint to
  * swipe down to reveal the search etc"). Pulling is the only way in
  * (`PullDrawer`), so nothing else on screen says they exist. Goes for good the

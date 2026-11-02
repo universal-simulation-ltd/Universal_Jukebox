@@ -194,6 +194,8 @@ html.dark .jx {
   background: var(--jx-row2); color: var(--jx-acc);
 }
 .jx-round svg { width: 22px; height: 22px; }
+/* The list's Shuffle, by its title: filled red, the one action on the heading. */
+.jx-round.jx-shuffle { background: var(--jx-fill); color: #fff; align-self: center; }
 
 .jx-search {
   display: flex; align-items: center; gap: 8px;
@@ -455,6 +457,37 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
 .jx-mini-btn[aria-busy] { opacity: 0.5; }
 
 .jx-tabs { display: grid; grid-template-columns: repeat(5, 1fr); height: var(--jx-tabs-h); }
+/* A held tab, lifted off the bar while it is dragged (2026-11-02). */
+.jx-tab.lifted {
+  transform: translateY(-6px) scale(1.08); color: var(--jx-acc);
+  background: var(--jx-row2); border-radius: 12px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  transition: transform 120ms ease-out;
+}
+/* The bin a held tab can be dropped on to hide it: halfway up the screen. */
+.jx-tabbin {
+  position: fixed; left: 0; right: 0; top: 50%; z-index: 60;
+  translate: 0 -50%; width: max-content; margin-inline: auto;
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-radius: 999px; border: 1.5px dashed var(--jx-mute);
+  background: var(--jx-row); color: var(--jx-fg); font-size: 14px; font-weight: 600;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18); pointer-events: none;
+  animation: jx-rise 160ms ease-out;
+  transition: transform 120ms ease-out, background-color 120ms, color 120ms;
+}
+.jx-tabbin svg { width: 20px; height: 20px; }
+.jx-tabbin.hot { transform: scale(1.12); border-style: solid; border-color: var(--jx-fill); background: var(--jx-fill); color: #fff; }
+@keyframes jx-rise { from { transform: translateY(48px); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
+/* "Tab hidden … Undo", just above the dock. */
+.jx-undo {
+  position: fixed; z-index: 45; left: 12px; right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--jx-tabs-h) + var(--jx-mini-h) + 22px);
+  display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px;
+  border-radius: 14px; background: var(--jx-fg); color: var(--jx-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); font-size: 14px; line-height: 1.35;
+}
+.jx-undo span { flex: 1; min-width: 0; }
+.jx .jx-undo button { flex: none; border: 0; background: none; color: var(--jx-bg); font-weight: 700; padding: 8px 10px; }
+@media (prefers-reduced-motion: reduce) { .jx-tabbin { animation: none; } }
 .jx-tab {
   position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;

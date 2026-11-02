@@ -1,4 +1,5 @@
 import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
+import { normaliseHidden, normaliseOrder, PHONE_TABS } from '../lib/tabs'
 import { barsPocketPlayer } from '../lib/nativeFile'
 import { phoneScreens } from '../native/shell'
 import { create } from 'zustand'
@@ -159,6 +160,14 @@ export interface Settings {
    * starring Tracks would make the Albums tab unreachable by its own button.
    */
   homeTab: HomeTab
+  /**
+   * The phone's tab bar, left to right (Tune always after them), and the
+   * tabs taken off it (James, 2026-11-02: "drag to change order, ability to
+   * hide a tab"). Hold a tab and drag it; drop it on the bin to hide it; or
+   * Tune this app ▸ Your library ▸ Tabs. See `lib/tabs.ts`.
+   */
+  tabOrder: HomeTab[]
+  hiddenTabs: HomeTab[]
   /**
    * Which player the deck draws, and which start-up sound it makes — or
    * `automatic`, for a different one per track.
@@ -376,6 +385,8 @@ export const DEFAULTS: Settings = {
   // first view after importing a library") — moved once on phones already
   // using it, `adoptAlbumsHome` in `native/NativeApp.tsx`.
   homeTab: phoneScreens() ? 'albums' : 'tracks',
+  tabOrder: [...PHONE_TABS],
+  hiddenTabs: [],
   deck: 'vinyl',
   deckEras: DEFAULT_ERAS,
   needleDrop: true,
@@ -666,6 +677,8 @@ function readStored(given?: Record<string, unknown>): Settings {
       ? (mode as CeremonyMode)
       : DEFAULTS.ceremonyMode,
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' || tab === 'jukebox' ? tab : DEFAULTS.homeTab,
+    tabOrder: normaliseOrder((stored as { tabOrder?: unknown }).tabOrder),
+    hiddenTabs: normaliseHidden((stored as { hiddenTabs?: unknown }).hiddenTabs),
     // `automatic` was retired for `automatic` on 2026-09-10; somebody who had
     // chosen "a different machine each time" gets the closest thing to it.
     deck: deck === 'random' ? 'automatic' : deckSettings().includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
@@ -839,6 +852,8 @@ export function settingsBlob(state: Settings): Settings {
   return {
     ceremonyMode: state.ceremonyMode,
     homeTab: state.homeTab,
+    tabOrder: state.tabOrder,
+    hiddenTabs: state.hiddenTabs,
     deck: state.deck,
     deckEras: state.deckEras,
     needleDrop: state.needleDrop,

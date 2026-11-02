@@ -43,7 +43,8 @@ import { albumsOfBigArtists, isFullAlbum, orderFrom, type LibraryOrder } from '.
 import { libraryInGenre } from '../lib/genres'
 import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
 import { AlbumScreen, ArtistScreen, QueueScreen } from './DetailScreens'
-import { IconAlbums, IconArtists, IconBack, IconDown, IconShelves, IconSongs, IconTune } from './icons'
+import { IconAlbums, IconArtists, IconBack, IconBin, IconDown, IconShelves, IconSongs, IconTune } from './icons'
+import { openingTab, shownTabs, withShownOrder } from '../lib/tabs'
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
@@ -178,7 +179,8 @@ export default function NativeApp() {
   const openTabAtTop = useRef(false)
   // Hold a tab for "Set as default" (James, 2026-10-11: "Allow long tap on the
   // navigation icons to give the choice to 'Set default'") — the double tap's
-  // job, said out loud. `tabHold` swallows the tap that ends the hold.
+  // job, said out loud. With a MOUSE it is that and nothing else; `tabHold`
+  // swallows the click that ends the hold.
   const [tabMenu, setTabMenu] = useState<TabView | null>(null)
   const tabHold = useRef<{ timer: number; fired: boolean } | null>(null)
   const startTabHold = (target: TabView) => {
@@ -195,6 +197,127 @@ export default function NativeApp() {
   const cancelTabHold = () => {
     if (tabHold.current) window.clearTimeout(tabHold.current.timer)
   }
+
+  // ⚠️ With a FINGER a hold picks the tab up (James, 2026-11-02: "do like
+  // Blackbook - drag to change order, ability to hide a tab"; the suite rule
+  // in BRANDING.md, built first in BlackBook's NativeApp). Drag it along the
+  // bar and the others make room; drop it on the bin that rises above the bar
+  // to hide it (Undo, and Tune ▸ Your library ▸ Tabs brings it back); let go
+  // where it was and the "Set as default" bubble shows, as a hold always did.
+  // Tune stays last and can't be picked up; the last tab shown can't be binned.
+  const tabOrder = useSettingsStore((s) => s.tabOrder)
+  const hiddenTabs = useSettingsStore((s) => s.hiddenTabs)
+  const shown = useMemo(() => shownTabs(tabOrder, hiddenTabs), [tabOrder, hiddenTabs])
+  const [dragTabs, setDragTabs] = useState<{ tab: HomeTab; order: HomeTab[]; bin?: boolean } | null>(null)
+  const [binned, setBinned] = useState<HomeTab | null>(null)
+  const navRef = useRef<HTMLElement>(null)
+  const binRef = useRef<HTMLDivElement>(null)
+  const touchHold = useRef<{ tab: HomeTab; x0: number; y0: number; active: boolean; timer: number } | null>(null)
+  const live = useRef({ drag: dragTabs, shown, tabOrder, hiddenTabs })
+  live.current = { drag: dragTabs, shown, tabOrder, hiddenTabs }
+  const holdTab = (tab: HomeTab) => (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return
+    const t0 = e.touches[0]
+    const h = {
+      tab,
+      x0: t0.clientX,
+      y0: t0.clientY,
+      active: false,
+      timer: window.setTimeout(() => {
+        h.active = true
+        haptic('thunk')
+        setTabMenu(null)
+        setDragTabs({ tab, order: live.current.shown })
+      }, TAB_HOLD_MS),
+    }
+    if (touchHold.current) window.clearTimeout(touchHold.current.timer)
+    touchHold.current = h
+  }
+  useEffect(() => {
+    const move = (e: TouchEvent) => {
+      const h = touchHold.current
+      if (!h) return
+      const t0 = e.touches[0]
+      if (!h.active) {
+        // A finger that slides before the hold lands is a scroll or a swipe.
+        if (t0 && Math.hypot(t0.clientX - h.x0, t0.clientY - h.y0) > 10) {
+          window.clearTimeout(h.timer)
+          touchHold.current = null
+        }
+        return
+      }
+      e.preventDefault()
+      const d = live.current.drag
+      if (!d || !t0) return
+      // Over the bin (a finger's width to spare): the order holds still.
+      const b = binRef.current?.getBoundingClientRect()
+      const pad = 18
+      const overBin = Boolean(
+        b && t0.clientX >= b.left - pad && t0.clientX <= b.right + pad && t0.clientY >= b.top - pad && t0.clientY <= b.bottom + pad,
+      )
+      if (overBin !== Boolean(d.bin)) {
+        haptic('tick')
+        setDragTabs({ ...d, bin: overBin })
+      }
+      if (overBin) return
+      // Which slot the finger is over, among the tabs that can move.
+      const slots = [...(navRef.current?.querySelectorAll<HTMLElement>('[data-tab]') ?? [])].filter((el) => el.dataset.tab !== 'settings')
+      const at = slots.findIndex((el) => {
+        const r = el.getBoundingClientRect()
+        return t0.clientX >= r.left && t0.clientX <= r.right
+      })
+      if (at < 0) return
+      const next = d.order.filter((x) => x !== d.tab)
+      next.splice(Math.min(at, next.length), 0, d.tab)
+      if (next.join() !== d.order.join()) {
+        haptic('tick')
+        setDragTabs({ tab: d.tab, order: next })
+      }
+    }
+    const end = () => {
+      const h = touchHold.current
+      touchHold.current = null
+      if (!h) return
+      window.clearTimeout(h.timer)
+      if (!h.active) return
+      // The lift is not a tap: the click it ends with must not switch tabs or
+      // count toward a double tap. Only on the bar — Undo's tap must count.
+      const swallow = (ev: Event) => {
+        if (!navRef.current?.contains(ev.target as Node)) return
+        ev.preventDefault()
+        ev.stopPropagation()
+      }
+      document.addEventListener('click', swallow, { capture: true, once: true })
+      window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 600)
+      const { drag: d, shown: now, tabOrder: order, hiddenTabs: hidden } = live.current
+      setDragTabs(null)
+      if (!d) return
+      const set = useSettingsStore.getState().set
+      if (d.bin) {
+        if (now.length > 1) {
+          set('hiddenTabs', [...hidden, d.tab])
+          setBinned(d.tab)
+        }
+        return
+      }
+      if (d.order.join() !== now.join()) set('tabOrder', withShownOrder(order, d.order))
+      else setTabMenu(d.tab)
+    }
+    document.addEventListener('touchmove', move, { passive: false, capture: true })
+    document.addEventListener('touchend', end, true)
+    document.addEventListener('touchcancel', end, true)
+    return () => {
+      document.removeEventListener('touchmove', move, { capture: true })
+      document.removeEventListener('touchend', end, true)
+      document.removeEventListener('touchcancel', end, true)
+    }
+  }, [])
+  // The Undo after a tab goes in the bin, for a few seconds.
+  useEffect(() => {
+    if (!binned) return
+    const timer = window.setTimeout(() => setBinned(null), 6000)
+    return () => window.clearTimeout(timer)
+  }, [binned])
   // Any tap elsewhere puts the bubble away.
   useEffect(() => {
     if (!tabMenu) return
@@ -209,7 +332,8 @@ export default function NativeApp() {
   }, [tabMenu])
   const [homeFlash, setHomeFlash] = useState<TabView | null>(null)
 
-  const view: View = route.home ? homeTab : route.view
+  // A hidden tab can't be the one the app opens on: the first shown one is.
+  const view: View = route.home ? openingTab(homeTab, tabOrder, hiddenTabs) : route.view
 
   // The first look's "Listen to this" lasts until that Albums view is left
   // (`discoverFirst` above); after it, "Resume listening" as ever.
@@ -321,6 +445,9 @@ export default function NativeApp() {
 
   if (useBooting(status === 'loading')) return null
 
+  // The bar as it stands: the shown tabs in their order — or, while one is
+  // held, the order it would drop into — then Tune.
+  const bar = [...(dragTabs?.order ?? shown), 'settings' as const].map((v) => TABS.find((x) => x.view === v)!)
   const welcome = !hasLibrary && LIBRARY_VIEWS.has(view)
   const tab = tabOf(view)
   const showTabs = !playing && !welcome
@@ -417,15 +544,17 @@ export default function NativeApp() {
       {showTabs && (
         <div className="jx-dock">
           <MiniPlayer />
-          <nav className="jx-tabs" aria-label="Jukebox">
-            {TABS.map(({ view: target, label, home, doubleTap, Icon }) => (
+          <nav ref={navRef} className="jx-tabs" aria-label="Jukebox" style={{ gridTemplateColumns: `repeat(${bar.length}, 1fr)` }}>
+            {bar.map(({ view: target, label, home, doubleTap, Icon }) => (
               <button
                 key={target}
                 type="button"
-                className={`jx-tab${homeFlash === target ? ' flash' : ''}`}
+                data-tab={target}
+                className={`jx-tab${homeFlash === target ? ' flash' : ''}${dragTabs?.tab === target ? ' lifted' : ''}`}
                 aria-current={tab === target ? 'page' : undefined}
                 onClick={() => tapTab(target)}
-                onPointerDown={(e) => { if (e.button <= 0) startTabHold(target) }}
+                onTouchStart={target === 'settings' ? undefined : holdTab(target as HomeTab)}
+                onPointerDown={(e) => { if (e.pointerType === 'mouse' && e.button <= 0) startTabHold(target) }}
                 onPointerUp={cancelTabHold}
                 onPointerLeave={cancelTabHold}
                 onPointerCancel={cancelTabHold}
@@ -444,15 +573,15 @@ export default function NativeApp() {
               </button>
             ))}
             {tabMenu && (() => {
-              const at = TABS.findIndex((tab) => tab.view === tabMenu)
+              const at = bar.findIndex((tab) => tab.view === tabMenu)
               const isHome = homeTab === tabMenu
               return (
                 // The first tab's bubble keeps to the screen: pinned left, its arrow still on the tab.
                 <div
                   className={`jx-tab-pop${at === 0 ? ' edge' : ''}`}
                   style={at === 0
-                    ? ({ left: '8px', '--jx-pop-arrow': `calc(${(0.5 / TABS.length) * 100}vw - 8px)` } as React.CSSProperties)
-                    : { left: `${((at + 0.5) / TABS.length) * 100}%` }}
+                    ? ({ left: '8px', '--jx-pop-arrow': `calc(${(0.5 / bar.length) * 100}vw - 8px)` } as React.CSSProperties)
+                    : { left: `${((at + 0.5) / bar.length) * 100}%` }}
                 >
                   {isHome ? (
                     <span>{t('native.tab_is_default')}</span>
@@ -472,6 +601,27 @@ export default function NativeApp() {
               )
             })()}
           </nav>
+        </div>
+      )}
+      {showTabs && dragTabs && shown.length > 1 && (
+        <div ref={binRef} className={`jx-tabbin${dragTabs.bin ? ' hot' : ''}`} aria-hidden>
+          <IconBin />
+          <span>{t(dragTabs.bin ? 'native.tab_bin_drop' : 'native.tab_bin_hint')}</span>
+        </div>
+      )}
+      {showTabs && binned && (
+        <div className="jx-undo" role="status">
+          <span>{t('native.tab_binned', { tab: t(TABS.find((x) => x.view === binned)!.label), tune: t('native.tab_tune') })}</span>
+          <button
+            type="button"
+            onClick={() => {
+              const now = useSettingsStore.getState().hiddenTabs
+              setSetting('hiddenTabs', now.filter((x) => x !== binned))
+              setBinned(null)
+            }}
+          >
+            {t('common.undo')}
+          </button>
         </div>
       )}
       {homeFlash && (

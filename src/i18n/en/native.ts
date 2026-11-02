@@ -28,6 +28,14 @@ export default {
   'tab_now_home_artists': 'The app now opens on Artists', // screen reader, after a double tap on a tab
   'tab_set_default': 'Set as default', // bubble over a held tab: makes it the tab the app opens on
   'tab_is_default': 'The app opens here', // the same bubble, on the tab it already opens on
+  'tab_bin_hint': 'Drop here to hide', // the bin that rises over the tab bar while a tab is held (2026-11-02, a suite rule)
+  'tab_bin_drop': 'Let go to hide', // the same, with the finger over it
+  'tab_binned': 'Tab hidden: {tab}. Bring it back in {tune}.', // toast after a tab is dropped on the bin; {tab} is its name, {tune} the Tune tab's name; has Undo
+  'tabs_title': 'Tabs', // Tune this app ▸ Your library: the phone's tab order list
+  'tabs_note': 'Hold a tab in the bar and drag it to move it, or drop it on the bin to hide it. {tune} stays last.', // under it
+  'tab_up': 'Move {name} up', // button, screen reader
+  'tab_down': 'Move {name} down', // button, screen reader
+  'tab_hide': 'Hide', // tick box on each tab's row
   'tab_now_home_albums': 'The app now opens on Albums',
   'tab_now_home_tracks': 'The app now opens on Tracks',
   'tab_now_home_shelves': 'The app now opens on Shelves',

@@ -161,6 +161,15 @@ export function IconShuffle() {
   )
 }
 
+/** A bin: where a held tab is dropped to hide it. */
+export function IconBin() {
+  return (
+    <svg {...base} strokeWidth={2}>
+      <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" />
+    </svg>
+  )
+}
+
 /** The app's own mark: a record, its label in the accent. */
 export function RecordMark() {
   return (

@@ -17,6 +17,8 @@ import { DECKS, deckCopy, resolveDeck, sanitiseEras, startSummary, type DeckEras
 import { clearAbout, clearLyrics, countAbout, countLyrics } from '../lib/library'
 import { barsHits, barsOnlineLyrics, barsPocketPlayer, isNativeShell, nativePlatform } from '../lib/nativeFile'
 import { lockLyricsAvailable } from '../lib/lockLyrics'
+import { phoneScreens } from '../native/shell'
+import { TabsPreference } from '../native/TabsPreference'
 import { nativeCommandLog } from '../lib/nowPlayingNative'
 import { formatPlaybackLog } from '../lib/playbackLog'
 import { savedEvents } from '../lib/bgLog'
@@ -224,6 +226,8 @@ export default function Settings() {
             onChange={(v) => s.set('homeTab', v)}
             options={HOME_OPTIONS}
           />
+          {/* The phone's tab bar: order and hidden tabs (2026-11-02). */}
+          {phoneScreens() && <TabsPreference />}
           <Toggle
             label={t('settings.hide_resume')}
             hint={t('settings.hide_resume_hint')}
