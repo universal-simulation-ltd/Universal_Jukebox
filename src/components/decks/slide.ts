@@ -58,6 +58,12 @@ export interface DeckSlide {
    * whole, which is right when the machine itself is changing.
    */
   discOnly?: boolean
+  /**
+   * When the record on the deck arrived by a swipe or a crossfade — the time
+   * its sleeve began sliding half off it (`HalfSleeve`), so the deck's sleeve
+   * and the stand-in's run as one. Unset: the sleeve slides from when it is drawn.
+   */
+  sleeveAt?: number
 }
 
 export const DeckSlideContext = createContext<DeckSlide | null>(null)

@@ -3,8 +3,8 @@ import type { DeckControls, DeckFaceProps } from './face'
 import type { ScrubMap } from '../../lib/scrub'
 import { Scrubber } from './scrub'
 import { useT } from '../../i18n'
-import { slideInner, slideOuter } from './slide'
-import { Sleeve, VinylRecordFace } from './VinylRecord'
+import { ARC_ACROSS, slideInner, slideOuter } from './slide'
+import { HalfSleeve, VinylRecordFace } from './VinylRecord'
 
 // The record and the tonearm — the original deck, and still the default.
 //
@@ -129,24 +129,25 @@ export default function VinylDeck({ progress, engaged, spinning, reduced, url, h
           swipe carries the lyrics off with the record (James, 2026-09-11:
           "When swiping left right the lyrics need to go with the record
           too"). Not inside the spinning disc: they must not turn. */}
-      {underArm}
-      {/* Its sleeve, closing over it as a swipe or a change of song takes it
-          to the side, where the records are drawn as their sleeves
-          (`DeckSwiper`): by the side it IS one, so the hand-over is unseen. */}
-      {/* Always there (at nothing) while a slide is: mounted only once it
-          was needed, it would arrive already closed, with no fade. */}
+      {/* Its sleeve, half off it and the record turning in it (`HalfSleeve`).
+          Over the record, under the words round it. As a swipe or a change of
+          song takes the record to the side, the sleeve closes back over it —
+          by the side it IS a sleeve, as the records there are drawn
+          (`DeckSwiper`), so the hand-over is unseen. Only on Now Playing
+          (`slide` is the swiper's), never the mini player's little deck. */}
       {slide && (
         <div
           className="pointer-events-none absolute inset-0"
           style={{
-            opacity: slide.away ?? 0,
-            transition: slide.animate ? `opacity ${slide.ms ?? 240}ms ease-in` : 'none',
+            transform: `translateX(${50 * (slide.away ?? 0)}%)`,
+            transition: slide.animate ? `transform ${slide.ms ?? 240}ms ${ARC_ACROSS}` : 'none',
           }}
           aria-hidden
         >
-          <Sleeve url={url} hue={hue} />
+          <HalfSleeve key={`${url ?? hue}|${slide.sleeveAt ?? 0}`} since={slide.sleeveAt} url={url} hue={hue} reduced={reduced} />
         </div>
       )}
+      {underArm}
       </div>
       </div>
 

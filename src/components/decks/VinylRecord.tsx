@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { coverUrl, fallbackHue } from '../../lib/art'
 import type { Album } from '../../lib/types'
 import { DEFAULT_RINGS, grooveGradient } from '../../lib/grooves'
@@ -75,6 +76,49 @@ export function Sleeve({ album, url: given, hue: givenHue }: { album?: Album; ur
       {/* Card, not glass: a little light along the top, a little shade at the
           open edge where a record comes out. */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/15" />
+    </div>
+  )
+}
+
+/** How long the sleeve takes to come half off the record. */
+export const SLEEVE_HALF_MS = 620
+
+/**
+ * The playing record's sleeve, half off it to the left, the record turning in
+ * it (James, 2026-11-02: "try the active record sleeve just coming half off
+ * and the track playing inside of it"). It slides there from covering the
+ * record whenever a record arrives.
+ *
+ * `since` is when that record arrived (`DeckSlide.sleeveAt`): the stand-in
+ * `DeckSwiper` holds in the middle and the deck's own record under it each
+ * draw one of these, mounted at different moments, and both run the slide
+ * from that one time so the hand-over between them is unseen. Read once, at
+ * mount — a later render must not move a slide already under way.
+ */
+export function HalfSleeve({ since, album, url, hue, reduced = false }: {
+  since?: number
+  album?: Album
+  url?: string | null
+  hue?: number
+  reduced?: boolean
+}) {
+  // An arrival long gone (the song changed since by a button, not a swipe):
+  // this record's slide is its own, from now.
+  const [delay] = useState(() => {
+    const ago = since ? Date.now() - since : Infinity
+    return ago < 3000 ? Math.min(SLEEVE_HALF_MS, Math.max(0, ago)) : 0
+  })
+  return (
+    <div
+      className="pointer-events-none absolute inset-0"
+      style={
+        reduced
+          ? { transform: 'translateX(-50%)' }
+          : { animation: `jb-sleeve-half ${SLEEVE_HALF_MS}ms cubic-bezier(.45,0,.3,1) ${-delay}ms both` }
+      }
+      aria-hidden
+    >
+      <Sleeve album={album} url={url} hue={hue} />
     </div>
   )
 }
