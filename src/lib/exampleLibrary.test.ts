@@ -85,19 +85,39 @@ describe('the example library', () => {
 })
 
 describe('exampleLyrics', () => {
-  it('gives four songs timed words, in order, starting a few seconds in', async () => {
+  it('gives every song timed words, in order, on the beat, inside the song', async () => {
     const { exampleLyrics, exampleTrackPaths } = await import('./exampleLibrary')
-    const sheets = exampleTrackPaths()
-      .map(({ path }) => exampleLyrics({ path } as Parameters<typeof exampleLyrics>[0]))
-      .filter((sheet) => sheet !== null)
-    expect(sheets).toHaveLength(4)
+    const paths = exampleTrackPaths()
+    const sheets = paths.map(({ path }) => exampleLyrics({ path } as Parameters<typeof exampleLyrics>[0]))
+    // James, 2026-11-02: "have all songs with lyrics".
+    expect(sheets.every((sheet) => sheet !== null)).toBe(true)
     for (const sheet of sheets) {
-      expect(sheet.synced).toBe(true)
-      const times = sheet.lines.map((l) => l.timeSec ?? -1)
-      expect(times[0]).toBe(3)
-      // Every song is at least 26 seconds, and the last line ends 4 before that.
-      expect(Math.max(...times)).toBeLessThan(42)
-      expect([...times].sort((a, b) => a - b)).toEqual(times)
+      expect(sheet!.synced).toBe(true)
+      expect(sheet!.lines.length).toBeGreaterThanOrEqual(6)
+      const times = sheet!.lines.map((l) => l.timeSec ?? -1)
+      // A bar of introduction first: at least a second (the fastest bar is
+      // under two), never at zero.
+      expect(times[0]).toBeGreaterThan(1)
+      // Every song is at least 26 seconds; the last line leaves a bar after it.
+      expect(Math.max(...times)).toBeLessThan(44)
+      expect(times.every((t, i) => i === 0 || t > times[i - 1])).toBe(true)
     }
+  })
+})
+
+describe('lyricBeats', () => {
+  it('starts on the second bar, puts lines on bars, and pauses a bar halfway when there is room', async () => {
+    const { lyricBeats } = await import('./exampleLibrary')
+    // 120 bpm: a beat is 0.5 s, a bar 2 s. 40 s = 80 beats, 72 of them for words.
+    const times = lyricBeats(8, 40, 120)
+    expect(times[0]).toBe(2)
+    // 72 / 8 = 9 beats → 8 (two bars) a line; 8 spare → a bar's break after line 4.
+    expect(times).toEqual([2, 6, 10, 14, 20, 24, 28, 32])
+  })
+
+  it('falls back to a line a beat or two when the song is short and slow', async () => {
+    const { lyricBeats } = await import('./exampleLibrary')
+    // 60 bpm, 26 s: 26 beats, 18 for words, six lines → 3 beats each, no break.
+    expect(lyricBeats(6, 26, 60)).toEqual([4, 7, 10, 13, 16, 19])
   })
 })

@@ -89,10 +89,12 @@ interface ExampleAlbum {
   serif?: boolean
   centred?: boolean
   /**
-   * Words for some of the songs, by track index — written for these made-up
-   * records, so the lyrics panel and its styles can be shown with nothing
-   * looked up (2026-09-27, for the store screenshots and App Review, who have
-   * no music of their own). Timed evenly across the song by `exampleLyrics`.
+   * Words for EVERY song, by track index — written for these made-up records,
+   * so the lyrics panel, the orbit, the lock-screen line and the lyric marks
+   * can all be shown with nothing looked up (2026-09-27, for the store
+   * screenshots and App Review, who have no music of their own; every song
+   * since 2026-11-02, James: "have all songs with lyrics"). Timed to the bars
+   * by `exampleLyrics`.
    */
   lyrics?: Record<number, string[]>
 }
@@ -115,6 +117,36 @@ const ALBUMS: ExampleAlbum[] = [
     recipe: { root: 57, minor: false, bpm: 104, bite: 0.3, density: 0.62, drums: true, pad: 0.5 },
     tracks: ['Lead-in Groove', 'Counterweight', 'Anti-skate', 'The Long Way Round'],
     lyrics: {
+      0: [
+        'Silence first, then the hiss begins',
+        'A little crackle where the song comes in',
+        'Hold your breath for the very first note',
+        'The one we waited for, the one you wrote',
+        'Lead me in, lead me in',
+        'Spiral down to where the songs begin',
+        'Lead me in, lead me in',
+        'Play it once and play again',
+      ],
+      1: [
+        'You were the weight on the other side',
+        'Kept me level when the needle slid',
+        'Never pressing, never letting go',
+        'Just enough to let the music flow',
+        'Counterweight, counterweight',
+        'Balance me when I’m running late',
+        'Counterweight, counterweight',
+        'Hold me steady, hold me straight',
+      ],
+      2: [
+        'Pulled toward the middle every night',
+        'A little push to keep the sound right',
+        'You never notice what keeps you true',
+        'Till it’s gone and the songs skip through',
+        'Don’t let me slide, don’t let me skate',
+        'Keep me turning, keep me straight',
+        'Don’t let me slide, don’t let me skate',
+        'Hold the groove until it’s late',
+      ],
       3: [
         'Took the long way round the record',
         'Past the bridge and the second verse',
@@ -135,6 +167,36 @@ const ALBUMS: ExampleAlbum[] = [
     recipe: { root: 55, minor: true, bpm: 96, bite: 0.36, density: 0.55, drums: true, pad: 0.55 },
     tracks: ['Dust Cover', 'Slipmat', 'Forty-five', 'Static on the Inner Groove'],
     lyrics: {
+      0: [
+        'Close the lid when the party ends',
+        'Keep the dust off our dearest friends',
+        'Every sleeve back where it belongs',
+        'A quiet room full of sleeping songs',
+        'Under glass, under glass',
+        'Let the long night slowly pass',
+        'Under glass, under glass',
+        'We’ll play them all again at last',
+      ],
+      1: [
+        'Spinning under, never seen',
+        'Felt and circles in between',
+        'Let the record slip and stay',
+        'Cue it up and let it play',
+        'Slip, slip, slipmat',
+        'Round the room and coming back',
+        'Slip, slip, slipmat',
+        'Hold the beat and keep the track',
+      ],
+      3: [
+        'Near the end the noise gets louder',
+        'Static rising like a crowd',
+        'Every song we couldn’t finish',
+        'Hissing softly, out loud',
+        'Inner groove, inner groove',
+        'Nothing left but room to move',
+        'Inner groove, inner groove',
+        'The quiet part was always you',
+      ],
       2: [
         'Put the needle down where we left it',
         'Forty-five turns and the room comes back',
@@ -157,6 +219,48 @@ const ALBUMS: ExampleAlbum[] = [
     // The hash gives this the rings "Sides A and B" already has — two of one
     // band's four sleeves the same shape, side by side in the opened fan.
     sleeve: 3,
+    lyrics: {
+      0: [
+        'Twelve inches wide and twenty minutes deep',
+        'A whole side of promises to keep',
+        'Lay it flat and lift the arm',
+        'Turn it slowly, keep it warm',
+        'Big enough to hold the night',
+        'Black and round and shining bright',
+        'Twelve inches, twenty minutes',
+        'Everything we need is in it',
+      ],
+      1: [
+        'Open up the gatefold wide',
+        'Photographs on either side',
+        'Faces from a summer gone',
+        'Names in pencil, every one',
+        'Fold it open, fold it out',
+        'This is what the songs are about',
+        'Fold it open, fold it out',
+        'Read the words and sing them out',
+      ],
+      2: [
+        'Small print on the back of the sleeve',
+        'Who played what and who couldn’t leave',
+        'Thank you mum and thank you town',
+        'Recorded live and written down',
+        'Read the notes, read the notes',
+        'Every name and every quote',
+        'Read the notes, read the notes',
+        'Somewhere there’s the line you wrote',
+      ],
+      3: [
+        'They pressed it once and it sold out',
+        'They pressed again without a doubt',
+        'Same old songs on brand new wax',
+        'Same mistakes on all the tracks',
+        'Press it again, press it again',
+        'Play it like we played it then',
+        'Press it again, press it again',
+        'Every time, we’re young again',
+      ],
+    },
   },
   {
     artist: 'The Tone Arms',
@@ -166,6 +270,38 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Indie',
     recipe: { root: 58, minor: true, bpm: 112, bite: 0.42, density: 0.68, drums: true, pad: 0.42 },
     tracks: ['Locked Groove', 'Matrix Number', 'Fade to Centre'],
+    lyrics: {
+      0: [
+        'Round and round the same short line',
+        'Caught in a circle, lost in time',
+        'Lift me up or leave me here',
+        'Same three seconds, year on year',
+        'Locked groove, locked groove',
+        'Nowhere left for me to move',
+        'Locked groove, locked groove',
+        'Round again, I’m round again',
+      ],
+      1: [
+        'Scratched by hand where the label ends',
+        'A secret code for the closest friends',
+        'Letters, numbers, a name or two',
+        'A message only the cutter knew',
+        'Read the run-out, tilt it to the light',
+        'Someone wrote a note tonight',
+        'Read the run-out, tilt it to the light',
+        'Every pressing gets it right',
+      ],
+      2: [
+        'The song gets quiet as it nears the end',
+        'Spiral slower round the final bend',
+        'Nothing left but the turning sound',
+        'Of the needle going round and round',
+        'Fade to centre, fade to grey',
+        'Let the last note slip away',
+        'Fade to centre, fade to grey',
+        'Lift the arm and call it a day',
+      ],
+    },
   },
   {
     artist: 'Lathe & the Lacquers',
@@ -175,6 +311,26 @@ const ALBUMS: ExampleAlbum[] = [
     recipe: { root: 45, minor: true, bpm: 72, bite: 0.2, density: 0.4, drums: true, pad: 0.7 },
     tracks: ['Acetate', 'Half-speed', 'Bass Trap'],
     lyrics: {
+      1: [
+        'Slow it down, slow it down',
+        'Half the speed and twice the sound',
+        'Every beat a little wide',
+        'Room enough to step inside',
+        'Half-speed, half-speed',
+        'All the time that we need',
+        'Slow it down, slow it down',
+        'Feel the bass come round',
+      ],
+      2: [
+        'Low notes gather in the corner',
+        'Rolling round the room like water',
+        'Catch them, hold them, let them be',
+        'Deep down where the bass runs free',
+        'Bass trap, bass trap',
+        'Hold the low end, bring it back',
+        'Bass trap, bass trap',
+        'Heavy like a heartbeat, heavy like that',
+      ],
       0: [
         'Cut it once, cut it deep',
         'Acetate for us to keep',
@@ -196,6 +352,38 @@ const ALBUMS: ExampleAlbum[] = [
     tracks: ['One Off', 'Reference Cut', 'Room Tone'],
     // Same again: the rings would repeat "Cutting Head", two years earlier.
     sleeve: 3,
+    lyrics: {
+      0: [
+        'Only one of these was made',
+        'Pressed by hand and never played',
+        'Hold it gently, hold it near',
+        'There won’t be another here',
+        'One off, one off',
+        'One night only, one take enough',
+        'One off, one off',
+        'Hold it close and don’t let go',
+      ],
+      1: [
+        'Play it back and tell me true',
+        'Is it what we meant to do',
+        'Turn the dial and check the sound',
+        'Low end steady, feet on the ground',
+        'Reference, reference',
+        'Every echo making sense',
+        'Reference, reference',
+        'Cut it right and cut it once',
+      ],
+      2: [
+        'Nobody playing, nobody there',
+        'Just the hum of the empty air',
+        'Microphones listening to the floor',
+        'The sound of the room and nothing more',
+        'Room tone, room tone',
+        'Quiet when we’re all alone',
+        'Room tone, room tone',
+        'Every room has a tone of its own',
+      ],
+    },
   },
   {
     artist: 'Lathe & the Lacquers',
@@ -205,6 +393,38 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Dub',
     recipe: { root: 47, minor: true, bpm: 76, bite: 0.26, density: 0.44, drums: true, pad: 0.72 },
     tracks: ['Mother', 'Stamper', 'Plating Room'],
+    lyrics: {
+      0: [
+        'From the master comes the mother',
+        'One record made from another',
+        'Down the line the copies go',
+        'Every groove we used to know',
+        'Mother, mother, make it true',
+        'Every pressing comes from you',
+        'Mother, mother, make it new',
+        'Every song still sounds like you',
+      ],
+      1: [
+        'Press it hard and press it down',
+        'Hot wax spinning round and round',
+        'Stamp the music, seal it in',
+        'Every song where it’s always been',
+        'Stamper, stamper, heavy hand',
+        'Pressing records for the band',
+        'Stamper, stamper, steady beat',
+        'Rolling out into the street',
+      ],
+      2: [
+        'Silver baths and humming wire',
+        'Nickel rising, slow and higher',
+        'In the plating room at night',
+        'Copies growing in the light',
+        'Plating room, plating room',
+        'Metal growing from the groove',
+        'Plating room, plating room',
+        'Morning always comes too soon',
+      ],
+    },
   },
   {
     artist: 'Marguerite Vale',
@@ -215,6 +435,40 @@ const ALBUMS: ExampleAlbum[] = [
     genre: 'Modern classical',
     recipe: { root: 62, minor: false, bpm: 60, bite: 0.1, density: 0.36, drums: false, pad: 0.85 },
     tracks: ['Morning, First Light', 'The Blue Hour', 'Someone Downstairs', 'Nocturne for an Empty House'],
+    lyrics: {
+      0: [
+        'The curtains pale before the sun',
+        'A kettle, and the day begun',
+        'Light lays its hand along the floor',
+        'And finds the shape it found before',
+        'Morning, first light',
+        'Nothing yet, and all is right',
+      ],
+      1: [
+        'The day has gone but not the light',
+        'The street lamps wait to say goodnight',
+        'Blue on the windows, blue on the wall',
+        'Blue in the hush after it all',
+        'Stay a while, the blue hour',
+        'Stay a while before the dark',
+      ],
+      2: [
+        'A door below, a careful tread',
+        'A song half-hummed and left unsaid',
+        'Someone downstairs is still awake',
+        'Turning the pages for my sake',
+        'I hear you through the floor',
+        'And I’m not alone any more',
+      ],
+      3: [
+        'The chairs are still where we sat down',
+        'The clocks go on without a sound',
+        'The rooms remember every name',
+        'And keep the light the way it came',
+        'Goodnight, house',
+        'Goodnight, the quiet and the moon',
+      ],
+    },
   },
   {
     artist: 'Static Bloom',
@@ -224,6 +478,26 @@ const ALBUMS: ExampleAlbum[] = [
     recipe: { root: 52, minor: true, bpm: 124, bite: 0.55, density: 0.8, drums: true, pad: 0.38 },
     tracks: ['Crackle', 'Pop', 'Wow and Flutter'],
     lyrics: {
+      1: [
+        'One pop, two pop, kick it in',
+        'Feel the static on your skin',
+        'Every click a little spark',
+        'Lighting up the dancing dark',
+        'Pop, pop, here we go',
+        'Turn the lights down, turn it low',
+        'Pop, pop, here we go',
+        'Every glitch becomes a show',
+      ],
+      2: [
+        'Bending notes like summer heat',
+        'A wobble in the sleeping beat',
+        'Speeding up and slowing down',
+        'Tape that’s seen the whole of town',
+        'Wow and flutter, flutter and wow',
+        'Every second, here and now',
+        'Wow and flutter, flutter and wow',
+        'Hold the note and take a bow',
+      ],
       0: [
         'Crackle in the speaker, static in my head',
         'Dancing on the surface of the words we never said',
@@ -339,10 +613,15 @@ function albumFor(path: string): ExampleAlbum | undefined {
 }
 
 /**
- * The words of an example song, as a timed sheet — or null for the songs that
- * have none. The lines are spread evenly from a few seconds in to a few before
- * the end, so every style (the scroll, the orbit, the lock-screen line) has
- * something to follow however long the seed made the track.
+ * The words of an example song, as a timed sheet — or null for a song that has
+ * none (none, since 2026-11-02, but a record added later might not).
+ *
+ * ⚠️ TIMED TO THE MUSIC, not spread evenly (2026-11-02). A line starts on a
+ * bar — or on a beat, when the song is too short for a bar a line — after a
+ * bar of introduction; when there is room, a bar's break sits halfway, where
+ * the chorus comes in; and the last line leaves at least a bar before the end.
+ * `render` plays a four-beat bar at the recipe's tempo from 0, so these land
+ * on the chord changes you can hear.
  */
 export function exampleLyrics(track: Track): LyricSheet | null {
   if (!isExampleTrack(track)) return null
@@ -351,14 +630,27 @@ export function exampleLyrics(track: Track): LyricSheet | null {
   const index = entry.tracks.findIndex((_, i) => trackPath(entry, i) === track.path)
   const lines = entry.lyrics[index]
   if (!lines?.length) return null
-  const seconds = trackSeconds(track.path)
-  const start = 3
-  const step = (seconds - start - 4) / lines.length
   return {
     synced: true,
     source: 'file',
-    lines: lines.map((text, i) => ({ timeSec: Math.round((start + i * step) * 100) / 100, text })),
+    lines: lyricBeats(lines.length, trackSeconds(track.path), entry.recipe.bpm).map((at, i) => ({
+      timeSec: Math.round(at * 100) / 100,
+      text: lines[i],
+    })),
   }
+}
+
+/** When each of `count` lines starts, in seconds. Exported for the test. */
+export function lyricBeats(count: number, seconds: number, bpm: number): number[] {
+  const beat = 60 / bpm
+  const intro = 4
+  const outro = 4
+  const room = Math.floor(seconds / beat) - intro - outro
+  let each = Math.max(1, Math.floor(room / count))
+  if (each >= 4) each -= each % 4
+  const pause = room - each * count >= 4 ? 4 : 0
+  const half = Math.ceil(count / 2)
+  return Array.from({ length: count }, (_, i) => (intro + i * each + (i >= half ? pause : 0)) * beat)
 }
 
 /** Is this one of ours? Read after a reload, when the store has no idea. */
