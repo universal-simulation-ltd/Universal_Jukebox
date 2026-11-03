@@ -4,6 +4,7 @@ import { eraOrder, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
+import { skipNext, skipPrevious } from '../lib/deckSkip'
 import { turnsOver } from '../lib/sides'
 import { useSettingsStore, type DeckSetting, type DeckStyle } from '../stores/settingsStore'
 import type { Album } from '../lib/types'
@@ -119,8 +120,6 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
   const armDownState = usePlayerStore((s) => s.armDown)
   const phase = usePlayerStore((s) => s.deckPhase)
   const toggle = usePlayerStore((s) => s.toggle)
-  const next = usePlayerStore((s) => s.next)
-  const previous = usePlayerStore((s) => s.previous)
   const seekTo = usePlayerStore((s) => s.seekTo)
   const currentSec = usePlayerStore((s) => s.currentSec)
   const durationSec = usePlayerStore((s) => s.durationSec)
@@ -369,7 +368,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
           grooves={ceremonial ? grooveRings(phase === 'leaving' ? heldSec : durationSec || heldSec) : undefined}
           underArm={style === 'vinyl' ? underArm : undefined}
           turn={turn}
-          controls={ceremonial ? { playing, toggle, next, previous, durationSec: known ? durationSec : 0, seek } : undefined}
+          controls={ceremonial ? { playing, toggle, next: skipNext, previous: skipPrevious, durationSec: known ? durationSec : 0, seek } : undefined}
         />
         {/* Other machines move whole under a swipe; the lyrics go with them. */}
         {style !== 'vinyl' && underArm}

@@ -19,6 +19,7 @@ import { haptic } from '../lib/haptics'
 import { shownName } from '../lib/format'
 import { useT } from '../i18n'
 import { useSwipeWords } from '../lib/swipeWords'
+import { offerToCarry } from '../lib/deckSkip'
 
 // The deck, with the records either side of it (James, 2026-09-10: "have the
 // previous record peeking out from left and next from right so you can swipe
@@ -76,6 +77,12 @@ const HOLD_MAX_MS = 2500
  * waits for it.
  */
 const UPRIGHT_MS = 380
+/**
+ * How long a press of Next or Previous takes to carry the row one record
+ * across. A swipe's release only finishes a move the finger has mostly made
+ * (`SETTLE_MS`); a press is the whole travel, so it is given longer.
+ */
+const PRESS_MS = 420
 
 interface Arriving {
   album: Album | undefined
@@ -594,6 +601,124 @@ export default function DeckSwiper({
     )
   }
 
+  /**
+   * Take the row on to the record `crossed` places `way`, hold it there, and
+   * only then change track — the end of every swipe, and the whole of a press
+   * of Next or Previous (`lib/deckSkip.ts`). `holding` is already set.
+   */
+  const carryTo = (way: 1 | -1, crossed: number, moveMs: number) => {
+    const target = indexAt(way * crossed)
+    // The queue changed under a press between its frames: nothing to land on.
+    if (target === null || !mounted.current) {
+      holding.current = false
+      springBack()
+      return
+    }
+    setAnimate(true)
+    setDrag(-way * crossed)
+    turnUpright()
+    const album = albumAt(target)
+    const track = trackAt(target)
+    const style = styleAt(target)
+    // As `dragSeat` reads it with the row moving this way.
+    const seat = seatOf(styleAt(way > 0 ? nextIndex : prevIndex), deckStyle)
+    settle.current = window.setTimeout(() => {
+      settle.current = null
+      // ⚠️ ONE COMMIT for the hold and the change of track. The peeks
+      // read the cursor; drawn a frame apart, the record beyond would
+      // flash up in the middle, or the old neighbour back at the side.
+      flushSync(() => {
+        setAnimate(false)
+        // ⚠️ IN THE SAME COMMIT, for the reason above: the queued records
+        // go as the peeks take over from them. Each peek's new record is
+        // the one the row left at its place, so the hand-over cannot be
+        // seen — but only if both happen in one frame.
+        setQueued(null)
+        // The words have landed too: the heading is the new song's now.
+        setWordsFor(null)
+        // Landing where the row was taking it: the well, if the player stayed.
+        const same = isSame(style, deckStyle, album?.id, showing)
+        setArriving({ album, style, track, seat, same })
+        // Its sleeve, which carried it in, starts sliding half off it —
+        // unless it came in bare, under the sleeve already there.
+        if (!same) setSleeveAt(Date.now())
+        // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
+        // it to the middle and is holding a still picture of it there;
+        // without this the player runs its own record change over the
+        // top, and the stand-in cannot be released (and so cannot start
+        // turning) until that finishes 2.1s later. See `playPrepared`.
+        jumpTo(target, { onDeck: true })
+      })
+    }, Math.max(moveMs, UPRIGHT_MS))
+  }
+
+  /**
+   * A press of Next or Previous, done as a swipe (`lib/deckSkip.ts`): the
+   * words and the records beyond the peek put out at their places, then on
+   * the next frames the whole row glides one record across, as it would
+   * under a finger let go.
+   *
+   * False hands the press back to the player. True with nothing moving
+   * yet is a press during a swipe's own landing: kept, and carried out the
+   * moment that record is released, so tapping Next three times goes three
+   * songs on.
+   */
+  const pressed = (way: 1 | -1): boolean => {
+    if (reduced || incoming || start.current) return false
+    if (holding.current || arriving) {
+      pending.current = Math.max(-MAX_SWIPE_STEPS, Math.min(MAX_SWIPE_STEPS, pending.current + way))
+      return true
+    }
+    if (roomFor(way) === 0 || indexAt(way) === null) return false
+    holding.current = true
+    if (unqueue.current !== null) {
+      window.clearTimeout(unqueue.current)
+      unqueue.current = null
+    }
+    const r = measure()
+    setReach(r)
+    setMs(PRESS_MS)
+    setAnimate(false)
+    setDrag(0)
+    const songs = new Map<number, Track>()
+    for (let k = -roomFor(-1); k <= roomFor(1); k++) {
+      const song = k === 0 ? undefined : trackAt(indexAt(k))
+      if (song) songs.set(k, song)
+    }
+    setWordsFor(songs)
+    setQueued(way > 0 ? 'right' : 'left')
+    // Two frames, as a crossfade's slide: drawn at rest first, THEN moved.
+    requestAnimationFrame(() => requestAnimationFrame(() => carryLatest.current(way)))
+    return true
+  }
+  /** Taps of Next (+) or Previous (−) still to carry out, after the landing in hand. */
+  const pending = useRef(0)
+  // Read through refs: the frames above and the release below fire after renders.
+  const carryLatest = useRef((way: 1 | -1) => carryTo(way, 1, PRESS_MS))
+  carryLatest.current = (way: 1 | -1) => carryTo(way, 1, PRESS_MS)
+  const pressedLatest = useRef(pressed)
+  pressedLatest.current = pressed
+  useEffect(() => offerToCarry((way) => pressedLatest.current(way)), [])
+  // The record a press was waiting behind has been let go: carry out the next tap.
+  useEffect(() => {
+    if (arriving || holding.current || pending.current === 0) return
+    const way = pending.current > 0 ? 1 : -1
+    pending.current -= way
+    if (!pressedLatest.current(way)) {
+      pending.current = 0
+      if (way > 0) usePlayerStore.getState().next()
+      else usePlayerStore.getState().previous()
+    }
+  }, [arriving])
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      pending.current = 0
+    }
+  }, [])
+
   return (
     // Full width of the SCREEN on a phone, so the neighbours can come in from
     // its edges rather than from the page's padding; clipped, so they never
@@ -790,40 +915,7 @@ export default function DeckSwiper({
           // Finish the move — the row on to the record it lands on — then hold
           // the arrival and change track.
           holding.current = true
-          setAnimate(true)
-          setDrag(-way * crossed)
-          turnUpright()
-          const album = albumAt(target)
-          const track = trackAt(target)
-          const style = styleAt(target)
-          settle.current = window.setTimeout(() => {
-            settle.current = null
-            // ⚠️ ONE COMMIT for the hold and the change of track. The peeks
-            // read the cursor; drawn a frame apart, the record beyond would
-            // flash up in the middle, or the old neighbour back at the side.
-            flushSync(() => {
-              setAnimate(false)
-              // ⚠️ IN THE SAME COMMIT, for the reason above: the queued records
-              // go as the peeks take over from them. Each peek's new record is
-              // the one the row left at its place, so the hand-over cannot be
-              // seen — but only if both happen in one frame.
-              setQueued(null)
-              // The words have landed too: the heading is the new song's now.
-              setWordsFor(null)
-              // Landing where the row was taking it: the well, if the player stayed.
-              const same = isSame(style, deckStyle, album?.id, showing)
-              setArriving({ album, style, track, seat, same })
-              // Its sleeve, which carried it in, starts sliding half off it —
-              // unless it came in bare, under the sleeve already there.
-              if (!same) setSleeveAt(Date.now())
-              // ⚠️ `onDeck` — THE RECORD IS ALREADY HERE. The swipe has carried
-              // it to the middle and is holding a still picture of it there;
-              // without this the player runs its own record change over the
-              // top, and the stand-in cannot be released (and so cannot start
-              // turning) until that finishes 2.1s later. See `playPrepared`.
-              jumpTo(target, { onDeck: true })
-            })
-          }, Math.max(SETTLE_MS, UPRIGHT_MS))
+          carryTo(way, crossed, SETTLE_MS)
         }}
         onPointerCancel={() => {
           start.current = null

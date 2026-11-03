@@ -42,6 +42,7 @@ import { GENRE_MIN, libraryInGenre, shownGenre } from './lib/genres'
 import { ARTIST_MIN, FULL_ALBUM_MIN, albumsOfBigArtists, columnsLabel, isFullAlbum, nextColumns, nextOrder, orderFrom, type LibraryOrder } from './lib/libraryView'
 import { useLibraryStore } from './stores/libraryStore'
 import { usePlayerStore } from './stores/playerStore'
+import { skipNext, skipPrevious } from './lib/deckSkip'
 import { DEFAULTS, useSettingsStore, type HomeTab, type ListTab } from './stores/settingsStore'
 import { useThemeStore } from './stores/themeStore'
 import { usePrefersReducedMotion } from './lib/usePrefersReducedMotion'
@@ -255,8 +256,6 @@ function WebApp() {
   const ceremony = usePlayerStore((s) => s.ceremony)
   const skipCeremony = usePlayerStore((s) => s.skipCeremony)
   const toggle = usePlayerStore((s) => s.toggle)
-  const next = usePlayerStore((s) => s.next)
-  const previous = usePlayerStore((s) => s.previous)
 
   const homeTab = useSettingsStore((s) => s.homeTab)
   const setSetting = useSettingsStore((s) => s.set)
@@ -418,14 +417,14 @@ function WebApp() {
         if (e.repeat) return
         toggle()
       } else if (e.key === 'ArrowRight' && e.shiftKey) {
-        next()
+        skipNext()
       } else if (e.key === 'ArrowLeft' && e.shiftKey) {
-        previous()
+        skipPrevious()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [toggle, next, previous])
+  }, [toggle])
 
   const hasLibrary = status === 'ready' || status === 'scanning'
 
