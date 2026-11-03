@@ -1,4 +1,4 @@
-import { fold } from './format'
+import { fold } from './fold'
 import type { Track } from './types'
 
 // "Hey Google, play Radiohead on Jukebox" (James, 2026-10-05). The Android

@@ -1,6 +1,8 @@
 import Foundation
+import UIKit
 import AppIntents
 import Intents
+import JavaScriptCore
 
 /// Siri (James, 2026-10-05: "could we add compatibility for talking to siri to
 /// play music, shuffle songs etc?").
@@ -14,9 +16,27 @@ import Intents
 /// `ShortcutsBridge`, which keeps it until `ShortcutsPlugin` and the page are
 /// listening, and `src/lib/shortcuts.ts` does the playing.
 ///
-/// ⚠️ EVERY INTENT OPENS THE APP (`openAppWhenRun`). The player is the web page,
-/// and an intent run in the background on a cold launch has no scene and so no
-/// web view to hand the action to: it would answer "Done" and play nothing.
+/// ⚠️ ON A LOCKED PHONE (iOS 17+) THEY NO LONGER OPEN THE APP (James,
+/// 2026-11-03: "allow Siri so that the user doesn't have to unlock for every
+/// operation even if they're playing in the app already"). They used to: the
+/// player is the web page, and a locked phone's page is not running (its
+/// JavaScript stops within a second of the lock), so an intent had nothing to
+/// hand the action to but an app it opened — and opening an app means
+/// unlocking. Now, with the app not on screen, `SiriPlayer` below plays it
+/// itself: the page wrote the library down while it was awake
+/// (`siriManifest` in `playerStore`), the page's own rules decide what to play
+/// (`src/siri/planner.ts`, run by JavaScriptCore), and the native engine plays
+/// it. The page takes the queue over when it next wakes (`adoptNativeQueue`).
+///   - `AudioPlaybackIntent` (iOS 17) is what lets an intent that does not
+///     open the app start the music — see `SiriShortcut.perform`.
+///   - `authenticationPolicy: .alwaysAllowed`: playing music needs no unlock.
+///   - It still asks to open the app (`requestToContinueInForeground`) when it
+///     cannot play alone: no library written down yet, or only the example's
+///     songs (which are made in the page).
+///   - With the app ON screen, nothing changed: the page plays it, with its
+///     animations, through `ShortcutsBridge`.
+///   - iOS 16.4–16.x asks to open the app, as before, unless the engine is
+///     already playing.
 ///
 /// ⚠️ PAUSE, NEXT, BACK AND "PLAY" WHILE SOMETHING IS PAUSED ARE NOT HERE.
 /// Siri sends those to whichever app holds Now Playing, through the remote
@@ -34,11 +54,12 @@ import Intents
 struct ShuffleSongsIntent: AppIntent {
     static var title: LocalizedStringResource = "Shuffle songs"
     static var description = IntentDescription("Plays every song in your library in a random order.")
-    static var openAppWhenRun = true
+    static var openAppWhenRun: Bool = false
+    static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        ShortcutsBridge.receive("shuffle-songs")
+        try await SiriShortcut.perform("shuffle-songs", for: self)
         return .result()
     }
 }
@@ -47,11 +68,12 @@ struct ShuffleSongsIntent: AppIntent {
 struct ShuffleAlbumsIntent: AppIntent {
     static var title: LocalizedStringResource = "Shuffle albums"
     static var description = IntentDescription("Plays whole albums, one after another, in a random order.")
-    static var openAppWhenRun = true
+    static var openAppWhenRun: Bool = false
+    static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        ShortcutsBridge.receive("shuffle-albums")
+        try await SiriShortcut.perform("shuffle-albums", for: self)
         return .result()
     }
 }
@@ -60,29 +82,83 @@ struct ShuffleAlbumsIntent: AppIntent {
 struct ShuffleArtistsIntent: AppIntent {
     static var title: LocalizedStringResource = "Shuffle artists"
     static var description = IntentDescription("Plays your library artist by artist, in a random order.")
-    static var openAppWhenRun = true
+    static var openAppWhenRun: Bool = false
+    static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        ShortcutsBridge.receive("shuffle-artists")
+        try await SiriShortcut.perform("shuffle-artists", for: self)
         return .result()
     }
 }
 
 /// Carries on where you left off, or shuffles songs if there is nothing to
-/// carry on with. `runShortcut('play')` decides which.
+/// carry on with. `runShortcut('play')` decides which — and on a locked phone,
+/// the same rule in `src/siri/planner.ts`.
 @available(iOS 16.0, *)
 struct PlayMusicIntent: AppIntent {
     static var title: LocalizedStringResource = "Play music"
     static var description = IntentDescription("Carries on from where you left off, or shuffles your songs if there is nothing to carry on with.")
-    static var openAppWhenRun = true
+    static var openAppWhenRun: Bool = false
+    static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        ShortcutsBridge.receive("play")
+        try await SiriShortcut.perform("play", for: self)
         return .result()
     }
 }
+
+// Playing without opening the app (17+), and asking to open it when that can't work (16.4+).
+@available(iOS 17.0, *)
+extension ShuffleSongsIntent: AudioPlaybackIntent {}
+@available(iOS 17.0, *)
+extension ShuffleAlbumsIntent: AudioPlaybackIntent {}
+@available(iOS 17.0, *)
+extension ShuffleArtistsIntent: AudioPlaybackIntent {}
+@available(iOS 17.0, *)
+extension PlayMusicIntent: AudioPlaybackIntent {}
+@available(iOS 16.4, *)
+extension ShuffleSongsIntent: ForegroundContinuableIntent {}
+@available(iOS 16.4, *)
+extension ShuffleAlbumsIntent: ForegroundContinuableIntent {}
+@available(iOS 16.4, *)
+extension ShuffleArtistsIntent: ForegroundContinuableIntent {}
+@available(iOS 16.4, *)
+extension PlayMusicIntent: ForegroundContinuableIntent {}
+
+@available(iOS 16.0, *)
+enum SiriShortcut {
+    /// ⚠️ `openAppWhenRun` IS A LITERAL `false`, not a computed "false from
+    /// iOS 17": the build reads it into the App Intents metadata, so the app's
+    /// coming to the front is decided here, at run time, instead.
+    ///
+    ///   - The app on screen: the page plays it, as it always has.
+    ///   - Otherwise the engine plays it alone (`SiriPlayer`) — on iOS 17+,
+    ///     where `AudioPlaybackIntent` gives a background intent leave to start
+    ///     the music, or on any version while the engine is already playing
+    ///     (its audio session is live, so a new song needs no new leave).
+    ///   - When that can't be done, iOS 16.4+ is asked to bring the app up
+    ///     (`requestToContinueInForeground` — the unlock, as before), and the
+    ///     page plays it.
+    ///   - Before 16.4 there is no way to ask: the page is handed it, and plays
+    ///     it once the app is next opened.
+    @MainActor
+    static func perform<I: AppIntent>(_ action: String, for intent: I) async throws {
+        if UIApplication.shared.applicationState == .active {
+            ShortcutsBridge.receive(action)
+            return
+        }
+        var alone = JukeboxEngine.shared.playingNow
+        if #available(iOS 17.0, *) { alone = true }
+        if alone, SiriPlayer.run(action: action) == .played { return }
+        if #available(iOS 16.4, *), let continuable = intent as? any ForegroundContinuableIntent {
+            try await continuable.requestToContinueInForeground()
+        }
+        ShortcutsBridge.receive(action)
+    }
+}
+
 
 /// ⚠️ Every phrase must contain `.applicationName` exactly once, or the build's
 /// App Intents metadata step rejects it. iOS caps an app at ten App Shortcuts.
@@ -137,14 +213,17 @@ struct JukeboxAppShortcuts: AppShortcutsProvider {
 /// it into the same `search` event Android's assistant sends, and
 /// `src/lib/voiceSearch.ts` finds it in the library.
 ///
-/// ⚠️ IT ANSWERS `.continueInApp`, so Siri opens the app — for the same reason
-/// every App Shortcut above has `openAppWhenRun`. The library lives in the
-/// page, and Siri runs this handler in a background launch with no scene and
-/// no web view. The event waits in `ShortcutsBridge` until the page listens.
+/// ⚠️ WITH THE APP NOT ON SCREEN IT ANSWERS `.handleInApp` (2026-11-03), and
+/// the engine plays it with no unlock — see `handle` and `SiriPlayer`. It used
+/// to answer `.continueInApp` every time, so Siri opened the app: the library
+/// lives in the page, and Siri runs this handler in a background launch with
+/// no scene and no web view. That is still the answer with the app on screen,
+/// or before the page has ever written the library down; the event then waits
+/// in `ShortcutsBridge` until the page listens.
 ///
-/// ⚠️ THE NATIVE SIDE CAN'T TELL WHETHER THE LIBRARY HAS IT. So the item
-/// resolved back to Siri is only what was asked for, and "nothing found" is
-/// the page's to show (`app.voice_not_found`).
+/// ⚠️ THE ITEM RESOLVED BACK TO SIRI IS ONLY WHAT WAS ASKED FOR. Whether the
+/// library has it is the planner's to say once it runs (`SiriPlayer`), or the
+/// page's (`app.voice_not_found`) with the app open.
 ///
 /// Wiring: `INIntentsSupported` + `INSupportedMediaCategories` in Info.plist,
 /// `com.apple.developer.siri` in App.entitlements (the App ID's Siri
@@ -164,9 +243,21 @@ final class PlayMediaHandler: NSObject, INPlayMediaIntentHandling {
         completion([.success(with: item)])
     }
 
+    /// ⚠️ `.handleInApp` WHEN THE APP IS NOT ON SCREEN AND THE LIBRARY IS
+    /// WRITTEN DOWN (2026-11-03): iOS then wakes the app in the background,
+    /// with leave to play, and hands the intent to
+    /// `AppDelegate.application(_:handle:completionHandler:)`, where
+    /// `SiriMedia.playLocked` plays it — no unlock. Otherwise `.continueInApp`,
+    /// as before: the page finds it and plays it.
     func handle(intent: INPlayMediaIntent, completion: @escaping (INPlayMediaIntentResponse) -> Void) {
-        SiriMedia.receive(intent)
-        completion(INPlayMediaIntentResponse(code: .continueInApp, userActivity: nil))
+        DispatchQueue.main.async {
+            if UIApplication.shared.applicationState != .active && SiriLibrary.exists {
+                completion(INPlayMediaIntentResponse(code: .handleInApp, userActivity: nil))
+                return
+            }
+            SiriMedia.receive(intent)
+            completion(INPlayMediaIntentResponse(code: .continueInApp, userActivity: nil))
+        }
     }
 }
 
@@ -180,6 +271,13 @@ enum SiriMedia {
             if let event = event { ShortcutsBridge.receive("search", event) }
             else { ShortcutsBridge.receive("play") }
         }
+    }
+
+    /// The app is not on screen: play it with the engine alone (`SiriPlayer`).
+    /// Main thread.
+    static func playLocked(_ intent: INPlayMediaIntent) -> SiriOutcome {
+        if let event = event(for: intent) { return SiriPlayer.run(action: "search", request: event) }
+        return SiriPlayer.run(action: "play")
     }
 
     static func receive(_ activity: NSUserActivity) {
@@ -225,3 +323,202 @@ enum SiriMedia {
         return text.isEmpty ? nil : text
     }
 }
+
+// MARK: - Playing with the page away
+
+/// What became of a request played without the page.
+enum SiriOutcome {
+    /// Playing (or already was).
+    case played
+    /// Nothing in the library answers to it.
+    case notFound
+    /// Can't be done from here — open the app and let the page do it.
+    case cannot
+}
+
+/// The library as the page last wrote it down (`siriManifest` in
+/// `playerStore`, sent by `JukeboxEnginePlugin.setLibrary`), and where "Resume
+/// listening" would pick up (`setResume`).
+///
+/// ⚠️ IN APPLICATION SUPPORT, NOT CACHES: iOS may empty Caches whenever it
+/// likes, and a phone that did would have Siri asking to unlock again for no
+/// reason anybody could see. The file can be made again, though, so it is kept
+/// out of the backup.
+enum SiriLibrary {
+    private static var fileURL: URL? {
+        guard let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
+        return dir.appendingPathComponent("jukebox-siri", isDirectory: true).appendingPathComponent("library.json")
+    }
+
+    static var exists: Bool {
+        guard let url = fileURL else { return false }
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+
+    /// Any thread.
+    static func write(_ json: String) {
+        guard var url = fileURL else { return }
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(json.utf8).write(to: url, options: .atomic)
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try? url.setResourceValues(values)
+        } catch {
+            CommandLog.note("siri: could not write the library \(error.localizedDescription)")
+        }
+    }
+
+    static func read() -> String? {
+        guard let url = fileURL, let data = try? Data(contentsOf: url) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private static let resumeKey = "uk.co.unisim.jukebox.siriResume"
+
+    static func remember(ids: [String]?, trackId: String, sec: Double) {
+        var saved = UserDefaults.standard.dictionary(forKey: resumeKey) ?? [:]
+        if let ids = ids { saved["ids"] = ids }
+        saved["trackId"] = trackId
+        saved["sec"] = sec
+        UserDefaults.standard.set(saved, forKey: resumeKey)
+    }
+
+    /// `{ ids, trackId, sec }` — `SavedPlace` in `lib/voicePlan.ts` — or nil.
+    static func resume() -> [String: Any]? {
+        guard let saved = UserDefaults.standard.dictionary(forKey: resumeKey),
+              saved["ids"] is [String], saved["trackId"] is String else { return nil }
+        return saved
+    }
+}
+
+/// The page's own rules for what to play, run by JavaScriptCore:
+/// `src/siri/planner.ts`, bundled by `scripts/build-planner.mjs` into the web
+/// build (`public/siri-planner.js`), which `npx cap sync` copies into the app.
+///
+/// ⚠️ NOT A SWIFT COPY OF THEM. "Play Mika" has to find what the page would
+/// find, and "shuffle albums" has to shuffle as the page does; two copies of
+/// `voiceSearch.ts` would drift with nothing failing. JavaScriptCore runs
+/// with the screen off — it is not the web view, which is what stops.
+enum SiriPlanner {
+    /// Main thread. nil if the bundle is missing or threw.
+    static func plan(_ input: [String: Any]) -> [String: Any]? {
+        guard let url = Bundle.main.url(forResource: "siri-planner", withExtension: "js", subdirectory: "public")
+            ?? Bundle.main.url(forResource: "siri-planner", withExtension: "js"),
+              let code = try? String(contentsOf: url, encoding: .utf8),
+              let context = JSContext() else {
+            CommandLog.note("siri: no planner in the bundle")
+            return nil
+        }
+        context.exceptionHandler = { _, exception in
+            CommandLog.note("siri: planner threw \(exception?.toString() ?? "?")")
+        }
+        context.evaluateScript(code)
+        guard let planJSON = context.objectForKeyedSubscript("JukeboxPlanner")?.objectForKeyedSubscript("planJSON"),
+              let data = try? JSONSerialization.data(withJSONObject: input),
+              let text = String(data: data, encoding: .utf8),
+              let answer = planJSON.call(withArguments: [text])?.toString(),
+              let result = (try? JSONSerialization.jsonObject(with: Data(answer.utf8))) as? [String: Any] else {
+            return nil
+        }
+        return result
+    }
+}
+
+/// "Shuffle songs", "play music", "play Mika" — with the page away.
+enum SiriPlayer {
+    /// Main thread.
+    static func run(action: String, request: [String: Any]? = nil) -> SiriOutcome {
+        guard let text = SiriLibrary.read(),
+              let manifest = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any] else {
+            return .cannot
+        }
+        let engine = JukeboxEngine.shared
+        var input: [String: Any] = [
+            "action": action,
+            "seed": Int.random(in: 0..<0x7fffffff),
+            "hasSong": engine.hasSong,
+            "playing": engine.playingNow,
+            "manifest": text,
+        ]
+        if let request = request { input["request"] = request }
+        if let session = SiriLibrary.resume() { input["session"] = session }
+        guard let answer = SiriPlanner.plan(input), let what = answer["do"] as? String else { return .cannot }
+        CommandLog.note("siri: \(action) → \(what)")
+        switch what {
+        case "nothing":
+            return .played
+        case "resume":
+            engine.enable()
+            engine.play()
+            return .played
+        case "none":
+            return .notFound
+        case "queue":
+            guard let ids = answer["ids"] as? [String] else { return .cannot }
+            // The songs may be in a folder the person chose, and with no page
+            // this launch nothing else has taken access to it.
+            MusicFolderPlugin.takeAccessForSiri()
+            let (entries, at) = SiriQueue.entries(ids: ids, at: Int(num(answer["at"]) ?? 0), manifest: manifest)
+            guard !entries.isEmpty else { return .cannot }
+            let started = engine.startNative(entries, at: at, startAt: num(answer["startSec"]) ?? 0,
+                                             shuffle: answer["shuffle"] as? Bool ?? false, settings: manifest)
+            return started ? .played : .cannot
+        default:
+            // `empty` (nothing the engine can open) and `error`.
+            return .cannot
+        }
+    }
+}
+
+/// Engine entries for a queue the planner chose — what `engineEntry` in
+/// `playerStore` makes, from the manifest's songs. Each song's change-over is
+/// from the one before it in the queue, by the kind of change
+/// (`changeBetween` in `lib/transition.ts`); the first's is from nothing,
+/// which `changeBetween` calls a change of artist.
+enum SiriQueue {
+    static func entries(ids: [String], at: Int, manifest: [String: Any]) -> ([JukeboxEngine.Entry], Int) {
+        var songs: [String: [String: Any]] = [:]
+        for song in manifest["tracks"] as? [[String: Any]] ?? [] {
+            if let id = song["id"] as? String { songs[id] = song }
+        }
+        let transitions = manifest["transitions"] as? [String: Any] ?? [:]
+        let cues = manifest["cues"] as? [String: String] ?? [:]
+        var entries: [JukeboxEngine.Entry] = []
+        var start = 0
+        var before: [String: Any]?
+        for (cursor, id) in ids.enumerated() {
+            guard let song = songs[id] else { continue }
+            let change: String
+            if let from = before {
+                if (from["albumId"] as? String) == (song["albumId"] as? String) { change = "track" }
+                else if (from["artistKey"] as? String) == (song["artistKey"] as? String) { change = "album" }
+                else { change = "artist" }
+            } else {
+                change = "artist"
+            }
+            let pair = transitions[change] as? [String: Any] ?? [:]
+            var o: [String: Any] = [
+                "key": "\(cursor):\(id)",
+                "cursor": cursor,
+                "trackId": id,
+                "albumId": song["albumId"] as? String ?? "",
+                "title": song["title"] as? String ?? "",
+                "artist": song["artist"] as? String ?? song["albumArtist"] as? String ?? "",
+                "album": song["album"] as? String ?? "",
+                "auto": pair["auto"] as? [String: Any] ?? [:],
+                "skip": pair["skip"] as? [String: Any] ?? [:],
+            ]
+            if let url = song["url"] as? String { o["url"] = url }
+            if let mediaId = song["mediaId"] as? String { o["mediaId"] = mediaId }
+            for key in ["gain", "introSec", "outroSec"] { if let n = num(song[key]) { o[key] = n } }
+            if let cue = song["cue"] as? String, let uri = cues[cue] { o["cue"] = uri }
+            guard let entry = JukeboxEngine.Entry(o) else { continue }
+            if cursor <= at { start = entries.count }
+            entries.append(entry)
+            before = song
+        }
+        return (entries, start)
+    }
+}
+

@@ -1,6 +1,9 @@
 import { pluginRegistered } from './nativePlugins'
-import { planVoice, type VoiceFocus, type VoiceRequest } from './voiceSearch'
-import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
+import type { VoiceRequest } from './voiceSearch'
+import { decideSearch, decideShortcut, type Decision } from './voicePlan'
+import { newSeed } from './shuffleQueue'
+import type { Track } from './types'
+import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { getT } from '../i18n/runtime.ts'
 
@@ -56,11 +59,30 @@ function whenLibraryReady(run: () => void): void {
 }
 
 export function runShortcut(action: string): void {
+  carryOut(decideShortcut(action, useLibraryStore.getState(), newSeed()))
+}
+
+/**
+ * A decision from `voicePlan.ts` — the same one a locked iPhone's Siri makes
+ * without the page (`src/siri/planner.ts`) — through the player store.
+ */
+function carryOut(decision: Decision): void {
   const player = usePlayerStore.getState()
-  if (action === 'shuffle-songs') player.shuffleSongs()
-  else if (action === 'shuffle-albums') player.shuffleAlbums()
-  else if (action === 'shuffle-artists') player.shuffleArtists()
-  else if (action === 'play') playMusic()
+  switch (decision.kind) {
+    case 'carryOn':
+      playMusic()
+      return
+    case 'queue':
+      if (decision.tracks.length === 0) return
+      // `startShuffle`'s order: the mode first, so `playTracks` shuffles (or
+      // doesn't) the queue it is given.
+      if (player.shuffle !== decision.shuffle) player.toggleShuffle()
+      player.playTracks(decision.tracks as Track[], decision.at)
+      return
+    case 'none':
+      // Shown only with Settings › "Show error messages" ticked, like every error.
+      usePlayerStore.setState({ error: getT()('app.voice_not_found', { asked: decision.asked }) })
+  }
 }
 
 /**
@@ -82,37 +104,7 @@ function playMusic(): void {
   if (usePlayerStore.getState().cursor < 0) player.shuffleSongs()
 }
 
-const FOCUSES: readonly VoiceFocus[] = ['artist', 'album', 'song', 'genre', 'any']
-
-/** "Hey Google, play Radiohead on Jukebox" — see `voiceSearch.ts`. */
+/** "Hey Google, play Radiohead on Jukebox" — see `voiceSearch.ts` and `voicePlan.ts`. */
 export function playFromSearch(request: VoiceRequest & { shuffle?: boolean }): void {
-  const focus = FOCUSES.includes(request.focus as VoiceFocus) ? request.focus : undefined
-  const plan = planVoice({ ...request, focus }, useLibraryStore.getState().tracks, sortAlbumTracks)
-  const player = usePlayerStore.getState()
-  switch (plan.kind) {
-    case 'play':
-      // "Shuffle Jukebox" from Siri arrives as a search with nothing named.
-      if (request.shuffle) player.shuffleSongs()
-      else playMusic()
-      return
-    case 'shuffle':
-      runShortcut(`shuffle-${plan.what}`)
-      return
-    case 'mix':
-      player.shuffleSongs(plan.tracks)
-      return
-    case 'inOrder':
-      // "Shuffle Hyperlove on Jukebox".
-      if (request.shuffle) {
-        player.shuffleSongs(plan.tracks)
-        return
-      }
-      // An album is asked for in its own order, whatever shuffle was left at.
-      if (player.shuffle) player.toggleShuffle()
-      player.playTracks(plan.tracks, plan.at)
-      return
-    case 'none':
-      // Shown only with Settings › "Show error messages" ticked, like every error.
-      usePlayerStore.setState({ error: getT()('app.voice_not_found', { asked: plan.asked }) })
-  }
+  carryOut(decideSearch(request, useLibraryStore.getState(), newSeed()))
 }

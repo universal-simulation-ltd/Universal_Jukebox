@@ -310,6 +310,28 @@ public class MusicFolderPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDel
         return canonical(url) == canonical(docs)
     }
 
+    /// Folders this process holds access to for Siri — see `takeAccessForSiri`. Main thread.
+    private static var heldForSiri: [String: URL] = [:]
+
+    /// Take access to every chosen folder, with no web view at all.
+    ///
+    /// ⚠️ `load()` does this for the page, but `load()` only runs once the
+    /// Capacitor bridge exists — and Siri on a locked phone can launch the app
+    /// with no scene, so no bridge, and start a song from one of these folders
+    /// (`SiriPlayer` in `SiriIntents.swift`). Without the grant the engine
+    /// cannot open the file. Taking it twice (here and in `load()`) is
+    /// harmless: access is counted, and neither side ever gives it back.
+    static func takeAccessForSiri() {
+        for (uri, data) in storedBookmarks() where heldForSiri[uri] == nil {
+            var stale = false
+            guard let url = try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil,
+                                     bookmarkDataIsStale: &stale) else { continue }
+            if url.startAccessingSecurityScopedResource() || FileManager.default.isReadableFile(atPath: url.path) {
+                heldForSiri[uri] = url
+            }
+        }
+    }
+
     private static func storedBookmarks() -> [String: Data] {
         UserDefaults.standard.dictionary(forKey: bookmarksKey) as? [String: Data] ?? [:]
     }

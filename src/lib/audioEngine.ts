@@ -38,7 +38,7 @@
 
 import type { AudioState } from './audio'
 import type { FadeCurve } from './fadeCurve'
-import type { EngineEntryDraft, EnginePlanDraft, EngineTransition, LeadLimits } from './enginePlan'
+import type { EngineEntryDraft, EnginePlanDraft, EngineTransition, LeadLimits, SiriManifestDraft } from './enginePlan'
 import type { SourceFile } from './types'
 import { NativeFile, isNativeShell, nativePlatform } from './nativeFile'
 import { pluginRegistered } from './nativePlugins'
@@ -69,6 +69,13 @@ export interface EngineSnapshot {
   skipped?: { trackId: string; title: string; artist?: string; reason: string }[]
   queueEnded?: boolean
   sleepEnded?: boolean
+  /**
+   * `getState` only: a queue SIRI started while the page was away (a locked
+   * iPhone — `SiriIntents.swift`), in play order. The page takes it as its own
+   * queue (`adoptEngine`); the engine stops offering it once the page's next
+   * plan shows it has caught up.
+   */
+  nativeQueue?: { serial: number; ids: string[]; shuffle: boolean } | null
 }
 
 /** What `lib/audio.ts` lends this file: its state and its callbacks. */
@@ -125,6 +132,8 @@ interface EnginePlugin {
   stash(o: { name: string; base64: string }): Promise<{ uri: string }>
   playClip(o: { uri: string; volume: number }): Promise<void>
   getState(): Promise<EngineSnapshot>
+  setLibrary(o: { json: string }): Promise<void>
+  setResume(o: { ids: string[] | null; trackId: string; sec: number }): Promise<void>
   showRoutePicker(): Promise<{ shown: boolean }>
   addListener(event: string, fn: (data: Record<string, unknown>) => void): Promise<unknown>
 }
@@ -148,6 +157,9 @@ export interface EngineBackend {
   setStartAt(seconds: number): void
   setUpcoming(plan: EnginePlanDraft): void
   setSleepEnd(endsAt: number | null, fadeSec: number): void
+  /** The library for Siri on a locked iPhone — see `SiriManifestDraft`. */
+  setSiriManifest(manifest: SiriManifestDraft): void
+  setSiriResume(saved: { ids: string[] | null; trackId: string; sec: number }): void
   setStoreHooks(hooks: EngineStoreHooks): void
   /** Write a song made in the page (the example library) to a file now, for a later plan. */
   stashAhead(trackId: string, file: SourceFile): Promise<boolean>
@@ -182,6 +194,16 @@ function createBackend(hooks: EngineHooks): EngineBackend {
   let away = false
   let syncQueued = false
   let planGeneration = 0
+  /**
+   * The level, fades and output gain last sent — written into Siri's manifest,
+   * so a song Siri starts on a phone where the page never ran this launch is
+   * not at the engine's defaults (full volume, no fades).
+   */
+  const configured: { volume?: number; muted?: boolean; fadeInSec?: number; fadeOutSec?: number; outputGain?: number } = {}
+  function configure(o: typeof configured): void {
+    Object.assign(configured, o)
+    call((p) => p.configure(o))
+  }
 
   // ── The channel ──────────────────────────────────────────────────────────
   //
@@ -336,7 +358,7 @@ function createBackend(hooks: EngineHooks): EngineBackend {
         lastDuration = 0
       }
       const skipped = s.skipped?.map((k) => ({ ...k, reason: errorText(k.reason) }))
-      if (songChanged || skipped?.length || s.queueEnded || s.sleepEnded) store?.adopt({ ...s, skipped }, songChanged)
+      if (songChanged || skipped?.length || s.queueEnded || s.sleepEnded || s.nativeQueue) store?.adopt({ ...s, skipped }, songChanged)
       if (key === currentKey) apply(s)
     })
   }
@@ -499,16 +521,16 @@ function createBackend(hooks: EngineHooks): EngineBackend {
     },
 
     setVolume(volume) {
-      call((p) => p.configure({ volume }))
+      configure({ volume })
     },
     setMuted(muted) {
-      call((p) => p.configure({ muted }))
+      configure({ muted })
     },
     setFades(inSec, outSec) {
-      call((p) => p.configure({ fadeInSec: inSec, fadeOutSec: outSec }))
+      configure({ fadeInSec: inSec, fadeOutSec: outSec })
     },
     setOutputGain(gain) {
-      call((p) => p.configure({ outputGain: gain }))
+      configure({ outputGain: gain })
     },
     setLevel(level) {
       call((p) => p.setLevel({ level }))
@@ -552,6 +574,33 @@ function createBackend(hooks: EngineHooks): EngineBackend {
 
     setSleepEnd(endsAt, fadeSec) {
       call((p) => p.setSleep({ endsAt, fadeSec }))
+    },
+
+    setSiriManifest(manifest) {
+      enqueue(async (p) => {
+        // ⚠️ ONLY SONGS THE ENGINE CAN OPEN BY ITSELF: a file on the device, or
+        // a Music-library song by its ID. Nothing here is written out as
+        // bytes — the example library is left out before it gets here.
+        const tracks = manifest.tracks
+          .map(({ file, cueKey, ...rest }) => ({
+            ...rest,
+            url: file instanceof NativeFile ? file.uri : null,
+            cue: cueKey,
+          }))
+          .filter((t) => t.url !== null || t.mediaId !== null)
+        const cues: Record<string, string> = {}
+        for (const key of new Set(tracks.map((t) => t.cue).filter((k): k is string => !!k))) {
+          const uri = await clipUri(key)
+          if (uri) cues[key] = uri
+        }
+        const json = JSON.stringify({ version: 1, writtenAt: Date.now(), ...manifest, tracks, cues, audio: configured })
+        void p.setLibrary({ json }).catch(() => {})
+        noteEvent('siri-manifest', { songs: tracks.length, bytes: json.length })
+      })
+    },
+
+    setSiriResume(saved) {
+      call((p) => p.setResume(saved))
     },
 
     setStoreHooks(next) {

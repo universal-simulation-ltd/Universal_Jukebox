@@ -63,12 +63,27 @@ export function holdSession(hold: boolean): void {
   held = hold
 }
 
+/**
+ * Told of every save — the iPhone app hands it to the native engine, so
+ * Siri's "play music" on a locked phone resumes where this would
+ * (`SiriIntents.swift`). `ids` only when the queue itself changed.
+ */
+let onSaved: ((saved: { ids: string[] | null; trackId: string; sec: number }) => void) | null = null
+
+export function onSessionSaved(fn: typeof onSaved): void {
+  onSaved = fn
+}
+
 export function saveSession(ids: readonly string[], cursor: number, sec: number): void {
   if (held) return
   if (cursor < 0 || cursor >= ids.length) return
   const kept = windowAround(ids, cursor)
+  const queueChanged = !sameIds(lastQueue, kept.ids)
   try {
-    if (!sameIds(lastQueue, kept.ids)) {
+    onSaved?.({ ids: queueChanged ? kept.ids : null, trackId: kept.ids[kept.cursor], sec: Math.max(0, Math.floor(sec)) })
+  } catch { /* the native half is a courtesy; the save below is the record */ }
+  try {
+    if (queueChanged) {
       localStorage.setItem(QUEUE_KEY, JSON.stringify(kept.ids))
       lastQueue = kept.ids
     }

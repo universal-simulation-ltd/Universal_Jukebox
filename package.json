@@ -12,8 +12,9 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:desktop": "tsc -b && vite build --mode desktop",
+    "build": "node scripts/build-planner.mjs && tsc -b && vite build",
+    "build:desktop": "node scripts/build-planner.mjs && tsc -b && vite build --mode desktop",
+    "build:planner": "node scripts/build-planner.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",

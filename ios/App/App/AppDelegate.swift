@@ -38,6 +38,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         intent is INPlayMediaIntent ? PlayMediaHandler() : nil
     }
 
+    /// "Play Mika on Jukebox" with the app not on screen: `PlayMediaHandler`
+    /// answered `.handleInApp`, so iOS has woken the app in the background with
+    /// leave to play, and the engine plays it alone (`SiriMedia.playLocked`) —
+    /// no unlock. `.failureRequiringAppLaunch` when it can't (no library written
+    /// down yet): Siri then offers to open the app.
+    func application(_ application: UIApplication, handle intent: INIntent, completionHandler: @escaping (INIntentResponse) -> Void) {
+        guard let media = intent as? INPlayMediaIntent else {
+            completionHandler(INPlayMediaIntentResponse(code: .failure, userActivity: nil))
+            return
+        }
+        DispatchQueue.main.async {
+            let code: INPlayMediaIntentResponseCode
+            switch SiriMedia.playLocked(media) {
+            case .played: code = .success
+            case .notFound: code = .failure
+            case .cannot: code = .failureRequiringAppLaunch
+            }
+            completionHandler(INPlayMediaIntentResponse(code: code, userActivity: nil))
+        }
+    }
+
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,

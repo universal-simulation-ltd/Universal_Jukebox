@@ -10,7 +10,7 @@ import type { FadeCurve } from '../lib/fadeCurve'
 import * as db from '../lib/library'
 import * as ms from '../lib/mediaSession'
 import { cachedGain, measureGain } from '../lib/loudness'
-import { holdSession, readSession, saveSession } from '../lib/session'
+import { holdSession, onSessionSaved, readSession, saveSession } from '../lib/session'
 import { lockArt } from '../lib/lockArt'
 import { announceTrack, withdrawTrack } from '../lib/trackNotify'
 import {
@@ -24,9 +24,10 @@ import { shuffled, shuffleIndices } from '../lib/audio'
 import type { Album, Track } from '../lib/types'
 import { sortAlbumTracks, useLibraryStore } from './libraryStore'
 import { newSeed, shuffleQueue, type ShuffleKind } from '../lib/libraryView'
+import { resumeQueue } from '../lib/voicePlan'
 import { CROSSFADE_LIMITS, settings, useSettingsStore } from './settingsStore'
 import { shouldRunCeremony } from '../lib/ceremony'
-import { artistKey, changeBetween, planHandover, type Handover } from '../lib/transition'
+import { artistKey, changeBetween, planHandover, type Change, type Handover } from '../lib/transition'
 import { navigate } from '../lib/route'
 import { cachedIntro, introHold, INTRO_HOLD_MAX, INTRO_MIN, measureIntro } from '../lib/intro'
 import { cachedOutro, measureOutro, OUTRO_LEAD_MAX, OUTRO_MIN, outroLead } from '../lib/outro'
@@ -44,6 +45,8 @@ import {
   type ChangeoverTimes,
   type EngineEntryDraft,
   type EnginePlanDraft,
+  type SiriManifestDraft,
+  type SiriTrackDraft,
 } from '../lib/enginePlan'
 import type { EngineSnapshot } from '../lib/audioEngine'
 
@@ -542,11 +545,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   resume() {
     const saved = readSession()
     if (!saved) return
-    const byId = new Map(useLibraryStore.getState().tracks.map((t) => [t.id, t]))
-    // Kept in PLAY order; tracks gone from the library since are left out.
-    const sequence = saved.ids.map((id) => byId.get(id)).filter((t): t is Track => !!t)
-    const at = sequence.findIndex((t) => t.id === saved.trackId)
-    if (at < 0) return
+    // Kept in PLAY order; tracks gone from the library since are left out —
+    // the same rule a locked iPhone's Siri resumes by (`lib/voicePlan.ts`).
+    const found = resumeQueue(saved, useLibraryStore.getState().tracks)
+    if (!found) return
+    const { tracks: sequence, at } = found
     get().stopPreview()
     showTheDeck()
     set({ queue: sequence, order: sequence.map((_, i) => i), cursor: at, error: null, missingTrack: null })
@@ -1883,11 +1886,10 @@ function currentEngineEntry(): EngineEntryDraft | null {
   return track ? engineEntry(state.cursor, track, trackAt(state, cursorBefore(state, state.cursor)), 0) : null
 }
 
-function enginePlan(): EnginePlanDraft {
-  const state = usePlayerStore.getState()
+/** The settings every plan carries — and Siri's manifest (`siriManifest`). */
+function enginePlanBase(): Pick<EnginePlanDraft, 'limits' | 'stableVolume' | 'cueLevel' | 'notify'> {
   const s = settings()
-  const base = {
-    wrap: state.repeat !== 'off',
+  return {
     limits: {
       introMin: INTRO_MIN,
       introHoldMax: INTRO_HOLD_MAX,
@@ -1899,6 +1901,14 @@ function enginePlan(): EnginePlanDraft {
     stableVolume: s.stableVolume,
     cueLevel: clipLevel(s.needleDropLevel),
     notify: s.trackNotifications,
+  }
+}
+
+function enginePlan(): EnginePlanDraft {
+  const state = usePlayerStore.getState()
+  const base = {
+    wrap: state.repeat !== 'off',
+    ...enginePlanBase(),
   }
   const track = currentTrack(state)
   if (!track) return { ...base, current: null, upcoming: [], previous: null, repeatOne: null }
@@ -1922,6 +1932,100 @@ function enginePlan(): EnginePlanDraft {
     repeatOne: state.repeat === 'one' ? transitionFor({ ...handoverFor(track, track), crossfade: false }, engineTimes(), 'auto') : null,
   }
 }
+
+/** `handoverFor` for a kind of change rather than a pair of songs. */
+function handoverForChange(change: Change): Handover {
+  return planHandover({
+    mode: settings().ceremonyMode,
+    reducedMotion: prefersReducedMotion(),
+    change,
+    recordCrossfade: settings().recordCrossfade,
+  })
+}
+
+/**
+ * The whole library, written down for Siri on a locked iPhone — see
+ * `SiriManifestDraft`. Every field of a song is what `engineEntry` would put in
+ * its entry; only its place in a queue is left for the native side to fill.
+ *
+ * ⚠️ NOT THE EXAMPLE LIBRARY'S SONGS: they are made in the page, which is not
+ * running when this is read. A library of nothing else writes no songs, and
+ * Siri then opens the app as it always did.
+ */
+function siriManifest(): SiriManifestDraft {
+  const library = useLibraryStore.getState()
+  const s = settings()
+  const state = usePlayerStore.getState()
+  const times = engineTimes()
+  const albums = new Map(library.albums.map((a) => [a.id, a]))
+  const tracks: SiriTrackDraft[] = []
+  for (const track of library.tracks) {
+    if (isExampleTrack(track)) continue
+    const music = isMusicLibraryTrack(library.roots, track)
+    const album = albums.get(track.albumId)
+    tracks.push({
+      id: track.id,
+      albumId: track.albumId,
+      path: track.path,
+      title: track.title,
+      artist: track.artist,
+      albumArtist: track.albumArtist,
+      album: track.album,
+      genre: track.genre,
+      trackNo: track.trackNo,
+      discNo: track.discNo,
+      artistKey: artistKey(track),
+      file: music || library.needsPreparing(track) ? null : library.fileFor(track),
+      mediaId: music ? songIdOf(track.path) : null,
+      gain: cachedGain(track.id),
+      introSec: cachedIntro(track.id),
+      outroSec: cachedOutro(track.id),
+      cueKey: s.needleDrop ? `cue:${resolveDeck(s.deck, album ?? track, s.deckEras)}` : null,
+    })
+  }
+  const pair = (change: Change) => {
+    const plan = handoverForChange(change)
+    return { auto: transitionFor(plan, times, 'auto'), skip: transitionFor(plan, times, 'skip') }
+  }
+  const plan = enginePlanBase()
+  return {
+    tracks,
+    albums: library.albums.map((a) => ({ id: a.id, artist: a.artist })),
+    transitions: { track: pair('track'), album: pair('album'), artist: pair('artist') },
+    repeat: state.repeat,
+    repeatOne: state.repeat === 'one' ? transitionFor({ ...handoverForChange('track'), crossfade: false }, times, 'auto') : null,
+    limits: plan.limits,
+    stableVolume: plan.stableVolume,
+    cueLevel: plan.cueLevel,
+    notify: plan.notify,
+  }
+}
+
+/**
+ * Write the manifest a little after things settle — a scan adds songs in
+ * batches, and the settings move in runs — and at once as the app leaves the
+ * screen, which is the last moment the page is sure to be running.
+ */
+let siriManifestTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleSiriManifest(now = false): void {
+  if (!audio.engineActive()) return
+  if (siriManifestTimer !== null) clearTimeout(siriManifestTimer)
+  siriManifestTimer = null
+  const write = () => {
+    siriManifestTimer = null
+    // ⚠️ AN EMPTY LIBRARY IS WRITTEN TOO — as no songs — or Siri would go on
+    // queueing the songs of a library that has been taken away. Only a
+    // library half-read (loading, scanning) waits.
+    const status = useLibraryStore.getState().status
+    if (status !== 'ready' && status !== 'empty') return
+    audio.setSiriManifest(siriManifest())
+  }
+  if (now) write()
+  else siriManifestTimer = setTimeout(write, SIRI_MANIFEST_SETTLE_MS)
+}
+
+const SIRI_MANIFEST_SETTLE_MS = 4000
 
 let enginePlanQueued = false
 
@@ -1997,6 +2101,13 @@ function adoptEngine(snapshot: EngineSnapshot, songChanged: boolean): void {
       ],
     })
   }
+  // Siri started a queue of its own while the page was away (a locked iPhone,
+  // `SiriIntents.swift`): that queue becomes the page's.
+  const native = snapshot.nativeQueue
+  if (native && native.serial !== adoptedNativeSerial) {
+    adoptNativeQueue(snapshot, native)
+    return
+  }
   if (!songChanged) return
   const state = get()
   // The position it was sent with — unless the queue has changed under it, in
@@ -2029,6 +2140,65 @@ function adoptEngine(snapshot: EngineSnapshot, songChanged: boolean): void {
   }
 }
 
+/** The last Siri queue taken over — the engine keeps offering it until the page's plan catches up. */
+let adoptedNativeSerial = -1
+
+/**
+ * "Hey Siri, shuffle songs in Jukebox" on a locked phone: the engine is playing
+ * a queue the page never built. Take it as the page's own — in play order,
+ * shuffle as Siri left it — with the song the engine is on as the current one,
+ * and nothing animated: the record is simply on the deck.
+ *
+ * ⚠️ THE LIBRARY MAY NOT BE THERE YET. Siri can start the music on a phone
+ * where the app had not run at all, and then the page boots now, under it —
+ * so this waits for the library before it can find the songs by id.
+ */
+function adoptNativeQueue(snapshot: EngineSnapshot, native: NonNullable<EngineSnapshot['nativeQueue']>): void {
+  const take = () => {
+    if (native.serial === adoptedNativeSerial) return
+    adoptedNativeSerial = native.serial
+    const byId = new Map(useLibraryStore.getState().tracks.map((t) => [t.id, t]))
+    const queue = native.ids.map((id) => byId.get(id)).filter((t): t is Track => !!t)
+    const cursor = queue.findIndex((t) => t.id === snapshot.trackId)
+    noteEvent('engine-adopt-siri', { songs: queue.length, cursor, playing: snapshot.playing })
+    if (cursor < 0) return
+    clearCeremony()
+    clearHandover()
+    clearBlend()
+    crossfadeArmed = false
+    const repeat = usePlayerStore.getState().repeat
+    persistModes(native.shuffle, repeat)
+    usePlayerStore.setState({
+      queue,
+      order: queue.map((_, i) => i),
+      cursor,
+      shuffle: native.shuffle,
+      ceremony: false,
+      ceremonyDone: true,
+      ceremonyCount: null,
+      handover: false,
+      deckPhase: 'idle',
+      armDown: snapshot.playing,
+      error: null,
+      missingTrack: null,
+    })
+    publishNowPlaying(queue[cursor])
+    prefetchNext(usePlayerStore.getState)
+  }
+  // A rescan at launch is 'scanning' with the songs already there.
+  const usable = (library: { status: string; tracks: readonly Track[] }) =>
+    library.status === 'ready' || (library.status === 'scanning' && library.tracks.length > 0)
+  if (usable(useLibraryStore.getState())) {
+    take()
+    return
+  }
+  const stop = useLibraryStore.subscribe((library) => {
+    if (library.status === 'loading' || (library.status === 'scanning' && !usable(library))) return
+    stop()
+    if (usable(library)) take()
+  })
+}
+
 if (audio.engineActive()) {
   audio.setEngineHandlers({ describeCurrent: currentEngineEntry, adopt: adoptEngine })
   usePlayerStore.subscribe((next, prev) => {
@@ -2039,7 +2209,28 @@ if (audio.engineActive()) {
   // Any setting: the crossfade lengths, the animation ladder, the cue and its
   // level, Stable volume, the machine — all of them shape the plan, and none
   // of them change often.
-  useSettingsStore.subscribe(() => scheduleEnginePlan())
+  useSettingsStore.subscribe(() => {
+    scheduleEnginePlan()
+    scheduleSiriManifest()
+  })
+  // Siri on a locked phone (`siriManifest`): the songs, the change-overs and
+  // the repeat mode it starts a queue with, and where "play music" resumes.
+  useLibraryStore.subscribe((next, prev) => {
+    if (next.tracks !== prev.tracks || next.albums !== prev.albums || next.roots !== prev.roots || next.status !== prev.status) {
+      scheduleSiriManifest()
+    }
+  })
+  usePlayerStore.subscribe((next, prev) => {
+    if (next.repeat !== prev.repeat) scheduleSiriManifest()
+  })
+  onSessionSaved((saved) => audio.setSiriResume(saved))
+  // Leaving the screen is the last moment the page is sure to run — and the
+  // songs measured since (Stable volume, quiet openings) go in with it.
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) scheduleSiriManifest(true)
+    })
+  }
   // The song on now's sheet lands after it has started: its lines go to the
   // engine at once, so a lock straight after still has them.
   useLyricsStore.subscribe((next, prev) => {

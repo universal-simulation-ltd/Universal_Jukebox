@@ -42,7 +42,7 @@ import { captureElement, ensureRunning, graphExists, releaseElement } from './au
 import { releaseTrackUrl, trackUrl } from './trackSource'
 import { noteEvent } from './bgLog'
 import { startEngine, type EngineStoreHooks } from './audioEngine'
-import type { EnginePlanDraft } from './enginePlan'
+import type { EnginePlanDraft, SiriManifestDraft } from './enginePlan'
 
 /**
  * When OUR code last paused an element — so a pause that did not come from here
@@ -232,6 +232,19 @@ export function engineActive(): boolean {
  */
 export function setUpcoming(plan: EnginePlanDraft): void {
   native?.setUpcoming(plan)
+}
+
+/**
+ * The library written down for Siri on a locked iPhone (`SiriManifestDraft`).
+ * A no-op off the iPhone app.
+ */
+export function setSiriManifest(manifest: SiriManifestDraft): void {
+  native?.setSiriManifest(manifest)
+}
+
+/** Where "Resume listening" would pick up, for Siri's "play music" on a locked iPhone. */
+export function setSiriResume(saved: { ids: string[] | null; trackId: string; sec: number }): void {
+  native?.setSiriResume(saved)
 }
 
 /**

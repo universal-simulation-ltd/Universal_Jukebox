@@ -337,6 +337,7 @@ final class JukeboxEngine: NSObject {
     // MARK: - Settings
 
     func configure(volume: Double?, muted: Bool?, fadeIn: Double?, fadeOut: Double?, outputGain: Double?) {
+        configured = true
         if let v = volume { userVolume = clamp(v) }
         if let m = muted { self.muted = m }
         if let f = fadeIn { self.fadeIn = max(0, f) }
@@ -530,6 +531,17 @@ final class JukeboxEngine: NSObject {
     ///     front, so if the app goes away now that is the song that follows.
     func setUpcoming(current: Entry?, entries: [Entry], previous: Entry?, repeatOne: Transition?,
                      wrap: Bool, limits: Limits, stableVolume: Bool, cueLevel: Double, notify: Bool, pageSeq: Int) {
+        let behind = pageSeq < seq
+        // ⚠️ A QUEUE SIRI STARTED (`startNative`) IS NOT THE PAGE'S TO REPLACE
+        // until the page has seen it. A page that is behind, or one still
+        // booting under the music with no song of its own (Siri can start the
+        // app with no screen at all), would otherwise wipe the queue with
+        // whatever it last knew. Once an up-to-date plan with a song in it
+        // arrives, the page has taken the queue over (`adoptNativeQueue`).
+        if nativeQueue != nil {
+            if behind || (current == nil && decks[active].entry != nil) { return }
+            nativeQueue = nil
+        }
         self.notify = notify
         self.limits = limits
         self.stableVolume = stableVolume
@@ -539,7 +551,6 @@ final class JukeboxEngine: NSObject {
         previousEntry = previous
         history = []
         let playing = decks[active].entry
-        let behind = pageSeq < seq
         if let current = current, let playing = playing,
            current.key == playing.key || (current.trackId == playing.trackId && !behind) {
             playing.gain = current.gain ?? playing.gain
@@ -560,6 +571,77 @@ final class JukeboxEngine: NSObject {
             pageMovedAt = nil
         }
         if !appActive { measureAhead() }
+    }
+
+    // MARK: - A queue Siri started
+
+    /// The queue `startNative` put on, for the page to take as its own
+    /// (`nativeQueue` in `getState`), until its next up-to-date plan.
+    private var nativeQueue: [String: Any]?
+    private var nativeSerial = 0
+    /// The page has set the level and the fades this launch.
+    private var configured = false
+
+    /// Whether there is a song on the deck, and whether it is playing — what
+    /// Siri's "play music" asks before deciding (`src/siri/planner.ts`).
+    var hasSong: Bool { decks[active].entry != nil }
+    var playingNow: Bool { isPlaying }
+
+    /// A NEW queue, started with the page away — "Hey Siri, shuffle songs in
+    /// Jukebox" on a locked phone (`SiriPlayer` in `SiriIntents.swift`).
+    ///
+    /// `entries` are the whole queue in play order (each one's `auto` and
+    /// `skip` from the song before it), and `at` is where to start in it — an
+    /// album asked for by one of its songs starts part way through, with the
+    /// songs before it there for Previous. The rest is the manifest's: the
+    /// repeat mode, the lead limits, Stable volume, the cue's level, the cards,
+    /// and the level and fades for a launch where the page never sent its own.
+    ///
+    /// ⚠️ THE PAGE IS NOT TOLD BY ANY COMMAND, only by `seq` — exactly as for
+    /// any change the engine makes by itself. Its next `getState` carries the
+    /// queue, and `adoptEngine` takes it.
+    @discardableResult
+    func startNative(_ entries: [Entry], at: Int, startAt: Double, shuffle: Bool, settings m: [String: Any]) -> Bool {
+        guard !entries.isEmpty else { return false }
+        let at = max(0, min(at, entries.count - 1))
+        enable()
+        if !configured, let a = m["audio"] as? [String: Any] {
+            configure(volume: num(a["volume"]), muted: a["muted"] as? Bool, fadeIn: num(a["fadeInSec"]),
+                      fadeOut: num(a["fadeOutSec"]), outputGain: num(a["outputGain"]))
+            configured = false
+        }
+        let repeatMode = m["repeat"] as? String ?? "off"
+        wrap = repeatMode != "off"
+        repeatOne = repeatMode == "one" ? (m["repeatOne"] as? [String: Any]).map { Transition($0) } : nil
+        limits = Limits(m["limits"] as? [String: Any])
+        stableVolume = m["stableVolume"] as? Bool ?? true
+        cueLevel = num(m["cueLevel"]) ?? 0.5
+        notify = m["notify"] as? Bool ?? false
+
+        // `upcomingCursors`: the songs after `at`, and on a repeating queue one
+        // whole turn — the engine rotates it from there (`takeNext`).
+        let after = Array(entries[(at + 1)...])
+        upcoming = wrap ? after + Array(entries[..<at]) : after
+        previousEntry = at > 0 ? entries[at - 1] : (wrap && entries.count > 1 ? entries.last : nil)
+        history = []
+        pageMovedAt = nil
+        endedAt = nil
+        queueEnded = false
+
+        seq += 1
+        nativeSerial += 1
+        nativeQueue = ["serial": nativeSerial, "ids": entries.map { $0.trackId }, "shuffle": shuffle]
+        let first = entries[at]
+        if isPlaying {
+            // Something is on: the change-over a skip to it would be.
+            wantsPlaying = true
+            run(first.skip, to: first, natural: false)
+        } else {
+            load(first, autoplay: true, fadeInOverride: nil, startAt: startAt, level: nil)
+        }
+        CommandLog.note("engine: Siri started \(entries.count) songs at \(at)")
+        changed("siri")
+        return true
     }
 
     /// The sleep timer's end (`stores/sleepStore`), or nil for off.
@@ -1163,6 +1245,7 @@ final class JukeboxEngine: NSObject {
         s["skipped"] = skippedLog
         s["queueEnded"] = queueEnded
         s["sleepEnded"] = sleepEnded
+        if let q = nativeQueue { s["nativeQueue"] = q }
         skippedLog = []
         sleepEnded = false
         return s

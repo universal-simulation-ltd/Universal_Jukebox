@@ -32,6 +32,8 @@ public class JukeboxEnginePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "playClip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getState", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "showRoutePicker", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setLibrary", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setResume", returnType: CAPPluginReturnPromise),
     ]
 
     private var engine: JukeboxEngine { JukeboxEngine.shared }
@@ -212,6 +214,32 @@ public class JukeboxEnginePlugin: CAPPlugin, CAPBridgedPlugin {
             let snapshot = self.engine.fullSnapshot()
             call.resolve(JSTypes.coerceDictionaryToJSObject(snapshot) ?? [:])
         }
+    }
+
+    /// The library written down for Siri on a locked phone (`siriManifest` in
+    /// `playerStore`, `SiriLibrary` in `SiriIntents.swift`). Off the main
+    /// thread: it can be a couple of megabytes.
+    @objc func setLibrary(_ call: CAPPluginCall) {
+        guard let json = call.getString("json") else {
+            call.reject("No library was sent.", "BAD_ARGS")
+            return
+        }
+        DispatchQueue.global(qos: .utility).async {
+            SiriLibrary.write(json)
+            call.resolve()
+        }
+    }
+
+    /// Where "Resume listening" would pick up — `ids` only when the queue changed.
+    @objc func setResume(_ call: CAPPluginCall) {
+        guard let trackId = call.getString("trackId") else {
+            call.reject("No song was named.", "BAD_ARGS")
+            return
+        }
+        let ids = call.getArray("ids")?.compactMap { $0 as? String }
+        let sec = call.getDouble("sec") ?? 0
+        SiriLibrary.remember(ids: ids, trackId: trackId, sec: sec)
+        call.resolve()
     }
 
     /// The system's own route sheet (speaker, headphones, AirPlay) — the

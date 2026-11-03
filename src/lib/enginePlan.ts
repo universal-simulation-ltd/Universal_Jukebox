@@ -241,3 +241,54 @@ export interface EnginePlanDraft {
 
 /** How far ahead the engine is told. ~50 songs is hours of locked listening. */
 export const ENGINE_LOOKAHEAD = 50
+
+// ── Siri on a locked iPhone ──────────────────────────────────────────────────
+//
+// ⚠️ THE PLAN ABOVE ONLY REACHES AS FAR AS THE QUEUE DOES. "Hey Siri, shuffle
+// songs in Jukebox" or "play Mika" on a locked phone needs a NEW queue, and
+// the page that builds queues is not running (James, 2026-11-03: "allow Siri
+// so that the user doesn't have to unlock for every operation"). So the page
+// also writes the whole library down for the engine, while it is awake: every
+// song as an entry needs it, the change-overs it would run between them, and
+// where "Resume listening" would pick up. `SiriIntents.swift` decides what to
+// play with the page's own rules (`src/siri/planner.ts`, run by
+// JavaScriptCore) and builds the entries from this.
+
+/** How one song plays — an `EngineEntryDraft` without its place in a queue. */
+export interface SiriTrackDraft {
+  id: string
+  albumId: string
+  /** What the planner matches and sorts by (`PlanTrack` in `lib/voicePlan.ts`). */
+  path: string
+  title: string
+  artist?: string
+  albumArtist?: string
+  album?: string
+  genre?: string
+  trackNo?: number
+  discNo?: number
+  /** Who it is filed under — `artistKey`, for the change-over between two songs. */
+  artistKey: string
+  file: SourceFile | null
+  mediaId: string | null
+  gain: number | null
+  introSec: number | null
+  outroSec: number | null
+  cueKey: string | null
+}
+
+/** The change-over into a song, for each kind of change (`Change` in `lib/transition.ts`). */
+export type SiriTransitions = Record<'track' | 'album' | 'artist', { auto: EngineTransition; skip: EngineTransition }>
+
+export interface SiriManifestDraft {
+  tracks: SiriTrackDraft[]
+  albums: { id: string; artist: string }[]
+  transitions: SiriTransitions
+  /** Repeat as the page has it — a new queue keeps the mode. */
+  repeat: 'off' | 'all' | 'one'
+  repeatOne: EngineTransition | null
+  limits: LeadLimits
+  stableVolume: boolean
+  cueLevel: number
+  notify: boolean
+}
