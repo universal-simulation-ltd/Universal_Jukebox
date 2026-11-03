@@ -1,57 +1,20 @@
 // GENERATED FILE — do not edit by hand.
 // Source: backoffice/universal-platform/scripts/app-marks/marks.mjs
 // Regenerate: node scripts/app-marks/build.mjs (from backoffice/universal-platform)
-// Mark: Universal Jukebox — A record with its tonearm lifted clear; on hover the arm comes down.
-// Hover: The arm swings down onto the record and the disc turns.
+// Icon: Universal Jukebox's own icon (published beyond the web) — own-icons/jukebox.svg
 //
 // Icon-only by design: the SDK's UniversalAppsNavBar renders the product name
 // from its catalogue beside this slot, so a wordmark here would print it twice.
+// Static markup from the generator, never user input, hence the innerHTML.
 
-const CSS = `
-  /* Resting states */
-  .uam-jukebox-arm { transform: rotate(-34deg); transition: transform .55s cubic-bezier(.34,1.2,.4,1); transform-origin: 49px 14px; }
-  .uam-jukebox-head { transform: rotate(-34deg); transition: transform .55s cubic-bezier(.34,1.2,.4,1); transform-origin: 49px 14px; }
-  .uam-jukebox-disc { transform: rotate(0deg); transition: transform 1.2s cubic-bezier(0.16,1,0.3,1); transform-origin: 29px 33px; }
-
-  /* Active states */
-  .uam-host-jukebox:hover .uam-jukebox-arm,
-  .uam-host-jukebox:focus-visible .uam-jukebox-arm { transform: rotate(0deg); }
-  .uam-host-jukebox:hover .uam-jukebox-head,
-  .uam-host-jukebox:focus-visible .uam-jukebox-head { transform: rotate(0deg); }
-  .uam-host-jukebox:hover .uam-jukebox-disc,
-  .uam-host-jukebox:focus-visible .uam-jukebox-disc { transform: rotate(120deg); }
-
-  @media (prefers-reduced-motion: reduce) {
-    .uam-jukebox-arm,
-    .uam-jukebox-head,
-    .uam-jukebox-disc { transition: none !important; }
-  }
-`
+const ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1024 1024\" width=\"24\" height=\"24\" aria-hidden=\"true\"><defs><clipPath id=\"uam-nav-jukebox-tile\"><rect width=\"1024\" height=\"1024\" rx=\"224\"/></clipPath></defs><g clip-path=\"url(#uam-nav-jukebox-tile)\"><defs>\n    <linearGradient id=\"uam-nav-jukebox-bg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#d23a24\"/><stop offset=\"1\" stop-color=\"#8a1a10\"/></linearGradient>\n    <linearGradient id=\"uam-nav-jukebox-arm\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#fbf6ee\"/><stop offset=\"1\" stop-color=\"#d9cbb6\"/></linearGradient>\n    <linearGradient id=\"uam-nav-jukebox-orange\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#fe8c01\"/><stop offset=\"1\" stop-color=\"#e05504\"/></linearGradient>\n    <radialGradient id=\"uam-nav-jukebox-disc\" cx=\"50%\" cy=\"50%\" r=\"50%\"><stop offset=\"0.35\" stop-color=\"#1c1815\"/><stop offset=\"1\" stop-color=\"#0a0807\"/></radialGradient>\n  </defs>\n  \n    <rect x=\"-340\" y=\"-340\" width=\"1704\" height=\"1704\" fill=\"url(#uam-nav-jukebox-bg)\"/>\n    <circle cx=\"400\" cy=\"700\" r=\"600\" fill=\"#000\" fill-opacity=\"0.25\" transform=\"translate(10 16)\"/>\n    <circle cx=\"400\" cy=\"700\" r=\"600\" fill=\"url(#uam-nav-jukebox-disc)\"/>\n    <circle cx=\"400\" cy=\"700\" r=\"224\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"239\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"254\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"269\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"284\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"299\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"314\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"329\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"344\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"359\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"374\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"389\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"404\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"419\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"434\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"449\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"464\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"479\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"494\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"509\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"524\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"539\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"554\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/><circle cx=\"400\" cy=\"700\" r=\"569\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.07\" stroke-width=\"2.4\"/>\n    <path d=\"M400 700L-114.4 403.0A594 594 0 0 1 177.5 149.3Z\" fill=\"#fff\" fill-opacity=\"0.07\"/>\n    <path d=\"M400 700L914.4 997.0A594 594 0 0 1 622.5 1250.7Z\" fill=\"#fff\" fill-opacity=\"0.05\"/>\n    <circle cx=\"400\" cy=\"700\" r=\"190\" fill=\"#b42318\"/>\n    <circle cx=\"400\" cy=\"700\" r=\"160\" fill=\"none\" stroke=\"#f6f2ec\" stroke-opacity=\"0.28\" stroke-width=\"3\"/>\n    <circle cx=\"400\" cy=\"700\" r=\"20.9\" fill=\"#f6f2ec\"/>\n  \n    <circle cx=\"880\" cy=\"250\" r=\"86\" fill=\"#000\" fill-opacity=\"0.25\" transform=\"translate(6 10)\"/>\n    <line x1=\"938\" y1=\"196\" x2=\"996\" y2=\"142\" stroke=\"url(#uam-nav-jukebox-arm)\" stroke-width=\"58\" stroke-linecap=\"round\"/>\n    <line x1=\"880\" y1=\"250\" x2=\"648\" y2=\"472\" stroke=\"#000\" stroke-opacity=\"0.25\" stroke-width=\"34\" stroke-linecap=\"round\" transform=\"translate(8 12)\"/>\n    <line x1=\"880\" y1=\"250\" x2=\"648\" y2=\"472\" stroke=\"url(#uam-nav-jukebox-arm)\" stroke-width=\"34\" stroke-linecap=\"round\"/>\n    <circle cx=\"880\" cy=\"250\" r=\"86\" fill=\"url(#uam-nav-jukebox-arm)\"/>\n    <circle cx=\"880\" cy=\"250\" r=\"34\" fill=\"#b9a68c\"/>\n    <rect x=\"-42\" y=\"-64\" width=\"84\" height=\"128\" rx=\"18\" fill=\"url(#uam-nav-jukebox-orange)\" transform=\"translate(632 494) rotate(44)\"/></g></svg>"
 
 export default function ProductLogo() {
   return (
     <span
       className="uam-host-jukebox inline-flex h-6 w-6 shrink-0 items-center justify-center"
       aria-hidden="true"
-    >
-      <style>{CSS}</style>
-      <svg viewBox="0 0 64 64" className="h-6 w-6" aria-hidden="true">
-        <defs>
-          <linearGradient id="uam-nav-jukebox-tile" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#fe8c01" />
-            <stop offset="1" stopColor="#e05504" />
-          </linearGradient>
-        </defs>
-        <rect width="64" height="64" rx="14" fill="url(#uam-nav-jukebox-tile)" />
-        <circle cx={29} cy={33} r={20} fill="#ffffff" className="uam-jukebox-disc" />
-        <circle cx={29} cy={33} r={15.5} fill="none" strokeWidth={1.6} opacity={0.5} stroke="#e05504" className="uam-jukebox-groove1" />
-        <circle cx={29} cy={33} r={11} fill="none" strokeWidth={1.6} opacity={0.5} stroke="#e05504" className="uam-jukebox-groove2" />
-        <circle cx={29} cy={33} r={6.2} fill="#e05504" />
-        <circle cx={29} cy={33} r={1.6} fill="#ffffff" />
-        <circle cx={49} cy={14} r={4} fill="#fed7aa" />
-        <path d="M49 14 L42 28.5" fill="none" strokeWidth={2.8} strokeLinecap="round" stroke="#fed7aa" className="uam-jukebox-arm" />
-        <path d="M42 28.5 L40.6 31.4" fill="none" strokeWidth={5.4} strokeLinecap="round" stroke="#fed7aa" className="uam-jukebox-head" />
-      </svg>
-    </span>
+      dangerouslySetInnerHTML={{ __html: ICON }}
+    />
   )
 }
