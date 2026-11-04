@@ -567,7 +567,9 @@ function WebApp() {
                   on is brought into view (`tabsNav`). */}
               <nav
                 ref={tabsNav}
-                className="flex max-w-full min-w-0 flex-auto items-center gap-0.5 overflow-x-auto sm:gap-1 [scrollbar-width:none] sm:flex-none [&::-webkit-scrollbar]:hidden"
+                // The suite's tray tabs (SDK 0.216, BRANDING.md → Tabs), a
+                // little tighter on a phone so all four still fit at 360px.
+                className="u-tabs min-w-0 flex-auto gap-px p-0.5 sm:flex-none sm:gap-1 sm:p-1"
                 aria-label={t('app.tabs_label')}
               >
                 {TABS.map((tab) => {
@@ -577,7 +579,9 @@ function WebApp() {
                   // as an orange button or something?)"). The tab it opens on is
                   // orange: a pill while you are on it, outlined while not. A
                   // single tap only switches, as before; Settings still has the
-                  // same choice for anybody who cannot double-tap.
+                  // same choice for anybody who cannot double-tap. Since the
+                  // suite's tray tabs (2026-11-04) the opening tab is the orange
+                  // dot after its label, from data-default-view.
                   const active = view === tab.view
                   const isHome = homeTab === tab.view
                   return (
@@ -598,16 +602,9 @@ function WebApp() {
                         navigate({ view: tab.view, genre: tab.view === 'jukebox' ? undefined : genre })
                       }}
                       aria-current={active ? 'page' : undefined}
+                      data-default-view={isHome ? 'true' : undefined}
                       title={isHome ? t(tab.home) : t(tab.doubleTap)}
-                      className={`shrink-0 touch-manipulation rounded-full px-2 py-1.5 sm:px-2.5 text-[13px] font-medium transition ${
-                        active
-                          ? isHome
-                            ? 'bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-sm'
-                            : 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                          : isHome
-                            ? 'text-orange-700 ring-1 ring-orange-400/70 ring-inset hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/40'
-                            : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800'
-                      }`}
+                      className="u-tab touch-manipulation px-1.5 py-2 text-[13px] sm:px-3 sm:text-sm"
                       style={{ animation: homeFlash?.view === tab.view && !reducedMotion ? 'jb-home-pop 480ms ease-out' : undefined }}
                     >
                       {t(tab.label)}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { buttonClass } from '@unisim/sdk'
 import { hasOwnMusicFolder, isNativeShell, usesChosenFolder } from '../lib/nativeFile'
 import { hasMusicLibrary } from '../lib/appleMusic'
 import { hasNativeImporter } from '../lib/nativeImport'
@@ -312,9 +313,11 @@ export default function Landing() {
           onClick={() => setChoosing((c) => !c)}
           aria-expanded={choosing}
           aria-controls="jb-sources"
-          className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
+          className={buttonClass('primary')}
         >
-          <FolderGlyph />
+          <span className="u-btn__key" aria-hidden>
+            <FolderGlyph />
+          </span>
           {t('landing.find_my_music')}
         </button>
 
@@ -364,7 +367,8 @@ export default function Landing() {
                           type="button"
                           disabled={busy}
                           onClick={a.step.action.run}
-                          className="mt-3 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60"
+                          // Secondary: Find my music above is the page's one primary.
+                          className={`${buttonClass(undefined, 'sm')} mt-3`}
                         >
                           {a.step.action.label}
                         </button>

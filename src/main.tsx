@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { UniversalProvider } from '@unisim/sdk'
+import { UniversalProvider, installButtonStyles, installTabStyles } from '@unisim/sdk'
 import App from './App'
 import { I18nRoot } from './i18n'
 import { startApplyingSettings } from './lib/applySettings'
@@ -119,6 +119,11 @@ void watchAudioRoute()
 installShortcuts()
 // The status-bar glyphs flip with Light/Dark where the page is under the bar.
 followThemeWithStatusBar()
+
+// The suite's key buttons and tray tabs, as class strings on the website's
+// library tabs and its Play / Find my music buttons. The phone screens keep their own.
+installButtonStyles()
+installTabStyles()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

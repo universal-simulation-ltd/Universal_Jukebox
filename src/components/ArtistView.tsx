@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { buttonClass } from '@unisim/sdk'
 import AddToQueue from './AddToQueue'
 import AddToShelf from './AddToShelf'
 import Cover from './Cover'
@@ -111,18 +112,22 @@ export default function ArtistView({ name, songs = false }: { name: string; song
           type="button"
           onClick={() => playTracks(tracks, 0)}
           disabled={tracks.length === 0}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50"
+          className={buttonClass('primary')}
         >
-          <PlayGlyph />
+          <span className="u-btn__key" aria-hidden>
+            <PlayGlyph />
+          </span>
           {t('library.play_all')}
         </button>
         <button
           type="button"
           onClick={shuffleAll}
           disabled={tracks.length === 0}
-          className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-orange-500 dark:hover:text-orange-400"
+          className={buttonClass()}
         >
-          <ShuffleGlyph />
+          <span className="u-btn__key" aria-hidden>
+            <ShuffleGlyph />
+          </span>
           {t('library.shuffle_all')}
         </button>
         <AddToQueue tracks={tracks} />

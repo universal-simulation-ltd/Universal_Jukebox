@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { buttonClass } from '@unisim/sdk'
 import Cover from './Cover'
 import FindWithin, { type FindWithinHandle } from './FindWithin'
 import PreviewButton from './PreviewButton'
@@ -219,9 +220,11 @@ export default function AlbumView({ albumId }: { albumId: string }) {
               type="button"
               onClick={() => playTracks(tracks, 0)}
               disabled={tracks.length === 0}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:opacity-50"
+              className={buttonClass('primary')}
             >
-              <PlayGlyph />
+              <span className="u-btn__key" aria-hidden>
+                <PlayGlyph />
+              </span>
               {t('common.play')}
             </button>
             {/* Just the icons after Play (James, 2026-09-26: "have less words

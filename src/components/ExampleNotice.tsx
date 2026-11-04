@@ -1,3 +1,4 @@
+import { buttonClass } from '@unisim/sdk'
 import { EXAMPLE_ROOT_ID } from '../lib/exampleLibrary'
 import { goHome } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -55,7 +56,7 @@ export default function ExampleNotice({ onLibraryPage }: { onLibraryPage: boolea
             // The page you were on may be one of the demo's records.
             goHome()
           }}
-          className="shrink-0 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-3.5 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
+          className={`${buttonClass(undefined, 'sm')} shrink-0`}
         >
           {t('app.back_to_my_music')}
         </button>
