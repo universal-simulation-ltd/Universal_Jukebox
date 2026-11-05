@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { madeSleeve, madeSleeveNow } from '../lib/madeSleeves'
 import { isMiniMode } from '../lib/miniMode'
 import type { SourceFile } from '../lib/types'
 import { coverUrl, fallbackHue } from '../lib/art'
@@ -646,7 +647,15 @@ function publishNowPlaying(track: Track | null): void {
     return
   }
   const album = useLibraryStore.getState().albums.find((a) => a.id === track.albumId)
-  const cover = album ? coverUrl(album.id, album.cover) : null
+  // Its own artwork, or the made sleeve of an album with none
+  // (`lib/madeSleeves.ts`). Not drawn yet: the card goes out now and again,
+  // with the sleeve, a moment later.
+  const cover = album ? coverUrl(album.id, album.cover) ?? madeSleeveNow(album) : null
+  if (album && !cover) {
+    void madeSleeve(album).then((url) => {
+      if (url && currentTrack(usePlayerStore.getState())?.id === track.id) publishNowPlaying(track)
+    })
+  }
   ms.setMetadata(track, cover)
   // A notification for the song, in place of the last one — `lib/trackNotify.ts`.
   if (settings().trackNotifications) announceTrack(track, cover)

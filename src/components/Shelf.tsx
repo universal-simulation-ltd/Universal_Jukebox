@@ -1,7 +1,8 @@
 import TrackOptions from './TrackOptions'
+import { useAlbumArt } from '../lib/madeSleeves'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Cover from './Cover'
-import { coverUrl, fallbackHue } from '../lib/art'
+import { fallbackHue } from '../lib/art'
 import Record45 from './Record45'
 import { navigate } from '../lib/route'
 import { useT, type MessageKey } from '../i18n'
@@ -699,7 +700,7 @@ export function ShelfRow<T>({ items, label, start = 0, keyOf, nameOf, verb = 'op
  * and `sm:pt-16` above, where the items (so their glows) grow to 300px.
  */
 function ItemGlow({ album, lit, reduced }: { album: Album; lit: boolean; reduced: boolean }) {
-  const url = coverUrl(album.id, album.cover)
+  const url = useAlbumArt(album)
   const hue = fallbackHue(album.id)
   const round = 'radial-gradient(closest-side, black 50%, transparent 100%)'
   return (

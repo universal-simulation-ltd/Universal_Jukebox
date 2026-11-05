@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { coverUrl, fallbackHue } from '../lib/art'
+import { fallbackHue } from '../lib/art'
+import { useAlbumArt } from '../lib/madeSleeves'
 import type { Album } from '../lib/types'
 
 // One album cover, at whatever size it is given.
@@ -19,10 +19,9 @@ interface CoverProps {
 }
 
 export default function Cover({ album, className = '', rounded = true }: CoverProps) {
-  const url = useMemo(
-    () => (album ? coverUrl(album.id, album.cover) : null),
-    [album],
-  )
+  // Its own artwork, or — for an album with none — a made sleeve with its
+  // name on (`lib/madeSleeves.ts`); the colour tile below only while that draws.
+  const url = useAlbumArt(album)
 
   const radius = rounded ? 'rounded-xl' : ''
 

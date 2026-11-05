@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { coverUrl, fallbackHue } from '../../lib/art'
+import { useAlbumArt } from '../../lib/madeSleeves'
+import { fallbackHue } from '../../lib/art'
 import type { Album } from '../../lib/types'
 import { DEFAULT_RINGS, grooveGradient } from '../../lib/grooves'
 
@@ -43,7 +44,7 @@ export function VinylRecordFace({
 
 /** A whole record, still, filling its parent — the stand-in `DeckSwiper` draws. */
 export function VinylRecord({ album, grooves }: { album: Album | undefined; grooves?: number }) {
-  const url = album ? coverUrl(album.id, album.cover) : null
+  const url = useAlbumArt(album)
   const hue = album ? fallbackHue(album.id) : 24
   return (
     <div className="relative h-full w-full rounded-full bg-slate-900 shadow-xl dark:bg-[#12192b]">
@@ -61,7 +62,8 @@ export function VinylRecord({ album, grooves }: { album: Album | undefined; groo
  * record that has just come on.
  */
 export function Sleeve({ album, url: given, hue: givenHue }: { album?: Album; url?: string | null; hue?: number }) {
-  const url = given !== undefined ? given : album ? coverUrl(album.id, album.cover) : null
+  const art = useAlbumArt(given !== undefined ? undefined : album)
+  const url = given !== undefined ? given : art
   const hue = givenHue ?? (album ? fallbackHue(album.id) : 24)
   return (
     <div className="relative h-full w-full overflow-hidden rounded-[3%] bg-slate-800 shadow-xl ring-1 ring-black/10">

@@ -1,10 +1,10 @@
 import { trackGenres } from '../lib/genres'
+import { useAlbumArt } from '../lib/madeSleeves'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Chip, revealExpanded } from '@unisim/sdk'
 import { scrollToTopThen } from '../lib/scrollTop'
 import { useLandscapeStage } from '../lib/stageLayout'
 import { navBarBottom } from '../lib/scrollBelowBar'
-import { coverUrl } from '../lib/art'
 import { useT } from '../i18n'
 import { phoneScreens } from '../native/shell'
 import { goHome, navigate } from '../lib/route'
@@ -203,7 +203,7 @@ export default function NowPlaying() {
           2026-09-09: "noticeable but not distracting"). Behind everything, and
           only when there IS a cover. */}
       <SleeveWash album={album} />
-      {album?.cover && <BlurredGround albumId={album.id} cover={album.cover} />}
+      {album && <BlurredGround album={album} />}
 
       {/* The stacked layout's words, above the record. Lying down they move
           into the column beside it instead — the same `heading`, one copy of
@@ -751,8 +751,9 @@ function useDeckRoom(
  * nothing to read. Raising the opacity without the mask is what turns a
  * background into a legibility problem.
  */
-function BlurredGround({ albumId, cover }: { albumId: string; cover: Blob }) {
-  const url = coverUrl(albumId, cover)
+function BlurredGround({ album }: { album: Album }) {
+  // Its own artwork, or the made sleeve of an album with none (`madeSleeves.ts`).
+  const url = useAlbumArt(album)
   if (!url) return null
   const fade = 'linear-gradient(to bottom, black 0%, rgba(0,0,0,.35) 38%, rgba(0,0,0,.35) 62%, black 100%)'
   // ⚠️ FROM `lg` THE BOTTOM STAYS FADED TOO. On a phone the bottom of the

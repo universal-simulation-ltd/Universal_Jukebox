@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useHiddenStore, visibleLibrary, withFilteredOut, type HiddenSet } from '../lib/hidden'
 import { releaseAllCovers, releaseCover } from '../lib/art'
+import { releaseMadeSleeves } from '../lib/madeSleeves'
 import * as db from '../lib/library'
 import { EXAMPLE_LABEL, EXAMPLE_ROOT_ID, buildExampleLibrary, exampleFile, examplePlays, isExampleTrack } from '../lib/exampleLibrary'
 import { forgetPlays, seedPlays } from '../lib/playCounts'
@@ -559,6 +560,7 @@ const rawStore = create<LibraryState>((set, get) => ({
     // this is the belt for whatever calls it next.
     if (get().trying) return
     releaseAllCovers()
+    releaseMadeSleeves()
     scanAbort?.abort()
     // Replaces everything, so a scan still finishing must not write over it.
     generation++
@@ -830,6 +832,7 @@ const rawStore = create<LibraryState>((set, get) => ({
     scanAbort?.abort()
     generation++
     releaseAllCovers()
+    releaseMadeSleeves()
     const grants = get().roots.map((r) => r.nativePath)
     await db.clearLibrary()
     set({

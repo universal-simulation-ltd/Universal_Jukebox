@@ -1,5 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { coverUrl, fallbackHue } from '../lib/art'
+import { useAlbumArt } from '../lib/madeSleeves'
+import { fallbackHue } from '../lib/art'
 import { eraOrder, resolveDeck } from '../lib/decks'
 import { navigate } from '../lib/route'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
@@ -217,7 +218,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
     if (known) seekTo(Math.max(0, Math.min(1, fraction)) * durationSec)
   }
 
-  const url = album ? coverUrl(album.id, album.cover) : null
+  const url = useAlbumArt(album)
   const hue = album ? fallbackHue(album.id) : 24
   // ⚠️ Spins during the ceremony TOO. Beat 0.00s of §22.9 is "the platter spins
   // up, the arm is still parked" — a still platter with an arm swinging onto it

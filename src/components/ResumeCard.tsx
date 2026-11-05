@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { albumArt } from '../lib/madeSleeves'
 import Cover from './Cover'
-import { coverUrl, fallbackHue } from '../lib/art'
+import { fallbackHue } from '../lib/art'
 import { resolveDeck } from '../lib/decks'
 import { clock, shownName } from '../lib/format'
 import { useT } from '../i18n'
@@ -46,11 +47,12 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
   useEffect(() => {
     if (!track) return
     let live = true
-    const draw = (t: NonNullable<typeof track>, a: typeof album) => {
+    const draw = async (t: NonNullable<typeof track>, a: typeof album) => {
       const id = a?.id ?? t.albumId
       return lockArt({
         albumId: id,
-        cover: a ? coverUrl(a.id, a.cover) : null,
+        // Its own artwork, or the made sleeve of an album with none.
+        cover: await albumArt(a),
         hue: fallbackHue(id),
         style: resolveDeck(deckSetting, a ?? t, eras),
       })

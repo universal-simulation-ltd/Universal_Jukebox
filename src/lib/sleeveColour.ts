@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { coverUrl, fallbackHue } from './art'
+import { albumArt } from './madeSleeves'
+import { fallbackHue } from './art'
 import type { Album } from './types'
 
 // The one colour a sleeve is remembered by — for washing Now Playing in it and
@@ -78,14 +79,9 @@ export function useSleeveColour(album: Album | undefined): Rgb | null {
     if (!album) return setColour(null)
     const known = cache.get(album.id)
     if (known) return setColour(known)
-    const url = coverUrl(album.id, album.cover)
-    if (!url) {
-      const drawn = fromHue(fallbackHue(album.id))
-      cache.set(album.id, drawn)
-      return setColour(drawn)
-    }
     let live = true
-    void read(url).then((rgb) => {
+    // Its own artwork, or the made sleeve of an album with none.
+    void albumArt(album).then((url) => (url ? read(url) : null)).then((rgb) => {
       const found = rgb ?? fromHue(fallbackHue(album.id))
       cache.set(album.id, found)
       if (live) setColour(found)

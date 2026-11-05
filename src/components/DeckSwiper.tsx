@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useAlbumArt } from '../lib/madeSleeves'
 import { flushSync } from 'react-dom'
 import { resolveDeck } from '../lib/decks'
 import { ON_THE_DECK, blendSlideMs, rowPose, swipeReach, swipeSteps, type Seat } from '../lib/transition'
@@ -13,7 +14,7 @@ import { Medium } from './UpNextReel'
 import { HalfSleeve, Sleeve, VinylRecord } from './decks/VinylRecord'
 import PocketDeck from './decks/PocketDeck'
 import ReelToReelDeck from './decks/ReelToReelDeck'
-import { coverUrl, fallbackHue } from '../lib/art'
+import { fallbackHue } from '../lib/art'
 import { grooveRings } from '../lib/grooves'
 import { haptic } from '../lib/haptics'
 import { shownName } from '../lib/format'
@@ -1124,6 +1125,7 @@ function Drawn({
   /** The record itself, not its sleeve — the one just come on, under the sleeve sliding off it. */
   record?: boolean
 }) {
+  const art = useAlbumArt(album)
   // ⚠️ A RECORD BESIDE THE TURNTABLE IS ITS SLEEVE (James, 2026-11-02: "Side
   // records only show their sleeve album and then on change the sleeve moves
   // to the center and then the sleeve slides out to the left"). Peeks, the
@@ -1147,7 +1149,7 @@ function Drawn({
           engaged={false}
           spinning={false}
           reduced
-          url={album ? coverUrl(album.id, album.cover) : null}
+          url={art}
           hue={album ? fallbackHue(album.id) : 24}
         />
       </span>

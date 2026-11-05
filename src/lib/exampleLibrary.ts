@@ -1414,67 +1414,8 @@ async function drawPhotoSleeve(entry: ExampleAlbum): Promise<Blob | null> {
   const { EXAMPLE_PHOTOS } = await import('./exampleCovers')
   const src = EXAMPLE_PHOTOS[entry.title]
   if (!src) return null
-  const img = new Image()
-  img.src = src
-  await img.decode()
-
-  const size = 720
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return null
-  // Cover-cropped from the middle; the files are square already.
-  const scale = Math.max(size / img.naturalWidth, size / img.naturalHeight)
-  const w = img.naturalWidth * scale
-  const h = img.naturalHeight * scale
-  ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
-
-  // A shade down from the top edge, so white type reads over sky and over
-  // a bright window alike.
-  const shade = ctx.createLinearGradient(0, 0, 0, size * 0.5)
-  shade.addColorStop(0, 'rgba(0,0,0,0.58)')
-  shade.addColorStop(1, 'rgba(0,0,0,0)')
-  ctx.fillStyle = shade
-  ctx.fillRect(0, 0, size, size * 0.5)
-
-  const centred = entry.centred === true
-  const x = centred ? size / 2 : 44
-  ctx.textAlign = centred ? 'center' : 'left'
-  ctx.textBaseline = 'alphabetic'
-  ctx.shadowColor = 'rgba(0,0,0,0.35)'
-  ctx.shadowBlur = 12
-
-  ctx.fillStyle = '#ffffff'
-  ctx.font = entry.serif
-    ? 'italic 500 60px Georgia, "Times New Roman", serif'
-    : '700 58px system-ui, -apple-system, Segoe UI, sans-serif'
-  const lines = titleLines(ctx, entry.title, size - 88).slice(0, 2)
-  lines.forEach((line, i) => ctx.fillText(line, x, 98 + i * 64))
-
-  ctx.fillStyle = 'rgba(255,255,255,0.86)'
-  ctx.font = '600 22px system-ui, -apple-system, Segoe UI, sans-serif'
-  if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '3px'
-  ctx.fillText(entry.artist.toUpperCase(), x, 98 + (lines.length - 1) * 64 + 44)
-
-  return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.86))
-}
-
-/** A title broken into lines no wider than `width`. */
-function titleLines(ctx: CanvasRenderingContext2D, text: string, width: number): string[] {
-  const lines: string[] = []
-  let line = ''
-  for (const word of text.split(' ')) {
-    const candidate = line ? `${line} ${word}` : word
-    if (ctx.measureText(candidate).width > width && line) {
-      lines.push(line)
-      line = word
-    } else {
-      line = candidate
-    }
-  }
-  if (line) lines.push(line)
-  return lines
+  const { paintPhotoSleeve } = await import('./photoSleeve')
+  return paintPhotoSleeve(src, { title: entry.title, artist: entry.artist, serif: entry.serif, centred: entry.centred })
 }
 
 /** Lay a title out on at most two lines, bottom-anchored. */
