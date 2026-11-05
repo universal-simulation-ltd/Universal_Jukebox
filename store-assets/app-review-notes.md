@@ -17,7 +17,9 @@ the text below is about 2,700).
       collected" and "offline" are true. Re-read this if Hits comes back on iOS.
 - [ ] Age rating: answer the new `socialMedia` / `socialMediaAgeRestricted`
       questions first (submissions fail without them).
-- [ ] Attach a short screen recording if possible (Siri, lock screen, widget, Bedside).
+- [ ] Attach a short screen recording if possible (the Mix tab first: two records, a scratch, the crossfader; then Siri, lock screen, widget, Bedside).
+- [ ] The build includes the Mix tab (`9dc0d30`, 2026-11-05) and James has tried it on a device.
+- [ ] Version numbers: the notes and reply say 1.0.15; the next build is 1.0.16 (backlog).
 
 ## Notes (paste into App Review Information ▸ Notes)
 
@@ -28,6 +30,7 @@ the text below is about 2,700).
 > THE GAP IT FILLS: most players today are streaming catalogues. Jukebox is built around your own records: sleeves on a shelf, a turning record, a lyric sheet read from your own lyric files, play counts kept on the device.
 >
 > NEW IN THIS BUILD:
+> • A Mix tab: two turntables playing at once. Hold a record to stop it and turn it to scratch (backwards too), turn its edge to nudge the speed, set each deck's speed, and blend the two with a crossfader. Our own audio engine reads each song at any speed and direction under the finger; no other music player we know of lets you mix your own files this way
 > • Siri: "Hey Siri, play Mika on Jukebox" (SiriKit INPlayMediaIntent, handled in the app)
 > • A "Resume listening" widget for the Home Screen (small, medium) and Lock Screen (rectangular, circular, inline): the last song on the record that played it; one tap carries on from the same second
 > • A Discography card on each artist page, lyric marks on every song and album with lyrics, and the Albums shelf as the first screen
@@ -46,7 +49,7 @@ the text below is about 2,700).
 
 ## Resolution Center reply (send once the new build is submitted)
 
-> Thank you for your review. We have submitted a new build, 1.0.15, which adds features built for iPhone and iPad: Siri ("Hey Siri, play Mika on Jukebox"), a Home Screen and Lock Screen "Resume listening" widget, and more. We have answered each of your questions in the App Review notes. If a particular screen still reads as template-like, please tell us which one and we will change it.
+> Thank you for your review. We have submitted a new build, 1.0.15, which adds features built for iPhone and iPad: a Mix tab with two turntables you scratch and blend by hand, Siri ("Hey Siri, play Mika on Jukebox"), a Home Screen and Lock Screen "Resume listening" widget, and more. We have answered each of your questions in the App Review notes. If a particular screen still reads as template-like, please tell us which one and we will change it.
 
 If 1.0.15 is rejected again under 4.3: appeal to the App Review Board
 (developer.apple.com/contact/app-store/?topic=appeal), not another Resolution Center message.
