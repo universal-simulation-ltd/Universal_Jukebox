@@ -80,7 +80,7 @@ interface AudioSessionLike {
 }
 
 /** Ask WebKit for a media-playback session. Reports what happened. */
-function requestPlaybackSession(): string {
+export function requestPlaybackSession(): string {
   try {
     const session = (navigator as unknown as { audioSession?: AudioSessionLike }).audioSession
     if (!session) return 'missing'

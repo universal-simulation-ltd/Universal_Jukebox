@@ -60,7 +60,7 @@ export type CeremonyMode = 'always' | 'album' | 'artist' | 'first' | 'off'
 export const CEREMONY_LADDER: CeremonyMode[] = ['off', 'first', 'artist', 'album', 'always']
 
 /** Which library tab the front door opens on. */
-export type HomeTab = 'albums' | 'artists' | 'tracks' | 'jukebox'
+export type HomeTab = 'albums' | 'artists' | 'tracks' | 'jukebox' | 'mix'
 
 /**
  * The lyrics around the record: `arc` opens on the first line big, word by
@@ -74,7 +74,7 @@ export type LyricsAroundStyle = 'arc' | 'lines' | 'orbit'
 const LYRICS_AROUND_STYLES: LyricsAroundStyle[] = ['arc', 'lines', 'orbit']
 
 /** The three lists, each with its own order and layout (`perTab`). */
-export type ListTab = Exclude<HomeTab, 'jukebox'>
+export type ListTab = Exclude<HomeTab, 'jukebox' | 'mix'>
 
 /**
  * What the thing turning on Now Playing is.
@@ -689,7 +689,7 @@ function readStored(given?: Record<string, unknown>): Settings {
     ceremonyMode: CEREMONY_LADDER.includes(mode as CeremonyMode)
       ? (mode as CeremonyMode)
       : DEFAULTS.ceremonyMode,
-    homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' || tab === 'jukebox' ? tab : DEFAULTS.homeTab,
+    homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' || tab === 'jukebox' || tab === 'mix' ? tab : DEFAULTS.homeTab,
     tabOrder: normaliseOrder((stored as { tabOrder?: unknown }).tabOrder),
     hiddenTabs: normaliseHidden((stored as { hiddenTabs?: unknown }).hiddenTabs),
     ownerName: typeof (stored as { ownerName?: unknown }).ownerName === 'string' ? ((stored as { ownerName: string }).ownerName).slice(0, OWNER_NAME_MAX) : '',

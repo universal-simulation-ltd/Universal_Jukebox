@@ -559,3 +559,102 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
 .jx-disco.n3 .jx-disco-cover:nth-child(1) { transform: rotate(-9deg) translateX(-8%) scale(0.9); }
 .jx-disco.n3 .jx-disco-cover:nth-child(2) { transform: rotate(5deg) translateX(6%) scale(0.94); }
 .jx-disco.n2 .jx-disco-cover:nth-child(1) { transform: rotate(-7deg) translateX(-6%) scale(0.92); }
+
+/* ---- the Mix tab (MixScreen): two turntables and a crossfader ---- */
+.jx-tabbed.jx-mixing .jx-main { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--jx-tabs-h) + 24px); }
+.jx-mix { gap: 12px; }
+.jx-mix-hint { margin: 0; font-size: 14px; line-height: 1.4; color: var(--jx-mute); }
+.jx-mix-decks { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.jx-mix-deck {
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  padding: 12px; border-radius: 20px; background: var(--jx-row); border: 1px solid var(--jx-line);
+}
+.jx-mix-deck.on { box-shadow: inset 0 0 0 1.5px var(--jx-acc); }
+
+/* The platter: a square box, the record a circle inside it. */
+.jx-mix-disc {
+  position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  background: #1a1715; box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+.jx-mix-disc.wait .jx-mix-vinyl { opacity: 0.55; }
+.jx-mix-disc.empty {
+  display: grid; place-items: center; padding: 0; border: 2px dashed var(--jx-line); background: var(--jx-bg); box-shadow: none;
+  color: var(--jx-mute); font-size: 13px; text-align: center;
+}
+.jx-mix-disc.empty span { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 12px; }
+.jx-mix-disc.empty b { font-size: 34px; font-weight: 750; color: var(--jx-acc); line-height: 1; }
+.jx-mix-disc.empty:active { background: var(--jx-row2); }
+.jx-mix-vinyl {
+  position: absolute; inset: 3%; border-radius: 50%; will-change: transform;
+  /* The grooves are rings, so they look still as it turns; the label and the
+     white mark are what show it moving. */
+  background:
+    repeating-radial-gradient(circle at 50% 50%, #111 0 1.2px, #1d1d1d 1.2px 2.6px),
+    #151515;
+}
+.jx-mix-label {
+  position: absolute; inset: 31%; border-radius: 50%; overflow: hidden;
+  background: var(--jx-fill); box-shadow: 0 0 0 3px #0c0c0c;
+}
+.jx-mix-cover { width: 100%; height: 100%; display: block; border-radius: 0 !important; }
+/* A white sticker near the edge, so even a plain label shows the record turning. */
+.jx-mix-mark { position: absolute; left: 50%; top: 6%; width: 3px; height: 14%; margin-left: -1.5px; border-radius: 2px; background: rgba(255, 255, 255, 0.75); }
+.jx-mix-spindle { position: absolute; left: 50%; top: 50%; width: 7%; height: 7%; translate: -50% -50%; border-radius: 50%; background: #d9d4cc; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+/* How far through the song: a ring round the platter. */
+.jx-mix-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); pointer-events: none; }
+.jx-mix-ring circle { fill: none; stroke: var(--jx-acc); stroke-width: 1.6; stroke-dasharray: 1; stroke-dashoffset: 1; stroke-linecap: round; }
+.jx-mix-status {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%; max-width: 86%;
+  padding: 6px 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.72); color: #fff;
+  font-size: 12px; font-weight: 600; text-align: center; pointer-events: none;
+}
+.jx-mix-status.err { background: rgba(150, 25, 15, 0.92); }
+
+.jx-mix-meta { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.jx-mix-title { display: flex; flex-direction: column; flex: 1; min-width: 0; padding: 0; border: 0; background: none; text-align: left; }
+.jx-mix-title b { font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jx-mix-title small { font-size: 12px; color: var(--jx-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jx-mix-x { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; background: none; color: var(--jx-mute); }
+.jx-mix-x svg { width: 18px; height: 18px; }
+.jx-mix-row { display: flex; align-items: center; gap: 8px; }
+.jx-mix-play {
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none;
+  border: 0; border-radius: 50%; background: var(--jx-fill); color: #fff;
+}
+.jx-mix .jx-mix-play { color: #fff; }
+.jx-mix-play svg { width: 22px; height: 22px; }
+.jx-mix-play:disabled { opacity: 0.35; }
+.jx-mix-time { font-size: 12px; color: var(--jx-mute); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+.jx-mix-speed { display: flex; flex-direction: column; gap: 4px; }
+.jx-mix-speed input, .jx-mix-fader input { width: 100%; accent-color: var(--jx-acc); }
+.jx-mix-speed button {
+  align-self: center; min-width: 64px; padding: 3px 10px; border: 1px solid var(--jx-line); border-radius: 999px;
+  background: var(--jx-bg); font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums;
+}
+.jx-mix-speed button.off { color: var(--jx-acc); border-color: var(--jx-acc); }
+.jx-mix-fader {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  border-radius: 20px; background: var(--jx-row); border: 1px solid var(--jx-line);
+}
+.jx-mix-fader span { font-weight: 750; color: var(--jx-acc); }
+.jx-mix-fader input { height: 32px; }
+
+/* The record picker: a page over the tab (the phone rule — no popups). */
+.jx-mix-picker {
+  position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+  background: var(--jx-bg); color: var(--jx-fg);
+}
+.jx-mix-picker-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; }
+.jx-mix-picker-top b { font-size: 20px; font-weight: 750; }
+.jx-mix-search {
+  width: 100%; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--jx-line);
+  background: var(--jx-row); color: var(--jx-fg); font-size: 16px;
+}
+.jx-mix-songs { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
+@media (min-width: 700px) {
+  .jx-mix-decks { gap: 24px; }
+  .jx-mix-deck { padding: 18px; }
+}
+html.dark .jx-mix-disc:not(.empty) { box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.8), inset 0 0 0 1.5px rgba(255, 240, 225, 0.14); }

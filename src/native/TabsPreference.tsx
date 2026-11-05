@@ -8,6 +8,7 @@ const NAME: Record<HomeTab, MessageKey> = {
   albums: 'native.tab_albums',
   tracks: 'native.tab_tracks',
   jukebox: 'native.tab_shelves',
+  mix: 'native.tab_mix',
 }
 
 /**

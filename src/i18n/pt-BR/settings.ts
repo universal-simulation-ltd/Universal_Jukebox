@@ -16,6 +16,7 @@ const settings: Draft['settings'] = {
   'summary_opens_on_albums': 'Abre em Álbuns',
   'summary_opens_on_tracks': 'Abre em Faixas',
   'summary_opens_on_jukebox': 'Abre em Jukebox',
+  'summary_opens_on_mix': 'Abre em Mixar',
   'open_library_on': 'Abrir minha biblioteca em',
   'home_artists': 'Artistas',
   'home_albums': 'Álbuns',

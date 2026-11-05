@@ -611,7 +611,7 @@ function WebApp() {
                       {/* Only while searching. A permanent count is a number
                           nobody asked for; during a search it is the only way
                           to know the tab you are NOT looking at has answers. */}
-                      {counts && tab.view !== 'jukebox' && (
+                      {counts && tab.view !== 'jukebox' && tab.view !== 'mix' && (
                         <span className="ml-1 tabular-nums opacity-70">
                           ({t.num(counts[tab.view])})
                         </span>

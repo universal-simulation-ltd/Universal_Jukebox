@@ -182,3 +182,16 @@ export function RecordMark() {
     </svg>
   )
 }
+
+/** Two records side by side — the Mix tab. */
+export function IconMix() {
+  return (
+    <svg {...base}>
+      <circle cx="7" cy="12" r="4.5" />
+      <circle cx="17" cy="12" r="4.5" />
+      <circle cx="7" cy="12" r="1" />
+      <circle cx="17" cy="12" r="1" />
+      <path d="M9 21h6M12 19v4" strokeWidth={1.6} />
+    </svg>
+  )
+}

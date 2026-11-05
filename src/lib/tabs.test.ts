@@ -3,19 +3,21 @@ import { moveTab, normaliseHidden, normaliseOrder, openingTab, shownTabs, withSh
 
 describe('the phone tab bar', () => {
   it('makes a stored order whole: unknown names out, each tab once, a missing tab back by its neighbour', () => {
-    expect(normaliseOrder(undefined)).toEqual(['artists', 'albums', 'tracks', 'jukebox'])
-    expect(normaliseOrder(['jukebox', 'nonsense', 'artists', 'jukebox'])).toEqual(['jukebox', 'artists', 'albums', 'tracks'])
-    expect(normaliseOrder(['tracks', 'albums', 'artists'])).toEqual(['tracks', 'jukebox', 'albums', 'artists'])
+    expect(normaliseOrder(undefined)).toEqual(['artists', 'albums', 'tracks', 'jukebox', 'mix'])
+    expect(normaliseOrder(['jukebox', 'nonsense', 'artists', 'jukebox'])).toEqual(['jukebox', 'mix', 'artists', 'albums', 'tracks'])
+    expect(normaliseOrder(['tracks', 'albums', 'artists'])).toEqual(['tracks', 'jukebox', 'mix', 'albums', 'artists'])
+    // An order saved before Mix existed (2026-11-05) gets it after Shelves.
+    expect(normaliseOrder(['albums', 'artists', 'tracks', 'jukebox'])).toEqual(['albums', 'artists', 'tracks', 'jukebox', 'mix'])
   })
 
   it('never hides every tab', () => {
-    expect(normaliseHidden(['artists', 'albums', 'tracks', 'jukebox'])).toEqual([])
+    expect(normaliseHidden(['artists', 'albums', 'tracks', 'jukebox', 'mix'])).toEqual([])
     expect(normaliseHidden(['tracks', 'tracks', 'settings'])).toEqual(['tracks'])
     expect(normaliseHidden('artists')).toEqual([])
   })
 
   it('shows the order less the hidden tabs', () => {
-    expect(shownTabs(['jukebox', 'artists', 'albums', 'tracks'], ['artists'])).toEqual(['jukebox', 'albums', 'tracks'])
+    expect(shownTabs(['jukebox', 'artists', 'albums', 'tracks', 'mix'], ['artists'])).toEqual(['jukebox', 'albums', 'tracks', 'mix'])
   })
 
   it('moves one tab', () => {

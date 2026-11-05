@@ -133,4 +133,29 @@ export default {
   'made_up': 'Made-up albums, so you can see every machine before adding your own.', // under that button; the "machines" are the turntables and players
   'cloud_help_title': 'Streaming services', // row title in Tune ▸ About & help; the question below it is cloud_help
   'cloud_help': 'Why can’t I sync it with a streaming service?', // the line under cloud_help_title; the row opens the help article on music in the cloud and on streaming services; 'it' = the app
+  // The Mix tab (MixScreen): two turntables and a crossfader
+  'tab_mix': 'Mix', // tab label, keep to ~8 characters: the two-turntable mixing screen
+  'tab_home_mix': 'Mix: the app opens here',
+  'tab_double_tap_mix': 'Double-tap to open the app on Mix',
+  'tab_now_home_mix': 'The app now opens on Mix',
+  'mix_heading': 'Mix', // heading of the Mix tab
+  'mix_hint': 'Two records at once. Hold one to stop it and turn it to scratch or find your spot; turn the edge of a playing record to nudge it faster or slower.', // under the heading
+  'mix_unsupported': 'Mixing needs a newer system: this one can’t play two records under your fingers.', // when the device's browser engine lacks what mixing needs
+  'mix_deck': 'Deck {deck}', // {deck} is A or B
+  'mix_choose': 'Choose a record', // inside the empty turntable, under the deck letter
+  'mix_empty': 'No record yet', // under "Deck A" while nothing is on it
+  'mix_loading': 'Loading…', // over the record while the song is read in
+  'mix_unplayable': 'This song can’t be mixed', // over the record when the file can't be opened
+  'mix_too_long': 'Longer than {minutes} minutes: too long to mix', // over the record
+  'mix_record_aria': '{title}, on the turntable. Hold and turn to scratch.', // screen reader: the record
+  'mix_clear': 'Take the record off deck {deck}', // screen reader: the ✕ beside the song name
+  'mix_play': 'Play deck {deck}',
+  'mix_pause': 'Stop deck {deck}',
+  'mix_speed': 'Speed of deck {deck}', // screen reader: the speed slider
+  'mix_speed_reset': 'Back to normal speed', // hover on the speed readout ("+3.2%")
+  'mix_crossfader': 'Crossfader: deck A to deck B', // screen reader: the slider between the decks
+  'mix_pick_title': 'A record for deck {deck}', // title of the song picker
+  'mix_search': 'Search songs', // placeholder of the picker's search box
+  'mix_more': '{count} more: type to narrow it down', // under the picker's list when it is cut short
+  'mix_none': 'No songs match', // the picker, when nothing matches the search
 } as const

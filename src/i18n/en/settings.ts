@@ -27,6 +27,7 @@ export default {
   'summary_opens_on_albums': 'Opens on Albums',
   'summary_opens_on_tracks': 'Opens on Tracks',
   'summary_opens_on_jukebox': 'Opens on Jukebox',
+  'summary_opens_on_mix': 'Opens on Mix',
   'open_library_on': 'Open my library on', // a choice of the library's four tabs
   'home_artists': 'Artists', // the library tab, as named on the tab
   'home_albums': 'Albums',

@@ -43,7 +43,8 @@ import { albumsOfBigArtists, isFullAlbum, orderFrom, type LibraryOrder } from '.
 import { libraryInGenre } from '../lib/genres'
 import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
 import { AlbumScreen, ArtistScreen, QueueScreen } from './DetailScreens'
-import { IconAlbums, IconArtists, IconBack, IconBin, IconDown, IconShelves, IconSongs, IconTune } from './icons'
+import { IconAlbums, IconArtists, IconBack, IconBin, IconDown, IconMix, IconShelves, IconSongs, IconTune } from './icons'
+import { MixScreen } from './MixScreen'
 import { openingTab, shownTabs, withShownOrder } from '../lib/tabs'
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
@@ -109,6 +110,8 @@ const TABS: { view: TabView; label: MessageKey; home?: MessageKey; doubleTap?: M
   { view: 'albums', label: 'native.tab_albums', home: 'native.tab_home_albums', doubleTap: 'native.tab_double_tap_albums', nowHome: 'native.tab_now_home_albums', Icon: IconAlbums },
   { view: 'tracks', label: 'native.tab_tracks', home: 'native.tab_home_tracks', doubleTap: 'native.tab_double_tap_tracks', nowHome: 'native.tab_now_home_tracks', Icon: IconSongs },
   { view: 'jukebox', label: 'native.tab_shelves', home: 'native.tab_home_shelves', doubleTap: 'native.tab_double_tap_shelves', nowHome: 'native.tab_now_home_shelves', Icon: IconShelves },
+  // Two turntables and a crossfader (James, 2026-11-05) — `MixScreen`.
+  { view: 'mix', label: 'native.tab_mix', home: 'native.tab_home_mix', doubleTap: 'native.tab_double_tap_mix', nowHome: 'native.tab_now_home_mix', Icon: IconMix },
   { view: 'settings', label: 'native.tab_tune', Icon: IconTune },
 ]
 
@@ -123,7 +126,7 @@ const PAGE_VIEWS = new Set<View>(['playing', 'album', 'artist', 'settings', 'abo
 const scrollMemory = new Map<string, number>()
 const hashKey = () => location.hash || '#/'
 
-const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'jukebox', 'album', 'artist'])
+const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'jukebox', 'mix', 'album', 'artist'])
 
 function useRoute(): Route {
   const [route, setRoute] = useState<Route>(() => currentRoute())
@@ -373,6 +376,8 @@ export default function NativeApp() {
   }, [albums, tracks, query, genre, fullOnly, artistsMin3])
   const hasLibrary = status === 'ready' || status === 'scanning'
   const playing = view === 'playing'
+  // The Mix tab is its own instrument: no mini player over the decks.
+  const mixing = view === 'mix'
 
   // The phone's own warm grounds, under the page as well as in it.
   useEffect(() => {
@@ -484,7 +489,7 @@ export default function NativeApp() {
   }
 
   return (
-    <div className={`jx${playing ? ' jx-stage' : ''}${showTabs ? ' jx-tabbed' : ''}`}>
+    <div className={`jx${playing ? ' jx-stage' : ''}${showTabs ? ' jx-tabbed' : ''}${mixing ? ' jx-mixing' : ''}`}>
       <header className="jx-top">
         <div className="jx-strip" aria-hidden />
         <TopBar view={view} route={route} />
@@ -525,6 +530,8 @@ export default function NativeApp() {
           <ArtistScreen name={route.artist} />
         ) : playing ? (
           <div className="jx-playing"><NowPlaying /></div>
+        ) : view === 'mix' ? (
+          <MixScreen />
         ) : view === 'jukebox' ? (
           <div className="jx-page jx-tune">
             <h1 className="jx-h1">{t('native.shelves_heading')}</h1>
@@ -545,7 +552,7 @@ export default function NativeApp() {
 
       {showTabs && (
         <div className="jx-dock">
-          <MiniPlayer />
+          {!mixing && <MiniPlayer />}
           <nav ref={navRef} className="jx-tabs" aria-label="Jukebox" style={{ gridTemplateColumns: `repeat(${bar.length}, 1fr)` }}>
             {bar.map(({ view: target, label, home, doubleTap, Icon }) => (
               <button

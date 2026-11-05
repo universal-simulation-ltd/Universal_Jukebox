@@ -7,7 +7,7 @@
 
 import type { HomeTab } from '../stores/settingsStore'
 
-export const PHONE_TABS: readonly HomeTab[] = ['artists', 'albums', 'tracks', 'jukebox']
+export const PHONE_TABS: readonly HomeTab[] = ['artists', 'albums', 'tracks', 'jukebox', 'mix']
 
 /**
  * A stored order, made whole: unknown names dropped, each tab once, and any

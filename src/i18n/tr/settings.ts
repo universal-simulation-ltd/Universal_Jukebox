@@ -14,6 +14,7 @@ const settings: Draft['settings'] = {
   'summary_opens_on_albums': 'Albümler sekmesinde açılır',
   'summary_opens_on_tracks': 'Parçalar sekmesinde açılır',
   'summary_opens_on_jukebox': 'Jukebox sekmesinde açılır',
+  'summary_opens_on_mix': 'Miks sekmesinde açılır',
   'open_library_on': 'Kitaplığım şu sekmede açılsın',
   'home_artists': 'Sanatçılar',
   'home_albums': 'Albümler',

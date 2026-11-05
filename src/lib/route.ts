@@ -6,7 +6,7 @@
 // this file needing to know about it, and makes an album a link somebody can
 // send to themselves. `Universal_Video/src/lib/route.ts` is the same shape.
 
-export type View = 'albums' | 'artists' | 'tracks' | 'jukebox' | 'album' | 'artist' | 'playing' | 'queue' | 'about' | 'settings' | 'tidy' | 'help'
+export type View = 'albums' | 'artists' | 'tracks' | 'jukebox' | 'mix' | 'album' | 'artist' | 'playing' | 'queue' | 'about' | 'settings' | 'tidy' | 'help'
 
 export interface Route {
   view: View
@@ -78,6 +78,7 @@ export function routeFromHash(rawHash: string): Route {
   if (hash === 'artists') return { view: 'artists' }
   if (hash === 'tracks') return { view: 'tracks' }
   if (hash === 'jukebox') return { view: 'jukebox' }
+  if (hash === 'mix') return { view: 'mix' }
   if (hash === 'playing') return { view: 'playing' }
   if (hash === 'queue') return { view: 'queue' }
   if (hash === 'about') return { view: 'about' }
