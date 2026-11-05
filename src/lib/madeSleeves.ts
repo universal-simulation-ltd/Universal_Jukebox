@@ -3,11 +3,22 @@
 // it a random Universal Jukebox cover (like in the library) and write the
 // artist and album on the sleeve. At the moment it's just a blank colour").
 //
-// One of the example library's photographs (`exampleCovers.ts`), with the
-// album and artist set on it by the same painter (`photoSleeve.ts`). "Random"
-// but STABLE: the photo and the lettering are picked by a hash of the album's
-// id, so a record is the same sleeve on every visit, and two albums by one
-// artist rarely share a photo.
+// One of twenty photographs of its own (`src/assets/sleeve-photos/`, CC0,
+// credited in its README), with the album and artist set on it by the
+// example library's painter (`photoSleeve.ts`). NOT the example library's
+// photos: an untagged album of yours wearing a demo record's sleeve would read
+// as the demo leaking into your library (James, 2026-11-05: "a slightly wider
+// library? Say 20?").
+//
+// Which photo: `sleevePick.ts` — never the same twice for one artist, the
+// least-used otherwise — and then KEPT on the device (`KEPT_KEY`), so a record
+// is the same sleeve on every visit even as the library grows. The lettering
+// (serif / centred) comes from the album's hash.
+//
+// ⚠️ ONE PHOTO PER CHUNK. Each is inlined (a data URL — `exampleCovers.ts`
+// says why: the desktop app's `file://` taints a canvas drawn from a file) and
+// loaded on first use through `import.meta.glob`, so a library with three bare
+// albums downloads three photos, not twenty.
 //
 // ⚠️ DISPLAY ONLY — NEVER WRITTEN INTO `album.cover`. A null cover is load-
 // bearing elsewhere: Tidy offers to find artwork for exactly those albums,
@@ -23,7 +34,42 @@
 import { create } from 'zustand'
 import { coverUrl } from './art'
 import { shownName } from './format'
+import { hashOf, pickPhotos } from './sleevePick'
 import type { Album } from './types'
+import { useLibraryStore } from '../stores/libraryStore'
+
+/** The photos, by file name; each loads (as a data URL) only when first asked for. */
+const PHOTO_FILES = import.meta.glob<string>('../assets/sleeve-photos/*.jpg', { query: '?inline', import: 'default' })
+const PHOTOS = Object.keys(PHOTO_FILES).map((path) => path.slice(path.lastIndexOf('/') + 1)).sort()
+const photoLoader = (name: string) => PHOTO_FILES[`../assets/sleeve-photos/${name}`]
+
+/** albumId → photo file name, kept on the device so a sleeve never changes. */
+const KEPT_KEY = 'jukebox:made-sleeve-photos'
+let kept: Record<string, string> | null = null
+
+function readKept(): Record<string, string> {
+  if (kept) return kept
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEPT_KEY) ?? '{}') as unknown
+    kept = raw && typeof raw === 'object' ? (raw as Record<string, string>) : {}
+  } catch {
+    kept = {}
+  }
+  return kept
+}
+
+/** The photo this album wears: kept, or picked now (with every other bare album, so the rules hold across them). */
+function photoFor(album: Album): string | null {
+  const had = readKept()[album.id]
+  if (had && PHOTOS.includes(had)) return had
+  const bare = useLibraryStore.getState().albums.filter((a) => !a.cover)
+  if (!bare.some((a) => a.id === album.id)) bare.push(album)
+  kept = pickPhotos(bare, PHOTOS, readKept())
+  try {
+    localStorage.setItem(KEPT_KEY, JSON.stringify(kept))
+  } catch { /* private mode: picked again next time, by the same rules */ }
+  return kept[album.id] ?? null
+}
 
 /** Small: it is only ever a tile, a label or a sleeve, and a big library may have hundreds. */
 const SIZE = 400
@@ -37,22 +83,13 @@ interface MadeState {
 export const useMadeSleeves = create<MadeState>(() => ({ urls: {} }))
 
 const pending = new Map<string, Promise<string | null>>()
-/** Set once drawing has failed for good here (no canvas, no photos), so it isn't retried on every render. */
-let unavailable = false
+/** Albums whose sleeve could not be drawn, so it isn't retried on every render (they keep the colour tile). */
+const failed = new Set<string>()
 
-function hash(text: string): number {
-  let h = 2166136261
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return h >>> 0
-}
-
-/** Which photo and which lettering an album gets. Pure; exported for the test. */
-export function sleeveChoice(albumId: string, photos: number): { photo: number; serif: boolean; centred: boolean } {
-  const h = hash(albumId)
-  return { photo: h % photos, serif: ((h >>> 8) & 3) === 0, centred: ((h >>> 12) & 3) === 0 }
+/** The lettering an album's sleeve gets. Pure; exported for the test. */
+export function sleeveLettering(albumId: string): { serif: boolean; centred: boolean } {
+  const h = hashOf(albumId)
+  return { serif: ((h >>> 8) & 3) === 0, centred: ((h >>> 12) & 3) === 0 }
 }
 
 /** The made sleeve's URL if it is drawn already; null otherwise (and it is started). */
@@ -67,17 +104,21 @@ export function madeSleeveNow(album: Album): string | null {
 export function madeSleeve(album: Album): Promise<string | null> {
   const done = useMadeSleeves.getState().urls[album.id]
   if (done) return Promise.resolve(done)
-  if (unavailable || typeof document === 'undefined') return Promise.resolve(null)
+  if (failed.has(album.id) || typeof document === 'undefined') return Promise.resolve(null)
   const running = pending.get(album.id)
   if (running) return running
   const job = (async () => {
     try {
-      const [{ EXAMPLE_PHOTOS }, { paintPhotoSleeve }] = await Promise.all([import('./exampleCovers'), import('./photoSleeve')])
-      const photos = Object.values(EXAMPLE_PHOTOS)
-      if (photos.length === 0) return null
-      const pick = sleeveChoice(album.id, photos.length)
+      const name = photoFor(album)
+      const load = name ? photoLoader(name) : undefined
+      if (!load) {
+        failed.add(album.id)
+        return null
+      }
+      const [src, { paintPhotoSleeve }] = await Promise.all([load(), import('./photoSleeve')])
+      const pick = sleeveLettering(album.id)
       const blob = await paintPhotoSleeve(
-        photos[pick.photo],
+        src,
         { title: shownName(album.title), artist: shownName(album.artist) ?? '', serif: pick.serif, centred: pick.centred },
         SIZE,
         QUALITY,
@@ -88,7 +129,7 @@ export function madeSleeve(album: Album): Promise<string | null> {
       return url
     } catch (err) {
       console.warn('[jukebox] Could not draw a sleeve for an album with no artwork:', err)
-      unavailable = true
+      failed.add(album.id)
       return null
     } finally {
       pending.delete(album.id)
@@ -113,11 +154,4 @@ export function useAlbumArt(album: Album | undefined): string | null {
   if (made) return made
   void madeSleeve(album)
   return null
-}
-
-/** Let every made sleeve go — the library was cleared or replaced. */
-export function releaseMadeSleeves(): void {
-  const { urls } = useMadeSleeves.getState()
-  for (const url of Object.values(urls)) URL.revokeObjectURL(url)
-  useMadeSleeves.setState({ urls: {} })
 }
