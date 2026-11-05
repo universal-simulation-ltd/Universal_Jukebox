@@ -25,7 +25,7 @@
 
 import { create } from 'zustand'
 import { requestPlaybackSession } from './audioGraph'
-import { releaseTrackUrl, trackUrl } from './trackSource'
+import { noteEvent } from './bgLog'
 import { crossfadeGains, clampSpeed } from './mixMath'
 import type { Track } from './types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -150,21 +150,27 @@ export async function loadDeck(id: DeckId, track: Track): Promise<void> {
   if (stale()) return
   if (!e) return patch(id, { status: 'error', error: 'unsupported' })
   e.nodes[id].port.postMessage({ type: 'unload' })
+  /** How far a load got, for the console and the saved background log when it fails. */
+  let stage = 'prepare'
   try {
     // A Music-library song needs its copy made first; every other source
     // answers at once (`libraryStore.prepare`).
     const file = await useLibraryStore.getState().prepare(track)
     if (!file) throw new Error('no file')
-    const url = trackUrl(file)
-    let bytes: ArrayBuffer
-    try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      bytes = await res.arrayBuffer()
-    } finally {
-      releaseTrackUrl(url)
-    }
+    // ⚠️ A RANGE READ OF THE WHOLE FILE (`file.slice`), NEVER `fetch(trackUrl)`.
+    // In the iPhone app a song is served by Capacitor's local file handler,
+    // which answers a plain request for a media file (.m4a, .mp3, .mov…) with
+    // a bare URLResponse rather than an HTTP one, so `fetch` saw no status and
+    // EVERY song came back "can't be mixed" (James, 2026-11-05) — while the
+    // `<audio>` player, which doesn't care, played them all. Asked for with a
+    // Range it answers 206 like any server (`WebViewAssetHandler.swift`), and
+    // that is the read the library scan already makes on the iPhone.
+    // `NativeFile.slice` does exactly that; on the web it is `File.slice`.
+    stage = 'read'
+    const bytes = await file.slice(0, file.size).arrayBuffer()
+    if (bytes.byteLength === 0) throw new Error('empty file')
     if (stale()) return
+    stage = 'decode'
     const audio = await e.ctx.decodeAudioData(bytes)
     if (stale()) return
     if (audio.duration > MAX_MIX_SEC) return patch(id, { status: 'error', error: 'too_long' })
@@ -176,7 +182,8 @@ export async function loadDeck(id: DeckId, track: Track): Promise<void> {
     patch(id, { status: 'ready', duration: audio.duration })
   } catch (err) {
     if (stale()) return
-    console.error(`[jukebox] Could not put “${track.title}” on a deck:`, err)
+    console.error(`[jukebox] Could not put “${track.title}” on a deck (${stage}):`, err)
+    noteEvent('mix-load-failed', { stage, ext: track.ext, error: String(err) })
     patch(id, { status: 'error', error: 'unplayable' })
   }
 }
