@@ -146,6 +146,15 @@ const native: Draft['native'] = {
   'mix_search': 'Songs suchen',
   'mix_more': '{count} weitere: tippe, um einzugrenzen',
   'mix_none': 'Keine passenden Songs',
+  'mix_rec_start': 'Mix aufnehmen',
+  'mix_rec_stop': 'Stoppen und speichern',
+  'mix_rec_saving': 'Speichern…',
+  'mix_rec_hint': 'Nimmt auf, was du hörst, bis zu {minutes} Minuten, als neuen Song im Album „Mixe“.',
+  'mix_rec_saved': '„{title}“ im Album „Mixe“ gespeichert.',
+  'mix_rec_short': 'Zu kurz zum Behalten: nimm mindestens eine Sekunde auf.',
+  'mix_rec_failed': 'Die Aufnahme konnte nicht gespeichert werden.',
+  'mix_rec_album': 'Mixe',
+  'mix_rec_untitled': 'Mix, {when}',
 }
 
 export default native

@@ -118,6 +118,7 @@ export function readTags(bytes: Uint8Array, wantArt = false, wantLyrics = false)
     if (startsWith(bytes, 'fLaC')) return readFlac(bytes, wantArt, wantLyrics)
     if (startsWith(bytes, 'OggS')) return readOggOpusTags(bytes, wantLyrics)
     if (bytes.length > 12 && ascii(bytes, 4, 4) === 'ftyp') return readMp4Tags(bytes, wantArt, wantLyrics)
+    if (startsWith(bytes, 'RIFF') && bytes.length > 12 && ascii(bytes, 8, 4) === 'WAVE') return readRiffTags(bytes, wantArt, wantLyrics)
     return {}
   } catch {
     return {}
@@ -278,6 +279,68 @@ const LYRIC_KEYS = new Set(['LYRICS', 'UNSYNCEDLYRICS', 'SYNCEDLYRICS'])
 /** Tag writers vary the spacing and the case — "Unsynced Lyrics", "unsyncedlyrics". */
 function isLyricKey(key: string): boolean {
   return LYRIC_KEYS.has(key.toUpperCase().replace(/[\s_-]+/g, ''))
+}
+
+// ── WAV (RIFF) ───────────────────────────────────────────────────────────────
+
+/**
+ * A WAV file's tags: its `LIST/INFO` chunk (the Mix tab's recordings write one,
+ * `wavFile.ts`) and an embedded `id3 ` chunk, which taggers that want cover art
+ * use instead. The ID3 wins where both say something.
+ *
+ * Only the chunks inside `bytes` are read: the scan hands over the head of the
+ * file, and the tags sit before the audio in every writer that is any use.
+ */
+function readRiffTags(bytes: Uint8Array, wantArt: boolean, wantLyrics: boolean): TagsAndArt {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const info: TagsAndArt = {}
+  let id3: TagsAndArt = {}
+  let at = 12
+  while (at + 8 <= bytes.length) {
+    const id = ascii(bytes, at, 4)
+    const size = view.getUint32(at + 4, true)
+    const body = at + 8
+    if (body + size > bytes.length) break // the audio, or a chunk past the head
+    if (id === 'LIST' && size >= 4 && ascii(bytes, body, 4) === 'INFO') {
+      readRiffInfo(bytes, view, body + 4, body + size, info)
+    } else if ((id === 'id3 ' || id === 'ID3 ') && startsWith(bytes.subarray(body), 'ID3')) {
+      id3 = readId3(bytes.subarray(body, body + size), wantArt, wantLyrics)
+    }
+    at = body + size + (size & 1)
+  }
+  return { ...info, ...Object.fromEntries(Object.entries(id3).filter(([, v]) => v !== undefined)) }
+}
+
+const RIFF_INFO: Record<string, keyof Tags> = {
+  INAM: 'title', IART: 'artist', IPRD: 'album', ICRD: 'year', IGNR: 'genre', IPRT: 'trackNo', ITRK: 'trackNo',
+}
+
+function readRiffInfo(bytes: Uint8Array, view: DataView, from: number, to: number, out: TagsAndArt): void {
+  let at = from
+  while (at + 8 <= to) {
+    const field = RIFF_INFO[ascii(bytes, at, 4)]
+    const size = view.getUint32(at + 4, true)
+    if (at + 8 + size > to) break
+    if (field) {
+      const value = riffText(bytes.subarray(at + 8, at + 8 + size))
+      if (field === 'trackNo') out.trackNo = leadingNumber(value)
+      else if (field === 'year') out.year = yearFrom(value)
+      else if (value) out[field] = value as never
+    }
+    at += 8 + size + (size & 1)
+  }
+}
+
+/** INFO text: officially Latin-1, in practice UTF-8 — UTF-8 where it decodes, Latin-1 where it doesn't. */
+function riffText(body: Uint8Array): string {
+  let end = body.indexOf(0)
+  if (end < 0) end = body.length
+  const text = body.subarray(0, end)
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(text).trim()
+  } catch {
+    return new TextDecoder('latin1').decode(text).trim()
+  }
 }
 
 // ── ID3v2 (MP3, and often AIFF) ──────────────────────────────────────────────

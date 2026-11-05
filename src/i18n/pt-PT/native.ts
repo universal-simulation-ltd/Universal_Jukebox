@@ -146,6 +146,15 @@ const native: Draft['native'] = {
   'mix_search': 'Pesquisar músicas',
   'mix_more': 'Mais {count}: escreva para filtrar',
   'mix_none': 'Nenhuma música corresponde',
+  'mix_rec_start': 'Gravar a mistura',
+  'mix_rec_stop': 'Parar e guardar',
+  'mix_rec_saving': 'A guardar…',
+  'mix_rec_hint': 'Grava o que ouve, até {minutes} minutos, como uma música nova no álbum Misturas.',
+  'mix_rec_saved': '“{title}” guardada no álbum Misturas.',
+  'mix_rec_short': 'Demasiado curta para guardar: grave pelo menos um segundo.',
+  'mix_rec_failed': 'Não foi possível guardar a gravação.',
+  'mix_rec_album': 'Misturas',
+  'mix_rec_untitled': 'Mistura, {when}',
 }
 
 export default native

@@ -10,7 +10,9 @@
 //   - turn the EDGE while it plays and it runs faster or slower for as long as
 //     you turn (a DJ's jog wheel), to line the beats up by hand;
 //   - the speed slider sets its speed (±25%); tap the readout for normal.
-// The crossfader between them decides how much of each you hear.
+// The crossfader between them decides how much of each you hear, and Record
+// under it takes down what you hear as a new song on the "Mixes" album
+// (`lib/mixRecorder.ts`; the iPhone only for now).
 //
 // The sound is `lib/mixer.ts`; the drawing reads the decks' positions from it
 // every frame and writes the angle straight onto the record (no re-render).
@@ -27,16 +29,20 @@ import {
   holdDeck,
   loadDeck,
   mixSupported,
+  recordingSec,
   releaseDeck,
   setDeckPlaying,
   setDeckSpeed,
   setFader,
+  startRecording,
   stopAllDecks,
+  stopRecording,
   turnDeck,
   useMixStore,
   type DeckId,
 } from '../lib/mixer'
 import { SPEED_RANGE, angleDelta, bendFromTurn, discAngleDeg, onRim, pointerAngle, speedPercent, turnToSec } from '../lib/mixMath'
+import { MAX_RECORD_SEC, recordingSupported } from '../lib/mixRecorder'
 import { matchTracks } from '../lib/search'
 import type { Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -59,12 +65,18 @@ export function MixScreen() {
     const off = usePlayerStore.subscribe((now, before) => {
       if (now.playing && !before.playing) stopAllDecks()
     })
-    const away = () => { if (document.visibilityState === 'hidden') stopAllDecks() }
+    // A recording under way is saved, not lost, when the app is put away.
+    const away = () => {
+      if (document.visibilityState !== 'hidden') return
+      stopAllDecks()
+      void stopRecording()
+    }
     document.addEventListener('visibilitychange', away)
     return () => {
       off()
       document.removeEventListener('visibilitychange', away)
       stopAllDecks()
+      void stopRecording()
     }
   }, [])
 
@@ -103,6 +115,7 @@ export function MixScreen() {
         />
         <span aria-hidden>B</span>
       </div>
+      {recordingSupported() && <RecordButton />}
       {picking !== null && <MixPicker deck={picking} onClose={() => setPicking(null)} />}
     </div>
   )
@@ -273,6 +286,48 @@ function Deck({ id, onPick }: { id: DeckId; onPick(): void }) {
         </button>
       </label>
     </section>
+  )
+}
+
+/** Record: takes down the mix as you hear it, then saves it as a new song. */
+function RecordButton() {
+  const t = useT()
+  const phase = useMixStore((s) => s.record)
+  const note = useMixStore((s) => s.recordNote)
+  const clockRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (phase !== 'recording') return
+    const tick = () => { if (clockRef.current) clockRef.current.textContent = clock(recordingSec()) }
+    tick()
+    const timer = window.setInterval(tick, 250)
+    return () => window.clearInterval(timer)
+  }, [phase])
+
+  const press = () => {
+    haptic('tap')
+    if (phase === 'idle') void startRecording()
+    else if (phase === 'recording') void stopRecording()
+  }
+
+  const said =
+    phase === 'recording' ? t('native.mix_rec_hint', { minutes: MAX_RECORD_SEC / 60 })
+      : note?.kind === 'saved' ? t('native.mix_rec_saved', { title: note.title })
+        : note?.kind === 'short' ? t('native.mix_rec_short')
+          : note?.kind === 'failed' ? t('native.mix_rec_failed')
+            : t('native.mix_rec_hint', { minutes: MAX_RECORD_SEC / 60 })
+
+  return (
+    <div className={`jx-mix-rec ${phase}`}>
+      <button type="button" onClick={press} disabled={phase === 'saving'} aria-pressed={phase === 'recording'}>
+        <i aria-hidden />
+        <span>
+          {phase === 'recording' ? t('native.mix_rec_stop') : phase === 'saving' ? t('native.mix_rec_saving') : t('native.mix_rec_start')}
+        </span>
+        {phase === 'recording' && <span ref={clockRef} className="jx-mix-rec-clock" />}
+      </button>
+      <p className={`jx-mix-hint${note?.kind === 'failed' && phase === 'idle' ? ' err' : ''}`} aria-live="polite">{said}</p>
+    </div>
   )
 }
 

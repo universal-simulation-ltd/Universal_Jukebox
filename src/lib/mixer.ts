@@ -4,8 +4,9 @@
 // can spin the discs to change their position and control speed").
 //
 //   deck A (worklet) ──▶ gain A ─┐
-//                                ├──▶ destination
-//   deck B (worklet) ──▶ gain B ─┘        (gains = the crossfader)
+//                                ├──▶ tap ──▶ destination
+//   deck B (worklet) ──▶ gain B ─┘   (gains = the crossfader; the tap is the
+//                                     Record button's ear — `mixRecorder.ts`)
 //
 // ⚠️ ITS OWN AudioContext, NOT `audioGraph.ts`'s, and not the player's
 // elements. Everything the main player does — the iPhone's AVPlayer engine,
@@ -28,6 +29,7 @@ import { requestPlaybackSession } from './audioGraph'
 import { noteEvent } from './bgLog'
 import { crossfadeGains, clampSpeed } from './mixMath'
 import { quickTimeMp3Frames } from './quickTimeMp3'
+import { MAX_RECORD_SEC, MIN_RECORD_SEC, recordedSec, saveRecording } from './mixRecorder'
 import type { Track } from './types'
 import { useLibraryStore } from '../stores/libraryStore'
 
@@ -47,10 +49,20 @@ export interface DeckState {
   speed: number
 }
 
+/** The Record button: off, taking down the mix, or writing it into the library. */
+export type RecordPhase = 'idle' | 'recording' | 'saving'
+
+/** What became of the last recording, said under the button until the next. */
+export type RecordNote = { kind: 'saved'; title: string } | { kind: 'short' } | { kind: 'failed' }
+
 interface MixState {
   decks: [DeckState, DeckState]
   /** -1 = all deck A, 1 = all deck B. */
   fader: number
+  record: RecordPhase
+  /** `performance.now()` when the recording started, for its clock. */
+  recordStartedAt: number
+  recordNote: RecordNote | null
 }
 
 const EMPTY: DeckState = { track: null, status: 'empty', duration: 0, playing: false, speed: 1 }
@@ -58,6 +70,9 @@ const EMPTY: DeckState = { track: null, status: 'empty', duration: 0, playing: f
 export const useMixStore = create<MixState>(() => ({
   decks: [{ ...EMPTY }, { ...EMPTY }],
   fader: 0,
+  record: 'idle',
+  recordStartedAt: 0,
+  recordNote: null,
 }))
 
 function patch(id: DeckId, change: Partial<DeckState>): void {
@@ -74,6 +89,7 @@ interface Engine {
   ctx: AudioContext
   nodes: [AudioWorkletNode, AudioWorkletNode]
   gains: [GainNode, GainNode]
+  tap: AudioWorkletNode
 }
 
 /** Where each deck's record is, as last reported from the audio thread. */
@@ -98,11 +114,20 @@ function startEngine(): Promise<Engine | null> {
     // Before the context exists, or the iPhone's ringer switch silences it.
     requestPlaybackSession()
     const ctx = new AudioContext({ latencyHint: 'interactive' })
+    // Into the saved log: a deck that "wouldn't play" (James, 2026-11-05) is
+    // most likely the context suspended or interrupted under it.
+    ctx.onstatechange = () => noteEvent('mix-ctx', { state: ctx.state })
     await ctx.audioWorklet.addModule(new URL('./mixDeck.worklet.js', import.meta.url))
+    // Always stereo in and out, so a mono song on a deck is still L and R.
+    const tap = new AudioWorkletNode(ctx, 'mix-tap', {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit',
+    })
+    tap.connect(ctx.destination)
+    tap.port.onmessage = (e: MessageEvent) => heardFromTap(e.data as { type: string; pcm?: Int16Array })
     const make = (id: DeckId) => {
       const node = new AudioWorkletNode(ctx, 'mix-deck', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] })
       const gain = ctx.createGain()
-      node.connect(gain).connect(ctx.destination)
+      node.connect(gain).connect(tap)
       node.port.onmessage = (e: MessageEvent) => {
         const m = e.data as { type: string; sec?: number; v?: number; playing?: boolean }
         if (m.type === 'pos') {
@@ -115,7 +140,7 @@ function startEngine(): Promise<Engine | null> {
     }
     const a = make(0)
     const b = make(1)
-    const built: Engine = { ctx, nodes: [a.node, b.node], gains: [a.gain, b.gain] }
+    const built: Engine = { ctx, nodes: [a.node, b.node], gains: [a.gain, b.gain], tap }
     applyFader(built, useMixStore.getState().fader)
     return built
   })().catch((err) => {
@@ -205,9 +230,13 @@ export function setDeckPlaying(id: DeckId, on: boolean): void {
   // A record played to its end starts again from the top.
   if (on && deck.duration > 0 && deckSec(id) >= deck.duration - 0.05) send(id, { type: 'seek', sec: 0 })
   patch(id, { playing: on })
+  if (on && taking && deck.track) taking.heard.add(deck.track)
   void startEngine().then((e) => {
     if (!e) return
-    if (on && e.ctx.state !== 'running') void e.ctx.resume()
+    noteEvent('mix-play', { deck: id, on, ctx: e.ctx.state, status: useMixStore.getState().decks[id].status })
+    if (on && e.ctx.state !== 'running') {
+      e.ctx.resume().catch((err) => noteEvent('mix-resume-failed', { deck: id, ctx: e.ctx.state, error: String(err) }))
+    }
     e.nodes[id].port.postMessage({ type: 'play', on })
   })
 }
@@ -259,4 +288,69 @@ export function deckSec(id: DeckId): number {
   // and the drawing must stop with it rather than spin on alone.
   const ahead = Math.min(0.08, (performance.now() - w.at) / 1000)
   return Math.max(0, w.sec + w.v * ahead)
+}
+
+// ── Recording ───────────────────────────────────────────────────────────────
+
+/** The recording under way: its audio so far, and the songs played into it. */
+let taking: { chunks: Int16Array[]; heard: Set<Track>; at: Date; limit: number } | null = null
+/** Called when the tap says the last of a stopped recording has arrived. */
+let tapStopped: (() => void) | null = null
+
+function heardFromTap(m: { type: string; pcm?: Int16Array }): void {
+  if (m.type === 'chunk' && m.pcm && taking) taking.chunks.push(m.pcm)
+  else if (m.type === 'stopped') tapStopped?.()
+}
+
+/** Start taking down the mix: everything the decks play from now, as heard. */
+export async function startRecording(): Promise<void> {
+  if (useMixStore.getState().record !== 'idle') return
+  const e = await startEngine()
+  if (!e || taking) return
+  if (e.ctx.state !== 'running') void e.ctx.resume()
+  const { decks } = useMixStore.getState()
+  taking = {
+    chunks: [],
+    heard: new Set(decks.filter((d) => d.playing && d.track).map((d) => d.track!)),
+    at: new Date(),
+    limit: window.setTimeout(() => void stopRecording(), MAX_RECORD_SEC * 1000),
+  }
+  e.tap.port.postMessage({ type: 'record', on: true })
+  useMixStore.setState({ record: 'recording', recordStartedAt: performance.now(), recordNote: null })
+}
+
+/** Stop, and save what was taken down as a new song. */
+export async function stopRecording(): Promise<void> {
+  const rec = taking
+  const e = await startEngine()
+  if (!rec || !e || useMixStore.getState().record !== 'recording') return
+  window.clearTimeout(rec.limit)
+  useMixStore.setState({ record: 'saving' })
+  // The last part-second comes after the stop. Not forever, though: a context
+  // iOS has suspended (the app put away) may never answer.
+  await new Promise<void>((done) => {
+    const late = window.setTimeout(done, 1500)
+    tapStopped = () => { window.clearTimeout(late); done() }
+    e.tap.port.postMessage({ type: 'record', on: false })
+  })
+  tapStopped = null
+  taking = null
+  if (recordedSec(rec.chunks, e.ctx.sampleRate) < MIN_RECORD_SEC) {
+    useMixStore.setState({ record: 'idle', recordNote: { kind: 'short' } })
+    return
+  }
+  try {
+    const title = await saveRecording({ chunks: rec.chunks, sampleRate: e.ctx.sampleRate, heard: [...rec.heard], at: rec.at })
+    useMixStore.setState({ record: 'idle', recordNote: { kind: 'saved', title } })
+  } catch (err) {
+    console.error('[jukebox] Could not save the recording:', err)
+    noteEvent('mix-record-failed', { error: String(err) })
+    useMixStore.setState({ record: 'idle', recordNote: { kind: 'failed' } })
+  }
+}
+
+/** How long the recording under way has run, in seconds. */
+export function recordingSec(): number {
+  const { record, recordStartedAt } = useMixStore.getState()
+  return record === 'recording' ? (performance.now() - recordStartedAt) / 1000 : 0
 }

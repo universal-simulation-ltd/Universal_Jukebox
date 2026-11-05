@@ -640,6 +640,24 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
 .jx-mix-fader span { font-weight: 750; color: var(--jx-acc); }
 .jx-mix-fader input { height: 32px; }
 
+/* Record: a pill under the crossfader. Idle, a red dot on the row colour;
+   recording, the whole pill red with a square stop and the running clock. */
+.jx-mix-rec { display: flex; flex-direction: column; gap: 8px; }
+.jx-mix-rec button {
+  display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 18px;
+  border-radius: 999px; border: 1px solid var(--jx-line); background: var(--jx-row); color: var(--jx-fg);
+  font-size: 16px; font-weight: 700;
+}
+.jx-mix-rec button i { width: 16px; height: 16px; border-radius: 50%; background: var(--jx-fill); flex: none; }
+.jx-mix-rec.recording button { background: var(--jx-fill); border-color: transparent; color: #fff; }
+.jx-mix-rec.recording button i { border-radius: 3px; background: #fff; animation: jx-rec-pulse 1.2s ease-in-out infinite; }
+.jx-mix-rec button:disabled { opacity: 0.6; }
+.jx-mix-rec-clock { font-variant-numeric: tabular-nums; font-weight: 650; opacity: 0.9; }
+.jx-mix-rec .jx-mix-hint { text-align: center; font-size: 13px; }
+.jx-mix-rec .jx-mix-hint.err { color: var(--jx-acc); }
+@keyframes jx-rec-pulse { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .jx-mix-rec.recording button i { animation: none; } }
+
 /* The record picker: a page over the tab (the phone rule — no popups). */
 .jx-mix-picker {
   position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; gap: 10px;

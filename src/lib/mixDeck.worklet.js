@@ -17,6 +17,8 @@
 //   hold — a finger is on the record: `v` chases the position the finger has
 //          turned it to, so the music follows the hand (a scratch).
 //
+// The file also holds `mix-tap`, the Record button's ear on the mix (below).
+//
 // Messages in (from `lib/mixer.ts`): load, unload, play, speed, bend, seek,
 // hold, turn, release. Out: `pos` about sixty times a second, `ended` once.
 
@@ -160,3 +162,71 @@ class MixDeck extends AudioWorkletProcessor {
 }
 
 registerProcessor('mix-deck', MixDeck)
+
+// ── The recorder ─────────────────────────────────────────────────────────────
+//
+// Both decks' gains feed this one node on their way to the speaker, so it
+// hears exactly the mix you do — scratches, nudges, the crossfader and all.
+// It passes the sound straight through, and while recording it also keeps a
+// copy as 16-bit stereo, handed to the main thread a second at a time
+// (`lib/mixer.ts` → the Record button; `lib/mixRecorder.ts` saves it).
+//
+// Messages in: record { on }. Out: `chunk` (an Int16Array, interleaved L R),
+// and `stopped` once the last chunk has gone after record { on: false }.
+
+class MixTap extends AudioWorkletProcessor {
+  constructor() {
+    super()
+    this.recording = false
+    this.chunk = new Int16Array(sampleRate * 2)
+    this.filled = 0
+    this.port.onmessage = (e) => {
+      if (e.data.type !== 'record') return
+      if (e.data.on) {
+        this.recording = true
+        this.filled = 0
+      } else if (this.recording) {
+        this.recording = false
+        this.flush()
+        this.port.postMessage({ type: 'stopped' })
+      }
+    }
+  }
+
+  flush() {
+    if (this.filled === 0) return
+    const out = this.chunk.slice(0, this.filled)
+    this.port.postMessage({ type: 'chunk', pcm: out }, [out.buffer])
+    this.filled = 0
+  }
+
+  process(inputs, outputs) {
+    const input = inputs[0]
+    const out = outputs[0]
+    const n = out[0].length
+    // No input connected yet (or a silent block): silence through, and on tape.
+    const L = input && input[0] ? input[0] : null
+    const R = input && input[1] ? input[1] : L
+    for (let c = 0; c < out.length; c++) {
+      const src = c === 0 ? L : R
+      if (src) out[c].set(src)
+      else out[c].fill(0)
+    }
+    if (!this.recording) return true
+    let chunk = this.chunk
+    for (let i = 0; i < n; i++) {
+      const l = L ? L[i] : 0
+      const r = R ? R[i] : 0
+      chunk[this.filled++] = l >= 1 ? 32767 : l <= -1 ? -32768 : Math.round(l * 32767)
+      chunk[this.filled++] = r >= 1 ? 32767 : r <= -1 ? -32768 : Math.round(r * 32767)
+      if (this.filled === chunk.length) {
+        this.port.postMessage({ type: 'chunk', pcm: chunk }, [chunk.buffer])
+        chunk = this.chunk = new Int16Array(sampleRate * 2)
+        this.filled = 0
+      }
+    }
+    return true
+  }
+}
+
+registerProcessor('mix-tap', MixTap)

@@ -604,13 +604,13 @@ export async function importFilesToNativeLibrary(
 }
 
 /**
- * A `File` as base64, without building the whole string by hand.
+ * A `File` (or any `Blob`) as base64, without building the whole string by hand.
  *
  * `FileReader.readAsDataURL` does the encoding natively; doing it in JS over a
  * 40 MB track means a 40-million-iteration `String.fromCharCode` loop that
  * blocks the main thread for seconds.
  */
-function base64Of(file: File): Promise<string> {
+export function base64Of(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = () => reject(reader.error ?? new Error('Could not read the file'))

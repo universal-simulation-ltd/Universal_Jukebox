@@ -158,4 +158,13 @@ export default {
   'mix_search': 'Search songs', // placeholder of the picker's search box
   'mix_more': '{count} more: type to narrow it down', // under the picker's list when it is cut short
   'mix_none': 'No songs match', // the picker, when nothing matches the search
+  'mix_rec_start': 'Record the mix', // the button under the crossfader
+  'mix_rec_stop': 'Stop and save', // the same button while recording; the running time sits beside it
+  'mix_rec_saving': 'Saving…',
+  'mix_rec_hint': 'Records what you hear, up to {minutes} minutes, as a new song on the Mixes album.', // under the Record button
+  'mix_rec_saved': 'Saved “{title}” to the Mixes album.',
+  'mix_rec_short': 'Too short to keep: record for at least a second.',
+  'mix_rec_failed': 'The recording couldn’t be saved.',
+  'mix_rec_album': 'Mixes', // album (and artist) name every recording is saved under
+  'mix_rec_untitled': 'Mix, {when}', // a recording's title when no song was played into it; {when} is a date and time
 } as const

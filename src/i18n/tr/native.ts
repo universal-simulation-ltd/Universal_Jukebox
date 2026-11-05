@@ -146,6 +146,15 @@ const native: Draft['native'] = {
   'mix_search': 'Şarkı ara',
   'mix_more': '{count} tane daha: daraltmak için yaz',
   'mix_none': 'Eşleşen şarkı yok',
+  'mix_rec_start': 'Miksi kaydet',
+  'mix_rec_stop': 'Durdur ve kaydet',
+  'mix_rec_saving': 'Kaydediliyor…',
+  'mix_rec_hint': 'Duyduğunu {minutes} dakikaya kadar, Miksler albümünde yeni bir şarkı olarak kaydeder.',
+  'mix_rec_saved': '“{title}” Miksler albümüne kaydedildi.',
+  'mix_rec_short': 'Saklamak için çok kısa: en az bir saniye kaydet.',
+  'mix_rec_failed': 'Kayıt kaydedilemedi.',
+  'mix_rec_album': 'Miksler',
+  'mix_rec_untitled': 'Miks, {when}',
 }
 
 export default native
