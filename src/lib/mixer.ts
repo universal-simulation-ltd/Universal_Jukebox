@@ -27,6 +27,7 @@ import { create } from 'zustand'
 import { requestPlaybackSession } from './audioGraph'
 import { noteEvent } from './bgLog'
 import { crossfadeGains, clampSpeed } from './mixMath'
+import { quickTimeMp3Frames } from './quickTimeMp3'
 import type { Track } from './types'
 import { useLibraryStore } from '../stores/libraryStore'
 
@@ -171,7 +172,9 @@ export async function loadDeck(id: DeckId, track: Track): Promise<void> {
     if (bytes.byteLength === 0) throw new Error('empty file')
     if (stale()) return
     stage = 'decode'
-    const audio = await e.ctx.decodeAudioData(bytes)
+    // A Music-library MP3 arrives as MP3-in-QuickTime (.mov), which WebKit's
+    // decoder refuses; its bare MP3 frames decode fine (`quickTimeMp3.ts`).
+    const audio = await e.ctx.decodeAudioData(quickTimeMp3Frames(bytes) ?? bytes)
     if (stale()) return
     if (audio.duration > MAX_MIX_SEC) return patch(id, { status: 'error', error: 'too_long' })
     // Copies, so the AudioBuffer can be let go of once they are handed over.
