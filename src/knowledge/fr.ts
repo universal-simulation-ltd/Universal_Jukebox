@@ -298,7 +298,7 @@ Les réponses des deux premières sont conservées sur votre appareil, si bien q
 
 ## Pas de compte
 
-Il n’y a aucune connexion, sur aucun appareil. Jukebox ne compte pas combien de fois il est ouvert et n’envoie rien au démarrage : rien ne nous signale quand vous l’utilisez.
+Rien dans Jukebox ne demande de connexion, sur aucun appareil, et il ne conserve rien sur un compte. Si vous êtes déjà connecté à une application UNI·SIM, Jukebox vous reconnaît et met votre nom dans le titre, et sur le site web et dans l’application Windows, Régler cette application propose une connexion discrète. Jukebox ne compte pas combien de fois il est ouvert. Les applications pour téléphone et Windows n’envoient rien au démarrage ; le site web, uniquement pour une personne connectée, note une fois qu’il a été ouvert, sans rien sur votre musique.
 
 ## Autorisations
 

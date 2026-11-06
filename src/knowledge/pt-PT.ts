@@ -298,7 +298,7 @@ As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cad
 
 ## Sem conta
 
-Não há início de sessão em nenhum dispositivo. O Jukebox não conta quantas vezes é aberto e não envia nada ao iniciar: nada nos avisa quando o utiliza.
+Nada no Jukebox exige início de sessão, em nenhum dispositivo, e não guarda nada numa conta. Se já tiver sessão iniciada numa aplicação UNI·SIM, o Jukebox reconhece-o e coloca o seu nome no título, e no site e na aplicação para Windows, Ajustar esta aplicação oferece um início de sessão discreto. O Jukebox não conta quantas vezes é aberto. As aplicações para telemóvel e Windows não enviam nada ao iniciar; o site, apenas para quem tem sessão iniciada, regista uma vez que foi aberto, sem nada sobre a sua música.
 
 ## Autorizações
 

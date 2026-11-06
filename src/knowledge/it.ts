@@ -298,7 +298,7 @@ Le risposte delle prime due vengono conservate sul tuo dispositivo, così un bra
 
 ## Nessun account
 
-Non c’è nessun accesso, su nessun dispositivo. Jukebox non conta quante volte viene aperto e non invia nulla all’avvio: nulla ci segnala quando lo usi.
+Niente in Jukebox richiede l’accesso, su nessun dispositivo, e non conserva nulla in un account. Se hai già effettuato l’accesso a un’app UNI·SIM, Jukebox ti riconosce e mette il tuo nome nel titolo, e sul sito web e nell’app per Windows Regola questa app offre un accesso discreto. Jukebox non conta quante volte viene aperto. Le app per telefono e Windows non inviano nulla all’avvio; il sito web, solo per chi ha effettuato l’accesso, registra una volta che è stato aperto, senza nulla sulla tua musica.
 
 ## Permessi
 

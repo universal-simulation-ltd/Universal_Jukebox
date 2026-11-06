@@ -298,7 +298,7 @@ Answers from the first two are kept on your device, so a song is looked up only 
 
 ## No account
 
-There is no sign-in, on any device. Jukebox doesn’t count how often it is opened and sends nothing when it starts: nothing tells us when you use it.
+Nothing in Jukebox needs a sign-in, on any device, and it keeps nothing on an account. If you are already signed in to a UNI·SIM app, Jukebox recognises you and puts your name in its title, and on the website and the Windows app Tune this app offers a discreet Sign in. Jukebox doesn’t count how often it is opened. The phone and Windows apps send nothing when they start; the website, only for someone signed in, notes once that it was opened, with nothing about your music.
 
 ## Permissions
 

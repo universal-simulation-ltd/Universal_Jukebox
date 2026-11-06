@@ -6,7 +6,7 @@ import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // but since 2026-10-28 the WEBSITE recognises somebody already signed in to
 // the suite (`noAccounts` in main.tsx), and for them it sends that one row, as
 // every other suite app does. The phone screens (which recognise a session
-// too) never mount it, and the Windows app has `noAccounts`: both send nothing. No event may carry a
+// too) never mount it, and the Windows app (`desktop` mode) skips it below: both send nothing. No event may carry a
 // filename, an artist, an album, a track count or a byte count: this app reads
 // someone's whole music collection, and the front page promises we never
 // build a picture of what people own.
@@ -510,7 +510,9 @@ function WebApp() {
         <UpdateNotice />
       </div>
 
-      <UsageTracker />
+      {/* The website only: the Windows app (`desktop` mode) can follow a
+          session since SDK 0.211, and would otherwise send the row too. */}
+      {import.meta.env.MODE !== 'desktop' && <UsageTracker />}
 
       <main className={`${CONTAINER} flex-1 py-6 ${hasLibrary ? '' : 'flex flex-col justify-center'}`}>
         {/* The error slot — and, for a track whose file was not there, the

@@ -26,8 +26,10 @@ reach music that is anywhere else.
 > account. What you made in the app (shelves, requests,
 > settings, lyrics you added) is kept by **Save a backup file** and **Restore
 > from a file** under Tune this app ▸ Backup, and the file goes wherever you
-> put it. The app sends no open count or usage event either: nothing tells
-> UNI·SIM when it is used. (Until 2026-10-20 the website and desktop app
+> put it. The app sends no open count. Its one usage event is a single
+> `session.opened` row from the **website**, and only for somebody already
+> signed in to the suite (`<UsageTracker />` in `src/App.tsx`), carrying nothing
+> about their music; the phone and Windows apps send nothing. (Until 2026-10-20 the website and desktop app
 > offered an optional Universal ID sign-in, which only added an online copy of
 > that backup.) The iOS privacy manifest (`ios/App/App/PrivacyInfo.xcprivacy`)
 > and the store privacy answers must match this.

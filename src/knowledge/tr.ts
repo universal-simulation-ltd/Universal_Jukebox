@@ -298,7 +298,7 @@ Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçb
 
 ## Hesap yok
 
-Hiçbir cihazda oturum açma yoktur. Jukebox kaç kez açıldığını saymaz ve başlarken hiçbir şey göndermez: onu ne zaman kullandığınızı bize hiçbir şey bildirmez.
+Jukebox'taki hiçbir şey, hiçbir cihazda oturum açmayı gerektirmez ve bir hesapta hiçbir şey tutmaz. Bir UNI·SIM uygulamasında zaten oturum açtıysanız Jukebox sizi tanır ve adınızı başlığa koyar; web sitesinde ve Windows uygulamasında Bu uygulamayı ayarla bölümü göze batmayan bir oturum açma seçeneği sunar. Jukebox kaç kez açıldığını saymaz. Telefon ve Windows uygulamaları başlarken hiçbir şey göndermez; web sitesi yalnızca oturum açmış biri için açıldığını bir kez kaydeder ve müziğiniz hakkında hiçbir şey içermez.
 
 ## İzinler
 

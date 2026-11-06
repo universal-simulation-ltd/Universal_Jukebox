@@ -298,7 +298,7 @@ Las respuestas de las dos primeras se guardan en su dispositivo, así que cada c
 
 ## Sin cuenta
 
-No hay que iniciar sesión en ningún dispositivo. Jukebox no cuenta cuántas veces se abre y no envía nada al iniciarse: nada nos avisa de cuándo lo usa.
+Nada en Jukebox requiere iniciar sesión, en ningún dispositivo, y no guarda nada en una cuenta. Si ya ha iniciado sesión en una app de UNI·SIM, Jukebox lo reconoce y pone su nombre en el título, y en el sitio web y la app de Windows, Ajustar esta app ofrece un discreto inicio de sesión. Jukebox no cuenta cuántas veces se abre. Las apps para móvil y Windows no envían nada al iniciarse; el sitio web, solo si ha iniciado sesión, anota una vez que se ha abierto, sin nada sobre su música.
 
 ## Permisos
 
