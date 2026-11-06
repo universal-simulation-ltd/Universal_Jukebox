@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { clock } from '../lib/format'
 import { usePlayerStore } from '../stores/playerStore'
 import { skipNext, skipPrevious } from '../lib/deckSkip'
+import { useHoldToSeek } from '../lib/holdToSeek'
 import { useT } from '../i18n'
 
 // The transport at full size, under the record on a phone's Now Playing —
@@ -44,7 +45,9 @@ export default function StageTransport({ compact = false, after }: { compact?: b
   }
 
   return (
-    <div className={compact ? 'w-full max-w-sm' : 'mx-auto w-full max-w-sm px-2'}>
+    // Nothing here selects: a held ⏭ (which runs through the song,
+    // `lib/holdToSeek.ts`) made iOS highlight the time beside it (James, 2026-11-06).
+    <div className={`${compact ? 'w-full max-w-sm' : 'mx-auto w-full max-w-sm px-2'} select-none [-webkit-touch-callout:none]`}>
       <input
         type="range"
         min={0}
@@ -72,7 +75,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
       </div>
 
       <div className={`flex items-center ${compact ? 'mt-1.5 justify-start gap-5' : 'mt-3 justify-center gap-8'}`}>
-        <RoundButton label={t('player.previous_track')} onPress={skipPrevious}>
+        <RoundButton label={t('player.previous_track')} onPress={skipPrevious} hold={-1}>
           <svg viewBox="0 0 20 20" className="h-6 w-6" fill="currentColor" aria-hidden>
             <path d="M6 4h2v12H6zM17 4.7v10.6a1 1 0 0 1-1.53.85l-8.2-5.3a1 1 0 0 1 0-1.7l8.2-5.3A1 1 0 0 1 17 4.7Z" />
           </svg>
@@ -102,7 +105,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
             </svg>
           )}
         </button>
-        <RoundButton label={t('player.next_track')} onPress={skipNext}>
+        <RoundButton label={t('player.next_track')} onPress={skipNext} hold={1}>
           <svg viewBox="0 0 20 20" className="h-6 w-6" fill="currentColor" aria-hidden>
             <path d="M12 4h2v12h-2zM3 4.7v10.6a1 1 0 0 0 1.53.85l8.2-5.3a1 1 0 0 0 0-1.7l-8.2-5.3A1 1 0 0 0 3 4.7Z" />
           </svg>
@@ -115,15 +118,18 @@ export default function StageTransport({ compact = false, after }: { compact?: b
   )
 }
 
-function RoundButton({ label, onPress, children }: { label: string; onPress(): void; children: React.ReactNode }) {
+/** ⏮ / ⏭: a tap changes song, a hold runs through this one (`hold` = which way). */
+function RoundButton({ label, onPress, hold, children }: { label: string; onPress(): void; hold: 1 | -1; children: React.ReactNode }) {
+  const seek = useHoldToSeek(hold, onPress)
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
+      {...seek}
       onClick={(e) => {
         e.stopPropagation()
-        onPress()
+        seek.onClick()
       }}
       className="inline-flex h-12 w-12 items-center justify-center rounded-full text-slate-700 transition hover:text-orange-700 active:scale-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] dark:text-slate-200 dark:hover:text-orange-400"
     >
