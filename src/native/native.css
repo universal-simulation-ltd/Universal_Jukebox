@@ -455,6 +455,8 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
 .jx-mini-btn { display: grid; place-items: center; width: 46px; height: 46px; border: 0; background: none; flex: none; }
 .jx-mini-btn svg { width: 24px; height: 24px; }
 .jx-mini-btn[aria-busy] { opacity: 0.5; }
+/* Held, ⏭ runs through the song (`lib/holdToSeek.ts`): no selection or long-press menu. */
+.jx-hold-seek { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
 .jx-tabs { display: grid; grid-template-columns: repeat(5, 1fr); height: var(--jx-tabs-h); }
 /* A held tab, lifted off the bar while it is dragged (2026-11-02). */

@@ -6,6 +6,7 @@ import { currentRoute, navigate } from '../lib/route'
 import { canSetElementVolume } from '../lib/volumeSupport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { haptic } from '../lib/haptics'
+import { useHoldToSeek } from '../lib/holdToSeek'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useT } from '../i18n'
 
@@ -147,7 +148,8 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
             popup"): shuffle is in the queue popup, and both, with the two
             repeats, are under the records on Now Playing (`PlayModes`). */}
         <div className="flex shrink-0 items-center gap-1">
-          <IconButton label={t('player.previous_track')} onClick={previous}>
+          {/* A hold on either runs through the song instead (`lib/holdToSeek.ts`). */}
+          <IconButton label={t('player.previous_track')} onClick={previous} hold={-1}>
             <PrevGlyph />
           </IconButton>
           <button
@@ -166,7 +168,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
           >
             {loading && !playing ? <SpinnerGlyph /> : playing ? <PauseGlyph /> : <PlayGlyph />}
           </button>
-          <IconButton label={t('player.next_track')} onClick={next}>
+          <IconButton label={t('player.next_track')} onClick={next} hold={1}>
             <NextGlyph />
           </IconButton>
           <QueuePeek />
@@ -437,21 +439,28 @@ function QueuePeek() {
 }
 
 function IconButton({
-  label, onClick, children, active = false, className = '', stopPropagation = false,
+  label, onClick, children, active = false, className = '', stopPropagation = false, hold,
 }: {
   label: string
   onClick(): void
+  /** ⏭ (1) or ⏮ (-1): a hold seeks through the song rather than tapping. */
+  hold?: 1 | -1
   children: React.ReactNode
   active?: boolean
   className?: string
   stopPropagation?: boolean
 }) {
+  const seek = useHoldToSeek(hold ?? 1, onClick)
   return (
     <button
       type="button"
+      {...(hold ? seek : {})}
+      // No text selection or iOS long-press menu under a held finger.
+      style={hold ? { WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } : undefined}
       onClick={(e) => {
         if (stopPropagation) e.stopPropagation()
-        onClick()
+        if (hold) seek.onClick()
+        else onClick()
       }}
       aria-label={label}
       aria-pressed={active}

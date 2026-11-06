@@ -1,10 +1,12 @@
 // MiniPlayer.tsx — what's playing, docked above the tab bar. Tap it for the
-// record full screen; play/pause and next without leaving the library. The
+// record full screen; play/pause and next without leaving the library (hold
+// next to run on through the song — `lib/holdToSeek.ts`). The
 // website's player bar gestures too: swipe left for the next song, right for
 // the one before, up for the record.
 
 import { useRef } from 'react'
 import Cover from '../components/Cover'
+import { useHoldToSeek } from '../lib/holdToSeek'
 import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
@@ -24,6 +26,7 @@ export function MiniPlayer() {
   const previous = usePlayerStore((s) => s.previous)
   const touch = useRef<{ x: number; y: number; swiped: boolean } | null>(null)
   const album = useLibraryStore((s) => (track ? s.albums.find((a) => a.id === track.albumId) : undefined))
+  const nextButton = useHoldToSeek(1, next)
 
   if (!track) return null
   const progress = durationSec > 0 ? Math.min(1, currentSec / durationSec) : 0
@@ -69,7 +72,7 @@ export function MiniPlayer() {
       <button type="button" className="jx-mini-btn" onClick={toggle} aria-label={playing ? t('common.pause') : t('common.play')} aria-busy={loading || undefined}>
         {playing ? <IconPause /> : <IconPlay />}
       </button>
-      <button type="button" className="jx-mini-btn" onClick={next} aria-label={t('native.next_song')}>
+      <button type="button" className="jx-mini-btn jx-hold-seek" {...nextButton} aria-label={t('native.next_song')}>
         <IconNext />
       </button>
     </div>
