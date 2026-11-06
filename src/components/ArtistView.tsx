@@ -130,8 +130,8 @@ export default function ArtistView({ name, songs = false }: { name: string; song
           </span>
           {t('library.shuffle_all')}
         </button>
-        <AddToQueue tracks={tracks} />
-        <AddToShelf tracks={tracks} variant="pill" />
+        <AddToQueue tracks={tracks} variant="key" />
+        <AddToShelf tracks={tracks} variant="key" />
       </div>
 
       {/* Their songs the world plays most, from the Hits lookups: a tap plays

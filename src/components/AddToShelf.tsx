@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { buttonClass } from '@unisim/sdk'
 import { useT } from '../i18n'
 import { NAME_MAX, NEW_SHELF, shelfName, unnamedShelf } from '../lib/shelves'
 import { useShelvesStore } from '../stores/shelvesStore'
@@ -37,11 +38,14 @@ function shelvesHolding(ids: readonly string[]): Set<string> {
 }
 
 /**
- * `pill`: an icon and words (the artist page). `round`: the icon alone, the
- * size of the pills beside it (the album page, 2026-09-27). `icon`: a small one
- * in a song's row. `mode`: Now Playing's row of round buttons.
+ * `key`: the website's artist page, a secondary key button beside Play all and
+ * Shuffle all (BRANDING.md → Buttons; the round pill there was the odd one
+ * out, 2026-11-06). `pill`: an icon and words, the phone's artist and album
+ * screens, which keep their own look. `round`: the icon alone, the size of the
+ * pills beside it (the album page, 2026-09-27). `icon`: a small one in a song's
+ * row. `mode`: Now Playing's row of round buttons.
  */
-export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'pill' | 'round' | 'icon' | 'mode' }) {
+export default function AddToShelf({ tracks, variant }: { tracks: Track[]; variant: 'key' | 'pill' | 'round' | 'icon' | 'mode' }) {
   const t = useT()
   const [open, setOpen] = useState(false)
   // The shelves that already held them when the sheet opened — so closing it
@@ -71,6 +75,13 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
         <ModeButton label={done ? t('shelves.added_to_shelf') : t('shelves.add_to_shelf')} ariaLabel={label} onClick={show}>
           {glyph}
         </ModeButton>
+      ) : variant === 'key' ? (
+        <button type="button" onClick={show} className={buttonClass()}>
+          <span className="u-btn__key" aria-hidden>
+            {glyph}
+          </span>
+          <span aria-live="polite">{said ?? t('shelves.add_to_shelf')}</span>
+        </button>
       ) : variant === 'pill' || variant === 'round' ? (
         <button
           type="button"
@@ -103,7 +114,7 @@ export default function AddToShelf({ tracks, variant }: { tracks: Track[]; varia
           {glyph}
         </button>
       )}
-      {variant !== 'pill' && <DoneBubble text={said} align={variant === 'icon' ? 'end' : 'center'} />}
+      {variant !== 'pill' && variant !== 'key' && <DoneBubble text={said} align={variant === 'icon' ? 'end' : 'center'} />}
       {open && <ShelfSheet tracks={tracks} title={one ? one.title : t.plural('common.songs', tracks.length)} onClose={close} />}
     </span>
   )

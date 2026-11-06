@@ -1,3 +1,4 @@
+import { buttonClass } from '@unisim/sdk'
 import { usePlayerStore } from '../stores/playerStore'
 import { useT } from '../i18n'
 import { DoneBubble, TickGlyph } from './DoneBubble'
@@ -13,11 +14,13 @@ import type { Track } from '../lib/types'
 // queue'"): the pill in its own words, the round and row icons in a bubble.
 
 /**
- * `pill`: an icon and words (the artist page). `round`: the + alone, the size
- * of the pills beside it (the album page). `icon`: a small one at the end of a
- * song's row.
+ * `key`: the website's artist page, a secondary key button beside Play all and
+ * Shuffle all (BRANDING.md → Buttons, 2026-11-06). `pill`: an icon and words,
+ * the phone's artist and album screens. `round`: the + alone, the size of the
+ * pills beside it (the album page). `icon`: a small one at the end of a song's
+ * row.
  */
-export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track[]; variant?: 'pill' | 'round' | 'icon' }) {
+export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track[]; variant?: 'key' | 'pill' | 'round' | 'icon' }) {
   const t = useT()
   const enqueue = usePlayerStore((s) => s.enqueue)
   // Only whether anything is queued — a count here re-rendered every row's
@@ -56,6 +59,17 @@ export default function AddToQueue({ tracks, variant = 'pill' }: { tracks: Track
         </button>
         <DoneBubble text={said} align="end" />
       </span>
+    )
+  }
+
+  if (variant === 'key') {
+    return (
+      <button type="button" onClick={add} disabled={tracks.length === 0} className={buttonClass()}>
+        <span className="u-btn__key" aria-hidden>
+          {done ? <TickGlyph className="h-4 w-4" /> : <QueueGlyph />}
+        </span>
+        <span aria-live="polite">{said ?? t('library.add_to_queue')}</span>
+      </button>
     )
   }
 
