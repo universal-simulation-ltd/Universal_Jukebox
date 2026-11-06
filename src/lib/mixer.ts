@@ -36,12 +36,27 @@ import { useLibraryStore } from '../stores/libraryStore'
 /** Longer than this cannot go on a deck: two of them would be too much memory for a phone. */
 export const MAX_MIX_SEC = 15 * 60
 
+/**
+ * Records a deck can hold: the one on it and two waiting (James, 2026-11-06:
+ * "allow the user to load up to three records on each mixer and have a next
+ * button to go to the next track on that mixer"). Only the one ON the deck is
+ * decoded: the waiting ones are names until ⏭ puts them on, which keeps six
+ * records to the memory of two.
+ */
+export const MAX_DECK_RECORDS = 3
+
 export type DeckId = 0 | 1
 export type DeckStatus = 'empty' | 'loading' | 'ready' | 'error'
 export type DeckError = 'unplayable' | 'too_long' | 'unsupported'
 
 export interface DeckState {
   track: Track | null
+  /**
+   * The records waiting behind it, next first — at most `MAX_DECK_RECORDS` − 1.
+   * ⏭ (`nextOnDeck`) puts the first on and the one that was on goes to the
+   * back, so the three go round and none is lost.
+   */
+  waiting: Track[]
   status: DeckStatus
   error?: DeckError
   duration: number
@@ -65,7 +80,7 @@ interface MixState {
   recordNote: RecordNote | null
 }
 
-const EMPTY: DeckState = { track: null, status: 'empty', duration: 0, playing: false, speed: 1 }
+const EMPTY: DeckState = { track: null, waiting: [], status: 'empty', duration: 0, playing: false, speed: 1 }
 
 export const useMixStore = create<MixState>(() => ({
   decks: [{ ...EMPTY }, { ...EMPTY }],
@@ -216,11 +231,58 @@ export async function loadDeck(id: DeckId, track: Track): Promise<void> {
   }
 }
 
-/** Take the record off. */
+/**
+ * Take the record off. The next one waiting goes on in its place (stopped,
+ * as a record put on a deck is); with none waiting the deck is empty.
+ */
 export function clearDeck(id: DeckId): void {
+  const { speed, waiting } = useMixStore.getState().decks[id]
+  if (waiting.length > 0) {
+    patch(id, { waiting: waiting.slice(1) })
+    void loadDeck(id, waiting[0])
+    return
+  }
   loads[id]++
-  patch(id, { ...EMPTY, speed: useMixStore.getState().decks[id].speed })
+  patch(id, { ...EMPTY, speed })
   send(id, { type: 'unload' })
+}
+
+/**
+ * A record chosen for a deck: onto it when it is empty, otherwise to the back
+ * of those waiting. False when the deck already holds `MAX_DECK_RECORDS`.
+ */
+export function addToDeck(id: DeckId, track: Track): boolean {
+  const deck = useMixStore.getState().decks[id]
+  if (!deck.track) {
+    void loadDeck(id, track)
+    return true
+  }
+  if (1 + deck.waiting.length >= MAX_DECK_RECORDS) return false
+  patch(id, { waiting: [...deck.waiting, track] })
+  return true
+}
+
+/** Take one of the waiting records off the deck (`index` into `waiting`). */
+export function unqueueFromDeck(id: DeckId, index: number): void {
+  const { waiting } = useMixStore.getState().decks[id]
+  patch(id, { waiting: waiting.filter((_, i) => i !== index) })
+}
+
+/**
+ * ⏭: the next waiting record on, and the one that was on to the back. A deck
+ * that was playing plays the new record from its start as soon as it is read
+ * in; a stopped one waits, cued at the start.
+ */
+export async function nextOnDeck(id: DeckId): Promise<void> {
+  const deck = useMixStore.getState().decks[id]
+  if (!deck.track || deck.waiting.length === 0) return
+  const [next, ...rest] = deck.waiting
+  const wasPlaying = deck.playing
+  patch(id, { waiting: [...rest, deck.track] })
+  const ticket = loads[id] + 1
+  await loadDeck(id, next)
+  // Unless something newer has been put on meanwhile.
+  if (wasPlaying && loads[id] === ticket && useMixStore.getState().decks[id].status === 'ready') setDeckPlaying(id, true)
 }
 
 /** Start or stop a deck — the platter, so it spins up and down. */

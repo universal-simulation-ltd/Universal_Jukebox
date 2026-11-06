@@ -4,7 +4,10 @@
 // discs to change their position and control speed").
 //
 // Each deck:
-//   - tap the empty platter (or the song's name) to choose a record;
+//   - tap the empty platter to choose a record; + adds up to two more behind
+//     it (three a deck), and ⏭ puts the next one on — the one that was on goes
+//     to the back, so they go round (James, 2026-11-06). Tap the song's name
+//     to change the record that is on;
 //   - put a finger on the record and it stops under it; turn it and the music
 //     goes with your hand, backwards too — a scratch, or finding your spot;
 //   - turn the EDGE while it plays and it runs faster or slower for as long as
@@ -22,13 +25,16 @@ import Cover from '../components/Cover'
 import { clock, shownName } from '../lib/format'
 import { haptic } from '../lib/haptics'
 import {
+  MAX_DECK_RECORDS,
   MAX_MIX_SEC,
+  addToDeck,
   bendDeck,
   clearDeck,
   deckSec,
   holdDeck,
   loadDeck,
   mixSupported,
+  nextOnDeck,
   recordingSec,
   releaseDeck,
   setDeckPlaying,
@@ -38,6 +44,7 @@ import {
   stopAllDecks,
   stopRecording,
   turnDeck,
+  unqueueFromDeck,
   useMixStore,
   type DeckId,
 } from '../lib/mixer'
@@ -48,13 +55,16 @@ import type { Track } from '../lib/types'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useT } from '../i18n'
-import { IconClose, IconPause, IconPlay } from './icons'
+import { IconClose, IconNext, IconPause, IconPlay, IconPlus } from './icons'
 
 const DECK_NAMES = ['A', 'B'] as const
 
+/** What the picker is choosing for: a record to ADD to a deck, or one to REPLACE what is on it. */
+type Picking = { deck: DeckId; mode: 'add' | 'replace' }
+
 export function MixScreen() {
   const t = useT()
-  const [picking, setPicking] = useState<DeckId | null>(null)
+  const [picking, setPicking] = useState<Picking | null>(null)
   const fader = useMixStore((s) => s.fader)
 
   // The main player and the decks are never heard over each other by
@@ -94,8 +104,8 @@ export function MixScreen() {
       <h1 className="jx-h1">{t('native.mix_heading')}</h1>
       <p className="jx-mix-hint">{t('native.mix_hint')}</p>
       <div className="jx-mix-decks">
-        <Deck id={0} onPick={() => setPicking(0)} />
-        <Deck id={1} onPick={() => setPicking(1)} />
+        <Deck id={0} onPick={(mode) => setPicking({ deck: 0, mode })} />
+        <Deck id={1} onPick={(mode) => setPicking({ deck: 1, mode })} />
       </div>
       <div className="jx-mix-fader">
         <span aria-hidden>A</span>
@@ -116,7 +126,7 @@ export function MixScreen() {
         <span aria-hidden>B</span>
       </div>
       {recordingSupported() && <RecordButton />}
-      {picking !== null && <MixPicker deck={picking} onClose={() => setPicking(null)} />}
+      {picking !== null && <MixPicker deck={picking.deck} mode={picking.mode} onClose={() => setPicking(null)} />}
     </div>
   )
 }
@@ -132,7 +142,7 @@ function play(id: DeckId, on: boolean) {
 /** How long after the last turn of the edge the speed goes back to the slider's. */
 const BEND_IDLE_MS = 90
 
-function Deck({ id, onPick }: { id: DeckId; onPick(): void }) {
+function Deck({ id, onPick }: { id: DeckId; onPick(mode: Picking['mode']): void }) {
   const t = useT()
   const deck = useMixStore((s) => s.decks[id])
   const albums = useLibraryStore((s) => s.albums)
@@ -233,7 +243,7 @@ function Deck({ id, onPick }: { id: DeckId; onPick(): void }) {
           {errorText && <span className="jx-mix-status err">{errorText}</span>}
         </div>
       ) : (
-        <button type="button" className="jx-mix-disc empty" onClick={onPick}>
+        <button type="button" className="jx-mix-disc empty" onClick={() => onPick('add')}>
           <span>
             <b>{name}</b>
             {t('native.mix_choose')}
@@ -242,7 +252,7 @@ function Deck({ id, onPick }: { id: DeckId; onPick(): void }) {
       )}
 
       <div className="jx-mix-meta">
-        <button type="button" className="jx-mix-title" onClick={onPick} disabled={!deck.track}>
+        <button type="button" className="jx-mix-title" onClick={() => onPick('replace')} disabled={!deck.track}>
           <b>{deck.track ? deck.track.title : t('native.mix_deck', { deck: name })}</b>
           <small>{deck.track ? shownName(deck.track.artist ?? deck.track.albumArtist) || ' ' : t('native.mix_empty')}</small>
         </button>
@@ -263,8 +273,28 @@ function Deck({ id, onPick }: { id: DeckId; onPick(): void }) {
         >
           {deck.playing ? <IconPause /> : <IconPlay />}
         </button>
-        <span ref={timeRef} className="jx-mix-time" />
+        {deck.track && (
+          <button
+            type="button"
+            className="jx-mix-step"
+            disabled={deck.waiting.length === 0}
+            onClick={() => {
+              haptic('tap')
+              void nextOnDeck(id)
+            }}
+            aria-label={t('native.mix_next', { deck: name })}
+          >
+            <IconNext />
+          </button>
+        )}
+        {deck.track && 1 + deck.waiting.length < MAX_DECK_RECORDS && (
+          <button type="button" className="jx-mix-step" onClick={() => onPick('add')} aria-label={t('native.mix_add', { deck: name })}>
+            <IconPlus />
+          </button>
+        )}
       </div>
+      <span ref={timeRef} className="jx-mix-time" />
+
 
       <label className="jx-mix-speed">
         <input
@@ -285,6 +315,25 @@ function Deck({ id, onPick }: { id: DeckId; onPick(): void }) {
           {speedPercent(deck.speed)}
         </button>
       </label>
+
+      {/* Last, so the two decks' speed sliders stay level whatever waits on each. */}
+      {deck.waiting.length > 0 && (
+        <ol className="jx-mix-waiting" aria-label={t('native.mix_waiting', { deck: name })}>
+          {deck.waiting.map((track, i) => (
+            <li key={`${track.id}-${i}`}>
+              <span>{track.title}</span>
+              <button
+                type="button"
+                className="jx-mix-x"
+                onClick={() => unqueueFromDeck(id, i)}
+                aria-label={t('native.mix_unqueue', { title: track.title, deck: name })}
+              >
+                <IconClose />
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   )
 }
@@ -335,8 +384,11 @@ function RecordButton() {
 const PICKER_ROWS = 200
 
 /** Choosing a record for a deck: a page of its own over the tab, with search. */
-function MixPicker({ deck, onClose }: { deck: DeckId; onClose(): void }) {
+function MixPicker({ deck, mode, onClose }: { deck: DeckId; mode: Picking['mode']; onClose(): void }) {
   const t = useT()
+  const title = mode === 'add' && useMixStore.getState().decks[deck].track
+    ? t('native.mix_add', { deck: DECK_NAMES[deck] })
+    : t('native.mix_pick_title', { deck: DECK_NAMES[deck] })
   const tracks = useLibraryStore((s) => s.tracks)
   const albums = useLibraryStore((s) => s.albums)
   const albumOf = useMemo(() => new Map(albums.map((a) => [a.id, a])), [albums])
@@ -352,14 +404,15 @@ function MixPicker({ deck, onClose }: { deck: DeckId; onClose(): void }) {
 
   const choose = (track: Track) => {
     haptic('tap')
-    void loadDeck(deck, track)
+    if (mode === 'replace') void loadDeck(deck, track)
+    else addToDeck(deck, track)
     onClose()
   }
 
   return (
-    <div className="jx-mix-picker" role="dialog" aria-modal="true" aria-label={t('native.mix_pick_title', { deck: DECK_NAMES[deck] })}>
+    <div className="jx-mix-picker" role="dialog" aria-modal="true" aria-label={title}>
       <div className="jx-mix-picker-top">
-        <b>{t('native.mix_pick_title', { deck: DECK_NAMES[deck] })}</b>
+        <b>{title}</b>
         <button type="button" className="jx-mix-x" onClick={onClose} aria-label={t('common.close')}>
           <IconClose />
         </button>

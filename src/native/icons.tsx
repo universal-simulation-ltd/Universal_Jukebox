@@ -101,6 +101,15 @@ export function IconClose() {
   )
 }
 
+/** Add: a record to a Mix deck's stack. */
+export function IconPlus() {
+  return (
+    <svg {...base} strokeWidth={2.2}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
 export function IconSearch() {
   return (
     <svg {...base}>

@@ -158,6 +158,10 @@ export default {
   'mix_search': 'Search songs', // placeholder of the picker's search box
   'mix_more': '{count} more: type to narrow it down', // under the picker's list when it is cut short
   'mix_none': 'No songs match', // the picker, when nothing matches the search
+  'mix_next': 'Next record on deck {deck}', // screen reader: the ⏭ beside a deck's play button
+  'mix_add': 'Add a record to deck {deck}', // the + beside a deck's play button, and the picker's title when adding
+  'mix_waiting': 'Waiting on deck {deck}', // screen reader: the list of records queued behind the one on the deck
+  'mix_unqueue': 'Take “{title}” off deck {deck}', // screen reader: the ✕ beside a waiting record
   'mix_rec_start': 'Record the mix', // the button under the crossfader
   'mix_rec_stop': 'Stop and save', // the same button while recording; the running time sits beside it
   'mix_rec_saving': 'Saving…',
