@@ -48,7 +48,7 @@ import {
   useMixStore,
   type DeckId,
 } from '../lib/mixer'
-import { SPEED_RANGE, angleDelta, bendFromTurn, discAngleDeg, onRim, pointerAngle, speedPercent, turnToSec } from '../lib/mixMath'
+import { ARM_REST_DEG, SPEED_RANGE, angleDelta, armAngleDeg, bendFromTurn, discAngleDeg, onRim, pointerAngle, speedPercent, turnToSec } from '../lib/mixMath'
 import { MAX_RECORD_SEC, recordingSupported } from '../lib/mixRecorder'
 import { matchTracks } from '../lib/search'
 import type { Track } from '../lib/types'
@@ -151,10 +151,12 @@ function Deck({ id, onPick }: { id: DeckId; onPick(mode: Picking['mode']): void 
   const vinylRef = useRef<HTMLDivElement>(null)
   const timeRef = useRef<HTMLSpanElement>(null)
   const ringRef = useRef<SVGCircleElement>(null)
+  const armRef = useRef<SVGGElement>(null)
   const grip = useRef<{ pointer: number; mode: 'hold' | 'nudge'; angle: number; at: number; idle: number } | null>(null)
   const ready = deck.status === 'ready'
 
-  // Every frame: the record's angle from where the music is, the time, the ring.
+  // Every frame: the record's angle from where the music is, the time, the
+  // ring, and where the needle sits.
   useEffect(() => {
     let frame = 0
     const draw = () => {
@@ -164,6 +166,11 @@ function Deck({ id, onPick }: { id: DeckId; onPick(mode: Picking['mode']): void 
       const { duration } = useMixStore.getState().decks[id]
       if (timeRef.current) timeRef.current.textContent = duration > 0 ? `${clock(sec)} / ${clock(duration)}` : ''
       if (ringRef.current) ringRef.current.style.strokeDashoffset = String(duration > 0 ? 1 - Math.min(1, sec / duration) : 1)
+      // The arm lies off the record until it can play, then on it, still.
+      if (armRef.current) {
+        const on = useMixStore.getState().decks[id].status === 'ready'
+        armRef.current.style.rotate = `${(on ? armAngleDeg(duration > 0 ? sec / duration : 0) : ARM_REST_DEG).toFixed(2)}deg`
+      }
     }
     draw()
     return () => cancelAnimationFrame(frame)
@@ -239,6 +246,14 @@ function Deck({ id, onPick }: { id: DeckId; onPick(mode: Picking['mode']): void 
             <i className="jx-mix-mark" aria-hidden />
           </div>
           <i className="jx-mix-spindle" aria-hidden />
+          {/* The needle stays where it is; the record turns under it. */}
+          <svg className="jx-mix-arm" viewBox="0 0 100 100" aria-hidden>
+            <g ref={armRef}>
+              <line x1="92" y1="8" x2="92" y2="52" />
+              <rect className="head" x="89.4" y="50" width="5.2" height="8" rx="1" />
+            </g>
+            <circle className="pivot" cx="92" cy="8" r="5" />
+          </svg>
           {deck.status === 'loading' && <span className="jx-mix-status">{t('native.mix_loading')}</span>}
           {errorText && <span className="jx-mix-status err">{errorText}</span>}
         </div>

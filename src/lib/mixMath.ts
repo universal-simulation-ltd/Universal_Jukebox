@@ -55,6 +55,24 @@ export function discAngleDeg(sec: number): number {
 }
 
 /**
+ * The tonearm (James, 2026-11-07: the white sticker on the record had looked
+ * like the needle going round with it). It stays put while the record turns
+ * under it, its needle creeping from the outer groove at the start of the
+ * song to the inner one at the end, as on a real deck. Degrees about its
+ * pivot in the platter's top-right corner (native.css draws it pointing
+ * straight down at 0, so more turns the needle in towards the label).
+ */
+export const ARM_START_DEG = -2
+export const ARM_END_DEG = 23
+/** Where it waits, off the record, while one loads. */
+export const ARM_REST_DEG = -16
+
+export function armAngleDeg(progress: number): number {
+  const p = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0
+  return ARM_START_DEG + (ARM_END_DEG - ARM_START_DEG) * p
+}
+
+/**
  * A turn of the EDGE as a speed bend: turning it at the record's own speed
  * adds `BEND_GAIN` (35%), against it takes it away, capped at ±50%.
  */

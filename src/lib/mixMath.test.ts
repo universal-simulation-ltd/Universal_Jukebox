@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SEC_PER_REV, angleDelta, bendFromTurn, clampSpeed, crossfadeGains, discAngleDeg, onRim, speedPercent, turnToSec } from './mixMath'
+import { ARM_END_DEG, ARM_REST_DEG, ARM_START_DEG, SEC_PER_REV, angleDelta, armAngleDeg, bendFromTurn, clampSpeed, crossfadeGains, discAngleDeg, onRim, speedPercent, turnToSec } from './mixMath'
 
 describe('the Mix tab', () => {
   it('crossfades at equal power: one deck at each end, both at ~71% in the middle', () => {
@@ -42,5 +42,26 @@ describe('the Mix tab', () => {
     expect(speedPercent(1)).toBe('0.0%')
     expect(speedPercent(1.032)).toBe('+3.2%')
     expect(speedPercent(0.92)).toBe('−8.0%')
+  })
+
+  it('keeps the needle still, creeping inward through the song, and lifted clear while loading', () => {
+    expect(armAngleDeg(0)).toBe(ARM_START_DEG)
+    expect(armAngleDeg(1)).toBe(ARM_END_DEG)
+    expect(armAngleDeg(0.5)).toBeCloseTo((ARM_START_DEG + ARM_END_DEG) / 2)
+    expect(armAngleDeg(-3)).toBe(ARM_START_DEG)
+    expect(armAngleDeg(9)).toBe(ARM_END_DEG)
+    expect(armAngleDeg(NaN)).toBe(ARM_START_DEG)
+    // Its needle (50 units from the corner pivot) lands on the grooves at
+    // both ends, between the label (radius ~18) and the edge (~47), and the
+    // rest position is off the record.
+    const fromCentre = (deg: number) => {
+      const r = (deg * Math.PI) / 180
+      return Math.hypot(92 - 50 * Math.sin(r) - 50, 8 + 50 * Math.cos(r) - 50)
+    }
+    for (const deg of [ARM_START_DEG, ARM_END_DEG]) {
+      expect(fromCentre(deg)).toBeGreaterThan(18)
+      expect(fromCentre(deg)).toBeLessThan(47)
+    }
+    expect(fromCentre(ARM_REST_DEG)).toBeGreaterThan(50)
   })
 })
