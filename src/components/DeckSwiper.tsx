@@ -735,6 +735,15 @@ export default function DeckSwiper({
       style={{
         ...(roomAbove ? { paddingTop: 8 + roomAbove } : null),
         ...(inset ? { paddingRight: inset } : null),
+        // ⚠️ LYING DOWN, THE WORDS ARE ON THE LEFT, AND SO IS THE SLEEVE. On
+        // the record player the playing record's sleeve stays half off it to
+        // the LEFT (`HalfSleeve`, 2026-11-02), half a record outside this box.
+        // Stacked, or from `lg` (words on the right), nothing is there. Beside
+        // the words (`lib/stageLayout.ts`) it landed on the title, the progress
+        // bar and the lyric-sheet button and hid them (James, 2026-11-10:
+        // "Landscape mode has broken"). So the row makes room for it — plus the
+        // words going round record and sleeve together, when they are on.
+        ...(beside && deckStyle === 'vinyl' ? { marginLeft: Math.round(size / 2) + roomAbove } : null),
       }}
     >
       {/* The records queued beyond a peek — out of sight at rest, and only

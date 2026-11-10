@@ -74,7 +74,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
         <span>{known ? `−${clock(Math.max(0, durationSec - position))}` : '—'}</span>
       </div>
 
-      <div className={`flex items-center ${compact ? 'mt-1.5 justify-start gap-5' : 'mt-3 justify-center gap-8'}`}>
+      <div className={`flex items-center ${compact ? 'mt-1.5 justify-start gap-4' : 'mt-3 justify-center gap-8'}`}>
         <RoundButton label={t('player.previous_track')} onPress={skipPrevious} hold={-1}>
           <svg viewBox="0 0 20 20" className="h-6 w-6" fill="currentColor" aria-hidden>
             <path d="M6 4h2v12H6zM17 4.7v10.6a1 1 0 0 1-1.53.85l-8.2-5.3a1 1 0 0 1 0-1.7l8.2-5.3A1 1 0 0 1 17 4.7Z" />
@@ -89,7 +89,7 @@ export default function StageTransport({ compact = false, after }: { compact?: b
             toggle()
           }}
           aria-label={ceremony ? t('player.skip_intro') : playing ? t('common.pause') : t('common.play')}
-          className={`inline-flex ${compact ? 'h-14 w-14' : 'h-16 w-16'} items-center justify-center rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-lg shadow-orange-600/25 transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]`}
+          className={`inline-flex shrink-0 ${compact ? 'h-14 w-14' : 'h-16 w-16'} items-center justify-center rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] text-white shadow-lg shadow-orange-600/25 transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504]`}
         >
           {loading && !playing ? (
             <svg viewBox="0 0 20 20" className="h-7 w-7 motion-safe:animate-spin" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>

@@ -281,7 +281,7 @@ export default function NowPlaying() {
             steps aside there too now (`PlayerBar`). */}
         {landscape && (
           <div className="mt-3">
-            <StageTransport compact after={<span className="ml-1"><LyricsToggle /></span>} />
+            <StageTransport compact after={<span className="ml-1 flex min-w-0"><LyricsToggle /></span>} />
           </div>
         )}
         {!landscape && (
@@ -515,12 +515,14 @@ function LyricsToggle() {
       }}
       id="jb-lyrics-toggle"
       aria-pressed={show}
-      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 lg:border-slate-300 lg:bg-white/70 lg:text-slate-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400 lg:dark:bg-slate-900/60"
+      className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 hover:border-orange-300 hover:text-orange-700 lg:border-slate-300 lg:bg-white/70 lg:text-slate-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-700 dark:hover:text-orange-400 lg:dark:bg-slate-900/60"
     >
-      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 shrink-0" fill="currentColor" aria-hidden>
         <path d="M4 3h9a1 1 0 0 1 1 1v11.5a.5.5 0 0 1-.79.4L9 13.6l-4.21 2.3A.5.5 0 0 1 4 15.5V4a1 1 0 0 1 1-1Zm2 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5H6Zm0 3a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Z" />
       </svg>
-      {show ? t('player.hide_lyrics') : t('player.show_lyrics')}
+      {/* The narrowest phones lying down (667px) have room for the icon and
+          no more; the words, cut to "Sh…", told nobody anything. */}
+      <span className="truncate max-[720px]:landscape:sr-only">{show ? t('player.hide_lyrics') : t('player.show_lyrics')}</span>
     </button>
   )
 }
