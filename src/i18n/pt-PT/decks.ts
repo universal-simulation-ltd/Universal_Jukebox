@@ -154,6 +154,7 @@ const decks: Draft['decks'] = {
   'group_screen': 'Ecrã',
   'customise': 'Personalizar',
   'customise_aria': 'Escolher os botões que aparecem aqui, em Ajustar esta aplicação',
+  'hold_to_edit': 'Mantenha premido para modificar',
   'loved': 'Favorita',
   'love_aria': 'Pôr “{title}” na sua prateleira de favoritas',
   'loved_aria': '“{title}” está nas suas favoritas. Toque para a retirar',

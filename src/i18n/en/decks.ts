@@ -172,6 +172,7 @@ export default {
   'group_screen': 'Screen', // screen reader: names the player, keep-awake, sleep and bedside buttons as a group
   'customise': 'Customise', // the word under a button; keep to ~10 characters
   'customise_aria': 'Choose which buttons show here, in Tune this app', // screen reader and hover text for that button
+  'hold_to_edit': 'Tap and hold to modify', // a small, quiet line under the row of buttons: holding any of them lets you take buttons away or add others. Keep short
   'loved': 'Loved', // the word under the ♥ button once the song is loved; keep to ~10 characters
   'love_aria': 'Love “{title}”: it goes on your Loved shelf', // screen reader text for the ♥ button
   'loved_aria': '“{title}” is on your Loved shelf. Tap to take it off', // screen reader text for the lit ♥ button

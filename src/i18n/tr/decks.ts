@@ -147,6 +147,7 @@ const decks: Draft['decks'] = {
   'group_screen': 'Ekran',
   'customise': 'Özelleştir',
   'customise_aria': 'Burada hangi düğmelerin görüneceğini seçin (Bu uygulamayı ayarla)',
+  'hold_to_edit': 'Değiştirmek için basılı tutun',
   'loved': 'Sevildi',
   'love_aria': '“{title}” şarkısını Sevdiklerim rafına koy',
   'loved_aria': '“{title}” Sevdiklerim rafında. Çıkarmak için dokunun',

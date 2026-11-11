@@ -154,6 +154,7 @@ const decks: Draft['decks'] = {
   'group_screen': 'Bildschirm',
   'customise': 'Anpassen',
   'customise_aria': 'In „Diese App anpassen“ auswählen, welche Tasten hier erscheinen',
+  'hold_to_edit': 'Zum Anpassen gedrückt halten',
   'loved': 'Favorit',
   'love_aria': '„{title}“ zu deinen Lieblingssongs legen',
   'loved_aria': '„{title}“ liegt bei deinen Lieblingssongs. Tippen, um ihn herauszunehmen',

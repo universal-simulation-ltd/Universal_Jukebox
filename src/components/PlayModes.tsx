@@ -105,6 +105,7 @@ export default function PlayModes() {
   const any = (...keys: ModeKey[]) => keys.some(shows)
 
   return (
+    <>
     <div
       {...holdHandlers}
       className="mt-5 flex flex-wrap justify-center gap-x-1 gap-y-3 select-none sm:gap-x-5 [-webkit-touch-callout:none]"
@@ -180,6 +181,13 @@ export default function PlayModes() {
         </ModeButton>
       )}
     </div>
+    {/* The hold above is invisible until somebody tries it, so say so, quietly
+        (James, 2026-11-11: "In the now playing quick actions have a discrete
+        'Tap and hold to modify'"). Smaller and lighter than the buttons' own
+        words, and outside the row, so a press on it is not a hold. Gone while
+        editing: `EditRow` has its own line saying what to do. */}
+    <p className="mt-3 text-center text-[10.5px] text-slate-500/80 sm:text-[11px] dark:text-slate-400/80">{t('decks.hold_to_edit')}</p>
+    </>
   )
 }
 
