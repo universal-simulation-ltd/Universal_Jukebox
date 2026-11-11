@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import ResumeCard from './ResumeCard'
+import ResumeCard, { type ResumeKind } from './ResumeCard'
 
 /**
  * "Resume listening" as the list's SECOND ROW (James, 2026-09-11: "place it on
@@ -11,10 +11,11 @@ import ResumeCard from './ResumeCard'
  * `ResumeCard` renders nothing when there is nothing to resume, so the slot
  * leaves no gap behind.
  */
-export function withResumeRow(items: ReactNode[], at: number, as: 'cell' | 'row' | 'block' = 'cell'): ReactNode[] {
+export function withResumeRow(items: ReactNode[], at: number, kind: ResumeKind, as: 'cell' | 'row' | 'block' = 'cell'): ReactNode[] {
   const slot = (
     <ResumeCard
       key="jb-resume"
+      kind={kind}
       wrap={(card) =>
         as === 'cell' ? (
           <li className="col-span-full">{card}</li>

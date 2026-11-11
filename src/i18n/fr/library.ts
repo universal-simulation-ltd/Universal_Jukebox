@@ -74,7 +74,9 @@ const library: Draft['library'] = {
 
   // Resume listening (ResumeCard)
   'resume_listening': 'Reprendre l’écoute',
-  'listen_to_this': 'À écouter',
+  'listen_to_this_artist': 'Écoutez cet artiste',
+  'listen_to_this_album': 'Écoutez cet album',
+  'listen_to_this_song': 'Écoutez ce morceau',
   'lyrics_available': 'Paroles disponibles',
   'another': 'Un autre',
   'another_song': 'Un autre morceau au hasard',

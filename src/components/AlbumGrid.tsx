@@ -154,7 +154,7 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
 
   return (
     <ul ref={grid} className={gridClass(columns)}>
-      {withResumeRow(shown.map(tile), across)}
+      {withResumeRow(shown.map(tile), across, 'album')}
     </ul>
   )
 }

@@ -58,7 +58,7 @@ function withRows(
   render: (row: Track | Row) => ReactNode,
 ): ReactNode[] {
   const rows = rowsOf(groups, songs).map(render)
-  return groups ? rows : withResumeRow(rows, 1, 'row')
+  return groups ? rows : withResumeRow(rows, 1, 'song', 'row')
 }
 
 function rowsOf(groups: { genre: string; items: Track[] }[] | null, songs: Track[]): (Track | Row)[] {

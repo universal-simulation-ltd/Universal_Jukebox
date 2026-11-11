@@ -151,3 +151,23 @@ export function useSuggestion(showing: number): Suggestion | null {
     }
   }, [enabled, hidden, resumable, tracks, albums, playingId, showing])
 }
+
+/** How many songs at random follow the one "Listen to this song" plays. */
+export const SONG_MIX_FOLLOWERS = 19
+
+/**
+ * "Listen to this song" on the Songs tab (James, 2026-11-11: "when clicking
+ * listen to this do a playlist of that song and 19 random tunes after it"):
+ * the song first, then up to 19 others at random — never the song again, and
+ * no song twice. A small library gives what it has.
+ */
+export function songThenRandom(song: Track, tracks: readonly Track[], followers = SONG_MIX_FOLLOWERS, random: () => number = Math.random): Track[] {
+  const others = tracks.filter((t) => t.id !== song.id)
+  // A partial Fisher–Yates: only the first `followers` places are shuffled.
+  const take = Math.min(followers, others.length)
+  for (let i = 0; i < take; i++) {
+    const j = i + Math.floor(random() * (others.length - i))
+    ;[others[i], others[j]] = [others[j], others[i]]
+  }
+  return [song, ...others.slice(0, take)]
+}

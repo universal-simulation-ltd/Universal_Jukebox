@@ -70,7 +70,7 @@ export default {
   'showing_albums_other': 'Showing {count} albums — tap to fold up',
   'play_or_shuffle': 'Play or shuffle', // under the “All songs by …” card
 
-  // The Tracks tab (TrackList)
+  // The Songs tab (TrackList)
   'showing_first': 'Showing the first {cap} of {total}. Search finds any of them.', // a long list is cut short; {cap} is 400
   'show_all_anyway': 'Show all {count} anyway',
   'unknown': 'Unknown', // a song with neither an artist nor an album tag
@@ -82,7 +82,9 @@ export default {
 
   // Resume listening (ResumeCard)
   'resume_listening': 'Resume listening', // a card naming the last song played; shown in capitals
-  'listen_to_this': 'Listen to this', // the card's heading when there is nothing to resume: a song picked at random
+  'listen_to_this_artist': 'Listen to this artist', // the card's heading when there is nothing to resume, above the Artists list: a song picked at random; shown in capitals and bold
+  'listen_to_this_album': 'Listen to this album', // the same card above the Albums list and on Now Playing: a tap plays the song's album from that song
+  'listen_to_this_song': 'Listen to this song', // the same card above the Songs list: a tap plays the song and 19 others at random
   'lyrics_available': 'Lyrics available', // the speech-bubble mark after a song or album name: its words can be shown
   'another': 'Another', // small button on the “Listen to this” card: shows a different random song; short
   'another_song': 'Another song at random', // screen reader and hover for that button

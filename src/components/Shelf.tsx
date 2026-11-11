@@ -14,6 +14,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { markTipSeen } from '../lib/tips'
 import { withResumeRow } from './resumeRow'
+import type { ResumeKind } from './ResumeCard'
 import type { Album, Track } from '../lib/types'
 import LyricsMark from './LyricsMark'
 import { useAlbumsWithLyrics, useLyricsCheck } from '../lib/lyricMarks'
@@ -74,9 +75,11 @@ const LAUNCH_SEED = newSeed()
  * get a shelf at all.
  */
 function Shelves<T>({
-  items, label, row, lead, groups, maxRows = SHELF_MAX_ROWS,
+  items, label, row, lead, groups, maxRows = SHELF_MAX_ROWS, kind,
 }: {
   items: T[]
+  /** Which "Listen to this …" the resume card says — `ResumeCard`. */
+  kind: ResumeKind
   label: string
   row(items: T[], label: string, start: number, heading?: string): ReactNode
   lead?: T
@@ -151,6 +154,7 @@ function Shelves<T>({
           </Fragment>
         )),
         1,
+        kind,
         'block',
       )}
     </div>
@@ -235,6 +239,7 @@ export default function Shelf({ albums, lead, groups, hold }: { albums: Album[];
   return (
     <Shelves
       items={albums}
+      kind="album"
       lead={lead}
       groups={groups}
       label={t('shelves.albums_on_the_shelf')}
@@ -295,6 +300,7 @@ export function ArtistShelf({
   return (
     <Shelves
       items={artists}
+      kind="artist"
       lead={lead}
       groups={groups}
       label={t('shelves.artists_on_the_shelf')}
@@ -339,6 +345,7 @@ export function TrackShelf({
     {options && <TrackOptions track={options} onPlay={() => onPlay(options)} onClose={() => setOptions(null)} />}
     <Shelves
       items={tracks}
+      kind="song"
       lead={lead}
       groups={groups}
       maxRows={TRACK_SHELF_MAX_ROWS}

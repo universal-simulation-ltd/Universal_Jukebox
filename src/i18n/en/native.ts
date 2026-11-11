@@ -11,19 +11,19 @@ export default {
   // Tabs along the bottom (NativeApp)
   'tab_artists': 'Artists', // tab label under an icon, keep to ~8 characters; also the back button on an artist's page
   'tab_albums': 'Albums', // tab label, keep to ~8 characters; also the back button on an album's page
-  'tab_tracks': 'Tracks', // tab label, keep to ~8 characters
+  'tab_tracks': 'Songs', // tab label, keep to ~8 characters
   'tab_shelves': 'Shelves', // tab label, keep to ~8 characters: your own shelves of songs
   'tab_tune': 'Tune', // tab label, keep to ~8 characters: short for "Tune this app", the settings; also the back button on About and Tidy up
   'tab_count_found_one': '{count} found', // screen reader: the small number on a tab while searching
   'tab_count_found_other': '{count} found',
-  'found_in': 'Results on each tab', // screen reader: the row under the search box with how many artists, albums and tracks match
+  'found_in': 'Results on each tab', // screen reader: the row under the search box with how many artists, albums and songs match
   'tab_home_artists': 'Artists: the app opens here', // hover on the tab the app opens on ("Artists" is the tab name)
   'tab_home_albums': 'Albums: the app opens here',
-  'tab_home_tracks': 'Tracks: the app opens here',
+  'tab_home_tracks': 'Songs: the app opens here',
   'tab_home_shelves': 'Shelves: the app opens here',
   'tab_double_tap_artists': 'Double-tap to open the app on Artists', // hover on a tab: a double tap makes it the tab the app opens on
   'tab_double_tap_albums': 'Double-tap to open the app on Albums',
-  'tab_double_tap_tracks': 'Double-tap to open the app on Tracks',
+  'tab_double_tap_tracks': 'Double-tap to open the app on Songs',
   'tab_double_tap_shelves': 'Double-tap to open the app on Shelves',
   'tab_now_home_artists': 'The app now opens on Artists', // screen reader, after a double tap on a tab
   'tab_set_default': 'Set as default', // bubble over a held tab: makes it the tab the app opens on
@@ -37,7 +37,7 @@ export default {
   'tab_down': 'Move {name} down', // button, screen reader
   'tab_hide': 'Hide', // tick box on each tab's row
   'tab_now_home_albums': 'The app now opens on Albums',
-  'tab_now_home_tracks': 'The app now opens on Tracks',
+  'tab_now_home_tracks': 'The app now opens on Songs',
   'tab_now_home_shelves': 'The app now opens on Shelves',
 
   // The bar along the top (NativeApp)
@@ -49,13 +49,13 @@ export default {
   // Library tabs (LibraryScreens)
   'heading_artists': 'Artists', // the screen's big heading
   'heading_albums': 'Albums',
-  'heading_tracks': 'Tracks',
+  'heading_tracks': 'Songs',
   'search_artists': 'Search artists', // placeholder of the search box pulled down from the top
   'search_albums': 'Search albums',
-  'search_tracks': 'Search tracks',
+  'search_tracks': 'Search songs',
   'search_genre_artists': 'Search {genre} artists', // inside one genre; {genre} is its name as tagged ("Blues")
   'search_genre_albums': 'Search {genre} albums',
-  'search_genre_tracks': 'Search {genre} tracks',
+  'search_genre_tracks': 'Search {genre} songs',
   'clear_and_close': 'Clear and close', // screen reader: the ✕ in the search box
   'genres_back': 'Genres', // back button from one genre to the list of genres, keep short
   'options_group': 'Play and list options', // screen reader: the row of chips under the search box
@@ -87,8 +87,8 @@ export default {
   'play_on_jukebox': 'Play {title} on the jukebox', // screen reader: the big cover; {title} is the album
   'no_album_match': 'No track on this album matches.',
   'artist_gone': 'This artist isn’t in your library any more.',
-  'matching_tracks': 'Matching tracks', // small label over the songs while searching
-  'all_tracks': 'All tracks', // small label over all of an artist's songs
+  'matching_tracks': 'Matching songs', // small label over the songs while searching
+  'all_tracks': 'All songs', // small label over all of an artist's songs
   'discography': 'Discography', // the first card on an artist’s shelf, standing for all their albums
   'play_discography': 'Play everything by {name}', // screen reader: that card; {name} is the artist
   'no_artist_match': 'None of their tracks matches.',

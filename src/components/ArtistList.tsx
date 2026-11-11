@@ -42,7 +42,7 @@ import { compareName } from '../lib/collate'
  * then describes the wrong thing.
  */
 function maybeResumeRow(cells: ReactNode[], at: number | undefined, grouped: boolean): ReactNode[] {
-  return grouped ? cells : withResumeRow(cells, at ?? 0)
+  return grouped ? cells : withResumeRow(cells, at ?? 0, 'artist')
 }
 
 /** The artist groups left open — see `expanded`. */

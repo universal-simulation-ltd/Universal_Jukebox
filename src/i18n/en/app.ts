@@ -16,19 +16,19 @@ export default {
   'tabs_label': 'Library views', // screen reader: the row of tabs
   'tab_artists': 'Artists', // tab, keep to ~9 characters: all four share one line on a phone
   'tab_albums': 'Albums', // tab, keep to ~9 characters
-  'tab_tracks': 'Tracks', // tab, keep to ~9 characters
+  'tab_tracks': 'Songs', // tab, keep to ~9 characters
   'tab_jukebox': 'Jukebox', // tab: your own shelves of songs. Stays "Jukebox" in every language (GLOSSARY)
   'tab_home_artists': 'Artists — the library opens here', // hover on the tab the library opens on
   'tab_home_albums': 'Albums — the library opens here',
-  'tab_home_tracks': 'Tracks — the library opens here',
+  'tab_home_tracks': 'Songs — the library opens here',
   'tab_home_jukebox': 'Jukebox — the library opens here',
   'tab_double_tap_artists': 'Double-tap to open the library on Artists', // hover on a tab: a double tap makes it the one the library opens on
   'tab_double_tap_albums': 'Double-tap to open the library on Albums',
-  'tab_double_tap_tracks': 'Double-tap to open the library on Tracks',
+  'tab_double_tap_tracks': 'Double-tap to open the library on Songs',
   'tab_double_tap_jukebox': 'Double-tap to open the library on Jukebox',
   'tab_now_home_artists': 'The library now opens on Artists', // screen reader, after a double tap on a tab
   'tab_now_home_albums': 'The library now opens on Albums',
-  'tab_now_home_tracks': 'The library now opens on Tracks',
+  'tab_now_home_tracks': 'The library now opens on Songs',
   'tab_now_home_jukebox': 'The library now opens on Jukebox',
 
   // The list options, behind the icon after the tabs (App)
@@ -161,6 +161,6 @@ export default {
   'tip_cover': 'to open the jukebox', // the tip's second line, on an album cover
   'tip_record': 'to see the album', // the tip's second line, on the turning record
   'tip_record_queue': 'to see what’s up next', // the phone app's version: tapping the record opens the queue
-  'tip_pull_down': 'Pull down for search and options', // first-run hint at the top of Artists, Albums and Tracks on a phone: the search box and options fold away above the list until you pull down. Keep short
+  'tip_pull_down': 'Pull down for search and options', // first-run hint at the top of Artists, Albums and Songs on a phone: the search box and options fold away above the list until you pull down. Keep short
   'voice_not_found': 'Nothing called “{asked}” in your library.', // after "Hey Google, play … on Jukebox" found nothing; {asked} is what was said
 } as const

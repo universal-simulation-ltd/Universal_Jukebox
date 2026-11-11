@@ -23,18 +23,18 @@ export default {
   // Your library (section)
   'library_title': 'Your library', // section title
   'library_note': 'Where the app takes you, and what it opens on.',
-  'summary_opens_on_artists': 'Opens on Artists', // summary; Artists, Albums, Tracks and Jukebox are the library's tabs
+  'summary_opens_on_artists': 'Opens on Artists', // summary; Artists, Albums, Songs and Jukebox are the library's tabs
   'summary_opens_on_albums': 'Opens on Albums',
-  'summary_opens_on_tracks': 'Opens on Tracks',
+  'summary_opens_on_tracks': 'Opens on Songs',
   'summary_opens_on_jukebox': 'Opens on Jukebox',
   'summary_opens_on_mix': 'Opens on Mix',
   'open_library_on': 'Open my library on', // a choice of the library's four tabs
   'home_artists': 'Artists', // the library tab, as named on the tab
   'home_albums': 'Albums',
-  'home_tracks': 'Tracks',
+  'home_tracks': 'Songs',
   'home_jukebox': 'Jukebox', // the library tab's name. Stays "Jukebox" in every language (GLOSSARY)
   'hide_resume': 'Hide “Resume listening”', // tick box; “Resume listening” is the card's title
-  'hide_resume_hint': 'Tick to take away the card above your albums, artists and tracks that shows the song you were last playing, on its machine, so you can tap it to carry on where you left off.',
+  'hide_resume_hint': 'Tick to take away the card above your albums, artists and songs that shows the song you were last playing, on its machine, so you can tap it to carry on where you left off.',
   'account_title': 'Your Universal ID', // section title, only when signed in to UNI·SIM; “Universal ID” is the suite's name for an account
   'account_manage': 'Manage on the Hub', // link to the account's page on app.unisim.co.uk
   'account_note': 'Signing out here signs you out of every UNI·SIM app on this device.',

@@ -6,7 +6,8 @@ import { resolveDeck } from '../lib/decks'
 import { clock, shownName } from '../lib/format'
 import { useT } from '../i18n'
 import { lockArt } from '../lib/lockArt'
-import { hideResume, nextVisit, useResumable, useSuggestion } from '../lib/resume'
+import { hideResume, nextVisit, songThenRandom, useResumable, useSuggestion } from '../lib/resume'
+import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -19,7 +20,14 @@ import { useSettingsStore } from '../stores/settingsStore'
 // (`lockArt`) — so the card, Now Playing and the lock screen agree. When it
 // shows is `useResumable`, which the lists ask too.
 
-export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) => React.ReactNode } = {}) {
+/**
+ * Which list the card sits above, for "Listen to this artist / album / song"
+ * (James, 2026-11-11). Away from the lists (Now Playing) it is the album,
+ * which is what the card plays there.
+ */
+export type ResumeKind = 'artist' | 'album' | 'song'
+
+export default function ResumeCard({ wrap, kind = 'album' }: { wrap?: (card: React.ReactNode) => React.ReactNode; kind?: ResumeKind } = {}) {
   const t = useT()
   const setSetting = useSettingsStore((s) => s.set)
   const deckSetting = useSettingsStore((s) => s.deck)
@@ -31,10 +39,13 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
   const [showing, setShowing] = useState(nextVisit)
   const suggestion = useSuggestion(showing)
   const playTracks = usePlayerStore((s) => s.playTracks)
+  const allTracks = useLibraryStore((s) => s.tracks)
   const track = resumable?.track ?? suggestion?.track
   const album = resumable ? resumable.album : suggestion?.album
   const play = () => {
     if (resumable) resume()
+    // On the Songs tab: the song, then 19 others at random (`songThenRandom`).
+    else if (suggestion && kind === 'song') playTracks(songThenRandom(suggestion.track, allTracks), 0)
     else if (suggestion) playTracks(suggestion.albumTracks, Math.max(0, suggestion.albumTracks.findIndex((t) => t.id === suggestion.track.id)))
   }
   // The drawing is kept with the song it shows. ⚠️ A bare URL kept showing the
@@ -69,7 +80,9 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
 
   if (!track) return null
   const session = resumable?.session
-  const label = resumable ? t('library.resume_listening') : t('library.listen_to_this')
+  // ⚠️ SAYS WHAT A TAP PUTS ON, and in bold (James, 2026-11-11: "put 'listen
+  // to this [artist | album | song]' in bold so it's clear").
+  const label = resumable ? t('library.resume_listening') : t(`library.listen_to_this_${kind}`)
 
   // ⚠️ THE TRACK AND ITS ARTIST, not the album (James, 2026-09-11: "in the
   // resume listening art show the track with the artist"). The album is the
@@ -108,7 +121,7 @@ export default function ResumeCard({ wrap }: { wrap?: (card: React.ReactNode) =>
           onClick={play}
           className="block w-full text-left focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
         >
-          <span className="block text-[11px] font-semibold tracking-wide text-orange-700 uppercase dark:text-orange-400">
+          <span className="block text-[12px] font-bold tracking-wide text-orange-700 uppercase dark:text-orange-400">
             {label}{session && session.sec > 5 ? ` · ${clock(session.sec)}` : ''}
           </span>
           <span className="mt-0.5 line-clamp-2 text-[15px] leading-snug font-medium text-slate-900 dark:text-slate-100">{track.title}</span>

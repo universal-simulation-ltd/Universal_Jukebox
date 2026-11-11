@@ -26,6 +26,13 @@ import { pluginRegistered } from './nativePlugins'
 import type { Track } from './types'
 
 const NATIVE = 'JukeboxNotify'
+/**
+ * The iPhone app's native player (`ENGINE_PLUGIN` in `audioEngine.ts`, named
+ * here rather than imported to keep this file free of the engine's imports).
+ * Registered only in the iOS app, where it posts the card itself — see
+ * `announceTrack`.
+ */
+const ENGINE = 'JukeboxEngine'
 /** The side of the square cover thumbnail sent with each card. */
 const THUMB = 192
 
@@ -166,6 +173,17 @@ export function announceTrack(track: Track, coverUrl: string | null): void {
     withdrawTrack()
     return
   }
+  // ⚠️ ONE SENDER, NOT TWO (James, 2026-11-11: "A notification of what's
+  // playing comes up twice at the start of every track. Is this because of
+  // fading or just a mistake?" — a mistake, not the fade). In the iPhone app
+  // the native engine posts this same card itself whenever the app is away
+  // (`announce` in `JukeboxEngine.swift`), for every song it starts, whether
+  // the page asked for it or not. The page posting too, under the same fixed
+  // identifier, made iOS alert a second time a moment later, when the page's
+  // copy (with its redrawn cover) replaced the engine's. Away from the screen
+  // the engine is the only one that speaks; the page still takes the card
+  // away (`withdrawTrack`), which clears the same identifier.
+  if (pluginRegistered(ENGINE)) return
   announced = track.id
   const mine = ++seq
   const title = track.title

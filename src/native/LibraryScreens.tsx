@@ -449,7 +449,7 @@ export function AlbumsScreen(props: ListProps) {
           {/* "Pick up where you left off" — the website puts it in its lists
               too; it draws nothing when there is nothing to resume. */}
           {held.sheet}
-          {!query.trim() && <ResumeCard />}
+          {!query.trim() && <ResumeCard kind="album" />}
           <Nothing query={shown.length === 0 ? query : ''} />
           {layout.columns === 1 ? (
             <ul className="jx-list">
@@ -550,7 +550,7 @@ export function ArtistsScreen(props: ListProps) {
       ) : (
         <>
           {held.sheet}
-          {!query.trim() && <ResumeCard />}
+          {!query.trim() && <ResumeCard kind="artist" />}
           <Nothing query={names.length === 0 ? query : ''} />
           {/* Keyed by the layout, as the albums grid is (see there). */}
           <ul key={layout.columns} className={layout.columns === 1 ? 'jx-list' : `jx-grid n${layout.columns} artists`}>
@@ -617,7 +617,7 @@ export function SongsScreen(props: ListProps) {
         <div className="jx-web"><TrackList query={query} order={layout.effective} genre={genre} /></div>
       ) : (
         <>
-          {!query.trim() && <ResumeCard />}
+          {!query.trim() && <ResumeCard kind="song" />}
           <Nothing query={shown.length === 0 ? query : ''} />
           <SongList tracks={shown.slice(0, limit)} albums={albums} onPlay={(i) => playTracks(shown, i)} showAlbum />
           <More left={shown.length - limit} onMore={() => setLimit((n) => n + PAGE)} />

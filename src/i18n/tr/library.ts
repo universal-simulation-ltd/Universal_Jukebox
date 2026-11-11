@@ -67,7 +67,9 @@ const library: Draft['library'] = {
 
   'resume_listening': 'Dinlemeye devam et',
 
-  'listen_to_this': 'Bunu dinleyin',
+  'listen_to_this_artist': 'Bu sanatçıyı dinleyin',
+  'listen_to_this_album': 'Bu albümü dinleyin',
+  'listen_to_this_song': 'Bu şarkıyı dinleyin',
   'lyrics_available': 'Şarkı sözleri var',
 
   'another': 'Başka',

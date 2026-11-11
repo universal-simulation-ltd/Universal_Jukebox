@@ -64,3 +64,39 @@ describe('trackNotify in a native shell', () => {
     expect(calls).toEqual(['permission', 'request'])
   })
 })
+
+// ⚠️ One card per song, not two (2026-11-11). In the iPhone app the native
+// engine posts the card itself while the app is away, so the page must not
+// post it as well — the second post under the same identifier alerted again.
+describe('announceTrack with the app away', () => {
+  const track = (id: string) => ({ id, title: `Song ${id}`, artist: 'Artist', album: 'Album', albumId: 'a' }) as never
+  const setShell = (plugins: string[]) => {
+    ;(globalThis as { Capacitor?: unknown }).Capacitor = {
+      isNativePlatform: () => true,
+      PluginHeaders: plugins.map((name) => ({ name })),
+    }
+  }
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 20))
+  beforeEach(() => {
+    calls.length = 0
+  })
+  afterEach(() => {
+    delete (globalThis as { Capacitor?: unknown }).Capacitor
+  })
+
+  it('leaves the card to the iPhone engine, which posts its own', async () => {
+    setShell(['JukeboxNotify', 'JukeboxEngine'])
+    const { announceTrack } = await import('./trackNotify')
+    announceTrack(track('engine-1'), null)
+    await flush()
+    expect(calls).not.toContain('show')
+  })
+
+  it('posts it itself where there is no engine (Android)', async () => {
+    setShell(['JukeboxNotify'])
+    const { announceTrack } = await import('./trackNotify')
+    announceTrack(track('page-1'), null)
+    await flush()
+    expect(calls.filter((c) => c === 'show')).toHaveLength(1)
+  })
+})
