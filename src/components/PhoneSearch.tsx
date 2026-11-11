@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react'
 import { PHONE_QUERY, PullDrawer, openThenFocus, useMediaQuery } from '@unisim/sdk'
 import { useT } from '../i18n'
+import { selectAllIn } from '../lib/selectAll'
 
 // The library's search box on a PHONE: folded away above the tabs, and pulled
 // down into view with your finger (James, 2026-09-11: "hide the search box at
@@ -28,6 +29,8 @@ import { useT } from '../i18n'
 
 export interface PhoneSearchHandle {
   open(): void
+  /** Focus the box with everything in it selected — see `selectAllIn`. */
+  selectAll(): void
 }
 
 interface PhoneSearchProps {
@@ -48,7 +51,11 @@ const PhoneSearch = forwardRef<PhoneSearchHandle, PhoneSearchProps>(function Pho
 
   const openNow = useCallback(() => openThenFocus(() => setOpen(true), input, {}), [setOpen])
 
-  useImperativeHandle(ref, () => ({ open: openNow }), [openNow])
+  // Only while there is a search: then the box is open (`shown`) and so
+  // focusable, and there is something to select.
+  const selectAll = useCallback(() => selectAllIn(input.current), [])
+
+  useImperativeHandle(ref, () => ({ open: openNow, selectAll }), [openNow, selectAll])
 
   // The way out. Clearing alone would leave the box open over the library with
   // nothing in it, so the X does both: empties the field and folds it away.

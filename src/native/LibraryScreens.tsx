@@ -203,6 +203,11 @@ function Screen({
   useSearchRequests({
     onOpen: () => {
       openThenFocus(() => setPulled(true), input)
+      // With a search in it, everything typed is selected, so the next search
+      // types straight over it (James, 2026-11-11). `setSelectionRange`, not
+      // `select()`, which iOS ignores on a field it has just focused.
+      const field = input.current
+      if (field && field.value) field.setSelectionRange(0, field.value.length)
       markTipSeen('pullDown')
     },
     // The second tap of a double tap, which makes the tab the default instead.

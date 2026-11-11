@@ -1,6 +1,6 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useOwnerNameSync } from './lib/jukeboxTitle'
-import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
+import { PHONE_QUERY, UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 // <UsageTracker /> sends one "session.opened" row for a signed-in visitor, and
 // that is the only event this app will ever send. Nobody signs in to Jukebox,
 // but since 2026-10-28 the WEBSITE recognises somebody already signed in to
@@ -23,6 +23,7 @@ import ExampleNotice from './components/ExampleNotice'
 import Landing from './components/Landing'
 import NowPlaying from './components/NowPlaying'
 import PhoneSearch, { type PhoneSearchHandle } from './components/PhoneSearch'
+import { selectAllIn } from './lib/selectAll'
 import { BedsideHost } from './components/Bedside'
 import PlayerBar from './components/PlayerBar'
 import ScrollTopButton from './components/ScrollTopButton'
@@ -301,6 +302,8 @@ function WebApp() {
   /** The search box on a phone: folded away until pulled down — `PhoneSearch`. */
   const [searchOpen, setSearchOpen] = useState(false)
   const phoneSearch = useRef<PhoneSearchHandle>(null)
+  /** The wider screens' search box, on the tabs row. */
+  const wideSearch = useRef<HTMLInputElement>(null)
 
   /**
    * The view actually on screen.
@@ -590,11 +593,12 @@ function WebApp() {
                     <button
                       key={tab.view}
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
                         const now = performance.now()
                         const last = lastTabTap.current
                         lastTabTap.current = { view: tab.view, at: now }
-                        if (last && last.view === tab.view && now - last.at < DOUBLE_TAP_MS) {
+                        const double = !!last && last.view === tab.view && now - last.at < DOUBLE_TAP_MS
+                        if (double) {
                           lastTabTap.current = null
                           setSetting('homeTab', tab.view)
                           setHomeFlash({ view: tab.view, n: Date.now() })
@@ -602,6 +606,21 @@ function WebApp() {
                         // Inside a genre the other tabs look inside it too; the
                         // Jukebox tab is your own shelves and has no genre.
                         navigate({ view: tab.view, genre: tab.view === 'jukebox' ? undefined : genre })
+                        // A tab tapped DURING A SEARCH selects what was typed,
+                        // so the next search is typed straight over it (James,
+                        // 2026-11-11). Done here, inside the tap, so a phone's
+                        // keyboard comes up with it.
+                        //   - Not the Jukebox tab: the search does not look in
+                        //     your shelves, so there is nothing to retype for.
+                        //   - Not the second tap of a double tap (that one sets
+                        //     the opening tab; the first already selected).
+                        //   - Pointer taps only (`detail` is 0 for Enter or
+                        //     Space): moving the focus off a tab reached with
+                        //     the keyboard would lose the person's place.
+                        if (query.trim() && tab.view !== 'jukebox' && !double && e.detail > 0) {
+                          if (window.matchMedia(PHONE_QUERY).matches) phoneSearch.current?.selectAll()
+                          else selectAllIn(wideSearch.current)
+                        }
                       }}
                       aria-current={active ? 'page' : undefined}
                       data-default-view={isHome ? 'true' : undefined}
@@ -670,6 +689,7 @@ function WebApp() {
               {/* The wider screens' box, inline with the tabs. A phone uses
                   `PhoneSearch` above them instead. */}
               <input
+                ref={wideSearch}
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
