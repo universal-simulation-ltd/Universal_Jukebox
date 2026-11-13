@@ -341,10 +341,21 @@ export function barsOnlineLyrics(): boolean {
  * Wikidata, which a reviewer reads against the listing's "offline player" and
  * App Privacy's "Data not collected". Nothing is looked up, kept answers are
  * not loaded, and the shelf and its switches are not offered. Android and the
- * website keep it.
+ * website keep it. Debug builds from Xcode keep it too (`isIosDebugBuild`).
  */
 export function barsHits(): boolean {
-  return isNativeShell() && nativePlatform() === 'ios'
+  return isNativeShell() && nativePlatform() === 'ios' && !isIosDebugBuild()
+}
+
+/**
+ * True only in an Xcode DEBUG build of the iPhone/iPad app (James, 2026-11-13:
+ * Hits on his own phone before App Review has passed the app). The flag is put
+ * there by `JukeboxViewController.swift` inside `#if DEBUG`, and the app's
+ * Release configuration has no DEBUG condition, so an archive for TestFlight
+ * or the App Store never sets it: what a reviewer runs is unchanged.
+ */
+export function isIosDebugBuild(): boolean {
+  return (globalThis as { __jukeboxDebugBuild?: boolean }).__jukeboxDebugBuild === true
 }
 
 /**

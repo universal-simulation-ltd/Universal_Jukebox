@@ -15,6 +15,8 @@ the text below is about 2,700).
       external TestFlight group has run first; then say so, with how many testers.
 - [ ] Hits is off on iPhone/iPad (`barsHits`, `5fdd72a`), so "no data
       collected" and "offline" are true. Re-read this if Hits comes back on iOS.
+      Debug builds from Xcode have it ON (`isIosDebugBuild`, 2026-11-13): submit
+      a Release archive only, never a Debug build.
 - [ ] Age rating: answer the new `socialMedia` / `socialMediaAgeRestricted`
       questions first (submissions fail without them).
 - [ ] Attach a short screen recording if possible (the Mix tab first: two records, a scratch, the crossfader; then Siri, lock screen, widget, Bedside).

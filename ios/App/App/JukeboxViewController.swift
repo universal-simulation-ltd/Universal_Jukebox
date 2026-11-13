@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 /// The app's root view controller — Capacitor's own, plus the plugins that live
 /// in this app rather than in an npm package.
@@ -49,5 +50,19 @@ class JukeboxViewController: CAPBridgeViewController {
         // links still work as before.
         // Set here because `loadView` has created the web view by now.
         webView?.allowsBackForwardNavigationGestures = true
+
+        // Hits (plays, ratings, awards) in DEBUG builds only (James,
+        // 2026-11-13). `barsHits()` in `src/lib/nativeFile.ts` keeps it off on
+        // iPhone/iPad until App Review has passed the app; this flag lifts that
+        // for a build run from Xcode. The Release configuration has no DEBUG
+        // condition, so an archive never carries it. Set at document start,
+        // before the page's own scripts read it.
+        #if DEBUG
+        webView?.configuration.userContentController.addUserScript(WKUserScript(
+            source: "window.__jukeboxDebugBuild = true;",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
+        #endif
     }
 }
