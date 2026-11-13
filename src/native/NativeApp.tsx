@@ -51,6 +51,8 @@ import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
 import { shownName } from '../lib/format'
 import { WelcomeScreen } from './WelcomeScreen'
+import { useKeepAwake } from '../lib/keepAwake'
+import { useHitsStore } from '../stores/hitsStore'
 import { AboutAndHelp, YourMusic } from './TuneExtras'
 import { isExampleOnly } from '../lib/exampleLibrary'
 import { ArticleScreen, HelpScreen } from './HelpScreens'
@@ -156,6 +158,12 @@ function tabOf(view: View): TabView | null {
 export default function NativeApp() {
   const t = useT()
   const route = useRoute()
+  // The screen stays on while Hits is looking songs up (James, 2026-11-13:
+  // "set the app to stay open when it's looking up awards etc"). On the iPhone
+  // the pass stops the moment the app leaves the screen, so a phone that
+  // locks itself halfway leaves it stuck. Only while a pass runs and the app
+  // is in front; the screen locks as usual once it is done (`lib/keepAwake.ts`).
+  useKeepAwake(useHitsStore((s) => s.busy))
   // The example library is loaded: a red dot on the Tune tab (`YourMusic`).
   const onExample = useLibraryStore((s) => s.trying || isExampleOnly(s.roots))
   const status = useLibraryStore((s) => s.status)
