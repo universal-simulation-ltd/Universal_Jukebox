@@ -21,6 +21,7 @@ public class KeepAwakePlugin: CAPPlugin, CAPBridgedPlugin {
         let on = call.getBool("on") ?? false
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = on
+            CommandLog.note("keep awake \(on ? "on" : "off")")
             call.resolve()
         }
     }

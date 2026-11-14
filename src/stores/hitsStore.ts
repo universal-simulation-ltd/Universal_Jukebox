@@ -48,6 +48,13 @@ interface HitsState {
   records: ReadonlyMap<string, HitRecord>
   /** The pass is running now. */
   busy: boolean
+  /**
+   * Between passes because a service asked to wait (`BusyError`), with more to
+   * look up: the screen is kept on through it (`NativeApp`), or the phone
+   * locked in the gap and the pass stopped with it (James, 2026-11-14).
+   * Not while offline: that wait has no end in sight.
+   */
+  waiting: boolean
   /** Paused from the shelf: nothing is asked until Resume. */
   paused: boolean
   setPaused(paused: boolean): void
@@ -58,6 +65,7 @@ interface HitsState {
 export const useHitsStore = create<HitsState>((set) => ({
   records: new Map(),
   busy: false,
+  waiting: false,
   paused: readPaused(),
   setPaused(paused) {
     try {
@@ -135,6 +143,7 @@ function stop(): void {
   controller = null
   if (retry) clearTimeout(retry)
   retry = null
+  useHitsStore.setState({ waiting: false })
 }
 
 /** Start the pass if it should run and isn't; stop it if it shouldn't. Safe to call as often as anything changes. */
@@ -147,10 +156,12 @@ function kick(): void {
   void pass()
 }
 
-function later(ms: number): void {
+function later(ms: number, busyService = false): void {
   if (retry) clearTimeout(retry)
+  useHitsStore.setState({ waiting: busyService })
   retry = setTimeout(() => {
     retry = null
+    useHitsStore.setState({ waiting: false })
     kick()
   }, ms)
 }
@@ -171,7 +182,7 @@ async function pass(): Promise<void> {
   const survive = (error: unknown, ids: readonly string[], into: Set<string>): boolean => {
     if (mine.signal.aborted) return false
     if (error instanceof BusyError) {
-      later(error.retryAfterMs)
+      later(error.retryAfterMs, true)
       return false
     }
     // Offline is the ordinary case for a local-file player: stop, come back.

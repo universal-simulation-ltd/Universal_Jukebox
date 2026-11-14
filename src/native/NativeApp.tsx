@@ -163,7 +163,10 @@ export default function NativeApp() {
   // the pass stops the moment the app leaves the screen, so a phone that
   // locks itself halfway leaves it stuck. Only while a pass runs and the app
   // is in front; the screen locks as usual once it is done (`lib/keepAwake.ts`).
-  useKeepAwake(useHitsStore((s) => s.busy))
+  // ⚠️ `waiting` too: a service's "slow down" ends the pass and schedules the
+  // next, and following `busy` alone let the phone lock in that gap (James,
+  // 2026-11-14, mid-awards).
+  useKeepAwake(useHitsStore((s) => s.busy || s.waiting))
   // The example library is loaded: a red dot on the Tune tab (`YourMusic`).
   const onExample = useLibraryStore((s) => s.trying || isExampleOnly(s.roots))
   const status = useLibraryStore((s) => s.status)
