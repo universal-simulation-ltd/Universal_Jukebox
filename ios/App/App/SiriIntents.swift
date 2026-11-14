@@ -213,8 +213,9 @@ struct JukeboxAppShortcuts: AppShortcutsProvider {
 /// it into the same `search` event Android's assistant sends, and
 /// `src/lib/voiceSearch.ts` finds it in the library.
 ///
-/// ⚠️ WITH THE APP NOT ON SCREEN IT ANSWERS `.handleInApp` (2026-11-03), and
-/// the engine plays it with no unlock — see `handle` and `SiriPlayer`. It used
+/// ⚠️ WITH THE APP NOT ON SCREEN THE ENGINE PLAYS IT FROM `handle` ITSELF
+/// (2026-11-14; `.handleInApp` before, which never played) with no unlock —
+/// see `handle` and `SiriPlayer`. It used
 /// to answer `.continueInApp` every time, so Siri opened the app: the library
 /// lives in the page, and Siri runs this handler in a background launch with
 /// no scene and no web view. That is still the answer with the app on screen,
@@ -234,6 +235,7 @@ final class PlayMediaHandler: NSObject, INPlayMediaIntentHandling {
         with completion: @escaping ([INPlayMediaMediaItemResolutionResult]) -> Void
     ) {
         let search = intent.mediaSearch
+        CommandLog.note("siri: resolve type=\(search?.mediaType.rawValue ?? -1) name=\(search?.mediaName ?? "-") artist=\(search?.artistName ?? "-") album=\(search?.albumName ?? "-")")
         let item = INMediaItem(
             identifier: "search",
             title: search?.mediaName ?? search?.albumName ?? search?.artistName,
@@ -243,16 +245,32 @@ final class PlayMediaHandler: NSObject, INPlayMediaIntentHandling {
         completion([.success(with: item)])
     }
 
-    /// ⚠️ `.handleInApp` WHEN THE APP IS NOT ON SCREEN AND THE LIBRARY IS
-    /// WRITTEN DOWN (2026-11-03): iOS then wakes the app in the background,
-    /// with leave to play, and hands the intent to
-    /// `AppDelegate.application(_:handle:completionHandler:)`, where
-    /// `SiriMedia.playLocked` plays it — no unlock. Otherwise `.continueInApp`,
-    /// as before: the page finds it and plays it.
+    /// ⚠️ WITH THE APP NOT ON SCREEN IT PLAYS RIGHT HERE (2026-11-14), and
+    /// answers `.success` / `.failure`. This handler runs in the app's own
+    /// process (`application(_:handlerFor:)`), woken in the background with
+    /// leave to play, so `SiriMedia.playLocked` can start the engine alone —
+    /// no unlock, exactly as the App Intents' "shuffle songs" does.
+    ///
+    /// ⚠️ NOT `.handleInApp`. That answer is for an Intents EXTENSION: it asks
+    /// iOS to wake the app and call `application(_:handle:completionHandler:)`,
+    /// which Apple deprecated in iOS 14 and no longer calls. The 2026-11-03
+    /// version answered it, nothing ever played, and Siri said "We've had a
+    /// problem" (James, 2026-11-14, iPhone JPM: handled in the app's log, then
+    /// silence). `.failureRequiringAppLaunch` when it can't be done from here
+    /// (only the example library, or the planner can't open the songs): Siri
+    /// offers to open the app. On screen: `.continueInApp`, the page plays it.
     func handle(intent: INPlayMediaIntent, completion: @escaping (INPlayMediaIntentResponse) -> Void) {
         DispatchQueue.main.async {
+            CommandLog.note("siri: handle state=\(UIApplication.shared.applicationState.rawValue) library=\(SiriLibrary.exists)")
             if UIApplication.shared.applicationState != .active && SiriLibrary.exists {
-                completion(INPlayMediaIntentResponse(code: .handleInApp, userActivity: nil))
+                let code: INPlayMediaIntentResponseCode
+                switch SiriMedia.playLocked(intent) {
+                case .played: code = .success
+                case .notFound: code = .failure
+                case .cannot: code = .failureRequiringAppLaunch
+                }
+                CommandLog.note("siri: answered \(code.rawValue)")
+                completion(INPlayMediaIntentResponse(code: code, userActivity: nil))
                 return
             }
             SiriMedia.receive(intent)

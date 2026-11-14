@@ -100,6 +100,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        CommandLog.note("siri: scene continue \(userActivity.activityType)")
         SiriMedia.receive(userActivity)
         SceneDelegateProxy.shared.scene(scene, continue: userActivity)
     }
