@@ -63,7 +63,13 @@ export default function NowPlaying() {
   const landscape = useLandscapeStage()
   /** The stage row, and how much height is left for it — see `useDeckRoom`. */
   const stage = useRef<HTMLDivElement>(null)
-  const { room, height: stageHeight } = useDeckRoom(stage, landscape, lyricsAround)
+  /** The words column lying down, whose width the record has to leave free. */
+  const words = useRef<HTMLDivElement>(null)
+  /** The size the record was last drawn at, for `useDeckRoom` to measure against. */
+  const drawn = useRef(0)
+  const { room, height: stageHeight } = useDeckRoom(stage, words, drawn, landscape, lyricsAround)
+  const deckSize = clampDeck(landscape, room)
+  drawn.current = deckSize
   const track = usePlayerStore(currentTrack)
   // Every visit to Now Playing starts with the lyrics closed (James, 2026-09-10):
   // leaving closes them. They stay open across songs while you stay — see
@@ -218,20 +224,20 @@ export default function NowPlaying() {
 
       {/* The records either side peek in, and the deck swipes — see DeckSwiper. */}
       <DeckSwiper
-        size={clampDeck(landscape, room)}
+        size={deckSize}
         showing={onTheDeck?.id}
         beside={landscape}
         // Off the screen's own edge — the record's disc stands proud of the
         // sleeve, and hard against the glass it reads as clipped.
         inset={landscape ? 12 : 0}
         // Room above the record for the lyrics' arc, when they are on.
-        roomAbove={lyricsAround ? 28 : 0}
+        roomAbove={lyricsAround ? LYRICS_ABOVE : 0}
       >
         {/* ⚠️ `onTheDeck`, not `album`. While the old record is being lifted
             off, the record on the deck is still the OLD one — see below. */}
         <Deck
           album={onTheDeck}
-          size={clampDeck(landscape, room)}
+          size={deckSize}
           ceremonial
           onLongPress={() => setPickerOpen(true)}
           // The phone app: the record opens the queue, which takes the place
@@ -239,17 +245,27 @@ export default function NowPlaying() {
           onOpen={phone ? () => navigate({ view: 'queue' }) : undefined}
           openTip={phone ? t('app.tip_record_queue') : undefined}
           // The words around the record (Settings › Lyrics), drawn under its tonearm.
-          underArm={lyricsAround ? <LyricsAround size={clampDeck(landscape, room)} /> : undefined}
+          underArm={lyricsAround ? <LyricsAround size={deckSize} /> : undefined}
         />
       </DeckSwiper>
 
       <div
-        className={`relative min-w-0 flex-1 ${
+        ref={words}
+        className={`relative ${
           // ⚠️ `order-first`, not `flex-row-reverse` on the row: the deck's
           // neighbours peek in from both sides (`DeckSwiper`), and reversing
           // the row reverses those too — the record that is coming next would
           // arrive from the left.
-          landscape ? 'order-first max-w-sm text-left' : 'text-center lg:text-left'
+          //
+          // ⚠️ A WIDTH OF ITS OWN lying down, never what the record leaves
+          // over (James, 2026-11-15, a landscape screenshot: the title, the
+          // way back and the times wrapped to a column three words wide, with
+          // the sleeve over them). It used to be `flex-1`, so a record drawn
+          // too big squeezed it to nothing; now it keeps its share and the
+          // record is sized from what is left (`useDeckRoom`).
+          landscape
+            ? 'order-first w-[clamp(15rem,42%,24rem)] flex-none text-left'
+            : 'min-w-0 flex-1 text-center lg:text-left'
         }`}
       >
         {landscape && <BackToLibrary compact />}
@@ -700,9 +716,13 @@ function clampDeck(landscape = false, room: number | null = null): number {
 const OVERHANG = 1.15
 /** What the lyrics around the record need, top and bottom together. */
 const LYRICS_RING = 56
+/** The same ring's room above the record, and to its left beside the words (`DeckSwiper`). */
+const LYRICS_ABOVE = 28
 
 function useDeckRoom(
   stage: RefObject<HTMLDivElement | null>,
+  words: RefObject<HTMLDivElement | null>,
+  drawn: RefObject<number>,
   landscape: boolean,
   lyricsAround: boolean,
 ): { room: number | null; height: string | null } {
@@ -727,8 +747,31 @@ function useDeckRoom(
       setTop((current) => (current === null || Math.abs(current - nextTop) > 2 ? nextTop : current))
       const tall = el.clientHeight
       if (!tall) return
-      const next = Math.round(Math.max(110, (tall - 12 - (lyricsAround ? LYRICS_RING : 0)) / OVERHANG))
+      const byHeight = (tall - 12 - (lyricsAround ? LYRICS_RING : 0)) / OVERHANG
+      const next = Math.round(Math.max(110, Math.min(byHeight, widthRoom(el) ?? Infinity)))
       setRoom((current) => (current === null || Math.abs(current - next) > 2 ? next : current))
+    }
+    /**
+     * ⚠️ AND WIDE ENOUGH TO LEAVE THE WORDS THEIR COLUMN — measured, not a
+     * share of `innerWidth`. The record's row is wider than the record: on the
+     * record player the sleeve sits half off it to the left, a margin of half
+     * the size (plus the lyrics' room), and the inset keeps the disc off the
+     * glass. All of it grows with the size, so the row's width now, over the
+     * size it was drawn at, says what size fits in the width there is.
+     */
+    const widthRoom = (el: HTMLDivElement): number | null => {
+      const row = el.querySelector<HTMLElement>(':scope > [data-deck-row]')
+      const size = drawn.current
+      if (!row || !words.current || !size) return null
+      const stageStyle = getComputedStyle(el)
+      const inner = el.clientWidth - parseFloat(stageStyle.paddingLeft) - parseFloat(stageStyle.paddingRight)
+      const free = inner - words.current.offsetWidth - (parseFloat(stageStyle.columnGap) || 0)
+      const margin = parseFloat(getComputedStyle(row).marginLeft) || 0
+      // What does not grow with the record: the inset, and the lyrics' room
+      // in the margin when there is a margin.
+      const fixed = (parseFloat(row.style.paddingRight) || 0) + (margin > 0 && lyricsAround ? LYRICS_ABOVE : 0)
+      const perPx = (row.offsetWidth + margin - fixed) / size
+      return perPx > 0 ? (free - fixed) / perPx : null
     }
     measure()
     window.addEventListener('resize', measure)

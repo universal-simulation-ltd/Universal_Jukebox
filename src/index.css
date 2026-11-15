@@ -354,8 +354,16 @@ body {
 /* ⚠️ The page never scrolls sideways. On a wide window the album shelves run
    out to its edges (`ShelfRow`, `calc(50% - 50vw)`), and where a scrollbar
    takes up room — Windows — 100vw is wider than the page by that much. On the
-   root, `clip` becomes the viewport's `hidden`; nothing sticky stops sticking. */
-html {
+   root, `clip` becomes the viewport's `hidden`; nothing sticky stops sticking.
+   ⚠️ AND ON THE BODY TOO, because the root's alone does not stop a PHONE
+   widening the page. Lying down, Now Playing's next record peeks in past the
+   right edge of the glass (`DeckSwiper`), and a phone lays out a page that
+   overflows as a wider screen: the record is sized from the screen
+   (`useDeckRoom`), so it grew, overflowed further, and grew again until it
+   covered the words (James, 2026-11-15, a landscape screenshot). The body's
+   own `clip` cuts the peek at the edge, where it was drawn to stop anyway. */
+html,
+body {
   overflow-x: clip;
 }
 

@@ -727,6 +727,8 @@ export default function DeckSwiper({
     // and there is no screen edge next to it to peek from.
     <div
       ref={box}
+      // How Now Playing finds this row to measure it lying down (`useDeckRoom`).
+      data-deck-row=""
       className={
         beside
           ? 'relative flex justify-center py-2'
