@@ -75,7 +75,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         completionHandler(true)
     }
 
-    // The `[jukebox:native]` lifecycle log — see the note at the top. Log only.
+    // The `[jukebox:native]` lifecycle log — see the note at the top. Log only,
+    // apart from Keep awake's idle timer in `sceneDidBecomeActive` (not audio).
 
     func sceneWillResignActive(_ scene: UIScene) {
         print("[jukebox:native] sceneWillResignActive \(AudioReport.now())")
@@ -91,6 +92,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneDidBecomeActive(_ scene: UIScene) {
         print("[jukebox:native] sceneDidBecomeActive \(AudioReport.now())")
+        // Not audio: iOS can turn the idle timer back on while the app is
+        // inactive, so Keep awake is put back here. See `KeepAwakePlugin`.
+        KeepAwakePlugin.reassert()
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
