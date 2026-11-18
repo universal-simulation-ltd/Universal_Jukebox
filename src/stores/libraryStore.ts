@@ -564,7 +564,13 @@ const rawStore = create<LibraryState>((set, get) => ({
     generation++
     const grants = get().roots.map((r) => r.nativePath)
     await db.clearLibrary()
-    set({ status: 'scanning', tracks: [], albums: [], roots: [], error: null, stoppedEarly: null, refusals: [], progress: null })
+    // ⚠️ 'scanning' ONLY WHEN A LIBRARY IS ALREADY ON SCREEN (a rescan of the
+    // example). From the front page it stays as it is: 'scanning' counts as
+    // having a library, so it swapped the page for an empty "No tracks yet."
+    // for the second or more the records take to make — and the spinning
+    // record on the button that was pressed went with it (2026-11-18).
+    const shown = get().status === 'ready' || get().status === 'scanning'
+    set({ ...(shown ? { status: 'scanning' as const } : {}), tracks: [], albums: [], roots: [], error: null, stoppedEarly: null, refusals: [], progress: null })
     releaseUnused(get, grants)
 
     const { tracks, albums } = await buildExampleLibrary()

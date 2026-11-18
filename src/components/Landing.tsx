@@ -8,6 +8,7 @@ import { keepsFolderWhenInstalled } from '../lib/persistence'
 import { isDesktopApp } from '../lib/host'
 import { forgetOpenSources, wantsOpenSources } from '../lib/landingIntent'
 import { useT } from '../i18n'
+import LoadingRecord from './LoadingRecord'
 
 // The front door, before there is a library.
 //
@@ -72,7 +73,8 @@ interface Step {
   /** The one-line next step, in plain words. */
   say: ReactNode
   /** The main action — a filled button. */
-  action?: { label: string; run(): void }
+  /** `busy`: show the spinning record beside the label (the example being made). */
+  action?: { label: string; run(): void; busy?: boolean }
   /** Quieter ways on, as links under the button. */
   more?: { label: string; run(): void }[]
 }
@@ -281,7 +283,7 @@ export default function Landing() {
           {t('landing.streaming_say')}
         </>
       ),
-      action: { label: building ? cutting : t('landing.try_example'), run: tryExample },
+      action: { label: building ? cutting : t('landing.try_example'), run: tryExample, busy: building },
     },
   })
 
@@ -339,11 +341,12 @@ export default function Landing() {
                     type="button"
                     disabled={!a.step && busy}
                     onClick={() => (a.step ? setAnswer(open ? null : a.key) : tryExample())}
+                    aria-busy={a.key === 'example' && building ? true : undefined}
                     aria-expanded={a.step ? open : undefined}
                     aria-controls={a.step ? `jb-answer-${a.key}` : undefined}
-                    className="flex w-full items-center gap-3.5 rounded-2xl p-3.5 text-left transition hover:bg-orange-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60 dark:hover:bg-white/5"
+                    className="flex w-full items-center gap-3.5 rounded-2xl p-3.5 text-left transition hover:bg-orange-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60 disabled:aria-busy:opacity-100 dark:hover:bg-white/5"
                   >
-                    <SourceGlyph kind={a.key} />
+                    <SourceGlyph kind={a.key} busy={a.key === 'example' && building} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[14.5px] font-semibold text-slate-900 dark:text-slate-100">{a.title}</span>
                       <span className="mt-0.5 block text-[12.5px] leading-snug text-slate-500 dark:text-slate-400">{a.sub}</span>
@@ -367,9 +370,13 @@ export default function Landing() {
                           type="button"
                           disabled={busy}
                           onClick={a.step.action.run}
+                          aria-busy={a.step.action.busy || undefined}
+                          // Busy is not unavailable: full strength while its record spins.
+                          style={a.step.action.busy ? { opacity: 1 } : undefined}
                           // Secondary: Find my music above is the page's one primary.
                           className={`${buttonClass(undefined, 'sm')} mt-3`}
                         >
+                          {a.step.action.busy && <LoadingRecord />}
                           {a.step.action.label}
                         </button>
                       )}
@@ -498,7 +505,7 @@ function Turntable() {
 }
 
 /** The little picture beside each answer to "Where is your music?". */
-function SourceGlyph({ kind }: { kind: Answer }) {
+function SourceGlyph({ kind, busy = false }: { kind: Answer; busy?: boolean }) {
   const paths: Record<Answer, ReactNode> = {
     device: <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.2c.4 0 .8.16 1.06.44L9 5.5h7.5A1.5 1.5 0 0 1 18 7v7.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5v-9Z" />,
     apple: <path d="M15.5 3.2v9.3a2.5 2.5 0 1 1-1.5-2.3V6.1L8 7.4v6.6a2.5 2.5 0 1 1-1.5-2.3V5.2a1 1 0 0 1 .78-.98l7-1.55a1 1 0 0 1 1.22.98Z" />,
@@ -517,9 +524,13 @@ function SourceGlyph({ kind }: { kind: Answer }) {
   }
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400">
-      <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden>
-        {paths[kind]}
-      </svg>
+      {busy ? (
+        <LoadingRecord className="h-[22px] w-[22px]" />
+      ) : (
+        <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden>
+          {paths[kind]}
+        </svg>
+      )}
     </span>
   )
 }

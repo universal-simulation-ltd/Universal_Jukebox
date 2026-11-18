@@ -267,6 +267,9 @@ html.dark .jx {
 }
 .jx-btn.primary { background: var(--jx-fill); color: #fff; }
 .jx-btn:disabled { opacity: 0.55; }
+/* Busy is not unavailable: the button that was pressed stays full strength
+   while its record spins (the example library being made). */
+.jx-btn:disabled[aria-busy="true"] { opacity: 1; }
 .jx-btn svg { width: 20px; height: 20px; flex: none; }
 .jx-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .jx-link { border: 0; background: none; padding: 4px 0; color: var(--jx-acc); font-size: 17px; font-weight: 500; text-align: left; }

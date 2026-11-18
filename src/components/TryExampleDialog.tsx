@@ -4,6 +4,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useDialogFocus } from '../lib/useDialogFocus'
 import { useT } from '../i18n'
+import LoadingRecord from './LoadingRecord'
 
 // Tune this app ▸ Your library ▸ "Try the example library" — the confirm.
 //
@@ -93,9 +94,11 @@ export default function TryExampleDialog({ onClose }: { onClose(): void }) {
             onClick={start}
             disabled={building}
             autoFocus
-            className="rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
+            aria-busy={building || undefined}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#FE8C01] to-[#E05504] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504]"
           >
-            {/* The landing page's words for the same wait. */}
+            {/* The landing page's words for the same wait, and its record. */}
+            {building && <LoadingRecord />}
             {building ? t('app.cutting_records') : t('app.try_it')}
           </button>
         </div>

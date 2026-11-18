@@ -14,6 +14,7 @@ import { hasOwnMusicFolder, isNativeShell, nativePlatform, usesChosenFolder } fr
 import { hasNativeImporter } from '../lib/nativeImport'
 import { useLibraryStore } from '../stores/libraryStore'
 import { RecordMark } from './icons'
+import LoadingRecord from '../components/LoadingRecord'
 import { useT } from '../i18n'
 
 export function WelcomeScreen() {
@@ -96,7 +97,8 @@ export function WelcomeScreen() {
         ))}
       </ul>
 
-      <button type="button" className="jx-btn primary" disabled={busy} onClick={tryExample}>
+      <button type="button" className="jx-btn primary" disabled={busy} aria-busy={building || undefined} onClick={tryExample}>
+        {building && <LoadingRecord className="h-[22px] w-[22px]" />}
         {building ? t('app.cutting_records') : t('native.try_example')}
       </button>
       <p className="jx-fine">{t('native.made_up')}</p>
