@@ -367,6 +367,49 @@ body {
   overflow-x: clip;
 }
 
+/* ── The library tabs at the foot of a phone's screen ──
+   Owner rule 2026-11-19 (BRANDING.md → "On a phone, navigation sits at the
+   bottom"): below 768px the Artists / Albums / Tracks / Jukebox tray docks at
+   the bottom (`u-tabs--dock`, @unisim/sdk ≥ 0.222). The website only — the
+   phone app has its own tab bar (src/native/) and never renders this tray.
+
+   The player bar then sits ABOVE the tabs, as the phone app's mini player sits
+   above its tab bar: one solid strip of chrome from the transport down to the
+   screen's edge, the floating tray inside its lower part, so no list peeks
+   through a gap between the two. That strip is fixed rather than `sticky`: a
+   sticky bar comes unstuck at the end of the page and would ride up over the
+   footer with the tray left behind. The page is padded by the strip's measured
+   height (`--jb-player-h`, PlayerBar), or by the SDK's `--u-dock-space` while
+   nothing is playing. From 768px up none of this applies. */
+@media (max-width: 767.98px) {
+  :root:has(.u-tabs--dock:not([hidden])) [data-jb-playerbar] {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-bottom: var(--u-dock-space);
+  }
+  /* On `#root`, not `<body>` as the SDK does it: html and body are
+     `height: 100%` here, so the body's padding sits under the overflowing
+     page instead of after it, and the last of the list stayed beneath the
+     tabs. */
+  :root:has(.u-tabs--dock:not([hidden])) body {
+    padding-bottom: 0;
+  }
+  :root:has(.u-tabs--dock:not([hidden])) #root {
+    padding-bottom: var(--u-dock-space);
+  }
+  :root:has(.u-tabs--dock:not([hidden])):has([data-jb-playerbar]) #root {
+    padding-bottom: var(--jb-player-h, var(--u-dock-space));
+  }
+  /* During a search a tab carries its count ("Albums (12)"), and four of those
+     do not share a 320px tray: each takes its own width and the tray scrolls
+     sideways, the tab you are on brought into view (App.tsx, `tabsNav`). */
+  .u-tabs--dock.jb-tabs-counting > .u-tab {
+    flex: 1 0 auto;
+  }
+}
+
 /* A word on the turning ribbon of lyrics (LyricsAround, the `orbit` style).
    ⚠️ The halo is here rather than in the component because it has to answer to
    the theme, and the colour it fights is the PAGE behind the record — light

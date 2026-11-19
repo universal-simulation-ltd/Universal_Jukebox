@@ -332,16 +332,6 @@ function WebApp() {
     (listTab === 'artists' && artistsMin3 !== DEFAULTS.artistsMin3) ||
     (order.kind === 'genre' && genresMin3 !== DEFAULTS.genresMin3) || columns !== DEFAULTS.libraryColumns[listTab]
 
-  useEffect(() => {
-    const nav = tabsNav.current
-    const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
-    if (!nav || !tab) return
-    const left = tab.offsetLeft - nav.offsetLeft
-    if (left < nav.scrollLeft || left + tab.offsetWidth > nav.scrollLeft + nav.clientWidth) {
-      nav.scrollLeft = left - (nav.clientWidth - tab.offsetWidth) / 2
-    }
-  }, [view])
-
   /**
    * How many results each tab holds, computed only while there is a query.
    *
@@ -361,6 +351,20 @@ function WebApp() {
       ...(artistsMin3 ? { artists: matchArtistNames(albumsOfBigArtists(seen.albums), listQuery).length } : {}),
     }
   }, [albums, tracks, listQuery, fullAlbumsOnly, artistsMin3, genre])
+
+  const searching = counts !== null
+  useEffect(() => {
+    const nav = tabsNav.current
+    const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!nav || !tab) return
+    // From the boxes, not `offsetLeft`: docked at the foot of a phone the tray
+    // is `position: fixed`, and the tabs' offsets stop being from the page.
+    const left = tab.getBoundingClientRect().left - nav.getBoundingClientRect().left - nav.clientLeft + nav.scrollLeft
+    if (left < nav.scrollLeft || left + tab.offsetWidth > nav.scrollLeft + nav.clientWidth) {
+      nav.scrollLeft = left - (nav.clientWidth - tab.offsetWidth) / 2
+    }
+    // Again when the search counts come or go: they change the tabs' widths.
+  }, [view, searching])
 
   useEffect(() => {
     void hydrate()
@@ -574,7 +578,9 @@ function WebApp() {
                 ref={tabsNav}
                 // The suite's tray tabs (SDK 0.216, BRANDING.md → Tabs), a
                 // little tighter on a phone so all four still fit at 360px.
-                className="u-tabs min-w-0 flex-auto gap-px p-0.5 sm:flex-none sm:gap-1 sm:p-1"
+                // Below 768px the tray docks at the foot of the screen, with
+                // the player bar above it (SDK 0.222, `u-tabs--dock`; index.css).
+                className={`u-tabs u-tabs--dock min-w-0 flex-auto gap-px p-0.5 sm:flex-none sm:gap-1 sm:p-1 ${counts ? 'jb-tabs-counting' : ''}`}
                 aria-label={t('app.tabs_label')}
               >
                 {TABS.map((tab) => {

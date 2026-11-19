@@ -5,7 +5,8 @@ import { useT } from '../i18n'
 // A floating "back to the top" (James, 2026-09-11: "when scrolling down have a
 // floating up arrow to scroll to the top"). It appears once you are most of a
 // screen down, and sits just above the player bar — measured, because the bar
-// is taller on a phone with a home indicator and absent with nothing queued.
+// is taller on a phone with a home indicator and absent with nothing queued —
+// and above the library tabs where a phone docks them at the foot.
 
 export default function ScrollTopButton() {
   const t = useT()
@@ -18,7 +19,12 @@ export default function ScrollTopButton() {
       frame = 0
       setShown(window.scrollY > window.innerHeight * 0.8)
       const bar = document.querySelector('[data-jb-playerbar]')
-      setLift((bar ? bar.getBoundingClientRect().height : 0) + 16)
+      // On a phone's website the library tabs float at the foot of the screen
+      // (`u-tabs--dock`); with something playing the player bar's strip runs
+      // down around them, so its height already counts them.
+      const dock = document.querySelector<HTMLElement>('.u-tabs--dock')
+      const docked = dock && getComputedStyle(dock).position === 'fixed' ? window.innerHeight - dock.getBoundingClientRect().top : 0
+      setLift(Math.max(bar ? bar.getBoundingClientRect().height : 0, docked) + 16)
     }
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(check)

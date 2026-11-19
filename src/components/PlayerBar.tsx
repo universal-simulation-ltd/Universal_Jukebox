@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChipToggle } from '@unisim/sdk'
 import Cover from './Cover'
 import { clock } from '../lib/format'
@@ -51,6 +51,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
   // otherwise every `timeupdate` yanks the thumb back under the finger.
   const [scrubbing, setScrubbing] = useState<number | null>(null)
   const swipe = useSwipe({ onLeft: next, onRight: previous, onUp: () => navigate({ view: 'playing' }) })
+  const barRef = useBarHeight()
 
   if (!track) return null
   const album = albums.find((a) => a.id === track.albumId)
@@ -64,7 +65,7 @@ export default function PlayerBar({ onStage = false }: { onStage?: boolean }) {
     // `contentInset: 'never'`, so without it the transport sits UNDER the home
     // indicator on a phone — the play button and the scrub bar are the things
     // that end up beneath it. 0 on the web, so nothing changes there.
-    <div data-jb-playerbar className={`${stepAside ? 'max-lg:hidden' : ''} sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95`}>
+    <div ref={barRef} data-jb-playerbar className={`${stepAside ? 'max-lg:hidden' : ''} sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95`}>
       {/* The scrub bar spans the full width above the controls: it is the one
           control people aim at without looking, so it gets the whole edge. */}
       <input
@@ -507,4 +508,35 @@ function VolumeGlyph() {
 }
 function MutedGlyph() {
   return <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" {...stroke} aria-hidden><path d="M4 7.5h2.5L10 4.5v11L6.5 12.5H4zM13 8l4 4M17 8l-4 4" /></svg>
+}
+
+/**
+ * The bar's height as `--jb-player-h` on `<html>`, for as long as it is on
+ * screen. On a phone's website the library tabs dock at the foot of the screen
+ * and this bar becomes a fixed strip above (and around) them, out of the flow,
+ * so the page pads itself by this much instead (index.css). Nothing reads it
+ * anywhere else.
+ */
+function useBarHeight() {
+  const observer = useRef<ResizeObserver | null>(null)
+  useEffect(() => () => {
+    observer.current?.disconnect()
+    document.documentElement.style.removeProperty('--jb-player-h')
+  }, [])
+  // Stable, so React hands it the element once rather than on every render
+  // (this bar re-renders with every tick of the clock).
+  return useCallback((el: HTMLDivElement | null) => {
+    observer.current?.disconnect()
+    observer.current = null
+    const root = document.documentElement
+    if (!el) {
+      root.style.removeProperty('--jb-player-h')
+      return
+    }
+    const publish = () => root.style.setProperty('--jb-player-h', `${el.getBoundingClientRect().height}px`)
+    publish()
+    if (typeof ResizeObserver === 'undefined') return
+    observer.current = new ResizeObserver(publish)
+    observer.current.observe(el)
+  }, [])
 }
