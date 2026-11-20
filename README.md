@@ -21,9 +21,9 @@ reach music that is anywhere else.
 >
 > **Nothing in Jukebox needs a sign-in, on any device** — website, desktop or
 > phone. A UNI·SIM sign-in you already have is recognised (the website and the
-> phone app then say "James’ Jukebox"), and on the website and the Windows app
-> Tune this app offers a discreet Sign in, but Jukebox stores nothing on the
-> account. What you made in the app (shelves, requests,
+> phone app then say "James’ Jukebox"), but Jukebox itself never asks you to
+> sign in, the Windows app has no sign-in at all, and Jukebox stores nothing on
+> the account. What you made in the app (shelves, requests,
 > settings, lyrics you added) is kept by **Save a backup file** and **Restore
 > from a file** under Tune this app ▸ Backup, and the file goes wherever you
 > put it. The app sends no open count. Its one usage event is a single

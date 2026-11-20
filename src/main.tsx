@@ -17,9 +17,10 @@ import './lib/playCounting'
 // Universal Jukebox never sends a byte of anyone's music anywhere. We still
 // mount <UniversalProvider> so the shared navbar, suite switcher and language
 // work. Nothing here needs a sign-in (see `noAccounts` below): the website
-// and the phones recognise a suite session someone already has, and since SDK
-// 0.211.0 Tune this app offers a discreet Sign in on the website and the
-// Windows app (the phone screens have their own Tune, with no Sign in).
+// and the phones recognise a suite session someone already has. Jukebox has
+// no Sign in of its own anywhere: its own Tune page replaces the SDK dialog
+// that would hold one (`showAppPreferences={false}`, App.tsx), and the Windows
+// app needs no sign-in (James, 2026-11-20).
 //
 // The fallback is the REAL public suite project (publishable anon key — safe to
 // ship; RLS is the security boundary). Env overrides.
@@ -70,8 +71,8 @@ const universalConfig = {
   // unisim.co.uk app, the shared cookie session makes the bar say "James’
   // Jukebox" and puts Your Universal ID in Tune this app (`accountInTune` and
   // `personalTitle` on the navbar, App.tsx). Nothing asks anyone to sign in
-  // beyond the discreet Sign in the SDK puts in Tune this app (0.211.0), and
-  // Jukebox stores nothing on the account. Universal PDF's website is
+  // (Jukebox's own Tune page has no Sign in), and Jukebox stores nothing on
+  // the account. Universal PDF's website is
   // the template.
   //
   // The PHONE APPS do the same with the suite's shared phone session (James,
@@ -86,9 +87,8 @@ const universalConfig = {
   // So `noAccounts` only for the Windows app: the `desktop` build mode outside
   // a native shell (`cap:sync` uses the same mode for the phones). It runs
   // from disk, where neither the unisim.co.uk cookie nor a phone's shared
-  // store reaches it. Since SDK 0.211.0 `noAccounts` no longer keeps it signed
-  // out: a session signed in from Tune this app's discreet Sign in is read and
-  // followed like anywhere else; the flag only drops the account rows.
+  // store reaches it, and it has no Sign in: no need to sign in on desktop
+  // (James, 2026-11-20), so it is not in the hub's /desktop-sign-in list.
   noAccounts: import.meta.env.MODE === 'desktop' && !isNativeShell(),
   // Off everywhere, as `noAccounts` had it until now: the website did without
   // the SDK's anonymous daily open count from 2026-10-20 (0.187.0: once a day,

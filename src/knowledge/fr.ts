@@ -298,7 +298,7 @@ Les réponses des deux premières sont conservées sur votre appareil, si bien q
 
 ## Pas de compte
 
-Rien dans Jukebox ne demande de connexion, sur aucun appareil, et il ne conserve rien sur un compte. Si vous êtes déjà connecté à une application UNI·SIM, Jukebox vous reconnaît et met votre nom dans le titre, et sur le site web et dans l’application Windows, Régler cette application propose une connexion discrète. Jukebox ne compte pas combien de fois il est ouvert. Les applications pour téléphone et Windows n’envoient rien au démarrage ; le site web, uniquement pour une personne connectée, note une fois qu’il a été ouvert, sans rien sur votre musique.
+Rien dans Jukebox ne demande de connexion, sur aucun appareil, et il ne conserve rien sur un compte. Si vous êtes déjà connecté à une application UNI·SIM sur le site web ou sur votre téléphone, Jukebox vous reconnaît et met votre nom dans le titre. Jukebox ne vous demande jamais de vous connecter, et l’application Windows n’a aucune connexion. Jukebox ne compte pas combien de fois il est ouvert. Les applications pour téléphone et Windows n’envoient rien au démarrage ; le site web, uniquement pour une personne connectée, note une fois qu’il a été ouvert, sans rien sur votre musique.
 
 ## Autorisations
 

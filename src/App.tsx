@@ -502,8 +502,8 @@ function WebApp() {
         // Signed in to the suite elsewhere = "James’ Jukebox" in place of the
         // product's name, and the account under Tune this app ▸ Your Universal
         // ID, not an avatar (the suite rule, James 2026-10-26). Jukebox needs
-        // nobody to sign in; the website recognises the shared session, and
-        // Tune this app offers a discreet Sign in (SDK 0.211.0).
+        // nobody to sign in and offers no Sign in; the website recognises the
+        // shared session someone already has.
         // The phone screens have their own bar (`Brand`, native/NativeApp.tsx);
         // the Windows app has `noAccounts`.
         accountInTune

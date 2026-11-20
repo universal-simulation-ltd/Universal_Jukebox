@@ -298,7 +298,7 @@ Die Antworten der ersten beiden werden auf Ihrem Gerät gespeichert, sodass ein 
 
 ## Kein Konto
 
-Nichts in Jukebox erfordert eine Anmeldung, auf keinem Gerät, und es speichert nichts in einem Konto. Sind Sie bereits bei einer UNI·SIM-App angemeldet, erkennt Jukebox Sie und setzt Ihren Namen in den Titel, und auf der Website und in der Windows-App bietet „Diese App anpassen“ eine dezente Anmeldung an. Jukebox zählt nicht, wie oft es geöffnet wird. Die Smartphone- und Windows-Apps senden beim Start nichts; die Website vermerkt nur bei angemeldeten Personen einmal, dass sie geöffnet wurde, ohne etwas über Ihre Musik.
+Nichts in Jukebox erfordert eine Anmeldung, auf keinem Gerät, und es speichert nichts in einem Konto. Sind Sie auf der Website oder auf Ihrem Smartphone bereits bei einer UNI·SIM-App angemeldet, erkennt Jukebox Sie und setzt Ihren Namen in den Titel. Jukebox selbst fordert Sie nie zur Anmeldung auf, und die Windows-App hat überhaupt keine Anmeldung. Jukebox zählt nicht, wie oft es geöffnet wird. Die Smartphone- und Windows-Apps senden beim Start nichts; die Website vermerkt nur bei angemeldeten Personen einmal, dass sie geöffnet wurde, ohne etwas über Ihre Musik.
 
 ## Berechtigungen
 

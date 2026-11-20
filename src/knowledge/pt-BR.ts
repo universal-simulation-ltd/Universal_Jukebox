@@ -298,7 +298,7 @@ As respostas das duas primeiras ficam guardadas no seu dispositivo, então cada 
 
 ## Sem conta
 
-Nada no Jukebox exige login, em nenhum dispositivo, e ele não guarda nada em uma conta. Se você já fez login em um app da UNI·SIM, o Jukebox reconhece você e coloca o seu nome no título, e no site e no app para Windows, Ajustar este app oferece um login discreto. O Jukebox não conta quantas vezes é aberto. Os apps para celular e Windows não enviam nada ao iniciar; o site, só para quem fez login, registra uma vez que foi aberto, sem nada sobre a sua música.
+Nada no Jukebox exige login, em nenhum dispositivo, e ele não guarda nada em uma conta. Se você já fez login em um app da UNI·SIM no site ou no celular, o Jukebox reconhece você e coloca o seu nome no título. O Jukebox nunca pede que você faça login, e o app para Windows não tem login. O Jukebox não conta quantas vezes é aberto. Os apps para celular e Windows não enviam nada ao iniciar; o site, só para quem fez login, registra uma vez que foi aberto, sem nada sobre a sua música.
 
 ## Permissões
 
