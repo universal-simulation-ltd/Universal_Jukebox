@@ -70,25 +70,14 @@ export function makeDefault(patch: Partial<ListDefaults>): void {
   })
 }
 
-/**
- * The click that ends a hold goes nowhere, whatever is under the finger by
- * then (BRANDING.md: "the lifting finger never presses what slides in under
- * it"). A hold that starts selecting brings a bar in over the list, and the
- * rows move down under the finger: without this, the release landed on the
- * bar's Select all and ticked every song. Armed until just after the finger
- * lifts; `swallowed` runs if a click was eaten.
- */
-export function swallowReleaseClick(swallowed?: () => void): void {
-  const eat = (e: Event) => {
-    e.stopPropagation()
-    e.preventDefault()
-    swallowed?.()
-  }
-  window.addEventListener('click', eat, { capture: true, once: true })
-  const disarm = () => window.setTimeout(() => window.removeEventListener('click', eat, { capture: true }), 400)
-  window.addEventListener('pointerup', disarm, { capture: true, once: true })
-  window.addEventListener('pointercancel', disarm, { capture: true, once: true })
-}
+// The click that ends a hold goes nowhere, whatever is under the finger by
+// then: the SDK phone kit's `swallowReleaseClick` (@unisim/sdk 0.230.0),
+// which is this file's, moved there.
+//
+// ⚠️ `useHold` below stays: it is a press held on a BUTTON (a chip, a sleeve,
+// the name), read through pointer events so a mouse or an iPad's trackpad
+// holds too, with `consumed()` for the button's own tap. The kit's `useHold`
+// is a finger held on a list ROW to select it: touch only, by design.
 
 /**
  * A press held for HOLD_MS. `bind(onHold)` goes on a button; its onClick asks

@@ -20,7 +20,7 @@
 // `homeTab`, the same setting as the website's starred tab).
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { requestSearch } from '@unisim/sdk'
+import { requestSearch, useTabReorder } from '@unisim/sdk'
 import { BedsideHost } from '../components/Bedside'
 import ErrorBanner from '../components/ErrorBanner'
 import JukeboxShelves from '../components/JukeboxShelves'
@@ -219,113 +219,60 @@ export default function NativeApp() {
   // to hide it (Undo, and Tune ▸ Your library ▸ Tabs brings it back); let go
   // where it was and the "Set as default" bubble shows, as a hold always did.
   // Tune stays last and can't be picked up; the last tab shown can't be binned.
+  // The hold and the drag are the SDK phone kit's `useTabReorder` (@unisim/sdk
+  // 0.230.0, where this file's own copy went, with BlackBook's). What stays
+  // here is Jukebox's: the bar, the bin's look and words, the Undo, the
+  // "Set as default" bubble for a tab let go where it was, and the haptics
+  // (`lib/haptics`: the kit's `navigator.vibrate` is felt on Android only).
   const tabOrder = useSettingsStore((s) => s.tabOrder)
   const hiddenTabs = useSettingsStore((s) => s.hiddenTabs)
   const shown = useMemo(() => shownTabs(tabOrder, hiddenTabs), [tabOrder, hiddenTabs])
-  const [dragTabs, setDragTabs] = useState<{ tab: HomeTab; order: HomeTab[]; bin?: boolean } | null>(null)
   const [binned, setBinned] = useState<HomeTab | null>(null)
-  const navRef = useRef<HTMLElement>(null)
-  const binRef = useRef<HTMLDivElement>(null)
-  const touchHold = useRef<{ tab: HomeTab; x0: number; y0: number; active: boolean; timer: number } | null>(null)
-  const live = useRef({ drag: dragTabs, shown, tabOrder, hiddenTabs })
-  live.current = { drag: dragTabs, shown, tabOrder, hiddenTabs }
-  const holdTab = (tab: HomeTab) => (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return
-    const t0 = e.touches[0]
-    const h = {
-      tab,
-      x0: t0.clientX,
-      y0: t0.clientY,
-      active: false,
-      timer: window.setTimeout(() => {
-        h.active = true
-        haptic('thunk')
-        setTabMenu(null)
-        setDragTabs({ tab, order: live.current.shown })
-      }, TAB_HOLD_MS),
-    }
-    if (touchHold.current) window.clearTimeout(touchHold.current.timer)
-    touchHold.current = h
-  }
+  const dropped = useRef(false)
+  const reorder = useTabReorder<HomeTab>({
+    tabs: shown,
+    onReorder: (order) => {
+      dropped.current = true
+      const s = useSettingsStore.getState()
+      s.set('tabOrder', withShownOrder(s.tabOrder, order))
+    },
+    onBin: (tab) => {
+      dropped.current = true
+      const s = useSettingsStore.getState()
+      s.set('hiddenTabs', [...s.hiddenTabs, tab])
+      setBinned(tab)
+    },
+  })
+  // Picked up: a thunk, and any bubble goes. Let go where it was (nothing
+  // moved, nothing binned): the "Set as default" bubble, as a hold always did.
+  const lifted = useRef<HomeTab | null>(null)
   useEffect(() => {
-    const move = (e: TouchEvent) => {
-      const h = touchHold.current
-      if (!h) return
-      const t0 = e.touches[0]
-      if (!h.active) {
-        // A finger that slides before the hold lands is a scroll or a swipe.
-        if (t0 && Math.hypot(t0.clientX - h.x0, t0.clientY - h.y0) > 10) {
-          window.clearTimeout(h.timer)
-          touchHold.current = null
-        }
-        return
-      }
-      e.preventDefault()
-      const d = live.current.drag
-      if (!d || !t0) return
-      // Over the bin (a finger's width to spare): the order holds still.
-      const b = binRef.current?.getBoundingClientRect()
-      const pad = 18
-      const overBin = Boolean(
-        b && t0.clientX >= b.left - pad && t0.clientX <= b.right + pad && t0.clientY >= b.top - pad && t0.clientY <= b.bottom + pad,
-      )
-      if (overBin !== Boolean(d.bin)) {
-        haptic('tick')
-        setDragTabs({ ...d, bin: overBin })
-      }
-      if (overBin) return
-      // Which slot the finger is over, among the tabs that can move.
-      const slots = [...(navRef.current?.querySelectorAll<HTMLElement>('[data-tab]') ?? [])].filter((el) => el.dataset.tab !== 'settings')
-      const at = slots.findIndex((el) => {
-        const r = el.getBoundingClientRect()
-        return t0.clientX >= r.left && t0.clientX <= r.right
-      })
-      if (at < 0) return
-      const next = d.order.filter((x) => x !== d.tab)
-      next.splice(Math.min(at, next.length), 0, d.tab)
-      if (next.join() !== d.order.join()) {
-        haptic('tick')
-        setDragTabs({ tab: d.tab, order: next })
-      }
+    const tab = reorder.dragging
+    if (tab) {
+      lifted.current = tab
+      dropped.current = false
+      haptic('thunk')
+      setTabMenu(null)
+      return
     }
-    const end = () => {
-      const h = touchHold.current
-      touchHold.current = null
-      if (!h) return
-      window.clearTimeout(h.timer)
-      if (!h.active) return
-      // The lift is not a tap: the click it ends with must not switch tabs or
-      // count toward a double tap. Only on the bar — Undo's tap must count.
-      const swallow = (ev: Event) => {
-        if (!navRef.current?.contains(ev.target as Node)) return
-        ev.preventDefault()
-        ev.stopPropagation()
-      }
-      document.addEventListener('click', swallow, { capture: true, once: true })
-      window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 600)
-      const { drag: d, shown: now, tabOrder: order, hiddenTabs: hidden } = live.current
-      setDragTabs(null)
-      if (!d) return
-      const set = useSettingsStore.getState().set
-      if (d.bin) {
-        if (now.length > 1) {
-          set('hiddenTabs', [...hidden, d.tab])
-          setBinned(d.tab)
-        }
-        return
-      }
-      if (d.order.join() !== now.join()) set('tabOrder', withShownOrder(order, d.order))
-      else setTabMenu(d.tab)
-    }
-    document.addEventListener('touchmove', move, { passive: false, capture: true })
-    document.addEventListener('touchend', end, true)
-    document.addEventListener('touchcancel', end, true)
-    return () => {
-      document.removeEventListener('touchmove', move, { capture: true })
-      document.removeEventListener('touchend', end, true)
-      document.removeEventListener('touchcancel', end, true)
-    }
-  }, [])
+    const was = lifted.current
+    lifted.current = null
+    if (was && !dropped.current) setTabMenu(was)
+  }, [reorder.dragging])
+  // A tick as the others make room, and as the finger reaches or leaves the bin.
+  const dragOrder = reorder.order.join()
+  const ticked = useRef(dragOrder)
+  useEffect(() => {
+    if (reorder.dragging && dragOrder !== ticked.current) haptic('tick')
+    ticked.current = dragOrder
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragOrder])
+  const wasOverBin = useRef(false)
+  useEffect(() => {
+    if (reorder.dragging && reorder.overBin !== wasOverBin.current) haptic('tick')
+    wasOverBin.current = reorder.overBin
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reorder.overBin])
   // The Undo after a tab goes in the bin, for a few seconds.
   useEffect(() => {
     if (!binned) return
@@ -463,7 +410,7 @@ export default function NativeApp() {
 
   // The bar as it stands: the shown tabs in their order — or, while one is
   // held, the order it would drop into — then Tune.
-  const bar = [...(dragTabs?.order ?? shown), 'settings' as const].map((v) => TABS.find((x) => x.view === v)!)
+  const bar = [...reorder.order, 'settings' as const].map((v) => TABS.find((x) => x.view === v)!)
   const welcome = !hasLibrary && LIBRARY_VIEWS.has(view)
   const tab = tabOf(view)
   const showTabs = !playing && !welcome
@@ -564,16 +511,16 @@ export default function NativeApp() {
       {showTabs && (
         <div className="jx-dock">
           {!mixing && <MiniPlayer />}
-          <nav ref={navRef} className="jx-tabs" aria-label="Jukebox" style={{ gridTemplateColumns: `repeat(${bar.length}, 1fr)` }}>
+          <nav ref={reorder.barRef} className="jx-tabs" aria-label="Jukebox" style={{ gridTemplateColumns: `repeat(${bar.length}, 1fr)` }}>
             {bar.map(({ view: target, label, home, doubleTap, Icon }) => (
               <button
                 key={target}
                 type="button"
                 data-tab={target}
-                className={`jx-tab${homeFlash === target ? ' flash' : ''}${dragTabs?.tab === target ? ' lifted' : ''}`}
+                className={`jx-tab${homeFlash === target ? ' flash' : ''}${reorder.dragging === target ? ' lifted' : ''}`}
                 aria-current={tab === target ? 'page' : undefined}
                 onClick={() => tapTab(target)}
-                onTouchStart={target === 'settings' ? undefined : holdTab(target as HomeTab)}
+                {...(target === 'settings' ? {} : reorder.tabProps(target as HomeTab))}
                 onPointerDown={(e) => { if (e.pointerType === 'mouse' && e.button <= 0) startTabHold(target) }}
                 onPointerUp={cancelTabHold}
                 onPointerLeave={cancelTabHold}
@@ -623,10 +570,10 @@ export default function NativeApp() {
           </nav>
         </div>
       )}
-      {showTabs && dragTabs && shown.length > 1 && (
-        <div ref={binRef} className={`jx-tabbin${dragTabs.bin ? ' hot' : ''}`} aria-hidden>
+      {showTabs && reorder.showBin && (
+        <div ref={reorder.binRef} className={`jx-tabbin${reorder.overBin ? ' hot' : ''}`} aria-hidden>
           <IconBin />
-          <span>{t(dragTabs.bin ? 'native.tab_bin_drop' : 'native.tab_bin_hint')}</span>
+          <span>{t(reorder.overBin ? 'native.tab_bin_drop' : 'native.tab_bin_hint')}</span>
         </div>
       )}
       {showTabs && binned && (

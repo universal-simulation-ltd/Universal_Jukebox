@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useTabOrderList } from '@unisim/sdk'
 import { useT, type MessageKey } from '../i18n'
-import { moveTab, shownTabs } from '../lib/tabs'
+import { shownTabs } from '../lib/tabs'
 import { useSettingsStore, type HomeTab } from '../stores/settingsStore'
 
 const NAME: Record<HomeTab, MessageKey> = {
@@ -26,29 +26,11 @@ export function TabsPreference() {
   const order = useSettingsStore((s) => s.tabOrder)
   const hidden = useSettingsStore((s) => s.hiddenTabs)
   const set = useSettingsStore((s) => s.set)
-  const list = useRef<HTMLOListElement>(null)
-  const [held, setHeld] = useState<HomeTab | null>(null)
-  const move = (tab: HomeTab, to: number) => set('tabOrder', moveTab(order, tab, to))
+  // The grips and Move up / Move down are the SDK phone kit's headless
+  // `useTabOrderList` (@unisim/sdk 0.230.0); the look and the Hide tick box
+  // stay Jukebox's.
+  const { listRef, held, gripProps, move } = useTabOrderList(order, (next) => set('tabOrder', next))
   const lastShown = shownTabs(order, hidden).length <= 1
-
-  const grip = (tab: HomeTab) => ({
-    onPointerDown: (e: React.PointerEvent<HTMLSpanElement>) => {
-      e.preventDefault()
-      e.currentTarget.setPointerCapture(e.pointerId)
-      setHeld(tab)
-    },
-    onPointerMove: (e: React.PointerEvent<HTMLSpanElement>) => {
-      if (held !== tab) return
-      const rows = [...(list.current?.children ?? [])] as HTMLElement[]
-      const at = rows.findIndex((r) => {
-        const b = r.getBoundingClientRect()
-        return e.clientY >= b.top && e.clientY <= b.bottom
-      })
-      if (at >= 0 && order[at] !== tab) move(tab, at)
-    },
-    onPointerUp: () => setHeld(null),
-    onPointerCancel: () => setHeld(null),
-  })
 
   const arrow = 'h-10 w-10 shrink-0 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-slate-800'
   return (
@@ -58,7 +40,7 @@ export function TabsPreference() {
       <span className="mt-0.5 mb-3 block text-[12.5px] leading-relaxed text-slate-500 dark:text-slate-400">
         {t('native.tabs_note', { tune: t('native.tab_tune') })}
       </span>
-      <ol ref={list} className="space-y-1.5">
+      <ol ref={listRef} className="space-y-1.5">
         {order.map((tab, i) => {
           const name = t(NAME[tab])
           const off = hidden.includes(tab)
@@ -70,7 +52,7 @@ export function TabsPreference() {
                 held === tab ? 'border-orange-500 bg-orange-50 dark:bg-orange-500/10' : 'border-slate-200 dark:border-slate-800'
               }`}
             >
-              <span {...grip(tab)} aria-hidden className="flex h-10 w-8 shrink-0 cursor-grab touch-none items-center justify-center text-slate-400">
+              <span {...gripProps(tab)} aria-hidden className="flex h-10 w-8 shrink-0 cursor-grab touch-none items-center justify-center text-slate-400">
                 <svg viewBox="0 0 16 16" className="h-4 w-4" fill="currentColor">
                   <circle cx="5.5" cy="4" r="1.2" /><circle cx="10.5" cy="4" r="1.2" />
                   <circle cx="5.5" cy="8" r="1.2" /><circle cx="10.5" cy="8" r="1.2" />

@@ -12,9 +12,9 @@
 // Remove or Clear, a hold or a tap on another one ticks or unticks it instead.
 
 import { useState } from 'react'
-import type { ListSelection } from '@unisim/sdk'
+import { swallowReleaseClick, type ListSelection } from '@unisim/sdk'
 import type { Album } from '../lib/types'
-import { swallowReleaseClick, useHold } from './listDefaults'
+import { useHold } from './listDefaults'
 import { HeldSheet } from './HeldSheet'
 
 export type Held = { kind: 'album'; album: Album } | { kind: 'artist'; name: string }
