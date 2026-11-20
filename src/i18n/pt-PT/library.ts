@@ -121,6 +121,10 @@ const library: Draft['library'] = {
   'remove_albums_one': 'Remover {count} álbum do Jukebox?',
   'remove_albums_other': 'Remover {count} álbuns do Jukebox?',
   'remove_many_explain': 'Deixam de aparecer e de tocar. Nada é apagado: os ficheiros ficam onde estão, e pode repô-los em Ajustar esta aplicação, em A sua biblioteca.',
+  'noun_artist': 'artista',
+  'noun_artists': 'artistas',
+  'remove_artists_one': 'Remover {count} artista e todas as suas músicas do Jukebox?',
+  'remove_artists_other': 'Remover {count} artistas e todas as suas músicas do Jukebox?',
 }
 
 export default library

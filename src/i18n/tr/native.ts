@@ -159,6 +159,7 @@ const native: Draft['native'] = {
   'mix_rec_failed': 'Kayıt kaydedilemedi.',
   'mix_rec_album': 'Miksler',
   'mix_rec_untitled': 'Miks, {when}',
+  'select': 'Seç',
 }
 
 export default native

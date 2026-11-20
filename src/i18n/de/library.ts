@@ -121,6 +121,10 @@ const library: Draft['library'] = {
   'remove_albums_one': '{count} Album aus Jukebox entfernen?',
   'remove_albums_other': '{count} Alben aus Jukebox entfernen?',
   'remove_many_explain': 'Sie werden nicht mehr angezeigt oder abgespielt. Nichts wird gelöscht: Die Dateien bleiben, wo sie sind, und unter „Diese App anpassen“ › „Deine Mediathek“ holst du sie zurück.',
+  'noun_artist': 'Interpret',
+  'noun_artists': 'Interpreten',
+  'remove_artists_one': '{count} Interpret und alle seine Songs aus Jukebox entfernen?',
+  'remove_artists_other': '{count} Interpreten und alle ihre Songs aus Jukebox entfernen?',
 }
 
 export default library

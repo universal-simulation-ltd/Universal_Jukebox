@@ -33,11 +33,13 @@ import TrackOptions from '../components/TrackOptions'
 import { useWorldFacts } from '../components/WorldFacts'
 import ResumeCard from '../components/ResumeCard'
 import { haptic } from '../lib/haptics'
-import { useCollectionHold } from './CollectionHold'
-import { openThenFocus, useSearchRequests } from '@unisim/sdk'
+import { listSelect, useCollectionHold } from './CollectionHold'
+import { openThenFocus, SelectCheckbox, useSearchRequests, useSelection, type ListSelection } from '@unisim/sdk'
+import RemoveBar from '../components/RemoveBar'
+import { removeManyFromJukebox, removeSongsFromJukebox } from '../lib/selectSeveral'
 import { PullDrawer } from './PullDrawer'
 import { markTipSeen, useHintTurn } from '../lib/tips'
-import { makeDefault, useHold, useListDefaults } from './listDefaults'
+import { makeDefault, swallowReleaseClick, useHold, useListDefaults } from './listDefaults'
 import LyricsMark from '../components/LyricsMark'
 import { useAlbumsWithLyrics, useLyricsCheck } from '../lib/lyricMarks'
 
@@ -397,6 +399,16 @@ function learnHold(): void {
   try { localStorage.setItem(HOLD_KEY, '1') } catch { /* the hint just stays */ }
 }
 
+/** A row or tile of a list that selects several: shaded once ticked. Nothing until something is. */
+function picked(sel: ListSelection, id: string): { className?: string } {
+  return sel.count > 0 ? { className: `jx-pick${sel.has(id) ? ' on' : ''}` } : {}
+}
+
+/** Its tick box on the cover's corner, shown once the list is selecting. */
+function tick(sel: ListSelection, id: string, name: string, t: ReturnType<typeof useT>) {
+  return sel.count > 0 ? <SelectCheckbox className="jx-tick" checked={sel.has(id)} onChange={() => sel.toggle(id)} label={t('library.select_item', { name })} /> : null
+}
+
 function Nothing({ query }: { query: string }) {
   const t = useT()
   return query.trim() ? <p className="jx-empty">{t('native.nothing_matches', { query: query.trim() })}</p> : null
@@ -412,14 +424,18 @@ export function AlbumsScreen(props: ListProps) {
   const setSetting = useSettingsStore((s) => s.set)
   const shuffleAlbums = usePlayerStore((s) => s.shuffleAlbums)
   const layout = useLayout('albums', order, genre)
-  // Hold an album for what it offers (`CollectionHold`).
-  const held = useCollectionHold()
   const shown = useMemo(() => {
     const pool = fullOnly ? seen.albums.filter(isFullAlbum) : seen.albums
     const ordered = layout.effective.kind === 'random' ? seededOrder(pool, (a) => a.id, layout.effective.seed) : [...pool].sort((a, b) => compareName(a.title, b.title))
     return matchAlbums(ordered, query)
   }, [seen.albums, fullOnly, layout.effective, query])
   const [limit, setLimit] = useState(PAGE)
+  // Select several, then remove them from Jukebox: the list and grid layouts,
+  // the albums on screen (`listSelect`).
+  const listed = !layout.genreList && !layout.shelf && !genre
+  const sel = useSelection(listed ? shown.slice(0, limit).map((album) => album.id) : [])
+  // Hold an album for what it offers (`CollectionHold`) — or, once selecting, to tick it.
+  const held = useCollectionHold(listSelect(sel, (what) => (what.kind === 'album' ? what.album.id : null)))
 
   return (
     <Screen
@@ -456,11 +472,17 @@ export function AlbumsScreen(props: ListProps) {
           {held.sheet}
           {!query.trim() && <ResumeCard kind="album" />}
           <Nothing query={shown.length === 0 ? query : ''} />
+          {sel.count > 0 && (
+            <div className="jx-select-bar">
+              <RemoveBar sel={sel} what="albums" onRemove={(ids) => removeManyFromJukebox('albums', ids)} />
+            </div>
+          )}
           {layout.columns === 1 ? (
             <ul className="jx-list">
               {shown.slice(0, limit).map((album) => (
-                <li key={album.id}>
-                  <button type="button" className="jx-row" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
+                <li key={album.id} {...picked(sel, album.id)}>
+                  {tick(sel, album.id, shownName(album.title), t)}
+                  <button type="button" className="jx-row" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed() && !held.ticked({ kind: 'album', album })) navigate({ view: 'album', albumId: album.id }) }}>
                     <Cover album={album} className="jx-thumb" />
                     <span>
                       <b className="jx-named"><span>{shownName(album.title)}</span>{withLyrics.has(album.id) && <LyricsMark className="jx-lyrics-mark" />}</b>
@@ -479,8 +501,9 @@ export function AlbumsScreen(props: ListProps) {
             // then breaks").
             <ul key={layout.columns} className={`jx-grid n${layout.columns}`}>
               {shown.slice(0, limit).map((album) => (
-                <li key={album.id}>
-                  <button type="button" className="jx-tile" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed()) navigate({ view: 'album', albumId: album.id }) }}>
+                <li key={album.id} {...picked(sel, album.id)}>
+                  {tick(sel, album.id, shownName(album.title), t)}
+                  <button type="button" className="jx-tile" {...held.bind({ kind: 'album', album })} onClick={() => { if (!held.consumed() && !held.ticked({ kind: 'album', album })) navigate({ view: 'album', albumId: album.id }) }}>
                     <Cover album={album} className="jx-cover" />
                     <b className="jx-named"><span>{shownName(album.title)}</span>{withLyrics.has(album.id) && <LyricsMark className="jx-lyrics-mark" />}</b>
                     <small>{shownName(album.artist)}</small>
@@ -505,8 +528,6 @@ export function ArtistsScreen(props: ListProps) {
   const setSetting = useSettingsStore((s) => s.set)
   const shuffleArtists = usePlayerStore((s) => s.shuffleArtists)
   const layout = useLayout('artists', order, genre)
-  // Hold an artist for their albums, all their songs, play or shuffle (`CollectionHold`).
-  const held = useCollectionHold()
   const pool = useMemo(() => (min3 ? albumsOfBigArtists(seen.albums) : seen.albums), [seen.albums, min3])
   /** Each artist's albums, so a row can show a cover and a count. */
   const byArtist = useMemo(() => {
@@ -523,6 +544,13 @@ export function ArtistsScreen(props: ListProps) {
     return layout.effective.kind === 'random' ? seededOrder(matched, (n) => n, layout.effective.seed) : matched.sort(compareName)
   }, [pool, query, layout.effective])
   const [limit, setLimit] = useState(PAGE)
+  // Select several, then remove them — and every song of theirs — from
+  // Jukebox: the list and grid layouts, the artists on screen (`listSelect`).
+  const listed = !layout.genreList && !layout.shelf && !genre
+  const sel = useSelection(listed ? names.slice(0, limit) : [])
+  // Hold an artist for their albums, all their songs, play or shuffle
+  // (`CollectionHold`) — or, once selecting, to tick them.
+  const held = useCollectionHold(listSelect(sel, (what) => (what.kind === 'artist' ? what.name : null)))
 
   return (
     <Screen
@@ -557,15 +585,21 @@ export function ArtistsScreen(props: ListProps) {
           {held.sheet}
           {!query.trim() && <ResumeCard kind="artist" />}
           <Nothing query={names.length === 0 ? query : ''} />
+          {sel.count > 0 && (
+            <div className="jx-select-bar">
+              <RemoveBar sel={sel} what="artists" onRemove={(ids) => removeManyFromJukebox('artists', ids)} />
+            </div>
+          )}
           {/* Keyed by the layout, as the albums grid is (see there). */}
           <ul key={layout.columns} className={layout.columns === 1 ? 'jx-list' : `jx-grid n${layout.columns} artists`}>
             {names.slice(0, limit).map((name) => {
               const theirs = byArtist.get(name) ?? []
               const face = theirs.find((a) => a.cover) ?? theirs[0]
               return (
-                <li key={name}>
+                <li key={name} {...picked(sel, name)}>
+                  {tick(sel, name, shownName(name), t)}
                   {layout.columns === 1 ? (
-                    <button type="button" className="jx-row" {...held.bind({ kind: 'artist', name })} onClick={() => { if (!held.consumed()) navigate({ view: 'artist', artist: name }) }}>
+                    <button type="button" className="jx-row" {...held.bind({ kind: 'artist', name })} onClick={() => { if (!held.consumed() && !held.ticked({ kind: 'artist', name })) navigate({ view: 'artist', artist: name }) }}>
                       <Cover album={face} className="jx-thumb round" />
                       <span>
                         <b>{shownName(name)}</b>
@@ -573,7 +607,7 @@ export function ArtistsScreen(props: ListProps) {
                       </span>
                     </button>
                   ) : (
-                    <button type="button" className="jx-tile" {...held.bind({ kind: 'artist', name })} onClick={() => { if (!held.consumed()) navigate({ view: 'artist', artist: name }) }}>
+                    <button type="button" className="jx-tile" {...held.bind({ kind: 'artist', name })} onClick={() => { if (!held.consumed() && !held.ticked({ kind: 'artist', name })) navigate({ view: 'artist', artist: name }) }}>
                       <Cover album={face} className="jx-cover round" />
                       <b>{shownName(name)}</b>
                       <small>{t.plural('common.albums', theirs.length)}</small>
@@ -624,7 +658,7 @@ export function SongsScreen(props: ListProps) {
         <>
           {!query.trim() && <ResumeCard kind="song" />}
           <Nothing query={shown.length === 0 ? query : ''} />
-          <SongList tracks={shown.slice(0, limit)} albums={albums} onPlay={(i) => playTracks(shown, i)} showAlbum />
+          <SongList tracks={shown.slice(0, limit)} albums={albums} onPlay={(i) => playTracks(shown, i)} showAlbum selectable />
           <More left={shown.length - limit} onMore={() => setLimit((n) => n + PAGE)} />
         </>
       )}
@@ -648,6 +682,7 @@ export function SongList({
   showAlbum = false,
   numbered = false,
   subtitle,
+  selectable = false,
 }: {
   tracks: Track[]
   albums: Album[]
@@ -656,6 +691,8 @@ export function SongList({
   numbered?: boolean
   /** The row's second line, when it isn't the artist (and album). */
   subtitle?: (track: Track) => string
+  /** A hold selects the song, to remove several from Jukebox at once — see below. A page left empty says so (`native.album_gone`). */
+  selectable?: boolean
 }) {
   const t = useT()
   const playingId = usePlayerStore((s) => currentTrack(s)?.id)
@@ -663,14 +700,28 @@ export function SongList({
   const world = useWorldFacts()
   const albumOf = useMemo(() => new Map(albums.map((a) => [a.id, a])), [albums])
   const [options, setOptions] = useState<number | null>(null)
+  // Press and hold selects (BRANDING.md, "A deletable row swipes…"): a hold
+  // ticks the song and the list starts selecting — a tap then ticks or unticks
+  // instead of playing, and the bar over the list removes the ticked songs
+  // from Jukebox (`components/RemoveBar`; the files stay put) or Clear leaves.
+  // ⋯ still opens the song's sheet, which has Select too for anybody who
+  // can't hold. Not in Up next, or under "Biggest songs", which aren't the
+  // list itself.
+  const sel = useSelection(selectable ? tracks.map((track) => track.id) : [])
+  const selecting = sel.count > 0
   const hold = useRef<{ timer: number; fired: boolean } | null>(null)
   const startHold = (i: number) => {
     cancelHold()
     const h = { timer: 0, fired: false }
+    const id = tracks[i]?.id
     h.timer = window.setTimeout(() => {
       h.fired = true
       haptic('tap')
-      setOptions(i)
+      if (selectable && id) {
+        sel.toggle(id)
+        // The bar comes in over the list and the rows move under the finger.
+        swallowReleaseClick(() => (hold.current = null))
+      } else setOptions(i)
     }, HOLD_MS)
     hold.current = h
   }
@@ -680,17 +731,31 @@ export function SongList({
   return (
     <>
       {options !== null && tracks[options] && (
-        <TrackOptions track={tracks[options]} onPlay={() => onPlay(options)} onClose={() => setOptions(null)} />
+        <TrackOptions
+          track={tracks[options]}
+          onPlay={() => onPlay(options)}
+          onClose={() => setOptions(null)}
+          onSelect={selectable ? () => sel.setMany([tracks[options].id], true) : undefined}
+        />
+      )}
+      {selecting && (
+        <div className="jx-select-bar">
+          <RemoveBar sel={sel} what="songs" onRemove={(ids) => removeSongsFromJukebox(tracks, ids)} />
+        </div>
       )}
       <ul className="jx-list">
         {tracks.map((track, i) => (
-          <li key={track.id} className="jx-song">
+          <li key={track.id} className={`jx-song${selecting ? ` jx-pick${sel.has(track.id) ? ' on' : ''}` : ''}`}>
+            {selecting && (
+              <SelectCheckbox className="jx-tick" checked={sel.has(track.id)} onChange={() => sel.toggle(track.id)} label={t('library.select_item', { name: track.title })} />
+            )}
             <button
               type="button"
               className={`jx-row${track.id === playingId ? ' on' : ''}`}
               onClick={() => {
-                // A hold that opened the sheet is not also a tap.
+                // A hold that opened the sheet, or ticked the row, is not also a tap.
                 if (hold.current?.fired) return void (hold.current = null)
+                if (selecting) return sel.toggle(track.id)
                 onPlay(i)
               }}
               onPointerDown={(e) => { if (e.pointerType !== 'mouse') startHold(i) }}

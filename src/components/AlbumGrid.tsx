@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { SelectCheckbox, SelectionBar, useSelection } from '@unisim/sdk'
+import { SelectCheckbox, useSelection } from '@unisim/sdk'
+import RemoveBar from './RemoveBar'
 import { withResumeRow } from './resumeRow'
 import { useGridColumns } from '../lib/useGridColumns'
 import { leadWith, useResumable } from '../lib/resume'
@@ -18,7 +19,7 @@ import type { Album } from '../lib/types'
 import { compareName, compareNameNumeric } from '../lib/collate'
 import { shownName } from '../lib/format'
 import { useT } from '../i18n'
-import { askFirst, removeManyFromJukebox, selectSeveral } from '../lib/selectSeveral'
+import { removeManyFromJukebox, selectSeveral } from '../lib/selectSeveral'
 
 // The front door once there is a library: a grid of covers.
 //
@@ -89,13 +90,7 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
   const ticking = web && columns !== 'jukebox'
   const sel = useSelection(ticking ? (genre ? genre.groups.flatMap((g) => g.items) : shown).map((a) => a.id) : [])
   const bar = ticking && (
-    <SelectionBar
-      sel={sel}
-      noun={{ one: t('library.noun_album'), other: t('library.noun_albums') }}
-      onDelete={(ids) => removeManyFromJukebox('albums', ids)}
-      confirm={(_, n) => askFirst(t.plural('library.remove_albums', n), t('library.remove_many_explain'), t('library.remove_yes'))}
-      className="mb-3"
-    />
+    <RemoveBar sel={sel} what="albums" onRemove={(ids) => removeManyFromJukebox('albums', ids)} className="mb-3" />
   )
 
   if (shown.length === 0 || (genre && genre.groups.length === 0)) {

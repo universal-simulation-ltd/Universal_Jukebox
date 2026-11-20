@@ -171,4 +171,5 @@ export default {
   'mix_rec_failed': 'The recording couldn’t be saved.',
   'mix_rec_album': 'Mixes', // album (and artist) name every recording is saved under
   'mix_rec_untitled': 'Mix, {when}', // a recording's title when no song was played into it; {when} is a date and time
+  'select': 'Select', // a row in a hold's sheet (a song, album or artist): ticks it and starts selecting several, to remove them together
 } as const

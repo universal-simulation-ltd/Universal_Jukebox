@@ -166,6 +166,7 @@ const native: Draft['native'] = {
   'mix_rec_failed': 'Não foi possível salvar a gravação.',
   'mix_rec_album': 'Mixagens',
   'mix_rec_untitled': 'Mixagem, {when}',
+  'select': 'Selecionar',
 }
 
 export default native

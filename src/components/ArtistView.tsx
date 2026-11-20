@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { buttonClass } from '@unisim/sdk'
+import { buttonClass, SelectCheckbox, useSelection } from '@unisim/sdk'
+import RemoveBar from './RemoveBar'
 import AddToQueue from './AddToQueue'
 import AddToShelf from './AddToShelf'
 import Cover from './Cover'
@@ -15,6 +16,7 @@ import { compareBase } from '../lib/collate'
 import { useWorldFacts, WorldLine } from './WorldFacts'
 import { useHitsStore } from '../stores/hitsStore'
 import { biggestSongs } from '../lib/hitsView'
+import { removeManyFromJukebox, removeSongsFromJukebox, selectSeveral } from '../lib/selectSeveral'
 
 // One artist: every album of theirs, and every song on them to play or shuffle
 // (James, 2026-09-10: "Once inside the album though we could add a button to go
@@ -62,6 +64,13 @@ export default function ArtistView({ name, songs = false }: { name: string; song
   const world = useWorldFacts()
   const records = useHitsStore((h) => h.records)
   const biggest = useMemo(() => biggestSongs(tracks, records), [tracks, records])
+
+  // Select several, then remove them from Jukebox (`lib/selectSeveral.ts`):
+  // the songs on "All songs by …", or the records on their albums page. Not
+  // the biggest songs above, which are some of the same songs again. The
+  // website only; the phone screens have their own pages.
+  const ticking = selectSeveral()
+  const sel = useSelection(ticking ? (songs ? tracks.map((track) => track.id) : albums.map((album) => album.id)) : [])
 
   if (albums.length === 0) {
     return (
@@ -147,9 +156,24 @@ export default function ArtistView({ name, songs = false }: { name: string; song
         </section>
       )}
 
+      {ticking && (
+        <RemoveBar
+          sel={sel}
+          what={songs ? 'songs' : 'albums'}
+          onRemove={(ids) => {
+            // All of them gone leaves nothing of theirs to show: back to the library.
+            if (songs) removeSongsFromJukebox(tracks, ids, goHome)
+            else {
+              removeManyFromJukebox('albums', ids)
+              if (ids.length === albums.length) goHome()
+            }
+          }}
+          className="mt-8"
+        />
+      )}
       {songs ? (
         <>
-          <ul className="mt-8 divide-y divide-slate-200 dark:divide-slate-800">
+          <ul className={`${ticking ? 'mt-2' : 'mt-8'} divide-y divide-slate-200 dark:divide-slate-800`}>
             {tracks.map((track, i) => (
               <SongRow
                 key={track.id}
@@ -158,6 +182,7 @@ export default function ArtistView({ name, songs = false }: { name: string; song
                 onPlay={() => playTracks(tracks, i)}
                 // Every row is theirs, so the album is the useful half.
                 subtitle={albumLine.get(track.albumId)}
+                ticked={ticking ? { on: sel.has(track.id), toggle: () => sel.toggle(track.id) } : undefined}
               />
             ))}
           </ul>
@@ -170,9 +195,18 @@ export default function ArtistView({ name, songs = false }: { name: string; song
           </button>
         </>
       ) : (
-      <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <ul className={`${ticking ? 'mt-2' : 'mt-8'} grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6`}>
         {albums.map((album) => (
-          <li key={album.id}>
+          <li key={album.id} className="relative">
+            {/* Beside the button, not in it, as on the Albums tab. */}
+            {ticking && (
+              <SelectCheckbox
+                checked={sel.has(album.id)}
+                onChange={() => sel.toggle(album.id)}
+                label={t('library.select_item', { name: shownName(album.title) })}
+                className="absolute top-1.5 right-1.5 z-10 shadow-sm"
+              />
+            )}
             <button
               type="button"
               onClick={() => navigate({ view: 'album', albumId: album.id })}

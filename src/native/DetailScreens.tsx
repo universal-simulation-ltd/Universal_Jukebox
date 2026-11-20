@@ -159,7 +159,7 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
       )}
       {find.searching && find.found.length === 0 ? <p className="jx-empty">{t('native.no_album_match')}</p> : null}
       {/* A found track plays the album on from itself, as a tap in the full list would. */}
-      <SongList tracks={find.found} albums={albums} onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))} numbered />
+      <SongList tracks={find.found} albums={albums} onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))} numbered selectable />
     </div>
   )
 }
@@ -274,9 +274,10 @@ export function ArtistScreen({ name }: { name: string }) {
           albums={allAlbums}
           onPlay={(i) => playTracks(tracks, tracks.indexOf(find.found[i]))}
           subtitle={(track) => [shownName(track.album), albumYear.get(track.albumId)].filter(Boolean).join(' · ')}
+          selectable
         />
       ) : (
-        <SongList tracks={shown} albums={allAlbums} onPlay={(i) => playTracks(shown, i)} numbered />
+        <SongList tracks={shown} albums={allAlbums} onPlay={(i) => playTracks(shown, i)} numbered selectable />
       )}
     </div>
   )

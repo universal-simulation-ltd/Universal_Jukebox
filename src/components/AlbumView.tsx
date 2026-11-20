@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buttonClass } from '@unisim/sdk'
+import { buttonClass, SelectCheckbox, useSelection } from '@unisim/sdk'
+import RemoveBar from './RemoveBar'
 import Cover from './Cover'
 import FindWithin, { type FindWithinHandle } from './FindWithin'
 import PreviewButton from './PreviewButton'
@@ -14,6 +15,7 @@ import { matchTracks } from '../lib/search'
 import { sortAlbumTracks, useLibraryStore } from '../stores/libraryStore'
 import { currentTrack, showTheDeck, usePlayerStore } from '../stores/playerStore'
 import { useWorldFacts, WorldLine } from './WorldFacts'
+import { removeSongsFromJukebox, selectSeveral } from '../lib/selectSeveral'
 
 // One album: the cover big, the tracks in running order, and the two buttons
 // that matter.
@@ -63,6 +65,11 @@ export default function AlbumView({ albumId }: { albumId: string }) {
   const searching = query.trim() !== ''
   const shown = searching ? found : tracks
   const world = useWorldFacts()
+  // Select several of its songs, then remove them from Jukebox
+  // (`lib/selectSeveral.ts`): the rows on screen, so under a search only what
+  // it found. The website only; the phone screens have their own list.
+  const ticking = selectSeveral()
+  const sel = useSelection(ticking ? shown.map((track) => track.id) : [])
 
   if (!album) {
     return (
@@ -262,7 +269,16 @@ export default function AlbumView({ albumId }: { albumId: string }) {
         </div>
       </div>
 
-      <ol className="mt-8 divide-y divide-slate-200 dark:divide-slate-800">
+      {ticking && (
+        <RemoveBar
+          sel={sel}
+          what="songs"
+          // The whole record gone leaves nothing to show here: back to the albums.
+          onRemove={(ids) => removeSongsFromJukebox(tracks, ids, () => navigate({ view: 'albums' }))}
+          className="mt-8"
+        />
+      )}
+      <ol className={`${ticking ? 'mt-2' : 'mt-8'} divide-y divide-slate-200 dark:divide-slate-800`}>
         {shown.map((track, index) => {
           const isCurrent = nowPlaying?.id === track.id
           const first = showDiscs && (index === 0 || (shown[index - 1].discNo ?? 1) !== (track.discNo ?? 1))
@@ -278,6 +294,9 @@ export default function AlbumView({ albumId }: { albumId: string }) {
                 </p>
               )}
               <div className="flex items-center gap-2">
+              {ticking && (
+                <SelectCheckbox checked={sel.has(track.id)} onChange={() => sel.toggle(track.id)} label={t('library.select_item', { name: track.title })} />
+              )}
               <button
                 type="button"
                 onClick={() => playTracks(tracks, at)}

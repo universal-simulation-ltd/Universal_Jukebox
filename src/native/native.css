@@ -709,3 +709,18 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
   .jx-mix-deck { padding: 18px; }
 }
 html.dark .jx-mix-disc:not(.empty) { box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.8), inset 0 0 0 1.5px rgba(255, 240, 225, 0.14); }
+
+/* Select several, then remove (`SongList`, the Albums and Artists lists): the
+   bar a hold brings up rides under the top bar while the list scrolls, and
+   each row's tick box sits on its cover's corner. */
+.jx-select-bar {
+  position: sticky; z-index: 30;
+  top: calc(env(safe-area-inset-top, 0px) + var(--jx-top-h));
+  margin: 0 -2px 6px; padding: 6px 2px;
+  background: var(--jx-bar);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--jx-line);
+}
+.jx-pick { position: relative; }
+.jx-tick { position: absolute; top: 6px; left: 6px; z-index: 2; }
+.jx-pick.on .jx-row, .jx-pick.on .jx-tile { background: var(--jx-row2); border-radius: 12px; }

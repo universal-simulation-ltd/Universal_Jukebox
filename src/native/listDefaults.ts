@@ -71,6 +71,26 @@ export function makeDefault(patch: Partial<ListDefaults>): void {
 }
 
 /**
+ * The click that ends a hold goes nowhere, whatever is under the finger by
+ * then (BRANDING.md: "the lifting finger never presses what slides in under
+ * it"). A hold that starts selecting brings a bar in over the list, and the
+ * rows move down under the finger: without this, the release landed on the
+ * bar's Select all and ticked every song. Armed until just after the finger
+ * lifts; `swallowed` runs if a click was eaten.
+ */
+export function swallowReleaseClick(swallowed?: () => void): void {
+  const eat = (e: Event) => {
+    e.stopPropagation()
+    e.preventDefault()
+    swallowed?.()
+  }
+  window.addEventListener('click', eat, { capture: true, once: true })
+  const disarm = () => window.setTimeout(() => window.removeEventListener('click', eat, { capture: true }), 400)
+  window.addEventListener('pointerup', disarm, { capture: true, once: true })
+  window.addEventListener('pointercancel', disarm, { capture: true, once: true })
+}
+
+/**
  * A press held for HOLD_MS. `bind(onHold)` goes on a button; its onClick asks
  * `consumed()` first, so the release that ends a hold isn't also a tap.
  */

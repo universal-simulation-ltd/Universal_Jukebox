@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { SelectCheckbox, SelectionBar, useSelection } from '@unisim/sdk'
+import { SelectCheckbox, useSelection } from '@unisim/sdk'
+import RemoveBar from './RemoveBar'
 import PreviewButton from './PreviewButton'
 import { withResumeRow } from './resumeRow'
 import { TrackShelf } from './Shelf'
@@ -20,7 +21,7 @@ import { useT } from '../i18n'
 import LyricsMark from './LyricsMark'
 import { useLyricsCheck } from '../lib/lyricMarks'
 import { useSongFacts } from './WorldFacts'
-import { askFirst, removeManyFromJukebox, selectSeveral } from '../lib/selectSeveral'
+import { removeSongsFromJukebox, selectSeveral } from '../lib/selectSeveral'
 
 // Every track, in one list.
 //
@@ -142,10 +143,6 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
   const ticking = selectSeveral() && !onShelf
   const rowSongs = ticking ? (genreShown ? genreShown.flatMap((g) => g.items) : shown) : []
   const sel = useSelection(rowSongs.map((track) => track.id))
-  const removeTicked = (ids: string[]) => {
-    const chosen = new Set(ids)
-    removeManyFromJukebox('tracks', tracks.filter((track) => chosen.has(track.id)).map((track) => track.path))
-  }
   const hidden = genre
     ? inGenres - (genreShown ?? []).reduce((n, g) => n + g.items.length, 0)
     : matched.length - shown.length
@@ -183,13 +180,7 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
       ) : (
       <>
       {ticking && (
-        <SelectionBar
-          sel={sel}
-          noun={{ one: t('library.noun_song'), other: t('library.noun_songs') }}
-          onDelete={removeTicked}
-          confirm={(_, n) => askFirst(t.plural('library.remove_songs', n), t('library.remove_many_explain'), t('library.remove_yes'))}
-          className="mb-2"
-        />
+        <RemoveBar sel={sel} what="songs" onRemove={(ids) => removeSongsFromJukebox(tracks, ids)} className="mb-2" />
       )}
       <ul className="divide-y divide-slate-200 dark:divide-slate-800">
         {withRows(genreShown, shown, (track) => {

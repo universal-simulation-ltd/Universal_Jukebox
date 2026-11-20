@@ -129,6 +129,10 @@ export default {
   'remove_albums_one': 'Remove {count} album from Jukebox?',
   'remove_albums_other': 'Remove {count} albums from Jukebox?',
   'remove_many_explain': 'They won’t show or play any more. Nothing is deleted: the files stay where they are, and Tune this app, under Your library, puts them back.', // under the question; the same promise as remove_explain, for several
+  'noun_artist': 'artist',
+  'noun_artists': 'artists',
+  'remove_artists_one': 'Remove {count} artist and all their songs from Jukebox?', // asked before removing several artists (web Artists tab): their songs go too, on any album
+  'remove_artists_other': 'Remove {count} artists and all their songs from Jukebox?',
 
   // Add to queue (AddToQueue, TrackOptions)
   'add_to_queue': 'Add to queue',

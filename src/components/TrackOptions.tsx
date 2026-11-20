@@ -17,7 +17,13 @@ import RemoveRow from './RemoveRow'
 /** How long "✓ N songs in queue" shows before the sheet goes. */
 const SAID_MS = 900
 
-export default function TrackOptions({ track, onPlay, onClose }: { track: Track; onPlay(): void; onClose(): void }) {
+export default function TrackOptions({ track, onPlay, onClose, onSelect }: {
+  track: Track
+  onPlay(): void
+  onClose(): void
+  /** "Select": tick this song and start selecting several — the phone's song lists (`native/LibraryScreens` `SongList`). */
+  onSelect?(): void
+}) {
   const t = useT()
   const dialogRef = useDialogFocus()
   const enqueue = usePlayerStore((s) => s.enqueue)
@@ -126,6 +132,19 @@ export default function TrackOptions({ track, onPlay, onClose }: { track: Track;
               <span className="w-5 text-center text-slate-500">▤</span>
               {t('library.go_to_album')}
             </button>
+            {onSelect && (
+              <button
+                type="button"
+                className={row}
+                onClick={() => {
+                  onSelect()
+                  onClose()
+                }}
+              >
+                <span className="w-5 text-center text-slate-500">☑</span>
+                {t('native.select')}
+              </button>
+            )}
             <RemoveRow kind="tracks" keyOf={track.path} name={`“${track.title}”`} rowClass={row} onDone={setSaid} />
           </div>
         )}

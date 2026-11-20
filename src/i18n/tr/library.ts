@@ -121,6 +121,10 @@ const library: Draft['library'] = {
   'remove_albums_one': '{count} albüm Jukebox’tan kaldırılsın mı?',
   'remove_albums_other': '{count} albüm Jukebox’tan kaldırılsın mı?',
   'remove_many_explain': 'Artık gösterilmez ve çalınmaz. Hiçbir şey silinmez: dosyalar yerinde kalır ve Bu uygulamayı ayarla › Kitaplığınız bölümünden geri getirebilirsiniz.',
+  'noun_artist': 'sanatçı',
+  'noun_artists': 'sanatçı',
+  'remove_artists_one': '{count} sanatçı ve tüm şarkıları Jukebox’tan kaldırılsın mı?',
+  'remove_artists_other': '{count} sanatçı ve tüm şarkıları Jukebox’tan kaldırılsın mı?',
 }
 
 export default library

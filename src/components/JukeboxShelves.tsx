@@ -577,9 +577,11 @@ function JukeboxShelfRow({
         <div className="mx-auto mt-4 max-w-xl">
           <SelectionBar
             sel={songSel}
+            // Remove selected: the songs leave the shelf, not the library (SDK 0.228.0).
+            action="remove"
             noun={{ one: t('library.noun_song'), other: t('library.noun_songs') }}
             onDelete={takeOffTicked}
-            confirm={(_, n) => askFirst(t.plural('shelves.take_off_songs', n, { name }), undefined, t('shelves.take_off'))}
+            confirm={(_, n) => askFirst(t.plural('shelves.take_off_songs', n, { name }), undefined, t('shelves.take_off'), false)}
             className="mb-1"
           />
           <ul aria-label={t('shelves.songs_on_named', { name })} className="divide-y divide-slate-200 dark:divide-slate-800">

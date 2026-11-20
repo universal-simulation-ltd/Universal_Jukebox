@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+import { SelectCheckbox, useSelection } from '@unisim/sdk'
+import RemoveBar from './RemoveBar'
 import { withResumeRow } from './resumeRow'
 import { ArtistShelf } from './Shelf'
 import { useGridColumns } from '../lib/useGridColumns'
@@ -18,6 +20,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Album } from '../lib/types'
 import { compareName } from '../lib/collate'
+import { removeManyFromJukebox, selectSeveral } from '../lib/selectSeveral'
 
 // Artists, each with their records under them.
 //
@@ -114,6 +117,26 @@ export default function ArtistList({ query, order, genre: inGenre, hold }: {
     return { groups: groupByGenre(all, forArtist, shownGenres(tally)), hidden: hiddenByGenre(tally) }
   }, [order.kind, tracks, all])
 
+  // Select several artists, then remove them from Jukebox, and every song of
+  // theirs with them (`lib/selectSeveral.ts`): an artist goes by name, as the
+  // long-press sheet's Remove from Jukebox does, so their guest spots on
+  // other people's records go too. The files stay put. The grid on the
+  // website only: not the record shelf, and not the phone screens. A tick box
+  // is on each artist's card, never on the records an opened card shows.
+  const ticking = selectSeveral() && columns !== 'jukebox'
+  const sel = useSelection(ticking ? (genre ? genre.groups.flatMap((g) => g.items) : artists).map((a) => a.name) : [])
+  const tick = (name: string) =>
+    ticking && (
+      // Beside the button, not in it: a tick box can't sit inside a button,
+      // and ticking must not open the artist.
+      <SelectCheckbox
+        checked={sel.has(name)}
+        onChange={() => sel.toggle(name)}
+        label={t('library.select_item', { name: shownName(name) })}
+        className="absolute top-1.5 right-1.5 z-10 shadow-sm"
+      />
+    )
+
   if (all.length > 0 && columns === 'jukebox' && !genre) return <ArtistShelf artists={all} lead={resumeArtist} hold={hold} />
   if (all.length > 0 && columns === 'jukebox' && genre && genre.groups.length > 0) {
     return (
@@ -156,6 +179,9 @@ export default function ArtistList({ query, order, genre: inGenre, hold }: {
 
   return (
     <>
+    {ticking && (
+      <RemoveBar sel={sel} what="artists" onRemove={(names) => removeManyFromJukebox('artists', names)} className="mb-3" />
+    )}
     <ul ref={grid} className={gridClass(columns === 'jukebox' ? 2 : columns)}>
       {maybeResumeRow(cells.map((artist, index) => {
         if ('heading' in artist) {
@@ -170,7 +196,8 @@ export default function ArtistList({ query, order, genre: inGenre, hold }: {
         if (artist.albums.length === 1) {
           const album = artist.albums[0]
           return (
-            <li key={artist.name}>
+            <li key={artist.name} className="relative">
+              {tick(artist.name)}
               <button
                 type="button"
                 onClick={() => navigate({ view: 'album', albumId: album.id })}
@@ -212,7 +239,8 @@ export default function ArtistList({ query, order, genre: inGenre, hold }: {
         // shared `Fragment` key and the stable `li` key are what keep it one.
         return (
           <Fragment key={artist.name}>
-            <li key="group">
+            <li key="group" className="relative">
+              {tick(artist.name)}
               <button
                 type="button"
                 onClick={toggle}

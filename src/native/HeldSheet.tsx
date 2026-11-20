@@ -11,10 +11,17 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useT } from '../i18n'
 import type { Held } from './CollectionHold'
 
-export function HeldSheet({ held, onClose }: { held: Held; onClose(): void }) {
+export function HeldSheet({ held, onClose, onSelect }: {
+  held: Held
+  onClose(): void
+  /** "Select": tick this one and start selecting several, to remove them together (`CollectionHold`). */
+  onSelect?(): void
+}) {
   const t = useT()
   const albums = useLibraryStore((s) => s.albums)
   const tracks = useLibraryStore((s) => s.tracks)
+  // Last before Remove from Jukebox, which several selected can do at once.
+  const select: CollectionLink[] = onSelect ? [{ label: t('native.select'), icon: '☑', go: onSelect }] : []
 
   if (held.kind === 'album') {
     const { album } = held
@@ -44,7 +51,7 @@ export function HeldSheet({ held, onClose }: { held: Held; onClose(): void }) {
         tracks={songs}
         lead={lead}
         shuffleRow={false}
-        links={[]}
+        links={select}
         remove={{ kind: 'albums', key: album.id, name: `“${shownName(album.title)}”` }}
         onClose={onClose}
       />
@@ -65,7 +72,7 @@ export function HeldSheet({ held, onClose }: { held: Held; onClose(): void }) {
       title={shownName(name)}
       subtitle={t.plural('common.albums', theirs.length)}
       tracks={songs}
-      links={links}
+      links={[...links, ...select]}
       remove={{ kind: 'artists', key: name, name: shownName(name) }}
       onClose={onClose}
     />
