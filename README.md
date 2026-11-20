@@ -1149,7 +1149,15 @@ lists' live view and the phone's list defaults, and the first-run tips.
 `useSettingsStore` is the zustand view the app has always used; the once-only
 moves in `read()` run before the synced store loads, so they are never sent.
 Requests' double tap (`requestKind`) joined the store so it follows too.
-`npm run test:tune-sync` checks it against a mocked account in two browsers.
+A synced value a device can't offer is **kept, not rewritten**: the website's
+Pocket player reads as Pocket on an iPhone (which has no pocket player) and is
+shown there as the CD (`deviceDeck`, applied only in the `useSettingsStore`
+view), so changing anything else on the iPhone sends Pocket back, not the CD;
+the store sends its whole set on every change, so a normaliser that mapped it
+would overwrite the website's choice. The deck is the only synced choice offered
+from different lists on different platforms.
+`npm run test:tune-sync` checks it against a mocked account in two browsers
+(an iPhone stand-in among them).
 
 | Setting | Notes |
 |---|---|

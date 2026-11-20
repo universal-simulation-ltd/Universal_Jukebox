@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { DEFAULTS, DEVICE_ONLY, normaliseSettings, syncedSettings, useSettingsStore } from './settingsStore'
+import { afterEach, describe, expect, it } from 'vitest'
+import { DEFAULTS, DEVICE_ONLY, deviceDeck, normaliseSettings, syncedSettings, useSettingsStore } from './settingsStore'
 import { useRequestsStore } from './requestsStore'
 
 // The settings store on the SDK's synced store (createSyncedSettings, 0.232):
@@ -73,5 +73,47 @@ describe('settings, synced', () => {
     expect(useRequestsStore.getState().defaultKind).toBe('track')
     useSettingsStore.getState().reset()
     expect(useRequestsStore.getState().defaultKind).toBe('artist')
+  })
+})
+
+// The website's Pocket on an iPhone (no pocket player there: barsPocketPlayer).
+// The synced store sends its whole set on any change, so the iPhone must keep
+// the value it can't show, not rewrite it as what it shows.
+describe('a deck this device cannot show', () => {
+  const asIPhone = () => {
+    ;(globalThis as { Capacitor?: unknown }).Capacitor = { isNativePlatform: () => true, getPlatform: () => 'ios' }
+  }
+  afterEach(() => {
+    delete (globalThis as { Capacitor?: unknown }).Capacitor
+    useSettingsStore.getState().reset()
+  })
+
+  it('is read as stored on every device', () => {
+    asIPhone()
+    expect(normaliseSettings({ deck: 'pocket' }).deck).toBe('pocket')
+    expect(normaliseSettings({ deck: 'nope' }).deck).toBe('vinyl')
+  })
+
+  it('shows as the CD on an iPhone, as itself elsewhere', () => {
+    expect(deviceDeck('pocket')).toBe('pocket')
+    asIPhone()
+    expect(deviceDeck('pocket')).toBe('cd')
+    expect(deviceDeck('cassette')).toBe('cassette')
+    expect(deviceDeck('automatic')).toBe('automatic')
+  })
+
+  it('an iPhone changing another setting keeps the account’s Pocket (the clobber)', () => {
+    asIPhone()
+    // The account's set arriving (applyRemote runs the same normalise as set).
+    syncedSettings.set({ deck: 'pocket' })
+    expect(useSettingsStore.getState().deck).toBe('cd')
+    // Something else changed on the iPhone: the whole set goes to the account.
+    useSettingsStore.getState().set('hideErrors', false)
+    expect(syncedSettings.getState().deck).toBe('pocket')
+    expect(syncedSettings.getState().hideErrors).toBe(false)
+    expect(useSettingsStore.getState().deck).toBe('cd')
+    // A deck picked on the iPhone is a real choice, and is kept.
+    useSettingsStore.getState().set('deck', 'cassette')
+    expect(syncedSettings.getState().deck).toBe('cassette')
   })
 })

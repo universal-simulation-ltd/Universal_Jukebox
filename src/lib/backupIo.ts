@@ -11,7 +11,7 @@ import { CACHE_VERSION } from './lrclib'
 import { isNativeShell } from './nativeFile'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useRequestsStore } from '../stores/requestsStore'
-import { settingsBlob, useSettingsStore } from '../stores/settingsStore'
+import { settingsBlob, syncedSettings, useSettingsStore } from '../stores/settingsStore'
 import { useShelvesStore } from '../stores/shelvesStore'
 import { getT } from '../i18n/runtime.ts'
 
@@ -21,7 +21,9 @@ export async function gatherBackup(): Promise<JukeboxBackup> {
   // the demo's, and a backup of them would overwrite the real ones' copy.
   if (library.trying) throw new Error(getT()('settings.backup_blocked_trying'))
   return buildBackup({
-    settings: { ...settingsBlob(useSettingsStore.getState()) },
+    // The stored set, not the view: a backup made on an iPhone keeps the
+    // website's Pocket as Pocket (`deviceDeck`).
+    settings: { ...settingsBlob(syncedSettings.getState()) },
     shelves: useShelvesStore.getState().shelves,
     requests: useRequestsStore.getState().requests,
     lyrics: await uploadedLyrics(),

@@ -157,6 +157,25 @@ export function deckSettings(): DeckSetting[] {
   return barsPocketPlayer() ? DECK_SETTINGS.filter((d) => d !== 'pocket') : DECK_SETTINGS
 }
 
+/**
+ * The deck THIS device draws for a stored choice: the choice itself, or —
+ * where it can't be offered (the pocket player on iPhone/iPad) — the nearest
+ * machine it has, the CD, which is also what `deckForYear` puts in the pocket
+ * player's years there.
+ *
+ * ⚠️ DISPLAY ONLY. The stored value, and so the account's, stays what was
+ * chosen (`readStored` keeps every `DECK_SETTINGS` value on every device): the
+ * synced store sends its WHOLE set on any change, so an iPhone that read the
+ * website's Pocket as something else would send that something else back the
+ * next time anything at all was changed on it, and the website would lose its
+ * choice. The zustand view (`deviceView`) is what applies this, so nothing
+ * that draws or sounds a deck ever sees a machine this device can't show. A
+ * deck picked on the iPhone is a real choice, and is sent like any other.
+ */
+export function deviceDeck(deck: DeckSetting): DeckSetting {
+  return deck === 'pocket' && barsPocketPlayer() ? 'cd' : deck
+}
+
 /** The first-run tips — see `components/Tip.tsx`. */
 // 'hold' and 'shelfPlay' are the hints in the shelves' captions ("tap to play,
 // hold for options", "tap the record to play the shelf from here"): shown under
@@ -722,7 +741,10 @@ function readStored(given?: Record<string, unknown>): Settings {
     ownerName: typeof (stored as { ownerName?: unknown }).ownerName === 'string' ? ((stored as { ownerName: string }).ownerName).slice(0, OWNER_NAME_MAX) : '',
     // `automatic` was retired for `automatic` on 2026-09-10; somebody who had
     // chosen "a different machine each time" gets the closest thing to it.
-    deck: deck === 'random' ? 'automatic' : deckSettings().includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
+    // ⚠️ `DECK_SETTINGS`, not `deckSettings()`: every machine is kept, the
+    // pocket player on an iPhone too, which shows it as `deviceDeck` says —
+    // see there for why the stored value must never be rewritten.
+    deck: deck === 'random' ? 'automatic' : DECK_SETTINGS.includes(deck as DeckSetting) ? (deck as DeckSetting) : DEFAULTS.deck,
     deckEras: sanitiseEras((stored as { deckEras?: unknown }).deckEras),
     needleDrop: typeof stored.needleDrop === 'boolean' ? stored.needleDrop : legacyNeedleDrop(),
     needleDropLevel: clamp(stored.needleDropLevel, MIN_NEEDLE_LEVEL, MAX_NEEDLE_LEVEL, DEFAULTS.needleDropLevel),
@@ -912,8 +934,23 @@ export const syncedSettings = createSyncedSettings<Settings>('jukebox', DEFAULTS
   deviceOnly: DEVICE_ONLY,
 })
 
+/**
+ * The settings as THIS device uses them: the synced set, with any value it
+ * can't represent shown as its nearest one (today only the deck — see
+ * `deviceDeck`). Never written back: the synced store keeps the raw value.
+ *
+ * ⚠️ Every other synced choice is offered from the same list on every
+ * platform, so there is nothing else to map. A future one offered on only
+ * some platforms belongs here, and its reader in `readStored` must keep every
+ * value any platform can store.
+ */
+export function deviceView(state: Settings): Settings {
+  const deck = deviceDeck(state.deck)
+  return deck === state.deck ? state : { ...state, deck }
+}
+
 export const useSettingsStore = create<SettingsState>(() => ({
-  ...syncedSettings.getState(),
+  ...deviceView(syncedSettings.getState()),
 
   set(key, value) {
     syncedSettings.set({ [key]: value } as Partial<Settings>)
@@ -931,7 +968,7 @@ export const useSettingsStore = create<SettingsState>(() => ({
 // Every change — this device's, another tab's, the account's — reaches the
 // zustand view at once, so `useSettingsStore.subscribe((next, prev) => …)`
 // keeps working exactly as before.
-syncedSettings.subscribe(() => useSettingsStore.setState({ ...syncedSettings.getState() }))
+syncedSettings.subscribe(() => useSettingsStore.setState({ ...deviceView(syncedSettings.getState()) }))
 
 function persist(state: Settings) {
   try { localStorage.setItem(KEY, JSON.stringify(settingsBlob(state))) } catch { /* ignore */ }

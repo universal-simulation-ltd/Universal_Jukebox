@@ -19,7 +19,11 @@
 //   • signed in: a change goes to `tune-app:jukebox` as { at, values }, with
 //     no device-only setting in it (the volume boost, say);
 //   • a second device follows, newest wins, keeps its own device-only
-//     settings, Reset follows, reopening is quiet.
+//     settings, Reset follows, reopening is quiet;
+//   • a deck the iPhone can't show (the website's Pocket) is kept: the iPhone
+//     (the store-capture flag, which bars the pocket player as iOS does)
+//     shows the CD, and changing something else there sends Pocket back, not
+//     what it showed.
 
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -32,6 +36,9 @@ const ROW = `tune-app:${PRODUCT}`
 const STORE_KEY = 'unisim-jukebox-settings'
 const ORIGINAL = /Original sound levels/
 const SHOW_ERRORS = /Show error messages/
+const DECK_FOLD = 'What you’re playing on'
+const POCKET = /^Pocket player/
+const CD = /^CD\b/
 
 const PLAYWRIGHT_CANDIDATES = [
   '../node_modules/playwright/index.js',
@@ -135,8 +142,17 @@ const playwright = await loadPlaywright()
 const browser = await playwright.chromium.launch()
 const errors = []
 
-async function device({ uid = null, seed = {} } = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+async function device({ uid = null, seed = {}, iphone = false } = {}) {
+  const context = await browser.newContext({ viewport: iphone ? { width: 390, height: 844 } : { width: 1280, height: 900 } })
+  // An iPhone stand-in: the flag the store screenshots set, which gives the
+  // phone screens and bars the pocket player exactly as iOS does
+  // (lib/nativeFile.ts barsPocketPlayer, native/shell.ts).
+  if (iphone) {
+    await context.addInitScript(() => {
+      if (location.protocol === 'about:') return
+      sessionStorage.setItem('jukebox:store-capture', '1')
+    })
+  }
   await context.route(/\/(auth|rest|functions|storage)\/v1\//, answer)
   await context.route(/\/realtime\/v1\//, (r) => r.abort())
   const session = uid ? sessionFor(uid) : null
@@ -161,13 +177,28 @@ async function device({ uid = null, seed = {} } = {}) {
       await page.goto('about:blank')
       await page.goto(`${BASE}#/settings`, { waitUntil: 'domcontentloaded' })
       await page.waitForTimeout(1500)
+      // The phone screens open on the welcome until there is a library: the
+      // example one, then Tune.
+      const example = page.getByText('Try it with the example library')
+      if (iphone && (await example.count()) > 0) {
+        await example.first().click()
+        await page.waitForTimeout(1500)
+        await page.evaluate(() => { location.hash = '#/settings' })
+        await page.waitForTimeout(1000)
+      }
     },
     tune: async () => {
-      for (const title of ['Sound', 'Messages']) {
+      for (const title of ['Sound', 'Messages', DECK_FOLD]) {
         const fold = page.locator('details').filter({ has: page.locator('summary').filter({ has: page.getByText(title, { exact: true }) }) }).first()
         if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').click()
       }
       await box(ORIGINAL).waitFor({ timeout: 10000 })
+    },
+    deckOffered: (label) => page.getByRole('radio', { name: label }).count().then((n) => n > 0),
+    deckOn: (label) => page.getByRole('radio', { name: label }).first().isChecked(),
+    pickDeck: async (label) => {
+      await page.getByRole('radio', { name: label }).first().check()
+      await page.waitForTimeout(400)
     },
     isOn: (name) => box(name).isChecked(),
     flip: async (name) => {
@@ -271,6 +302,35 @@ try {
     check('reopening both sends nothing more', rowUps('u1').length === before)
     await a.close()
     await b.close()
+  }
+
+  console.log('\na deck the iPhone can’t show: the website’s Pocket survives it')
+  {
+    const web = await device({ uid: 'u2' })
+    const phone = await device({ uid: 'u2', iphone: true })
+    await web.open()
+    await web.tune()
+    await web.pickDeck(POCKET)
+    check('the website picks the Pocket player → sent', rowUps('u2').at(-1)?.data?.values?.deck === 'pocket', JSON.stringify(rowUps('u2').at(-1)?.data?.values?.deck))
+    await phone.open()
+    await phone.tune()
+    check('the iPhone doesn’t offer it, and shows the CD', !(await phone.deckOffered(POCKET)) && (await phone.deckOn(CD)))
+    check('…while keeping Pocket as the stored choice', (await phone.stored())?.deck === 'pocket', JSON.stringify((await phone.stored())?.deck))
+    const before = rowUps('u2').length
+    await phone.flip(SHOW_ERRORS)
+    const sent = rowUps('u2').at(-1)?.data?.values
+    check('the iPhone changes another setting → sent, with Pocket, not the CD it shows', rowUps('u2').length === before + 1 && sent?.deck === 'pocket' && sent?.hideErrors === false, JSON.stringify(sent && { deck: sent.deck, hideErrors: sent.hideErrors }))
+    check('…and still shows the CD', await phone.deckOn(CD))
+    await web.open()
+    await web.tune()
+    check('the website still reads Pocket, and has the iPhone’s change', (await web.deckOn(POCKET)) && (await web.isOn(SHOW_ERRORS)))
+    await phone.pickDeck(/^Cassette/)
+    check('a deck picked on the iPhone is a real choice → sent', rowUps('u2').at(-1)?.data?.values?.deck === 'cassette')
+    await web.open()
+    await web.tune()
+    check('…and the website follows', await web.deckOn(/^Cassette/))
+    await web.close()
+    await phone.close()
   }
 
   check('no page errors', errors.length === 0, errors[0])
