@@ -222,57 +222,36 @@ export default function NativeApp() {
   // The hold and the drag are the SDK phone kit's `useTabReorder` (@unisim/sdk
   // 0.230.0, where this file's own copy went, with BlackBook's). What stays
   // here is Jukebox's: the bar, the bin's look and words, the Undo, the
-  // "Set as default" bubble for a tab let go where it was, and the haptics
-  // (`lib/haptics`: the kit's `navigator.vibrate` is felt on Android only).
+  // "Set as default" bubble for a tab let go where it was (the kit's
+  // `onDropInPlace`, 0.231.0), and the haptics (`lib/haptics` through the
+  // kit's `onHaptic`, 0.231.0: the Taptic Engine on an iPhone, and on Android
+  // one buzz, not the kit's `navigator.vibrate` on top of Capacitor's).
   const tabOrder = useSettingsStore((s) => s.tabOrder)
   const hiddenTabs = useSettingsStore((s) => s.hiddenTabs)
   const shown = useMemo(() => shownTabs(tabOrder, hiddenTabs), [tabOrder, hiddenTabs])
   const [binned, setBinned] = useState<HomeTab | null>(null)
-  const dropped = useRef(false)
   const reorder = useTabReorder<HomeTab>({
     tabs: shown,
     onReorder: (order) => {
-      dropped.current = true
       const s = useSettingsStore.getState()
       s.set('tabOrder', withShownOrder(s.tabOrder, order))
     },
     onBin: (tab) => {
-      dropped.current = true
       const s = useSettingsStore.getState()
       s.set('hiddenTabs', [...s.hiddenTabs, tab])
       setBinned(tab)
     },
+    // Picked up: any bubble goes. Let go where it was (nothing moved, nothing
+    // binned): the "Set as default" bubble, as a hold always did.
+    onLift: () => setTabMenu(null),
+    onDropInPlace: (tab) => setTabMenu(tab),
+    // A thunk as it is picked up; a tick as the others make room, and as the
+    // finger reaches or leaves the bin. Nothing as it is let go.
+    onHaptic: (moment) => {
+      if (moment === 'lift') haptic('thunk')
+      else if (moment !== 'drop') haptic('tick')
+    },
   })
-  // Picked up: a thunk, and any bubble goes. Let go where it was (nothing
-  // moved, nothing binned): the "Set as default" bubble, as a hold always did.
-  const lifted = useRef<HomeTab | null>(null)
-  useEffect(() => {
-    const tab = reorder.dragging
-    if (tab) {
-      lifted.current = tab
-      dropped.current = false
-      haptic('thunk')
-      setTabMenu(null)
-      return
-    }
-    const was = lifted.current
-    lifted.current = null
-    if (was && !dropped.current) setTabMenu(was)
-  }, [reorder.dragging])
-  // A tick as the others make room, and as the finger reaches or leaves the bin.
-  const dragOrder = reorder.order.join()
-  const ticked = useRef(dragOrder)
-  useEffect(() => {
-    if (reorder.dragging && dragOrder !== ticked.current) haptic('tick')
-    ticked.current = dragOrder
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragOrder])
-  const wasOverBin = useRef(false)
-  useEffect(() => {
-    if (reorder.dragging && reorder.overBin !== wasOverBin.current) haptic('tick')
-    wasOverBin.current = reorder.overBin
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reorder.overBin])
   // The Undo after a tab goes in the bin, for a few seconds.
   useEffect(() => {
     if (!binned) return
