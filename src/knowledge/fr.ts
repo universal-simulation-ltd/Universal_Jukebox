@@ -282,7 +282,7 @@ Si vous aimez regarder le disque tourner, **Anti-veille** empêche l’écran de
 
 - **Vos fichiers musicaux.** Ils sont lus là où ils se trouvent et ne sont jamais copiés sur un serveur.
 - **Le catalogue de votre bibliothèque** : titres, artistes, albums, petites copies des pochettes et éventuelles corrections de ménage.
-- **Vos réglages, vos demandes et l’endroit où vous vous étiez arrêté.** Ils restent dans l’application sur cet appareil.
+- **Vos réglages, vos demandes et l’endroit où vous vous étiez arrêté.** Ils restent dans l’application sur cet appareil. Connecté, vos réglages de Régler cette application sont aussi conservés sur votre compte (voir Pas de compte).
 
 Rien de tout cela ne quitte votre appareil, sauf si vous faites une sauvegarde. Un fichier de sauvegarde va là où vous l’enregistrez. Il contient vos réglages, vos étagères, vos demandes et les paroles que vous avez ajoutées, désignés par leur titre, leur artiste et leur album ; il ne contient jamais votre musique. Si vous utilisez Jukebox sur deux appareils, chacun garde sa propre bibliothèque.
 
@@ -298,7 +298,7 @@ Les réponses des deux premières sont conservées sur votre appareil, si bien q
 
 ## Pas de compte
 
-Rien dans Jukebox ne demande de connexion, sur aucun appareil, et il ne conserve rien sur un compte. Si vous êtes déjà connecté à une application UNI·SIM sur le site web ou sur votre téléphone, Jukebox vous reconnaît et met votre nom dans le titre. Jukebox ne vous demande jamais de vous connecter, et l’application Windows n’a aucune connexion. Jukebox ne compte pas combien de fois il est ouvert. Les applications pour téléphone et Windows n’envoient rien au démarrage ; le site web, uniquement pour une personne connectée, note une fois qu’il a été ouvert, sans rien sur votre musique.
+Rien dans Jukebox ne demande de connexion, sur aucun appareil. Si vous êtes déjà connecté à une application UNI·SIM sur le site web ou sur votre téléphone, Jukebox vous reconnaît et met votre nom dans le titre, et conserve vos réglages de Régler cette application sur votre compte pour que vos autres appareils les suivent (le changement le plus récent l’emporte). Le volume et le niveau, l’écran allumé, les notifications de morceaux, la vue de la bibliothèque et les astuces restent sur chaque appareil. Déconnecté, Jukebox ne conserve rien sur un compte. Jukebox ne vous demande jamais de vous connecter, et l’application Windows n’a aucune connexion. Jukebox ne compte pas combien de fois il est ouvert. Les applications pour téléphone et Windows n’envoient rien au démarrage (connecté, les applications pour téléphone récupèrent vos réglages de Régler cette application) ; le site web, uniquement pour une personne connectée, note une fois qu’il a été ouvert, sans rien sur votre musique.
 
 ## Autorisations
 

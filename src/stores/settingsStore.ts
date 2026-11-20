@@ -3,9 +3,11 @@ import { normaliseHidden, normaliseOrder, PHONE_TABS } from '../lib/tabs'
 import { barsPocketPlayer } from '../lib/nativeFile'
 import { phoneScreens } from '../native/shell'
 import { create } from 'zustand'
+import { createSyncedSettings } from '@unisim/sdk'
 import { perTab } from '../lib/perTab'
 import { ORDER_KINDS, type OrderKind } from '../lib/order'
 import { getT, type MessageKey } from '../i18n/runtime.ts'
+import type { RequestKind } from '../lib/requests'
 
 // Everything on the Settings page, in one store, persisted to localStorage.
 //
@@ -14,6 +16,23 @@ import { getT, type MessageKey } from '../i18n/runtime.ts'
 // there were four preferences that pattern would have meant four readers, four
 // writers, four try/catch blocks and four chances to forget one. Adding a
 // setting here should be: a field, a default, and a control on the page.
+//
+// ⚠️ SYNCED TO THE ACCOUNT since SDK 0.232 (James, 2026-10-30: "mobile app and
+// web app settings in tune this app should be saved and synced to their
+// account … Global rule"). The values live in the SDK's `createSyncedSettings`
+// store (`syncedSettings` below), still under `unisim-jukebox-settings` in the
+// same flat shape, and — signed in — on the account's `tune-app:jukebox` row:
+// newest change wins, a device that never changed anything says nothing and
+// takes the account's set, signed out it stays on this device. Jukebox has no
+// Sign in of its own; an existing sign-in (the website's shared cookie) is
+// what makes it sync. `useSettingsStore` is the zustand view the rest of the
+// app has always used, and the phone screens read the same one.
+//
+// `DEVICE_ONLY` lists what stays on this device and why (the volume and level
+// that suit this device's speakers, its screen, its notification permission,
+// the lists' live view, the phone's list defaults, the first-run tips, the
+// typed owner name, the platform-dependent opening tab). Everything else on
+// Tune this app follows the account.
 //
 // Every read and write is wrapped, because storage genuinely throws: a private
 // window, "block all cookies", a full disk. A player that will not start
@@ -384,6 +403,13 @@ export interface Settings {
    * suite's rule) with the visualiser still on.
    */
   hideVisualiser: boolean
+  /**
+   * What a new request starts as (Requests' double tap — `requestsStore`):
+   * Artist until a double tap on another says otherwise. Kept here, rather
+   * than under its own key, so it follows the account with the rest; the old
+   * key (`jukebox:requestKind`) is read once.
+   */
+  requestKind: RequestKind
 }
 
 export const DEFAULTS: Settings = {
@@ -450,6 +476,7 @@ export const DEFAULTS: Settings = {
   lockScreenLyrics: false,
   hideErrors: true,
   hideVisualiser: false,
+  requestKind: 'artist',
 }
 
 /** The longest fade either control offers. Also the clamp used when reading. */
@@ -767,7 +794,22 @@ function readStored(given?: Record<string, unknown>): Settings {
     hideVisualiser: stored.hideVisualiser === true,
     // `=== true`, for the reason `lyricsOnline` gives above.
     aboutOnline: stored.aboutOnline === true,
+    requestKind: isRequestKind(stored.requestKind) ? stored.requestKind : legacyRequestKind(),
   }
+}
+
+function isRequestKind(v: unknown): v is RequestKind {
+  return v === 'track' || v === 'album' || v === 'artist'
+}
+
+/** Requests' double tap lived under its own key until it joined this store (2026-11-20); read once. */
+const LEGACY_REQUEST_KIND_KEY = 'jukebox:requestKind'
+function legacyRequestKind(): RequestKind {
+  try {
+    const kind = localStorage.getItem(LEGACY_REQUEST_KIND_KEY)
+    if (isRequestKind(kind)) return kind
+  } catch { /* ignore */ }
+  return DEFAULTS.requestKind
 }
 
 /**
@@ -814,26 +856,82 @@ interface SettingsState extends Settings {
   restore(blob: Record<string, unknown>): void
 }
 
-export const useSettingsStore = create<SettingsState>((setState, get) => ({
-  ...read(),
+/**
+ * What stays on this device and never goes to the account, and why. Each one
+ * is saved locally, never stamped, and kept when the account's set arrives;
+ * Reset to defaults still clears it.
+ */
+export const DEVICE_ONLY = [
+  // The phone opens on Albums and the website on Tracks (`DEFAULTS.homeTab`):
+  // one device's untouched default must not move the other's front door.
+  'homeTab',
+  // Typed for a device with no Universal ID here; signed in, the account's
+  // own name wins anyway, so it has nothing to say to the account.
+  'ownerName',
+  // Loudness that suits THIS device's speakers or headphones (and Quiet is
+  // the iPhone's audio-graph experiment): a bedside phone is not a laptop.
+  'volumeBoost',
+  'levelDb',
+  // This device's screen, kept on while Now Playing is open.
+  'keepAwake',
+  // Needs this device's own notification permission: only stored true once
+  // this device said yes.
+  'trackNotifications',
+  // The lists' live view (the phone puts it back to its defaults at every
+  // launch) and the phone's own list defaults, adopted from this device's
+  // lists the first time it opens — never a choice made for the account.
+  'libraryOrder',
+  'libraryColumns',
+  'fullAlbumsOnly',
+  'artistsMin3',
+  'genresMin3',
+  'listDefaults',
+  // First-run hints about this device's own gestures and buttons.
+  'tipsSeen',
+  'customiseSeen',
+] as const satisfies readonly (keyof Settings)[]
+
+function defaultsCopy(): Settings {
+  return JSON.parse(JSON.stringify(DEFAULTS)) as Settings
+}
+
+/** Anything (the stored blob, the account's values, a backup) → a complete set, field by field. */
+export function normaliseSettings(raw: unknown): Settings {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return defaultsCopy()
+  return readStored(raw as Record<string, unknown>)
+}
+
+// The once-only moves and the old keys (`read()`), applied to the stored blob
+// BEFORE the synced store reads it: they are this device catching up, not a
+// change anybody made, so they are never stamped and never sent.
+persist(read())
+
+/** The synced store behind `useSettingsStore` — see the header. */
+export const syncedSettings = createSyncedSettings<Settings>('jukebox', DEFAULTS, (raw) => normaliseSettings(raw), {
+  storageKey: KEY,
+  deviceOnly: DEVICE_ONLY,
+})
+
+export const useSettingsStore = create<SettingsState>(() => ({
+  ...syncedSettings.getState(),
 
   set(key, value) {
-    setState({ [key]: value } as Pick<SettingsState, typeof key>)
-    persist(get())
+    syncedSettings.set({ [key]: value } as Partial<Settings>)
   },
 
   reset() {
-    setState({ ...DEFAULTS })
-    persist(DEFAULTS)
+    syncedSettings.reset()
   },
 
   restore(blob) {
-    try { localStorage.setItem(KEY, JSON.stringify(blob)) } catch { /* read back from memory below anyway */ }
-    const restored = readStored(blob)
-    setState(restored)
-    persist(restored)
+    syncedSettings.set(normaliseSettings(blob))
   },
 }))
+
+// Every change — this device's, another tab's, the account's — reaches the
+// zustand view at once, so `useSettingsStore.subscribe((next, prev) => …)`
+// keeps working exactly as before.
+syncedSettings.subscribe(() => useSettingsStore.setState({ ...syncedSettings.getState() }))
 
 function persist(state: Settings) {
   try { localStorage.setItem(KEY, JSON.stringify(settingsBlob(state))) } catch { /* ignore */ }
@@ -908,6 +1006,7 @@ export function settingsBlob(state: Settings): Settings {
     lockScreenLyrics: state.lockScreenLyrics,
     hideErrors: state.hideErrors,
     hideVisualiser: state.hideVisualiser,
+    requestKind: state.requestKind,
   }
 }
 

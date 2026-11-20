@@ -282,7 +282,7 @@ Si le gusta ver girar el disco, **No apagar** impide que la pantalla se atenúe 
 
 - **Sus archivos de música.** Se leen donde están y nunca se copian a un servidor.
 - **El catálogo de su biblioteca**: títulos, artistas, álbumes, copias pequeñas de las carátulas y las correcciones que haya hecho al poner orden.
-- **Sus ajustes, sus peticiones y el punto en que lo dejó.** Se quedan en la aplicación, en este dispositivo.
+- **Sus ajustes, sus peticiones y el punto en que lo dejó.** Se quedan en la aplicación, en este dispositivo. Con la sesión iniciada, sus ajustes de Ajustar esta app también se guardan en su cuenta (vea Sin cuenta).
 
 Nada de esto sale de su dispositivo a menos que haga una copia de seguridad. Un archivo de copia de seguridad va adonde usted lo guarde. Contiene sus ajustes, estantes, peticiones y las letras que haya añadido, identificados por título, artista y álbum; nunca contiene su música. Si usa Jukebox en dos dispositivos, cada uno conserva su propia biblioteca.
 
@@ -298,7 +298,7 @@ Las respuestas de las dos primeras se guardan en su dispositivo, así que cada c
 
 ## Sin cuenta
 
-Nada en Jukebox requiere iniciar sesión, en ningún dispositivo, y no guarda nada en una cuenta. Si ya ha iniciado sesión en una app de UNI·SIM en el sitio web o en su móvil, Jukebox lo reconoce y pone su nombre en el título. Jukebox nunca le pide iniciar sesión, y la app de Windows no tiene inicio de sesión. Jukebox no cuenta cuántas veces se abre. Las apps para móvil y Windows no envían nada al iniciarse; el sitio web, solo si ha iniciado sesión, anota una vez que se ha abierto, sin nada sobre su música.
+Nada en Jukebox requiere iniciar sesión, en ningún dispositivo. Si ya ha iniciado sesión en una app de UNI·SIM en el sitio web o en su móvil, Jukebox lo reconoce y pone su nombre en el título, y guarda sus ajustes de Ajustar esta app en su cuenta para que sus otros dispositivos los sigan (gana el cambio más reciente). El volumen y el nivel, mantener la pantalla encendida, los avisos de canciones, la vista de la biblioteca y los consejos se quedan en cada dispositivo. Sin sesión iniciada, Jukebox no guarda nada en una cuenta. Jukebox nunca le pide iniciar sesión, y la app de Windows no tiene inicio de sesión. Jukebox no cuenta cuántas veces se abre. Las apps para móvil y Windows no envían nada al iniciarse (con la sesión iniciada, las apps para móvil recuperan sus ajustes de Ajustar esta app); el sitio web, solo si ha iniciado sesión, anota una vez que se ha abierto, sin nada sobre su música.
 
 ## Permisos
 

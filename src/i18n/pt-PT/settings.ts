@@ -5,7 +5,7 @@ import type { Draft } from '../en/index.ts'
 const settings: Draft['settings'] = {
   'back_to_library': 'Voltar à sua biblioteca',
   'title': 'Ajustar esta aplicação',
-  'intro': 'Tudo aqui fica guardado neste dispositivo, a menos que faça uma cópia de segurança em Cópia de segurança.',
+  'intro': 'Tudo aqui fica guardado neste dispositivo. Se tiver sessão iniciada na UNI·SIM, quase tudo também o acompanha nos seus outros dispositivos.',
   'something_wrong': 'Algo correu mal.',
 
   'library_title': 'A sua biblioteca',

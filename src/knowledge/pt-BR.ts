@@ -282,7 +282,7 @@ Se você gosta de ver o disco girando, **Tela ligada** impede que a tela escure�
 
 - **Os seus arquivos de música.** Eles são lidos onde estão e nunca são copiados para um servidor.
 - **O catálogo da sua biblioteca**: títulos, artistas, álbuns, cópias pequenas das capas e as correções que você fez ao arrumar.
-- **Os seus ajustes, os seus pedidos e o ponto em que você parou.** Eles ficam no app, neste dispositivo.
+- **Os seus ajustes, os seus pedidos e o ponto em que você parou.** Eles ficam no app, neste dispositivo. Com login, os seus ajustes de Ajustar este app também ficam guardados na sua conta (veja Sem conta).
 
 Nada disso sai do seu dispositivo, a menos que você faça um backup. Um arquivo de backup vai para onde você o salvar. Ele contém seus ajustes, estantes, pedidos e as letras que você adicionou, identificados pelo título, pelo artista e pelo álbum; ele nunca contém a sua música. Se você usar o Jukebox em dois dispositivos, cada um mantém a própria biblioteca.
 
@@ -298,7 +298,7 @@ As respostas das duas primeiras ficam guardadas no seu dispositivo, então cada 
 
 ## Sem conta
 
-Nada no Jukebox exige login, em nenhum dispositivo, e ele não guarda nada em uma conta. Se você já fez login em um app da UNI·SIM no site ou no celular, o Jukebox reconhece você e coloca o seu nome no título. O Jukebox nunca pede que você faça login, e o app para Windows não tem login. O Jukebox não conta quantas vezes é aberto. Os apps para celular e Windows não enviam nada ao iniciar; o site, só para quem fez login, registra uma vez que foi aberto, sem nada sobre a sua música.
+Nada no Jukebox exige login, em nenhum dispositivo. Se você já fez login em um app da UNI·SIM no site ou no celular, o Jukebox reconhece você e coloca o seu nome no título, e guarda os seus ajustes de Ajustar este app na sua conta para que os seus outros dispositivos os sigam (vale a mudança mais recente). O volume e o nível, a tela ligada, as notificações de música, a visualização da biblioteca e as dicas ficam em cada dispositivo. Sem login, o Jukebox não guarda nada em uma conta. O Jukebox nunca pede que você faça login, e o app para Windows não tem login. O Jukebox não conta quantas vezes é aberto. Os apps para celular e Windows não enviam nada ao iniciar (com login, os apps para celular buscam os seus ajustes de Ajustar este app); o site, só para quem fez login, registra uma vez que foi aberto, sem nada sobre a sua música.
 
 ## Permissões
 

@@ -5,7 +5,7 @@ import type { Draft } from '../en/index.ts'
 const settings: Draft['settings'] = {
   'back_to_library': 'Zurück zur Mediathek',
   'title': 'Diese App anpassen',
-  'intro': 'Alles hier wird auf diesem Gerät gespeichert, es sei denn, du sicherst es unter „Sicherung“.',
+  'intro': 'Alles hier wird auf diesem Gerät gespeichert. Bist du bei UNI·SIM angemeldet, folgt dir das meiste davon auch auf deine anderen Geräte.',
   'something_wrong': 'Etwas ist schiefgelaufen.',
 
   'library_title': 'Deine Mediathek',

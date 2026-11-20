@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { addRequest, parseRequests, setGot, tickFound, type MusicRequest, type RequestKind } from '../lib/requests'
 import { useLibraryStore } from './libraryStore'
+import { useSettingsStore } from './settingsStore'
 
 // The Jukebox tab's requests, kept on the device — see `lib/requests.ts`.
 
@@ -20,27 +21,17 @@ function persist(requests: readonly MusicRequest[]): void {
   } catch { /* storage full or off — the requests last until the app closes */ }
 }
 
-const KIND_KEY = 'jukebox:requestKind'
-
-/**
- * What a new request starts as: Artist, until a double tap on another says
- * otherwise (James, 2026-09-27: "Default search should be artist but similar
- * to library, allow the user to double tap song etc to default to opening on
- * that").
- */
-function readKind(): RequestKind {
-  try {
-    const kind = localStorage.getItem(KIND_KEY)
-    return kind === 'track' || kind === 'album' || kind === 'artist' ? kind : 'artist'
-  } catch {
-    return 'artist'
-  }
-}
-
 const newId = () => `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
 interface RequestsState {
   requests: readonly MusicRequest[]
+  /**
+   * What a new request starts as: Artist, until a double tap on another says
+   * otherwise (James, 2026-09-27: "Default search should be artist but similar
+   * to library, allow the user to double tap song etc to default to opening on
+   * that"). Kept in the settings store (`Settings.requestKind`) since
+   * 2026-11-20, so it follows the account with the rest of Tune this app.
+   */
   defaultKind: RequestKind
   setDefaultKind(kind: RequestKind): void
   /** Back to Artist, and forget the double tap — Settings' Reset to defaults. */
@@ -69,19 +60,9 @@ export const useRequestsStore = create<RequestsState>((set, get) => {
   return {
     // The library may have opened before this store did.
     requests: check(read()),
-    defaultKind: readKind(),
-    setDefaultKind: (kind) => {
-      set({ defaultKind: kind })
-      try {
-        localStorage.setItem(KIND_KEY, kind)
-      } catch { /* kept until the app closes */ }
-    },
-    resetDefaultKind: () => {
-      set({ defaultKind: 'artist' })
-      try {
-        localStorage.removeItem(KIND_KEY)
-      } catch { /* ignore */ }
-    },
+    defaultKind: useSettingsStore.getState().requestKind,
+    setDefaultKind: (kind) => useSettingsStore.getState().set('requestKind', kind),
+    resetDefaultKind: () => useSettingsStore.getState().set('requestKind', 'artist'),
     // A request for something already in the library is ticked as it goes on.
     add: (request) => save(check(addRequest(get().requests, { ...request, id: newId(), addedAt: Date.now() }))),
     setGot: (id, got) => save(setGot(get().requests, id, got, Date.now())),
@@ -114,4 +95,10 @@ useLibraryStore.subscribe((now, before) => {
     useRequestsStore.setState({ requests: next })
     persist(next)
   }
+})
+
+// The double tap's choice lives in the settings store (and so follows the
+// account); `defaultKind` is its view here.
+useSettingsStore.subscribe((now, before) => {
+  if (now.requestKind !== before.requestKind) useRequestsStore.setState({ defaultKind: now.requestKind })
 })

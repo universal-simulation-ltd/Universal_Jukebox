@@ -1131,9 +1131,25 @@ article.
 
 ## Settings
 
-`#/settings`, reachable from the app menu. Everything is per-device and written
-straight through to `localStorage` on change; there is no Save button because
-nothing here is a form.
+`#/settings`, reachable from the app menu. Everything is written straight
+through to `localStorage` on change; there is no Save button because nothing
+here is a form.
+
+**Signed in, it follows the account** (since SDK 0.232, James's 2026-10-30
+global rule). `stores/settingsStore.ts` keeps the settings in the SDK's
+`createSyncedSettings` store, under the same `unisim-jukebox-settings` key and
+shape, and the SDK carries them to the account's `tune-app:jukebox` row: newest
+change wins, a device that never changed anything says nothing, signed out it
+stays on the device. Jukebox has no Sign in of its own, so this happens only
+where a sign-in is already recognised (the website's shared cookie). What stays
+on each device is `DEVICE_ONLY` in that file: the opening tab (the phone and the
+website default differently), the typed owner name, the volume boost and
+Quiet/Loud, keep awake, song notifications (this device's permission), the
+lists' live view and the phone's list defaults, and the first-run tips.
+`useSettingsStore` is the zustand view the app has always used; the once-only
+moves in `read()` run before the synced store loads, so they are never sent.
+Requests' double tap (`requestKind`) joined the store so it follows too.
+`npm run test:tune-sync` checks it against a mocked account in two browsers.
 
 | Setting | Notes |
 |---|---|

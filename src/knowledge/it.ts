@@ -282,7 +282,7 @@ Se ti piace guardare il disco che gira, **Resta acceso** impedisce allo schermo 
 
 - **I tuoi file musicali.** Vengono letti dove si trovano e non vengono mai copiati su un server.
 - **Il catalogo della tua libreria**: titoli, artisti, album, piccole copie delle copertine ed eventuali correzioni fatte con il riordino.
-- **Le tue impostazioni, le tue richieste e il punto in cui eri arrivato.** Restano nell’app su questo dispositivo.
+- **Le tue impostazioni, le tue richieste e il punto in cui eri arrivato.** Restano nell’app su questo dispositivo. Con l’accesso effettuato, le impostazioni di Regola questa app vengono conservate anche nel tuo account (vedi Nessun account).
 
 Niente di tutto questo lascia il tuo dispositivo, a meno che tu non faccia un backup. Un file di backup va dove lo salvi tu. Contiene impostazioni, scaffali, richieste ed eventuali testi che hai aggiunto, identificati per titolo, artista e album; non contiene mai la tua musica. Se usi Jukebox su due dispositivi, ognuno ha la propria libreria.
 
@@ -298,7 +298,7 @@ Le risposte delle prime due vengono conservate sul tuo dispositivo, così un bra
 
 ## Nessun account
 
-Niente in Jukebox richiede l’accesso, su nessun dispositivo, e non conserva nulla in un account. Se hai già effettuato l’accesso a un’app UNI·SIM sul sito web o sul telefono, Jukebox ti riconosce e mette il tuo nome nel titolo. Jukebox non ti chiede mai di accedere, e l’app per Windows non ha alcun accesso. Jukebox non conta quante volte viene aperto. Le app per telefono e Windows non inviano nulla all’avvio; il sito web, solo per chi ha effettuato l’accesso, registra una volta che è stato aperto, senza nulla sulla tua musica.
+Niente in Jukebox richiede l’accesso, su nessun dispositivo. Se hai già effettuato l’accesso a un’app UNI·SIM sul sito web o sul telefono, Jukebox ti riconosce e mette il tuo nome nel titolo, e conserva le impostazioni di Regola questa app nel tuo account perché gli altri dispositivi le seguano (vince la modifica più recente). Volume e livello, schermo acceso, notifiche dei brani, vista della libreria e suggerimenti restano su ciascun dispositivo. Senza accesso, Jukebox non conserva nulla in un account. Jukebox non ti chiede mai di accedere, e l’app per Windows non ha alcun accesso. Jukebox non conta quante volte viene aperto. Le app per telefono e Windows non inviano nulla all’avvio (con l’accesso effettuato, le app per telefono recuperano le impostazioni di Regola questa app); il sito web, solo per chi ha effettuato l’accesso, registra una volta che è stato aperto, senza nulla sulla tua musica.
 
 ## Permessi
 

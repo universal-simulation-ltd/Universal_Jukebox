@@ -282,7 +282,7 @@ Plağın dönüşünü izlemeyi seviyorsanız **Ekran açık**, **Şimdi çalıy
 
 - **Müzik dosyalarınız.** Bulundukları yerde okunur ve asla bir sunucuya kopyalanmaz.
 - **Kitaplık kataloğunuz**: şarkı adları, sanatçılar, albümler, kapakların küçük kopyaları ve varsa düzenleme düzeltmeleriniz.
-- **Ayarlarınız, istekleriniz ve kaldığınız yer.** Bu cihazda, uygulamanın içinde kalır.
+- **Ayarlarınız, istekleriniz ve kaldığınız yer.** Bu cihazda, uygulamanın içinde kalır. Oturum açıkken **Bu uygulamayı ayarla** ayarlarınız hesabınızda da saklanır (bkz. Hesap yok).
 
 Siz bir yedek oluşturmadıkça bunların hiçbiri cihazınızdan çıkmaz. Yedek dosyası, onu nereye kaydederseniz oraya gider. Yedek dosyası ayarlarınızı, raflarınızı, isteklerinizi ve eklediğiniz şarkı sözlerini başlık, sanatçı ve albüm adlarıyla birlikte tutar; müziğinizi asla tutmaz. Jukebox’ı iki cihazda kullanıyorsanız her biri kendi kitaplığını tutar.
 
@@ -298,7 +298,7 @@ Müziğinizle ilgili bir şey gönderen yalnızca üç özellik vardır ve hiçb
 
 ## Hesap yok
 
-Jukebox'taki hiçbir şey, hiçbir cihazda oturum açmayı gerektirmez ve bir hesapta hiçbir şey tutmaz. Web sitesinde veya telefonunuzda bir UNI·SIM uygulamasında zaten oturum açtıysanız Jukebox sizi tanır ve adınızı başlığa koyar. Jukebox sizden hiçbir zaman oturum açmanızı istemez ve Windows uygulamasında oturum açma yoktur. Jukebox kaç kez açıldığını saymaz. Telefon ve Windows uygulamaları başlarken hiçbir şey göndermez; web sitesi yalnızca oturum açmış biri için açıldığını bir kez kaydeder ve müziğiniz hakkında hiçbir şey içermez.
+Jukebox'taki hiçbir şey, hiçbir cihazda oturum açmayı gerektirmez. Web sitesinde veya telefonunuzda bir UNI·SIM uygulamasında zaten oturum açtıysanız Jukebox sizi tanır ve adınızı başlığa koyar; ayrıca **Bu uygulamayı ayarla** ayarlarınızı hesabınızda saklar, böylece diğer cihazlarınız onları izler (en yeni değişiklik geçerlidir). Ses düzeyi ve seviye, ekranı açık tutma, şarkı bildirimleri, kitaplık görünümü ve ipuçları her cihazda ayrı kalır. Oturum kapalıyken Jukebox bir hesapta hiçbir şey tutmaz. Jukebox sizden hiçbir zaman oturum açmanızı istemez ve Windows uygulamasında oturum açma yoktur. Jukebox kaç kez açıldığını saymaz. Telefon ve Windows uygulamaları başlarken hiçbir şey göndermez (oturum açıkken telefon uygulamaları **Bu uygulamayı ayarla** ayarlarınızı alır); web sitesi yalnızca oturum açmış biri için açıldığını bir kez kaydeder ve müziğiniz hakkında hiçbir şey içermez.
 
 ## İzinler
 

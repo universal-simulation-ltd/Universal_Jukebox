@@ -32,7 +32,8 @@
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
     "electron": "electron .",
-    "dist:win": "npm run build:desktop && electron-builder --win"
+    "dist:win": "npm run build:desktop && electron-builder --win",
+    "test:tune-sync": "node e2e/tune-sync.e2e.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -41,7 +42,7 @@
     "@capacitor/filesystem": "^8.1.3",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.2",
-    "@unisim/sdk": "^0.231.0",
+    "@unisim/sdk": "^0.234.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"

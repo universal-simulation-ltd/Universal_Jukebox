@@ -282,7 +282,7 @@ Se gosta de ver o disco a girar, **Ecrã ligado** impede que o ecrã escureça o
 
 - **Os seus ficheiros de música.** São lidos onde estão e nunca são copiados para um servidor.
 - **O catálogo da sua biblioteca**: títulos, artistas, álbuns, cópias pequenas das capas e as correções que fez ao arrumar.
-- **As suas definições, os seus pedidos e o ponto onde ficou.** Ficam na aplicação, neste dispositivo.
+- **As suas definições, os seus pedidos e o ponto onde ficou.** Ficam na aplicação, neste dispositivo. Com sessão iniciada, as suas definições de Ajustar esta aplicação também ficam guardadas na sua conta (veja Sem conta).
 
 Nada disto sai do seu dispositivo, a menos que faça uma cópia de segurança. Um ficheiro de cópia de segurança vai para onde o guardar. Contém as definições, as prateleiras, os pedidos e as letras que adicionou, identificadas pelo título, pelo artista e pelo álbum; nunca contém a sua música. Se utilizar o Jukebox em dois dispositivos, cada um mantém a sua própria biblioteca.
 
@@ -298,7 +298,7 @@ As respostas das duas primeiras ficam guardadas no seu dispositivo, pelo que cad
 
 ## Sem conta
 
-Nada no Jukebox exige início de sessão, em nenhum dispositivo, e não guarda nada numa conta. Se já tiver sessão iniciada numa aplicação UNI·SIM no site ou no telemóvel, o Jukebox reconhece-o e coloca o seu nome no título. O Jukebox nunca lhe pede para iniciar sessão, e a aplicação para Windows não tem início de sessão. O Jukebox não conta quantas vezes é aberto. As aplicações para telemóvel e Windows não enviam nada ao iniciar; o site, apenas para quem tem sessão iniciada, regista uma vez que foi aberto, sem nada sobre a sua música.
+Nada no Jukebox exige início de sessão, em nenhum dispositivo. Se já tiver sessão iniciada numa aplicação UNI·SIM no site ou no telemóvel, o Jukebox reconhece-o e coloca o seu nome no título, e guarda as suas definições de Ajustar esta aplicação na sua conta para que os seus outros dispositivos as sigam (vale a alteração mais recente). O volume e o nível, o ecrã ligado, as notificações de música, a vista da biblioteca e as dicas ficam em cada dispositivo. Sem sessão iniciada, o Jukebox não guarda nada numa conta. O Jukebox nunca lhe pede para iniciar sessão, e a aplicação para Windows não tem início de sessão. O Jukebox não conta quantas vezes é aberto. As aplicações para telemóvel e Windows não enviam nada ao iniciar (com sessão iniciada, as aplicações para telemóvel obtêm as suas definições de Ajustar esta aplicação); o site, apenas para quem tem sessão iniciada, regista uma vez que foi aberto, sem nada sobre a sua música.
 
 ## Autorizações
 

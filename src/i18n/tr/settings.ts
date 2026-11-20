@@ -5,7 +5,7 @@ import type { Draft } from '../en/index.ts'
 const settings: Draft['settings'] = {
   'back_to_library': 'Kitaplığınıza dönün',
   'title': 'Bu uygulamayı ayarla',
-  'intro': 'Buradaki her şey, Yedekleme bölümünde yedeklemediğiniz sürece bu cihazda saklanır.',
+  'intro': 'Buradaki her şey bu cihazda saklanır. UNI·SIM’de oturum açtıysanız çoğu diğer cihazlarınıza da sizinle gelir.',
   'something_wrong': 'Bir şeyler ters gitti.',
 
   'library_title': 'Kitaplığınız',

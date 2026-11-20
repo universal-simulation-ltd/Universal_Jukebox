@@ -17,7 +17,7 @@ export default {
   // Page (Settings)
   'back_to_library': 'Back to your library', // link at the top, wide screens only
   'title': 'Tune this app', // the page heading: the same words as the menu row that opens it
-  'intro': 'Everything here is kept on this device, unless you back it up under Backup.',
+  'intro': 'Everything here is kept on this device. If you’re signed in to UNI·SIM, most of it follows you to your other devices too.',
   'something_wrong': 'Something went wrong.', // an error with no message of its own
 
   // Your library (section)

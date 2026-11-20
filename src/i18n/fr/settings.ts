@@ -6,7 +6,7 @@ const settings: Draft['settings'] = {
   // Page (Settings)
   'back_to_library': 'Retour à votre bibliothèque',
   'title': 'Régler cette application',
-  'intro': 'Tout ce qui est ici reste sur cet appareil, sauf si vous le sauvegardez dans Sauvegarde.',
+  'intro': 'Tout ce qui est ici reste sur cet appareil. Si vous êtes connecté à UNI·SIM, l’essentiel vous suit aussi sur vos autres appareils.',
   'something_wrong': 'Un problème est survenu.',
 
   // Your library (section)

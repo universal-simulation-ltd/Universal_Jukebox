@@ -282,7 +282,7 @@ If you like to watch the record turn, **Keep awake** stops the screen dimming or
 
 - **Your music files.** They are read where they are and never copied to a server.
 - **Your library catalogue**: titles, artists, albums, small copies of the covers, and any tidy-up corrections.
-- **Your settings, your requests and where you left off.** They stay in the app on this device.
+- **Your settings, your requests and where you left off.** They stay in the app on this device. Signed in, your Tune this app settings are also kept on your account (see No account).
 
 None of this leaves your device unless you make a backup. A backup file goes wherever you save it. It holds your settings, shelves, requests and any lyrics you added, named by title, artist and album; it never holds your music. If you use Jukebox on two devices, each keeps its own library.
 
@@ -298,7 +298,7 @@ Answers from the first two are kept on your device, so a song is looked up only 
 
 ## No account
 
-Nothing in Jukebox needs a sign-in, on any device, and it keeps nothing on an account. If you are already signed in to a UNI·SIM app on the website or your phone, Jukebox recognises you and puts your name in its title. Jukebox itself never asks you to sign in, and the Windows app has no sign-in at all. Jukebox doesn’t count how often it is opened. The phone and Windows apps send nothing when they start; the website, only for someone signed in, notes once that it was opened, with nothing about your music.
+Nothing in Jukebox needs a sign-in, on any device. If you are already signed in to a UNI·SIM app on the website or your phone, Jukebox recognises you and puts your name in its title, and keeps your Tune this app settings on your account so your other devices follow them (the newest change wins). The volume and loudness, keep awake, song notifications, the library’s layout and the tips stay on each device. Signed out, Jukebox keeps nothing on an account. Jukebox itself never asks you to sign in, and the Windows app has no sign-in at all. Jukebox doesn’t count how often it is opened. The phone and Windows apps send nothing when they start (signed in, the phone apps fetch your Tune this app settings); the website, only for someone signed in, notes once that it was opened, with nothing about your music.
 
 ## Permissions
 

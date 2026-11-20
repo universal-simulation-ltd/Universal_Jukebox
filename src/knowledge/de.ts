@@ -282,7 +282,7 @@ Wenn Sie der Platte gern beim Drehen zusehen, verhindert **Bildschirm an**, dass
 
 - **Ihre Musikdateien.** Sie werden dort gelesen, wo sie liegen, und nie auf einen Server kopiert.
 - **Der Katalog Ihrer Mediathek**: Titel, Interpreten, Alben, kleine Kopien der Cover und etwaige Aufräum-Korrekturen.
-- **Ihre Einstellungen, Ihre Wünsche und die Stelle, an der Sie aufgehört haben.** Sie bleiben in der App auf diesem Gerät.
+- **Ihre Einstellungen, Ihre Wünsche und die Stelle, an der Sie aufgehört haben.** Sie bleiben in der App auf diesem Gerät. Angemeldet werden Ihre Einstellungen aus „Diese App anpassen“ auch in Ihrem Konto gespeichert (siehe Kein Konto).
 
 Nichts davon verlässt Ihr Gerät, es sei denn, Sie erstellen eine Sicherung. Eine Sicherungsdatei landet dort, wo Sie sie speichern. Sie enthält Ihre Einstellungen, Regale, Wünsche und etwaige von Ihnen hinzugefügte Songtexte, benannt nach Titel, Interpret und Album; Ihre Musik enthält sie nie. Wenn Sie Jukebox auf zwei Geräten nutzen, hat jedes seine eigene Mediathek.
 
@@ -298,7 +298,7 @@ Die Antworten der ersten beiden werden auf Ihrem Gerät gespeichert, sodass ein 
 
 ## Kein Konto
 
-Nichts in Jukebox erfordert eine Anmeldung, auf keinem Gerät, und es speichert nichts in einem Konto. Sind Sie auf der Website oder auf Ihrem Smartphone bereits bei einer UNI·SIM-App angemeldet, erkennt Jukebox Sie und setzt Ihren Namen in den Titel. Jukebox selbst fordert Sie nie zur Anmeldung auf, und die Windows-App hat überhaupt keine Anmeldung. Jukebox zählt nicht, wie oft es geöffnet wird. Die Smartphone- und Windows-Apps senden beim Start nichts; die Website vermerkt nur bei angemeldeten Personen einmal, dass sie geöffnet wurde, ohne etwas über Ihre Musik.
+Nichts in Jukebox erfordert eine Anmeldung, auf keinem Gerät. Sind Sie auf der Website oder auf Ihrem Smartphone bereits bei einer UNI·SIM-App angemeldet, erkennt Jukebox Sie und setzt Ihren Namen in den Titel, und speichert Ihre Einstellungen aus „Diese App anpassen“ in Ihrem Konto, damit Ihre anderen Geräte ihnen folgen (die neueste Änderung gilt). Lautstärke und Pegel, Wachhalten, Song-Benachrichtigungen, die Ansicht der Mediathek und die Tipps bleiben auf jedem Gerät. Abgemeldet speichert Jukebox nichts in einem Konto. Jukebox selbst fordert Sie nie zur Anmeldung auf, und die Windows-App hat überhaupt keine Anmeldung. Jukebox zählt nicht, wie oft es geöffnet wird. Die Smartphone- und Windows-Apps senden beim Start nichts (angemeldet holen die Smartphone-Apps Ihre Einstellungen aus „Diese App anpassen“); die Website vermerkt nur bei angemeldeten Personen einmal, dass sie geöffnet wurde, ohne etwas über Ihre Musik.
 
 ## Berechtigungen
 

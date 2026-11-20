@@ -6,7 +6,7 @@ import type { Draft } from '../en/index.ts'
 const settings: Draft['settings'] = {
   'back_to_library': 'Torna alla tua libreria',
   'title': 'Regola questa app',
-  'intro': 'Tutto ciò che è qui resta su questo dispositivo, a meno che tu non ne faccia un backup in Backup.',
+  'intro': 'Tutto ciò che è qui resta su questo dispositivo. Se hai effettuato l’accesso a UNI·SIM, quasi tutto ti segue anche sugli altri dispositivi.',
   'something_wrong': 'Si è verificato un problema.',
 
   'library_title': 'La tua libreria',
