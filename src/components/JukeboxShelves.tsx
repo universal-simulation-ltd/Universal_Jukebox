@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { SelectCheckbox, SelectionBar, useSelection } from '@unisim/sdk'
 import Record45 from './Record45'
 import Requests from './Requests'
 import { ShelfRow } from './Shelf'
@@ -20,6 +21,7 @@ import { markTipSeen } from '../lib/tips'
 import type { Album, Track } from '../lib/types'
 import { compareNameNumeric } from '../lib/collate'
 import { useDialogFocus } from '../lib/useDialogFocus'
+import { askFirst, selectSeveral } from '../lib/selectSeveral'
 
 // The Jukebox tab: shelves you fill yourself, each one a playlist of songs
 // standing as 45s (James, 2026-09-11: "a jukebox tab that has a jukebox view
@@ -68,6 +70,23 @@ export default function JukeboxShelves() {
     return () => window.clearTimeout(timer)
   }, [hitsRemoved])
 
+  // The shelves as drawn: a song no longer in the library is left off, not
+  // shown as a blank, and a shelf left with NONE of its songs is not drawn, so
+  // there is only ever the one empty shelf at the end (James, 2026-09-27: "If
+  // there's two empty shelves then delete and only show one shelf"). Its songs
+  // went with a library that was cleared or re-imported under new ids. It stays
+  // stored, so it comes back if they do.
+  const drawn = shelvesToShow(shelves)
+    .map((shelf) => ({ shelf, songs: shelf.trackIds.map((id) => byId.get(id)).filter((track): track is Track => track !== undefined) }))
+    .filter(({ shelf, songs }) => shelf.id === NEW_SHELF || songs.length > 0)
+  // Select several shelves, then delete them (`lib/selectSeveral.ts`): your
+  // own shelves on the website — not Hits or Most played, which go with their
+  // own Remove, not the empty one at the end, and not in the phone screens.
+  // A shelf goes as it does when its last record is taken off; the songs stay.
+  const ticking = selectSeveral()
+  const removeShelves = useShelvesStore((s) => s.removeShelves)
+  const sel = useSelection(ticking ? drawn.filter(({ shelf }) => shelf.id !== NEW_SHELF).map(({ shelf }) => shelf.id) : [])
+
   return (
     <div className="space-y-12">
       {exampleOnly ? null : showHits ? (
@@ -85,16 +104,15 @@ export default function JukeboxShelves() {
           {t('shelves.jukebox_intro')}
         </p>
       )}
-      {shelvesToShow(shelves)
-        // A song no longer in the library is left off, not shown as a blank.
-        .map((shelf) => ({ shelf, songs: shelf.trackIds.map((id) => byId.get(id)).filter((track): track is Track => track !== undefined) }))
-        // ⚠️ And a shelf left with NONE of its songs is not drawn, so there is
-        // only ever the one empty shelf at the end (James, 2026-09-27: "If
-        // there's two empty shelves then delete and only show one shelf"). Its
-        // songs went with a library that was cleared or re-imported under new
-        // ids. It stays stored, so it comes back if they do.
-        .filter(({ shelf, songs }) => shelf.id === NEW_SHELF || songs.length > 0)
-        .map(({ shelf, songs }, i, all) => {
+      {ticking && (
+        <SelectionBar
+          sel={sel}
+          noun={{ one: t('shelves.noun_shelf'), other: t('shelves.noun_shelves') }}
+          onDelete={removeShelves}
+          confirm={(_, n) => askFirst(t.plural('shelves.delete_shelves', n), undefined, t('common.delete'))}
+        />
+      )}
+      {drawn.map(({ shelf, songs }, i, all) => {
         const name = shelfName(shelf, i)
         // ⚠️ The empty shelf at the end is a single row once there is a full
         // shelf above it (James, 2026-09-28, from the UX review): a whole
@@ -107,7 +125,15 @@ export default function JukeboxShelves() {
               key={shelf.id}
               type="button"
               onClick={() => setPicking({ shelfId: shelf.id, index: i })}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 py-3.5 text-[14px] font-medium text-slate-600 transition hover:border-orange-400 hover:text-orange-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-600 dark:hover:text-orange-400"
+              // The empty shelf, nothing on it yet: on the website the suite's
+              // Viewfinder box with nothing in frame (BRANDING.md → Boxes, D),
+              // all four corners muted and no dashed outline. The phone
+              // screens keep their dashed row.
+              className={`flex w-full items-center justify-center gap-2 py-3.5 text-[14px] font-medium text-slate-600 transition hover:text-orange-700 dark:text-slate-300 dark:hover:text-orange-400 ${
+                ticking
+                  ? 'u-box u-box--frame u-box--empty u-box--row'
+                  : 'rounded-2xl border-2 border-dashed border-slate-300 hover:border-orange-400 dark:border-slate-700 dark:hover:border-orange-600'
+              }`}
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
                 <path d="M12 5v14M5 12h14" />
@@ -125,6 +151,8 @@ export default function JukeboxShelves() {
               songs={songs}
               albumOf={albumOf}
               onAdd={() => setPicking({ shelfId: shelf.id, index: i })}
+              ticked={ticking && shelf.id !== NEW_SHELF ? { on: sel.has(shelf.id), toggle: () => sel.toggle(shelf.id) } : undefined}
+              tickSongs={ticking}
             />
             {/* The shelf the app filled to show what a shelf is says so. */}
             {shelf.id === starterId && (
@@ -364,8 +392,19 @@ function HitsShelf({ tracks, albumOf, onRemove }: { tracks: readonly Track[]; al
 }
 
 function JukeboxShelfRow({
-  shelfId, name, named, songs, albumOf, onAdd,
-}: { shelfId: string; name: string; named: boolean; songs: Track[]; albumOf(t: Track): Album | undefined; onAdd(): void }) {
+  shelfId, name, named, songs, albumOf, onAdd, ticked, tickSongs = false,
+}: {
+  shelfId: string
+  name: string
+  named: boolean
+  songs: Track[]
+  albumOf(t: Track): Album | undefined
+  onAdd(): void
+  /** The shelf's own tick box, for deleting several shelves (`lib/selectSeveral.ts`). */
+  ticked?: { on: boolean; toggle(): void }
+  /** Fine-tune lists the songs with tick boxes, to take several off at once — the website only. */
+  tickSongs?: boolean
+}) {
   const t = useT()
   const toggle = useShelvesStore((s) => s.toggle)
   const rename = useShelvesStore((s) => s.rename)
@@ -380,6 +419,18 @@ function JukeboxShelfRow({
   const [editing, setEditing] = useState(false)
   const shelfPlayLearnt = useSettingsStore((s) => s.tipsSeen.includes('shelfPlay'))
   const slots: Slot[] = [...songs, PLUS]
+  // Fine-tune on the website: tick several of the shelf's songs, then take them
+  // off together, each the way Take off does (`toggle`). They stay in the
+  // library. Only songs still on the shelf are toggled: toggling one that is
+  // not on it would put it back, and on a shelf that has gone would start a
+  // new one.
+  const songSel = useSelection(editing && tickSongs ? songs.map((s) => s.id) : [])
+  const takeOffTicked = (ids: string[]) => {
+    for (const id of ids) {
+      if (useShelvesStore.getState().shelves.find((s) => s.id === shelfId)?.trackIds.includes(id)) toggle(shelfId, id)
+    }
+    if (picked && ids.includes(picked)) setPicked(null)
+  }
   const pill =
     'inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1 text-[12.5px] font-medium text-slate-700 transition hover:border-orange-500 hover:text-orange-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-orange-400'
 
@@ -405,7 +456,9 @@ function JukeboxShelfRow({
             className="min-w-0 flex-1 rounded-lg border border-orange-400 bg-white px-2.5 py-1 text-[14px] font-semibold text-slate-900 focus:outline-none dark:bg-slate-900 dark:text-slate-100"
           />
         ) : (
-          <p className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+          <p className="flex min-w-0 items-center gap-2 text-[14px] font-semibold text-slate-900 dark:text-slate-100">
+            {ticked && <SelectCheckbox checked={ticked.on} onChange={ticked.toggle} label={t('library.select_item', { name })} />}
+            <span className="min-w-0">
             {named ? (
               <button type="button" onClick={() => setDraft(name)} title={t('shelves.tap_to_rename')} className="inline-flex items-center gap-1.5 hover:text-orange-700 dark:hover:text-orange-400">
                 {name}
@@ -417,6 +470,7 @@ function JukeboxShelfRow({
               name
             )}
             <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">{songs.length > 0 ? t.plural('common.songs', songs.length) : t('shelves.shelf_empty')}</span>
+            </span>
           </p>
         )}
         {songs.length > 0 && (
@@ -515,6 +569,34 @@ function JukeboxShelfRow({
           >
             {t('shelves.take_off')}
           </button>
+        </div>
+      )}
+      {editing && tickSongs && songs.length > 0 && (
+        // The shelf's songs as a list, each with its tick box, so several come
+        // off at once — a row of records is no place for tick boxes.
+        <div className="mx-auto mt-4 max-w-xl">
+          <SelectionBar
+            sel={songSel}
+            noun={{ one: t('library.noun_song'), other: t('library.noun_songs') }}
+            onDelete={takeOffTicked}
+            confirm={(_, n) => askFirst(t.plural('shelves.take_off_songs', n, { name }), undefined, t('shelves.take_off'))}
+            className="mb-1"
+          />
+          <ul aria-label={t('shelves.songs_on_named', { name })} className="divide-y divide-slate-200 dark:divide-slate-800">
+            {songs.map((song) => (
+              <li key={song.id}>
+                <label className="flex cursor-pointer items-center gap-3 py-2">
+                  <SelectCheckbox checked={songSel.has(song.id)} onChange={() => songSel.toggle(song.id)} label={t('library.select_item', { name: song.title })} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] text-slate-900 dark:text-slate-100">{song.title}</span>
+                    <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
+                      {song.artist ?? song.albumArtist ?? t('common.unknown_artist')}
+                    </span>
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

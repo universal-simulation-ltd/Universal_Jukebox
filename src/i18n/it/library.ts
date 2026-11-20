@@ -111,6 +111,16 @@ const library: Draft['library'] = {
   'remove_explain': 'Non verrà più mostrato né riprodotto. Non viene eliminato nulla: puoi rimetterlo quando vuoi da Regola questa app, in La tua libreria.',
   'remove_yes': 'Rimuovi',
   'removed': 'Rimosso',
+  'select_item': 'Seleziona {name}',
+  'noun_song': 'brano',
+  'noun_songs': 'brani',
+  'noun_album': 'album',
+  'noun_albums': 'album',
+  'remove_songs_one': 'Rimuovere {count} brano da Jukebox?',
+  'remove_songs_other': 'Rimuovere {count} brani da Jukebox?',
+  'remove_albums_one': 'Rimuovere {count} album da Jukebox?',
+  'remove_albums_other': 'Rimuovere {count} album da Jukebox?',
+  'remove_many_explain': 'Non verranno più mostrati né riprodotti. Non viene eliminato nulla: i file restano dove sono e puoi rimetterli da Regola questa app, in La tua libreria.',
 }
 
 export default library

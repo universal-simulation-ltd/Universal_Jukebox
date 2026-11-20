@@ -133,6 +133,13 @@ const shelves: Draft['shelves'] = {
   'adding': 'Añadiendo…',
   'add_with_picture': 'Añadir con esta imagen',
   'add_request': 'Añadir petición',
+  'noun_shelf': 'estante',
+  'noun_shelves': 'estantes',
+  'delete_shelves_one': '¿Eliminar {count} estante? Sus canciones siguen en tu biblioteca.',
+  'delete_shelves_other': '¿Eliminar {count} estantes? Sus canciones siguen en tu biblioteca.',
+  'take_off_songs_one': '¿Quitar {count} canción de {name}? Sigue en tu biblioteca.',
+  'take_off_songs_other': '¿Quitar {count} canciones de {name}? Siguen en tu biblioteca.',
+  'songs_on_named': 'Las canciones de {name}',
 }
 
 export default shelves

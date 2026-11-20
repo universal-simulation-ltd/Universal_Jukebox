@@ -331,11 +331,12 @@ export default function Landing() {
             {answers.map((a) => {
               const open = answer === a.key && !!a.step
               return (
+                // Each answer is a row you tap to open its next step: the
+                // suite's Orbit corner (BRANDING.md → Boxes, A). Open, its
+                // outline turns orange, as the ring it replaces did.
                 <div
                   key={a.key}
-                  className={`rounded-2xl bg-white shadow-sm ring-1 transition dark:bg-slate-900 ${
-                    open ? 'ring-2 ring-orange-400' : 'ring-slate-900/5 dark:ring-white/10'
-                  }`}
+                  className={`u-box u-box--orbit u-box--row bg-white p-0 dark:bg-slate-900 ${open ? 'border-orange-400 dark:border-orange-500/70' : ''}`}
                 >
                   <button
                     type="button"
@@ -344,7 +345,7 @@ export default function Landing() {
                     aria-busy={a.key === 'example' && building ? true : undefined}
                     aria-expanded={a.step ? open : undefined}
                     aria-controls={a.step ? `jb-answer-${a.key}` : undefined}
-                    className="flex w-full items-center gap-3.5 rounded-2xl p-3.5 text-left transition hover:bg-orange-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60 disabled:aria-busy:opacity-100 dark:hover:bg-white/5"
+                    className="flex w-full items-center gap-3.5 rounded-[13px] p-3.5 text-left transition hover:bg-orange-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E05504] disabled:cursor-default disabled:opacity-60 disabled:aria-busy:opacity-100 dark:hover:bg-white/5"
                   >
                     <SourceGlyph kind={a.key} busy={a.key === 'example' && building} />
                     <span className="min-w-0 flex-1">

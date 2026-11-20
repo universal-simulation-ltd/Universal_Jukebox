@@ -146,4 +146,12 @@ export default {
   'adding': 'Adding…',
   'add_with_picture': 'Add with this picture', // button
   'add_request': 'Add request', // button
+  // Select several shelves, or several songs on a shelf in Fine-tune (the website)
+  'noun_shelf': 'shelf', // what a row is, for the select-several bar
+  'noun_shelves': 'shelves',
+  'delete_shelves_one': 'Delete {count} shelf? The songs on it stay in your library.', // asked before Delete selected on the web Jukebox tab: deletes the shelves, never the songs
+  'delete_shelves_other': 'Delete {count} shelves? The songs on them stay in your library.',
+  'take_off_songs_one': 'Take {count} song off {name}? It stays in your library.', // asked before Delete selected in Fine-tune (web); {name} is the shelf’s name
+  'take_off_songs_other': 'Take {count} songs off {name}? They stay in your library.',
+  'songs_on_named': 'The songs on {name}', // screen reader: the list of a shelf’s songs in Fine-tune (web)
 } as const

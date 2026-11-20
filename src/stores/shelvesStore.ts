@@ -40,6 +40,11 @@ interface ShelvesState {
   add(shelfId: string, trackIds: readonly string[]): string
   rename(shelfId: string, name: string): void
   move(shelfId: string, trackId: string, delta: -1 | 1): void
+  /**
+   * These shelves gone, as emptying them does (the website's Delete selected on
+   * the Jukebox tab). The songs on them stay in the library; only the shelves go.
+   */
+  removeShelves(shelfIds: readonly string[]): void
   /** The whole set at once — a restore from a backup, already merged (`lib/backup.ts`). */
   replaceAll(shelves: JukeboxShelf[]): void
   /** ♥: on the Loved shelf if it isn't, off if it is. Returns whether it is loved now. */
@@ -90,6 +95,13 @@ export const useShelvesStore = create<ShelvesState>((set, get) => ({
   move(shelfId, trackId, delta) {
     keepStarter(shelfId)
     const shelves = moveOnShelf(get().shelves, shelfId, trackId, delta)
+    set({ shelves })
+    persist(shelves)
+  },
+  removeShelves(shelfIds) {
+    const gone = new Set(shelfIds)
+    const shelves = get().shelves.filter((s) => !gone.has(s.id))
+    if (shelves.length === get().shelves.length) return
     set({ shelves })
     persist(shelves)
   },

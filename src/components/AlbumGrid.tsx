@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { SelectCheckbox, SelectionBar, useSelection } from '@unisim/sdk'
 import { withResumeRow } from './resumeRow'
 import { useGridColumns } from '../lib/useGridColumns'
 import { leadWith, useResumable } from '../lib/resume'
@@ -17,6 +18,7 @@ import type { Album } from '../lib/types'
 import { compareName, compareNameNumeric } from '../lib/collate'
 import { shownName } from '../lib/format'
 import { useT } from '../i18n'
+import { askFirst, removeManyFromJukebox, selectSeveral } from '../lib/selectSeveral'
 
 // The front door once there is a library: a grid of covers.
 //
@@ -81,6 +83,21 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
     return { groups: groupByGenre(listed, genresOf, shownGenres(tally)), hidden: hiddenByGenre(tally) }
   }, [order.kind, tracks, listed])
 
+  // Select several, then remove them from Jukebox (`lib/selectSeveral.ts`):
+  // the grid on the website. Not on the shelf, and not in the phone screens.
+  const web = selectSeveral()
+  const ticking = web && columns !== 'jukebox'
+  const sel = useSelection(ticking ? (genre ? genre.groups.flatMap((g) => g.items) : shown).map((a) => a.id) : [])
+  const bar = ticking && (
+    <SelectionBar
+      sel={sel}
+      noun={{ one: t('library.noun_album'), other: t('library.noun_albums') }}
+      onDelete={(ids) => removeManyFromJukebox('albums', ids)}
+      confirm={(_, n) => askFirst(t.plural('library.remove_albums', n), t('library.remove_many_explain'), t('library.remove_yes'))}
+      className="mb-3"
+    />
+  )
+
   if (shown.length === 0 || (genre && genre.groups.length === 0)) {
     return (
       <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -99,11 +116,23 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
   // the genre-grouped one, so it is worked out before either.
   const small = columns === 3 || columns === 4
   const tile = (album: Album) => (
-    <li key={album.id}>
+    <li key={album.id} className="relative">
+      {/* Over the sleeve's top right, beside the button rather than in it: a
+          tick box can't sit inside a button, and ticking must not open the album. */}
+      {ticking && (
+        <SelectCheckbox
+          checked={sel.has(album.id)}
+          onChange={() => sel.toggle(album.id)}
+          label={t('library.select_item', { name: shownName(album.title) })}
+          className="absolute top-1.5 right-1.5 z-10 shadow-sm"
+        />
+      )}
       <button
         type="button"
         onClick={() => navigate({ view: 'album', albumId: album.id })}
-        className="group w-full text-left focus:outline-none"
+        // A tile you tap to open the album: on the website the suite's Orbit
+        // corner (BRANDING.md → Boxes, A) round the sleeve and its name.
+        className={`group w-full text-left focus:outline-none ${web ? 'u-box u-box--orbit u-box--row h-full bg-white p-2 pb-2.5 dark:bg-slate-900' : ''}`}
       >
         <Cover
           album={album}
@@ -141,6 +170,7 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
   if (genre) {
     return (
       <>
+        {bar}
         {genre.groups.map((group) => (
           <section key={group.genre} className="mb-8">
             <GenreHeading genre={group.genre} count={group.items.length} />
@@ -153,9 +183,12 @@ export default function AlbumGrid({ query, order, genre: inGenre, hold }: AlbumG
   }
 
   return (
-    <ul ref={grid} className={gridClass(columns)}>
-      {withResumeRow(shown.map(tile), across, 'album')}
-    </ul>
+    <>
+      {bar}
+      <ul ref={grid} className={gridClass(columns)}>
+        {withResumeRow(shown.map(tile), across, 'album')}
+      </ul>
+    </>
   )
 }
 

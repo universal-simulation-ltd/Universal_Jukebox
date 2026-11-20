@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { UniversalProvider, installButtonStyles, installTabStyles } from '@unisim/sdk'
+import { UniversalProvider, installBoxStyles, installButtonStyles, installTabStyles } from '@unisim/sdk'
 import App from './App'
 import { I18nRoot } from './i18n'
 import { startApplyingSettings } from './lib/applySettings'
@@ -124,6 +124,9 @@ followThemeWithStatusBar()
 // library tabs and its Play / Find my music buttons. The phone screens keep their own.
 installButtonStyles()
 installTabStyles()
+// The suite's box marks (BRANDING.md → Boxes), used as class strings
+// (u-box u-box--orbit / --key / --frame) on the website's screens.
+installBoxStyles()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

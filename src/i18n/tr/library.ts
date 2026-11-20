@@ -111,6 +111,16 @@ const library: Draft['library'] = {
   'remove_explain': 'Artık gösterilmez ve çalınmaz. Hiçbir şey silinmez: istediğiniz zaman Bu uygulamayı ayarla › Kitaplığınız bölümünden geri getirebilirsiniz.',
   'remove_yes': 'Kaldır',
   'removed': 'Kaldırıldı',
+  'select_item': '{name} öğesini seç',
+  'noun_song': 'şarkı',
+  'noun_songs': 'şarkı',
+  'noun_album': 'albüm',
+  'noun_albums': 'albüm',
+  'remove_songs_one': '{count} şarkı Jukebox’tan kaldırılsın mı?',
+  'remove_songs_other': '{count} şarkı Jukebox’tan kaldırılsın mı?',
+  'remove_albums_one': '{count} albüm Jukebox’tan kaldırılsın mı?',
+  'remove_albums_other': '{count} albüm Jukebox’tan kaldırılsın mı?',
+  'remove_many_explain': 'Artık gösterilmez ve çalınmaz. Hiçbir şey silinmez: dosyalar yerinde kalır ve Bu uygulamayı ayarla › Kitaplığınız bölümünden geri getirebilirsiniz.',
 }
 
 export default library

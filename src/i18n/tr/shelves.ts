@@ -133,6 +133,13 @@ const shelves: Draft['shelves'] = {
   'adding': 'Ekleniyor…',
   'add_with_picture': 'Bu görselle ekle',
   'add_request': 'İstek ekle',
+  'noun_shelf': 'raf',
+  'noun_shelves': 'raf',
+  'delete_shelves_one': '{count} raf silinsin mi? Üzerindeki şarkılar kitaplığınızda kalır.',
+  'delete_shelves_other': '{count} raf silinsin mi? Üzerindeki şarkılar kitaplığınızda kalır.',
+  'take_off_songs_one': '{name}: {count} şarkı raftan kaldırılsın mı? Kitaplığınızda kalır.',
+  'take_off_songs_other': '{name}: {count} şarkı raftan kaldırılsın mı? Kitaplığınızda kalır.',
+  'songs_on_named': '{name} içindeki şarkılar',
 }
 
 export default shelves

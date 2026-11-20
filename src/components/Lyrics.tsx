@@ -15,6 +15,7 @@ import { navigate } from '../lib/route'
 import { barsOnlineLyrics } from '../lib/nativeFile'
 import { scrollBelowBar } from '../lib/scrollBelowBar'
 import { useT, type MessageKey } from '../i18n'
+import { phoneScreens } from '../native/shell'
 
 // The words, under the deck.
 //
@@ -329,7 +330,7 @@ function Nothing() {
   // your own is the way to add them there.
   if (barsOnlineLyrics()) {
     return (
-      <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
+      <div className={nothingBox()}>
         <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
           {t('lyrics.none_in_file')}
         </p>
@@ -339,7 +340,7 @@ function Nothing() {
   }
   if (online) {
     return (
-      <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
+      <div className={nothingBox()}>
         <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
           {t('lyrics.none_anywhere')}
         </p>
@@ -348,7 +349,7 @@ function Nothing() {
     )
   }
   return (
-    <div className="rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800">
+    <div className={nothingBox()}>
       <p className="text-[13.5px] text-slate-600 dark:text-slate-300">
         {t('lyrics.none_in_file')}
       </p>
@@ -377,6 +378,17 @@ function Nothing() {
       <AddLyricsFile />
     </div>
   )
+}
+
+/**
+ * No words in frame yet: on the website the suite's Viewfinder box, empty
+ * (BRANDING.md → Boxes, D), all four corners muted and no outline. The phone
+ * screens keep their plain box.
+ */
+function nothingBox(): string {
+  return phoneScreens()
+    ? 'rounded-lg border border-slate-200 px-4 py-5 dark:border-slate-800'
+    : 'u-box u-box--frame u-box--empty px-4 py-5 text-left'
 }
 
 function Retry({ message }: { message: string }) {

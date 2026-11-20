@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { SelectCheckbox, SelectionBar, useSelection } from '@unisim/sdk'
 import PreviewButton from './PreviewButton'
 import { withResumeRow } from './resumeRow'
 import { TrackShelf } from './Shelf'
@@ -19,6 +20,7 @@ import { useT } from '../i18n'
 import LyricsMark from './LyricsMark'
 import { useLyricsCheck } from '../lib/lyricMarks'
 import { useSongFacts } from './WorldFacts'
+import { askFirst, removeManyFromJukebox, selectSeveral } from '../lib/selectSeveral'
 
 // Every track, in one list.
 //
@@ -133,6 +135,17 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
   const onShelf = columns === 'jukebox'
   const shown = showAll ? matched : matched.slice(0, CAP)
   const inGenres = genre?.groups.reduce((n, g) => n + g.items.length, 0) ?? 0
+
+  // Select several, then remove them from Jukebox (`lib/selectSeveral.ts`):
+  // the plain list on the website, the songs it is showing. Not on the record
+  // shelf, and not in the phone screens.
+  const ticking = selectSeveral() && !onShelf
+  const rowSongs = ticking ? (genreShown ? genreShown.flatMap((g) => g.items) : shown) : []
+  const sel = useSelection(rowSongs.map((track) => track.id))
+  const removeTicked = (ids: string[]) => {
+    const chosen = new Set(ids)
+    removeManyFromJukebox('tracks', tracks.filter((track) => chosen.has(track.id)).map((track) => track.path))
+  }
   const hidden = genre
     ? inGenres - (genreShown ?? []).reduce((n, g) => n + g.items.length, 0)
     : matched.length - shown.length
@@ -168,6 +181,16 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
           onPlay={(track) => playTracks(listed, listed.indexOf(track))}
         />
       ) : (
+      <>
+      {ticking && (
+        <SelectionBar
+          sel={sel}
+          noun={{ one: t('library.noun_song'), other: t('library.noun_songs') }}
+          onDelete={removeTicked}
+          confirm={(_, n) => askFirst(t.plural('library.remove_songs', n), t('library.remove_many_explain'), t('library.remove_yes'))}
+          className="mb-2"
+        />
+      )}
       <ul className="divide-y divide-slate-200 dark:divide-slate-800">
         {withRows(genreShown, shown, (track) => {
           if ('heading' in track) {
@@ -181,9 +204,17 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
           // that track on — so a search for "live" becomes a playlist by
           // pressing play on it. Queuing only the one track would make the
           // list a dead end.
-          return <SongRow key={track.id} track={track} onPlay={() => playTracks(matched, matched.indexOf(track))} />
+          return (
+            <SongRow
+              key={track.id}
+              track={track}
+              onPlay={() => playTracks(matched, matched.indexOf(track))}
+              ticked={ticking ? { on: sel.has(track.id), toggle: () => sel.toggle(track.id) } : undefined}
+            />
+          )
         })}
       </ul>
+      </>
       )}
 
       {!onShelf && hidden > 0 && (
@@ -210,7 +241,13 @@ export default function TrackList({ query, order, genre: inGenre }: { query: str
  * Shared by the Tracks tab and an artist's "All songs" page (`ArtistView`), so
  * the two lists are the same list.
  */
-export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () => void; subtitle?: string }) {
+export function SongRow({ track, onPlay, subtitle, ticked }: {
+  track: Track
+  onPlay: () => void
+  subtitle?: string
+  /** Its tick box, where the list selects several (`lib/selectSeveral.ts`). */
+  ticked?: { on: boolean; toggle(): void }
+}) {
   const t = useT()
   const hasLyrics = useLyricsCheck()(track)
   const world = useSongFacts(track)
@@ -222,6 +259,7 @@ export function SongRow({ track, onPlay, subtitle }: { track: Track; onPlay: () 
   const isCurrent = here > 0
   return (
     <li className="flex items-center gap-2">
+      {ticked && <SelectCheckbox checked={ticked.on} onChange={ticked.toggle} label={t('library.select_item', { name: track.title })} />}
       <button
         type="button"
         onClick={onPlay}

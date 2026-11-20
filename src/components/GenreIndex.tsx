@@ -5,6 +5,7 @@ import { useT } from '../i18n'
 import { navigate } from '../lib/route'
 import { useLibraryStore } from '../stores/libraryStore'
 import { useSettingsStore, type ListTab } from '../stores/settingsStore'
+import { phoneScreens } from '../native/shell'
 
 // Genre mode's front page: the genres themselves, and a tap opens one.
 //
@@ -56,7 +57,14 @@ export default function GenreIndex({ tab, query }: { tab: ListTab; query: string
             <button
               type="button"
               onClick={() => navigate({ view: tab, genre: g.name })}
-              className="group flex h-full w-full flex-col rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-orange-400 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] dark:border-slate-800 dark:bg-slate-900 dark:hover:border-orange-500"
+              // A card you tap to open its genre: on the website the suite's
+              // Orbit corner (BRANDING.md → Boxes, A), whose arc sweeps round
+              // on hover. The phone screens keep their own card.
+              className={`group flex h-full w-full flex-col px-4 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#E05504] ${
+                phoneScreens()
+                  ? 'rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-orange-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-orange-500'
+                  : 'u-box u-box--orbit u-box--row bg-white dark:bg-slate-900'
+              }`}
             >
               <span className="line-clamp-2 text-[15px] font-semibold text-slate-900 group-hover:text-orange-700 dark:text-slate-100 dark:group-hover:text-orange-400">
                 {shownGenre(g.name)}

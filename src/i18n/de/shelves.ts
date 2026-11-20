@@ -133,6 +133,13 @@ const shelves: Draft['shelves'] = {
   'adding': 'Wird hinzugefügt …',
   'add_with_picture': 'Mit diesem Bild hinzufügen',
   'add_request': 'Wunsch hinzufügen',
+  'noun_shelf': 'Regal',
+  'noun_shelves': 'Regale',
+  'delete_shelves_one': '{count} Regal löschen? Die Songs darauf bleiben in deiner Mediathek.',
+  'delete_shelves_other': '{count} Regale löschen? Die Songs darauf bleiben in deiner Mediathek.',
+  'take_off_songs_one': '{count} Song aus {name} herausnehmen? Er bleibt in deiner Mediathek.',
+  'take_off_songs_other': '{count} Songs aus {name} herausnehmen? Sie bleiben in deiner Mediathek.',
+  'songs_on_named': 'Die Songs in {name}',
 }
 
 export default shelves

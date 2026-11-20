@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { DropRing } from '@unisim/sdk'
 import { useT, type Translator } from '../i18n'
+import { phoneScreens } from '../native/shell'
 import { shownName } from '../lib/format'
 import { goHome } from '../lib/route'
 import type { MergeProposal } from '../lib/tidy'
@@ -127,7 +128,7 @@ export default function Tidy() {
       )}
 
       {status === 'done' && applied === 0 && proposals.length === 0 && (
-        <Note>
+        <Note empty>
           {coversSkipped ? t('tidy.nothing_split') : checked === 0 ? t('tidy.nothing_to_do_all_art') : t.plural('tidy.nothing_to_do_checked', checked)}
           <span className="mt-2 block text-slate-500 dark:text-slate-400">
             {t('tidy.nothing_to_do_note')}
@@ -245,7 +246,20 @@ export default function Tidy() {
   )
 }
 
+/**
+ * One kind of finding. On the website a record of what the look found, so the
+ * suite's Key box (BRANDING.md → Boxes, C): its heading is the key tab
+ * ("Missing artwork · 3"). The phone screens keep the heading over the box.
+ */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  if (!phoneScreens()) {
+    return (
+      <section className="u-box u-box--key mt-8 bg-white p-0 pt-3 dark:bg-slate-900">
+        <h2 className="u-box__key">{title}</h2>
+        <div className="divide-y divide-slate-200 dark:divide-slate-800">{children}</div>
+      </section>
+    )
+  }
   return (
     <section className="mt-6">
       <h2 className="text-[13px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
@@ -258,7 +272,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Note({ children }: { children: React.ReactNode }) {
+/** `empty`: nothing found — on the website the suite's Viewfinder box with nothing in frame (Boxes, D). */
+function Note({ children, empty = false }: { children: React.ReactNode; empty?: boolean }) {
+  if (empty && !phoneScreens()) {
+    return (
+      <div className="u-box u-box--frame u-box--empty mt-8 px-5 py-6 text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">
+        {children}
+      </div>
+    )
+  }
   return (
     <div className="mt-8 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
       {children}

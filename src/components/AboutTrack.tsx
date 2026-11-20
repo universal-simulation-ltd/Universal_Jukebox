@@ -9,6 +9,7 @@ import { useAboutStore } from '../stores/aboutStore'
 import { currentTrack, usePlayerStore } from '../stores/playerStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useT } from '../i18n'
+import { phoneScreens } from '../native/shell'
 
 // "About this track": what Wikipedia says about the song on the deck and about
 // whoever is singing it (James, 2026-09-13). The asking is `lib/aboutTrack.ts`;
@@ -182,8 +183,19 @@ function Article({ label, page, brief = false }: { label: string; page: WikiPage
   const first = brief ? 1 : 2
   const [all, setAll] = useState(false)
   const shown = all ? page.paragraphs : page.paragraphs.slice(0, first)
+  // On the website a record read from Wikipedia is the suite's Key box
+  // (BRANDING.md → Boxes, C): its label moves into the key tab, with where it
+  // came from ("The song · Wikipedia"). The phone screens keep the label inside.
+  const keyed = !phoneScreens()
   return (
-    <article className="rounded-lg border border-slate-200 px-4 py-4 dark:border-slate-800">
+    <article
+      className={
+        keyed
+          ? 'u-box u-box--key mt-3 bg-transparent px-4 pb-4 dark:bg-transparent'
+          : 'rounded-lg border border-slate-200 px-4 py-4 dark:border-slate-800'
+      }
+    >
+      {keyed && <span className="u-box__key">{label} · Wikipedia</span>}
       {page.thumbnail && (
         // `no-referrer`: the picture comes from Wikimedia, which needs to know
         // nothing about the page asking for it.
@@ -195,8 +207,8 @@ function Article({ label, page, brief = false }: { label: string; page: WikiPage
           className="float-right mb-2 ml-4 h-20 w-20 rounded-lg object-cover"
         />
       )}
-      <p className="text-[11.5px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">{label}</p>
-      <h3 className="mt-1 text-[15px] font-semibold text-slate-900 dark:text-slate-100">{page.title}</h3>
+      {!keyed && <p className="text-[11.5px] font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">{label}</p>}
+      <h3 className={`${keyed ? '' : 'mt-1 '}text-[15px] font-semibold text-slate-900 dark:text-slate-100`}>{page.title}</h3>
       <div className="mt-2 space-y-2.5 text-[13.5px] leading-relaxed text-slate-700 dark:text-slate-300">
         {shown.map((paragraph, i) => (
           <p key={i}>{paragraph}</p>

@@ -118,6 +118,17 @@ export default {
   'remove_explain': 'It won’t show or play any more. Nothing is deleted: put it back any time from Tune this app, under Your library.',
   'remove_yes': 'Remove', // button that confirms
   'removed': 'Removed', // confirmation after removing
+  // Select several, then remove them from Jukebox (the web lists; SelectionBar)
+  'select_item': 'Select {name}', // screen reader: a tick box on a row in the web lists; {name} is the song’s, album’s or shelf’s name
+  'noun_song': 'song', // what a row is, for the select-several bar (lower case where the language allows)
+  'noun_songs': 'songs',
+  'noun_album': 'album',
+  'noun_albums': 'albums',
+  'remove_songs_one': 'Remove {count} song from Jukebox?',
+  'remove_songs_other': 'Remove {count} songs from Jukebox?',
+  'remove_albums_one': 'Remove {count} album from Jukebox?',
+  'remove_albums_other': 'Remove {count} albums from Jukebox?',
+  'remove_many_explain': 'They won’t show or play any more. Nothing is deleted: the files stay where they are, and Tune this app, under Your library, puts them back.', // under the question; the same promise as remove_explain, for several
 
   // Add to queue (AddToQueue, TrackOptions)
   'add_to_queue': 'Add to queue',

@@ -111,6 +111,16 @@ const library: Draft['library'] = {
   'remove_explain': 'Es wird nicht mehr angezeigt oder abgespielt. Nichts wird gelöscht: Du kannst es jederzeit unter „Diese App anpassen“ › „Deine Mediathek“ zurückholen.',
   'remove_yes': 'Entfernen',
   'removed': 'Entfernt',
+  'select_item': '{name} auswählen',
+  'noun_song': 'Song',
+  'noun_songs': 'Songs',
+  'noun_album': 'Album',
+  'noun_albums': 'Alben',
+  'remove_songs_one': '{count} Song aus Jukebox entfernen?',
+  'remove_songs_other': '{count} Songs aus Jukebox entfernen?',
+  'remove_albums_one': '{count} Album aus Jukebox entfernen?',
+  'remove_albums_other': '{count} Alben aus Jukebox entfernen?',
+  'remove_many_explain': 'Sie werden nicht mehr angezeigt oder abgespielt. Nichts wird gelöscht: Die Dateien bleiben, wo sie sind, und unter „Diese App anpassen“ › „Deine Mediathek“ holst du sie zurück.',
 }
 
 export default library

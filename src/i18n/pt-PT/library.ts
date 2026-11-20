@@ -111,6 +111,16 @@ const library: Draft['library'] = {
   'remove_explain': 'Deixa de aparecer e de tocar. Nada é apagado: pode repô-lo quando quiser em Ajustar esta aplicação, em A sua biblioteca.',
   'remove_yes': 'Remover',
   'removed': 'Removido',
+  'select_item': 'Selecionar {name}',
+  'noun_song': 'música',
+  'noun_songs': 'músicas',
+  'noun_album': 'álbum',
+  'noun_albums': 'álbuns',
+  'remove_songs_one': 'Remover {count} música do Jukebox?',
+  'remove_songs_other': 'Remover {count} músicas do Jukebox?',
+  'remove_albums_one': 'Remover {count} álbum do Jukebox?',
+  'remove_albums_other': 'Remover {count} álbuns do Jukebox?',
+  'remove_many_explain': 'Deixam de aparecer e de tocar. Nada é apagado: os ficheiros ficam onde estão, e pode repô-los em Ajustar esta aplicação, em A sua biblioteca.',
 }
 
 export default library
