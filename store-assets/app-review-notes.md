@@ -13,8 +13,8 @@ the text below is about 2,700).
 - [ ] **Siri** line: `130f524` is in the build (it's in everything after 1.0.13).
 - [ ] **Testing** line: "tested internally" (James, 2026-10-20) unless an
       external TestFlight group has run first; then say so, with how many testers.
-- [ ] Hits is off on iPhone/iPad (`barsHits`, `5fdd72a`), so "no data
-      collected" and "offline" are true. Re-read this if Hits comes back on iOS.
+- [ ] Hits is off on iPhone/iPad (`barsHits`, `5fdd72a`), so "offline" is
+      true and nothing about the music is collected. Re-read this if Hits comes back on iOS.
       Debug builds from Xcode have it ON (`isIosDebugBuild`, 2026-11-13): submit
       a Release archive only, never a Debug build.
 - [ ] Age rating: answer the new `socialMedia` / `socialMediaAgeRestricted`
@@ -32,7 +32,7 @@ the text below is about 2,700).
 
 > Universal Jukebox is not made from a template or by an app-generation service. It is designed, written and published by Universal Simulation Ltd (UNI·SIM), a small UK company, and its code is our own.
 >
-> WHAT IT DOES AND WHO IT'S FOR: an offline player for music files people already own, presented as a real record player or cassette deck. No streaming, no subscription, no account, no data collected. It is for people with their own collection (ripped CDs, downloads, files synced through Apple Music).
+> WHAT IT DOES AND WHO IT'S FOR: an offline player for music files people already own, presented as a real record player or cassette deck. No streaming, no subscription and no account of its own; nothing about your music leaves the phone. (If the phone is already signed in to another UNI·SIM app, Jukebox recognises it: the title shows that name, and Tune this app's settings are kept with that account. This is declared in App Privacy.) It is for people with their own collection (ripped CDs, downloads, files synced through Apple Music).
 >
 > THE GAP IT FILLS: most players today are streaming catalogues. Jukebox is built around your own records: sleeves on a shelf, a turning record, a lyric sheet read from your own lyric files, play counts kept on the device.
 >

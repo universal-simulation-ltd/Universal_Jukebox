@@ -1,8 +1,33 @@
 {
- "_about": "Play Data safety answers. Build the importable CSV with: node Docs_UNI_SIM/store-kit/data-safety.mjs Universal_Apps/Universal_Jukebox/store-assets/data-safety.json Universal_Apps/Universal_Jukebox/store-assets/out/play/data-safety.csv. Checked against the code 2026-10-12: the phone app has no accounts at all (noAccounts in main.tsx), so no email, no user id and no signed-in usage events. The suite user count (install id) was retired in @unisim/sdk 0.187.0, and the anonymous daily open count that replaced it is OFF in the phone and desktop apps (src/main.tsx `openCount: !isNativeShell() && !isDesktopApp()`), so no Device or other IDs, and no App interactions either. The music, its tags, art and lyrics never leave the device. The lookups (lrclib.net on Android only, opt-in; Wikipedia, opt-in; iTunes Search on tap) go straight from the phone to those services and are not collected by us. So: no data collected. Re-import this at the next Play release. Mirrors ios/App/App/PrivacyInfo.xcprivacy.",
+ "_about": "Play Data safety answers. Build the importable CSV with: node Docs_UNI_SIM/store-kit/data-safety.mjs Universal_Apps/Universal_Jukebox/store-assets/data-safety.json Universal_Apps/Universal_Jukebox/store-assets/out/play/data-safety.csv. PREPARED 2026-11-21, NOT YET IMPORTED: import it at the next Play release. Updated 2026-11-21 for the phone app recognising a suite sign-in; it was 'no data collected' (checked 2026-10-12). The phone app still has no sign-in of its own and creates no accounts (PSL_ACM_NONE), and sends no 'session.opened' event (<UsageTracker /> is website-only, src/App.tsx). But when the phone already holds a UNI·SIM session made by another suite app (Android's shared suite sign-in), it reads and follows it (src/main.tsx: noAccounts only for the Windows app): Name (optional; App functionality) is the account's 'Call me', shown as the title ('Bradley's Jukebox') and edited by Tune this app's name box on the account (suite-call-me row; a name typed signed out can seed an account that has none); Email address (optional; App functionality) is shown in Tune this app > Your Universal ID, and the name can fall back to it; User IDs (optional; App functionality) is the account id that keys the reads and writes; Other actions (optional; App functionality) is Tune this app's settings kept with the account (src/stores/settingsStore.ts, createSyncedSettings, tune-app:jukebox row; colour scheme, language and default views in tune:jukebox and suite; the App name choice in jukebox). Device-only settings stay on the phone, and none of it names a song, an artist or a file. Optional = only for someone already signed in elsewhere. Unchanged: no install id or open count (retired in @unisim/sdk 0.187.0; openCount: false), so no Device or other IDs. The music, its tags, art and lyrics never leave the device. The lookups (lrclib.net on Android only, opt-in; Wikipedia, opt-in; iTunes Search on tap) go straight from the phone to those services and are not collected by us. Mirrors ios/App/App/PrivacyInfo.xcprivacy.",
  "accountCreation": [
   "PSL_ACM_NONE"
  ],
  "deletionUrl": "https://www.unisim.co.uk/privacy#retention",
- "types": {}
+ "types": {
+  "PSL_NAME": {
+   "required": false,
+   "purposes": [
+    "PSL_APP_FUNCTIONALITY"
+   ]
+  },
+  "PSL_EMAIL": {
+   "required": false,
+   "purposes": [
+    "PSL_APP_FUNCTIONALITY"
+   ]
+  },
+  "PSL_USER_ACCOUNT": {
+   "required": false,
+   "purposes": [
+    "PSL_APP_FUNCTIONALITY"
+   ]
+  },
+  "PSL_OTHER_APP_ACTIVITY": {
+   "required": false,
+   "purposes": [
+    "PSL_APP_FUNCTIONALITY"
+   ]
+  }
+ }
 }

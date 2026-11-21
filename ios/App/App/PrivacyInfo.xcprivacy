@@ -5,14 +5,39 @@
   Apple's privacy manifest, required for App Store submission.
 
   The music never leaves the phone: scanning, tags, artwork, shelves, the
-  queue and playback all happen on the device. The phone app has no sign-in
-  (noAccounts in src/main.tsx), so there is no account, no email and no
-  "the app was opened" event. The suite user count (an install id every 45 s)
-  was retired in @unisim/sdk 0.187.0, and its replacement, the anonymous daily
-  open count, is off in the phone app (src/main.tsx `openCount:
-  !isNativeShell() && !isDesktopApp()`), so it keeps no install id and sends
-  no count. Nothing is collected, and
-  NSPrivacyCollectedDataTypes is empty.
+  queue and playback all happen on the device. The Apple Watch app talks only
+  to the paired iPhone (WatchConnectivity) and sends nothing anywhere else.
+
+  Updated 2026-11-21: the phone app recognises a suite sign-in. It was "Data
+  Not Collected" until then. The phone app has no sign-in of its own and
+  sends no "the app was opened" event (<UsageTracker /> is mounted on the
+  website only, src/App.tsx), but when the phone already holds a UNI·SIM
+  session that ANOTHER suite app made (the shared Keychain group
+  co.uk.unisim.suite on iOS, the suite's shared sign-in on Android), it reads
+  and follows it (src/main.tsx: `noAccounts` is set for the Windows app
+  only). Then:
+
+  - Name, linked, App Functionality: the title becomes "Bradley's Jukebox"
+    from the account's "Call me" (the SDK's useCallMe: Global Tuning's Call
+    me, else the profile's name, else a name-shaped email), and Tune this
+    app's name box edits that "Call me" on the account (`suite-call-me` row;
+    src/components/Settings.tsx, src/lib/jukeboxTitle.ts). A name typed while
+    signed out can seed an account that has none.
+  - Email Address, linked, App Functionality: Tune this app ▸ Your Universal
+    ID shows the account's email, and the name can fall back to it.
+  - User ID, linked, App Functionality: the account id the session carries,
+    which keys the reads and writes.
+  - Other Data Types, linked, App Functionality: Tune this app's settings
+    follow the account (src/stores/settingsStore.ts, the SDK's
+    createSyncedSettings, `tune-app:jukebox` row; the colour scheme, language
+    and default views in `tune:jukebox` and `suite`; the App name choice in
+    `jukebox`). Device-only settings (volume, the typed owner name and the
+    rest of `DEVICE_ONLY`) stay on the phone. None of it names a song, an
+    artist or a file.
+
+  The suite user count (an install id every 45 s) was retired in
+  @unisim/sdk 0.187.0, and the anonymous daily open count is off everywhere
+  (src/main.tsx `openCount: false`), so no install id and no count.
 
   Two lookups send a song's artist and title (never the file) straight from
   the phone to a public service, only when the user asks for what they return:
@@ -40,8 +65,9 @@
     the app's own container (C617.1). Neither pod ships a manifest; Capacitor's
     core frameworks carry their own.
 
-  Keep this in step with the App Store Connect privacy answers and
-  store-assets/data-safety.json.
+  Keep this in step with the App Store Connect privacy answers (Name, Email
+  Address, User ID, Other Data Types: linked, not tracking, App
+  Functionality) and store-assets/data-safety.json.
 -->
 <dict>
 	<key>NSPrivacyTracking</key>
@@ -68,8 +94,61 @@
 			</array>
 		</dict>
 	</array>
-	<!-- No accounts and no user-count beat in the phone app: nothing collected. -->
+	<!-- Only with a suite session another app made on the phone. -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<!-- "Call me": the title, and Tune's name box. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeName</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Shown in Tune ▸ Your Universal ID. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- The account id the session carries. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Tune this app settings kept with the account. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherDataTypes</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
