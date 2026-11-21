@@ -32,10 +32,12 @@ export default {
   'tab_bin_drop': 'Let go to hide', // the same, with the finger over it
   'tab_binned': 'Tab hidden: {tab}. Bring it back in {tune}.', // toast after a tab is dropped on the bin; {tab} is its name, {tune} the Tune tab's name; has Undo
   'tabs_title': 'Tabs', // Tune this app ▸ Your library: the phone's tab order list
-  'tabs_note': 'Hold a tab in the bar and drag it to move it, or drop it on the bin to hide it. {tune} stays last.', // under it
+  'tabs_note': 'Hold a tab in the bar and drag it to move it, or drop it on the bin to hide it. The eye hides or shows a tab. {tune} stays last.', // under it
   'tab_up': 'Move {name} up', // button, screen reader
   'tab_down': 'Move {name} down', // button, screen reader
-  'tab_hide': 'Hide', // tick box on each tab's row
+  'tab_hide': 'Hide {name}', // the eye on a shown tab's row (screen reader); {name} is the tab's name
+  'tab_show': 'Show {name}', // the eye on a hidden tab's row (screen reader)
+  'tabs_hidden': 'Hidden', // heading over the greyed group of hidden tabs at the bottom of the list
   'tab_now_home_albums': 'The app now opens on Albums',
   'tab_now_home_tracks': 'The app now opens on Songs',
   'tab_now_home_shelves': 'The app now opens on Shelves',

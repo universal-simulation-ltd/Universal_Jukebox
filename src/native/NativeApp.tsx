@@ -45,7 +45,7 @@ import { matchAlbums, matchArtistNames, tabCounts } from '../lib/search'
 import { AlbumScreen, ArtistScreen, QueueScreen } from './DetailScreens'
 import { IconAlbums, IconArtists, IconBack, IconBin, IconDown, IconMix, IconShelves, IconSongs, IconTune } from './icons'
 import { MixScreen } from './MixScreen'
-import { openingTab, shownTabs, withShownOrder } from '../lib/tabs'
+import { openingTab, setTabHidden, shownTabs, withShownOrder } from '../lib/tabs'
 import { AlbumsScreen, ArtistsScreen, SongsScreen } from './LibraryScreens'
 import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
@@ -216,8 +216,8 @@ export default function NativeApp() {
   // Blackbook - drag to change order, ability to hide a tab"; the suite rule
   // in BRANDING.md, built first in BlackBook's NativeApp). Drag it along the
   // bar and the others make room; drop it on the bin that rises above the bar
-  // to hide it (Undo, and Tune ▸ Your library ▸ Tabs brings it back); let go
-  // where it was and the "Set as default" bubble shows, as a hold always did.
+  // to hide it (Undo; the eye in Tune ▸ Your library ▸ Tabs brings it back);
+  // let go where it was and the "Set as default" bubble shows, as ever.
   // Tune stays last and can't be picked up; the last tab shown can't be binned.
   // The hold and the drag are the SDK phone kit's `useTabReorder` (@unisim/sdk
   // 0.230.0, where this file's own copy went, with BlackBook's). What stays
@@ -229,17 +229,21 @@ export default function NativeApp() {
   const tabOrder = useSettingsStore((s) => s.tabOrder)
   const hiddenTabs = useSettingsStore((s) => s.hiddenTabs)
   const shown = useMemo(() => shownTabs(tabOrder, hiddenTabs), [tabOrder, hiddenTabs])
-  const [binned, setBinned] = useState<HomeTab | null>(null)
+  // The tab in the bin, and the order and hidden tabs from before it went
+  // there, which Undo puts back exactly.
+  const [binned, setBinned] = useState<{ tab: HomeTab; tabOrder: HomeTab[]; hiddenTabs: HomeTab[] } | null>(null)
   const reorder = useTabReorder<HomeTab>({
     tabs: shown,
     onReorder: (order) => {
       const s = useSettingsStore.getState()
       s.set('tabOrder', withShownOrder(s.tabOrder, order))
     },
+    // The same as the tab's eye in Tune ▸ Tabs (2026-11-20): one write of
+    // the hidden tabs and the order, the tab at the bottom of Hidden.
     onBin: (tab) => {
       const s = useSettingsStore.getState()
-      s.set('hiddenTabs', [...s.hiddenTabs, tab])
-      setBinned(tab)
+      setBinned({ tab, tabOrder: s.tabOrder, hiddenTabs: s.hiddenTabs })
+      s.patch(setTabHidden(s.tabOrder, s.hiddenTabs, tab, true))
     },
     // Picked up: any bubble goes. Let go where it was (nothing moved, nothing
     // binned): the "Set as default" bubble, as a hold always did.
@@ -557,12 +561,11 @@ export default function NativeApp() {
       )}
       {showTabs && binned && (
         <div className="jx-undo" role="status">
-          <span>{t('native.tab_binned', { tab: t(TABS.find((x) => x.view === binned)!.label), tune: t('native.tab_tune') })}</span>
+          <span>{t('native.tab_binned', { tab: t(TABS.find((x) => x.view === binned.tab)!.label), tune: t('native.tab_tune') })}</span>
           <button
             type="button"
             onClick={() => {
-              const now = useSettingsStore.getState().hiddenTabs
-              setSetting('hiddenTabs', now.filter((x) => x !== binned))
+              useSettingsStore.getState().patch({ tabOrder: binned.tabOrder, hiddenTabs: binned.hiddenTabs })
               setBinned(null)
             }}
           >

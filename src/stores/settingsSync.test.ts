@@ -34,6 +34,24 @@ describe('settings, synced', () => {
     expect(s.volumeBoost).toBe(4)
   })
 
+  it('reads hidden tabs saved before the eye (in their slots) with the hidden ones last, nothing lost', () => {
+    const s = normaliseSettings({ tabOrder: ['jukebox', 'artists', 'albums', 'tracks', 'mix'], hiddenTabs: ['tracks', 'artists'], homeTab: 'tracks' })
+    expect(s.hiddenTabs).toEqual(['tracks', 'artists'])
+    expect(s.tabOrder).toEqual(['jukebox', 'albums', 'mix', 'tracks', 'artists'])
+    expect(s.homeTab).toBe('tracks')
+    // Read again (as the synced store does), it stays the same.
+    expect(normaliseSettings(JSON.parse(JSON.stringify(s)))).toEqual(s)
+  })
+
+  it('patch writes several settings in one go', () => {
+    useSettingsStore.getState().patch({ tabOrder: ['mix', 'jukebox', 'tracks', 'albums', 'artists'], hiddenTabs: ['artists'] })
+    expect(useSettingsStore.getState().hiddenTabs).toEqual(['artists'])
+    expect(syncedSettings.getState().tabOrder).toEqual(['mix', 'jukebox', 'tracks', 'albums', 'artists'])
+    useSettingsStore.getState().reset()
+    expect(useSettingsStore.getState().hiddenTabs).toEqual([])
+    expect(useSettingsStore.getState().tabOrder).toEqual(DEFAULTS.tabOrder)
+  })
+
   it('device-only keys are real settings', () => {
     for (const k of DEVICE_ONLY) expect(k in DEFAULTS).toBe(true)
     // The ones that follow the account include the Tune switches.

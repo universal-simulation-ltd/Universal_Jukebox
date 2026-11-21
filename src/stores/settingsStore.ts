@@ -1,5 +1,5 @@
 import { DEFAULT_ERAS, sanitiseEras, type DeckEras } from '../lib/decks'
-import { normaliseHidden, normaliseOrder, PHONE_TABS } from '../lib/tabs'
+import { hiddenLast, normaliseHidden, normaliseOrder, PHONE_TABS } from '../lib/tabs'
 import { barsPocketPlayer } from '../lib/nativeFile'
 import { phoneScreens } from '../native/shell'
 import { create } from 'zustand'
@@ -205,7 +205,9 @@ export interface Settings {
    * The phone's tab bar, left to right (Tune always after them), and the
    * tabs taken off it (James, 2026-11-02: "drag to change order, ability to
    * hide a tab"). Hold a tab and drag it; drop it on the bin to hide it; or
-   * Tune this app ▸ Your library ▸ Tabs. See `lib/tabs.ts`.
+   * Tune this app ▸ Your library ▸ Tabs, with an eye on each row. The hidden
+   * tabs come last in `tabOrder`, in the order they were hidden, which is
+   * `hiddenTabs`' order too. See `lib/tabs.ts`.
    */
   tabOrder: HomeTab[]
   hiddenTabs: HomeTab[]
@@ -736,7 +738,10 @@ function readStored(given?: Record<string, unknown>): Settings {
       ? (mode as CeremonyMode)
       : DEFAULTS.ceremonyMode,
     homeTab: tab === 'albums' || tab === 'artists' || tab === 'tracks' || tab === 'jukebox' || tab === 'mix' ? tab : DEFAULTS.homeTab,
-    tabOrder: normaliseOrder((stored as { tabOrder?: unknown }).tabOrder),
+    // The hidden tabs after the shown ones, in the order they were hidden
+    // (Tune ▸ Tabs' eye, 2026-11-20): an order saved with them in their slots
+    // reads the same on the bar, and its Hidden group comes out right.
+    tabOrder: hiddenLast(normaliseOrder((stored as { tabOrder?: unknown }).tabOrder), normaliseHidden((stored as { hiddenTabs?: unknown }).hiddenTabs)),
     hiddenTabs: normaliseHidden((stored as { hiddenTabs?: unknown }).hiddenTabs),
     ownerName: typeof (stored as { ownerName?: unknown }).ownerName === 'string' ? ((stored as { ownerName: string }).ownerName).slice(0, OWNER_NAME_MAX) : '',
     // `automatic` was retired for `automatic` on 2026-09-10; somebody who had
@@ -869,6 +874,8 @@ function legacyNeedleDrop(): boolean {
 
 interface SettingsState extends Settings {
   set<K extends keyof Settings>(key: K, value: Settings[K]): void
+  /** Several at once, in ONE write (the tab order and the hidden tabs, which two writes could clobber). */
+  patch(values: Partial<Settings>): void
   reset(): void
   /**
    * Settings from a backup (`lib/backup.ts`), read field by field exactly as
@@ -954,6 +961,10 @@ export const useSettingsStore = create<SettingsState>(() => ({
 
   set(key, value) {
     syncedSettings.set({ [key]: value } as Partial<Settings>)
+  },
+
+  patch(values) {
+    syncedSettings.set(values)
   },
 
   reset() {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moveTab, normaliseHidden, normaliseOrder, openingTab, shownTabs, withShownOrder } from './tabs'
+import { hiddenLast, moveTab, normaliseHidden, normaliseOrder, openingTab, setTabHidden, shownTabs, withShownOrder } from './tabs'
 
 describe('the phone tab bar', () => {
   it('makes a stored order whole: unknown names out, each tab once, a missing tab back by its neighbour', () => {
@@ -33,5 +33,28 @@ describe('the phone tab bar', () => {
   it('opens on the first shown tab while the chosen one is hidden', () => {
     expect(openingTab('albums', ['artists', 'albums', 'tracks', 'jukebox'], [])).toBe('albums')
     expect(openingTab('albums', ['tracks', 'albums', 'artists', 'jukebox'], ['albums'])).toBe('tracks')
+  })
+
+  it('puts the hidden tabs last, in the order they were hidden, leaving the bar as it was', () => {
+    // An order from the Hide tick box days: Albums and Artists hidden in their slots, Albums first.
+    const order = hiddenLast(['artists', 'albums', 'tracks', 'jukebox', 'mix'], ['albums', 'artists'])
+    expect(order).toEqual(['tracks', 'jukebox', 'mix', 'albums', 'artists'])
+    expect(shownTabs(order, ['albums', 'artists'])).toEqual(shownTabs(['artists', 'albums', 'tracks', 'jukebox', 'mix'], ['albums', 'artists']))
+    // Idempotent, and nothing hidden changes nothing.
+    expect(hiddenLast(order, ['albums', 'artists'])).toEqual(order)
+    expect(hiddenLast(['mix', 'artists', 'albums', 'tracks', 'jukebox'], [])).toEqual(['mix', 'artists', 'albums', 'tracks', 'jukebox'])
+  })
+
+  it('the eye and the bin: hide drops a tab to the bottom of Hidden, show brings it back at the end of the shown tabs', () => {
+    const all: ['artists', 'albums', 'tracks', 'jukebox', 'mix'] = ['artists', 'albums', 'tracks', 'jukebox', 'mix']
+    const a = setTabHidden(all, [], 'albums', true)
+    expect(a).toEqual({ tabOrder: ['artists', 'tracks', 'jukebox', 'mix', 'albums'], hiddenTabs: ['albums'] })
+    const b = setTabHidden(a.tabOrder, a.hiddenTabs, 'artists', true)
+    expect(b).toEqual({ tabOrder: ['tracks', 'jukebox', 'mix', 'albums', 'artists'], hiddenTabs: ['albums', 'artists'] })
+    const c = setTabHidden(b.tabOrder, b.hiddenTabs, 'artists', false)
+    expect(c).toEqual({ tabOrder: ['tracks', 'jukebox', 'mix', 'artists', 'albums'], hiddenTabs: ['albums'] })
+    expect(shownTabs(c.tabOrder, c.hiddenTabs)).toEqual(['tracks', 'jukebox', 'mix', 'artists'])
+    // What it writes is already in the stored shape.
+    expect(hiddenLast(c.tabOrder, c.hiddenTabs)).toEqual(c.tabOrder)
   })
 })
