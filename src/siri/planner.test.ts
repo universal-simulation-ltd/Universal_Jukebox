@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { decideSearch, decideShortcut } from '../lib/voicePlan'
+import { decideCollection, decideSearch, decideShortcut } from '../lib/voicePlan'
 import type { PlanAlbum, PlanTrack } from '../lib/voicePlan'
 import type { PlannerOutput } from './planner'
 
@@ -85,5 +85,18 @@ describe('Siri planner bundle', () => {
   it('has nothing to play with no songs, and reports bad input instead of throwing', () => {
     expect(JSON.parse(planJSON(JSON.stringify({ action: 'play', seed: 1, hasSong: false, playing: false, manifest: '{"tracks":[]}' })))).toEqual({ do: 'empty' })
     expect(JSON.parse(planJSON('not json')).do).toBe('error')
+  })
+
+  it('plays what the Apple Watch picked, exactly as the page would', () => {
+    expect(run({ action: 'collection', request: { albums: ['OK Computer', 'Life in Cartoon Motion'] } })).toEqual({
+      do: 'queue', ids: ['Airbag', 'Paranoid Android', 'Grace Kelly', 'Lollipop', 'Relax'], at: 0, shuffle: false, startSec: 0,
+    })
+    expect(run({ action: 'collection', request: { tracks: ['Relax', 'Gone', 'Airbag'] } })).toMatchObject({ do: 'queue', ids: ['Relax', 'Airbag'] })
+    const page = decideCollection({ albums: ['Life in Cartoon Motion'], shuffle: true }, { tracks, albums }, 7)
+    const locked = run({ action: 'collection', request: { albums: ['Life in Cartoon Motion'], shuffle: true } })
+    if (page.kind !== 'queue' || locked.do !== 'queue') throw new Error('no queue')
+    expect(locked.ids).toEqual(page.tracks.map((t) => t.id))
+    expect(locked.shuffle).toBe(true)
+    expect(run({ action: 'collection', request: { albums: ['Gone'] } })).toEqual({ do: 'none', asked: '' })
   })
 })

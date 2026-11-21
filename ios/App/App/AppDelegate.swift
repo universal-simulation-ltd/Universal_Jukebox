@@ -24,6 +24,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if let item = launchOptions?[.shortcutItem] as? UIApplicationShortcutItem {
             ShortcutsBridge.receive(item.type)
         }
+        // The Apple Watch remote. Here, not in the scene: a watch's message can
+        // launch the app in the background, with no scene and no web view, and
+        // the session must be live to hear it (`WatchBridge.swift`).
+        WatchBridge.shared.start()
         return true
     }
 

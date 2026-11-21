@@ -22,6 +22,11 @@ the text below is about 2,700).
 - [ ] Attach a short screen recording if possible (the Mix tab first: two records, a scratch, the crossfader; then Siri, lock screen, widget, Bedside).
 - [ ] The build includes the Mix tab (`9dc0d30`, 2026-11-05) and James has tried it on a device.
 - [ ] Version numbers: the notes and reply say 1.0.15; the next build is 1.0.16 (backlog).
+- [ ] **Apple Watch** line: the watch app (`ios/App/JukeboxWatch`, 2026-11-21) is
+      embedded in the build, and Apple Watch screenshots are on the listing
+      (`out/<locale>/watch/`). A reviewer without a watch can still read it; with
+      one, the phone's example library plays from the watch only with Jukebox
+      open on the iPhone (its songs are made in the app) — say so.
 
 ## Notes (paste into App Review Information ▸ Notes)
 
@@ -35,6 +40,7 @@ the text below is about 2,700).
 > • A Mix tab: two turntables playing at once. Hold a record to stop it and turn it to scratch (backwards too), turn its edge to nudge the speed, set each deck's speed, and blend the two with a crossfader. Our own audio engine reads each song at any speed and direction under the finger; no other music player we know of lets you mix your own files this way
 > • Siri: "Hey Siri, play Mika on Jukebox" (SiriKit INPlayMediaIntent, handled in the app)
 > • A "Resume listening" widget for the Home Screen (small, medium) and Lock Screen (rectangular, circular, inline): the last song on the record that played it; one tap carries on from the same second
+> • An Apple Watch app that is a remote for the iPhone: what is playing (with the Digital Crown on the iPhone's volume), play/pause and skip, and the phone's own Albums, Artists and Shelves to start from the wrist. It holds no music; the iPhone plays everything, also while locked in a pocket. To try it with the example library, keep Jukebox open on the iPhone
 > • A Discography card on each artist page, lyric marks on every song and album with lyrics, and the Albums shelf as the first screen
 >
 > NATIVE iOS FEATURES: our own AVPlayer audio engine, so crossfades, fades, the sleep fade and ReplayGain play in the background; lock-screen and Control Centre controls showing the current lyric; AirPlay; import from the Music library or Files; Bedside mode.

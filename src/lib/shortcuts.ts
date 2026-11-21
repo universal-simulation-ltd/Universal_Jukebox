@@ -1,6 +1,6 @@
 import { pluginRegistered } from './nativePlugins'
 import type { VoiceRequest } from './voiceSearch'
-import { decideSearch, decideShortcut, type Decision } from './voicePlan'
+import { decideCollection, decideSearch, decideShortcut, type CollectionRequest, type Decision } from './voicePlan'
 import { newSeed } from './shuffleQueue'
 import type { Track } from './types'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -28,6 +28,7 @@ export function installShortcuts(): void {
     await plugin.addListener('shortcut', (data) => {
       const action = data.action
       if (action === 'search') whenLibraryReady(() => playFromSearch(data))
+      else if (action === 'collection') whenLibraryReady(() => playCollection(data))
       else if (action) whenLibraryReady(() => runShortcut(action))
     })
   })()
@@ -38,7 +39,7 @@ export function installShortcuts(): void {
  * `MEDIA_PLAY_FROM_SEARCH`, or Siri's `INPlayMediaIntent` (`SiriIntents.swift`'s
  * `SiriMedia`), which adds `shuffle` for "shuffle Mika on Jukebox".
  */
-interface ShortcutEvent extends VoiceRequest {
+interface ShortcutEvent extends VoiceRequest, CollectionRequest {
   action?: string
   shuffle?: boolean
 }
@@ -107,4 +108,15 @@ function playMusic(): void {
 /** "Hey Google, play Radiohead on Jukebox" — see `voiceSearch.ts` and `voicePlan.ts`. */
 export function playFromSearch(request: VoiceRequest & { shuffle?: boolean }): void {
   carryOut(decideSearch(request, useLibraryStore.getState(), newSeed()))
+}
+
+/**
+ * An album, artist or shelf picked on the Apple Watch with the app on screen
+ * (`WatchBridge.swift` → `ShortcutsBridge`, action `collection`). With the
+ * phone locked the same decision is made by the planner instead.
+ */
+export function playCollection(request: CollectionRequest): void {
+  const decision = decideCollection(request, useLibraryStore.getState(), newSeed())
+  // Nothing of it left in the library (it changed since the watch was told): nothing to play.
+  if (decision.kind !== 'none') carryOut(decision)
 }

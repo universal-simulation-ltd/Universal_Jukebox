@@ -78,6 +78,46 @@ export function decideSearch(
 }
 
 /**
+ * A collection played from the Apple Watch (`ios/App/JukeboxWatch`): an album,
+ * an artist's albums in turn, or a shelf's songs, in their own order or
+ * shuffled. The watch names it; the phone turns the name into these ids from
+ * the library the page sent the watch (`WatchRequest.resolve` in Swift, from
+ * `lib/watchLibrary.ts`'s snapshot), so the page with the app open and the
+ * planner with the phone locked both play exactly this.
+ */
+export interface CollectionRequest {
+  /** Albums, each in its own order (`sortAlbumTracks`), one after another. */
+  albums?: readonly string[]
+  /** Songs in this order — a shelf. */
+  tracks?: readonly string[]
+  /** Every song (used shuffled). */
+  all?: boolean
+  shuffle?: boolean
+}
+
+export function decideCollection(request: CollectionRequest, library: PlanLibrary, seed: number): Decision {
+  let tracks: PlanTrack[] = []
+  if (request.all) {
+    tracks = [...library.tracks]
+  } else if (request.albums) {
+    const byAlbum = new Map<string, PlanTrack[]>()
+    for (const track of library.tracks) {
+      const list = byAlbum.get(track.albumId)
+      if (list) list.push(track)
+      else byAlbum.set(track.albumId, [track])
+    }
+    tracks = request.albums.flatMap((id) => sortAlbumTracks((byAlbum.get(id) ?? []) as Track[]))
+  } else if (request.tracks) {
+    const byId = new Map(library.tracks.map((t) => [t.id, t]))
+    tracks = request.tracks.map((id) => byId.get(id)).filter((t): t is PlanTrack => !!t)
+  }
+  // The library changed since the watch was told about it.
+  if (tracks.length === 0) return { kind: 'none', asked: '' }
+  if (request.shuffle || request.all) return shuffled('songs', { ...library, tracks }, seed)
+  return { kind: 'queue', tracks, at: 0, shuffle: false }
+}
+
+/**
  * The three shuffles, as `startShuffle` in `playerStore` plays them: songs
  * with shuffle on, albums and artists with it off (each album or artist's own
  * order is the point).

@@ -1,4 +1,4 @@
-import { decideSearch, decideShortcut, resumeQueue, type Decision, type PlanAlbum, type PlanTrack, type SavedPlace } from '../lib/voicePlan'
+import { decideCollection, decideSearch, decideShortcut, resumeQueue, type CollectionRequest, type Decision, type PlanAlbum, type PlanTrack, type SavedPlace } from '../lib/voicePlan'
 import type { VoiceRequest } from '../lib/voiceSearch'
 
 // Siri on a LOCKED iPhone (James, 2026-11-03: "allow Siri so that the user
@@ -19,10 +19,13 @@ import type { VoiceRequest } from '../lib/voiceSearch'
 // bundle in a bare `vm` context to keep it that way.
 
 export interface PlannerInput {
-  /** A shortcut action (`shuffle-songs`, `play`, …), or `search`. */
+  /** A shortcut action (`shuffle-songs`, `play`, …), `search`, or `collection` (the Apple Watch). */
   action: string
-  /** For `search`: what Siri heard (`SiriMedia.event` in Swift). */
-  request?: VoiceRequest & { shuffle?: boolean }
+  /**
+   * For `search`: what Siri heard (`SiriMedia.event` in Swift). For
+   * `collection`: what the watch picked (`WatchRequest.resolve` in Swift).
+   */
+  request?: VoiceRequest & CollectionRequest & { shuffle?: boolean }
   seed: number
   /** Whether the engine has a song on its deck, and whether it is playing. */
   hasSong: boolean
@@ -59,7 +62,9 @@ export function plan(input: PlannerInput): PlannerOutput {
   const decision: Decision =
     input.action === 'search'
       ? decideSearch(input.request ?? {}, library, input.seed)
-      : decideShortcut(input.action, library, input.seed)
+      : input.action === 'collection'
+        ? decideCollection(input.request ?? {}, library, input.seed)
+        : decideShortcut(input.action, library, input.seed)
 
   if (decision.kind === 'none') return { do: 'none', asked: decision.asked }
   if (decision.kind === 'queue') return queue(decision.tracks, decision.at, decision.shuffle, 0)

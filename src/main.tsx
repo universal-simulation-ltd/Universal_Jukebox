@@ -9,6 +9,7 @@ import { logNativeDiagnostics } from './lib/nativeDiagnostics'
 import { watchAudioRoute } from './lib/nowPlayingNative'
 import './index.css'
 import { installShortcuts } from './lib/shortcuts'
+import { installWatch } from './lib/watch'
 import { followThemeWithStatusBar } from './lib/systemBars'
 import { isNativeShell } from './lib/nativeFile'
 // Counts plays for the Most played shelf from the first song on (`lib/playCounting.ts`).
@@ -117,6 +118,8 @@ startApplyingSettings()
 logNativeDiagnostics()
 void watchAudioRoute()
 installShortcuts()
+// The Apple Watch remote — iPhone only, and only once a watch app is installed.
+installWatch()
 // The status-bar glyphs flip with Light/Dark where the page is under the bar.
 followThemeWithStatusBar()
 

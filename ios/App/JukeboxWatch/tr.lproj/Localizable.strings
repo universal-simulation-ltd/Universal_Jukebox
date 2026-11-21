@@ -1,0 +1,25 @@
+/* The Apple Watch remote (ios/App/JukeboxWatch). English is the key. */
+"Jukebox" = "Jukebox";
+"Now playing" = "Şimdi çalıyor";
+"Nothing playing" = "Hiçbir şey çalmıyor";
+"Albums" = "Albümler";
+"Artists" = "Sanatçılar";
+"Shelves" = "Raflar";
+"Shuffle songs" = "Şarkıları karıştır";
+"Shuffle albums" = "Albümleri karıştır";
+"Shuffle artists" = "Sanatçıları karıştır";
+"Shuffle" = "Karıştır";
+"Plays on your iPhone" = "iPhone’unuzda çalar";
+"Plays on your iPhone. Swipe left to shuffle." = "iPhone’unuzda çalar. Karıştırmak için sola kaydırın.";
+"Open Jukebox on your iPhone to see your music here." = "Müziğinizi burada görmek için iPhone’unuzda Jukebox’ı açın.";
+"Open Jukebox on your iPhone to start this." = "Bunu başlatmak için iPhone’unuzda Jukebox’ı açın.";
+"That’s no longer in your library." = "Bu artık arşivinizde yok.";
+"Your iPhone isn’t reachable." = "iPhone’unuza ulaşılamıyor.";
+"Put songs on a shelf on your iPhone and they’ll be here." = "iPhone’unuzda bir rafa şarkı koyun, burada görünsünler.";
+"Previous" = "Önceki";
+"Play" = "Çal";
+"Pause" = "Duraklat";
+"Next" = "Sonraki";
+"Unknown artist" = "Bilinmeyen sanatçı";
+"Unknown album" = "Bilinmeyen albüm";
+"%@ of %@" = "%1$@ / %2$@";

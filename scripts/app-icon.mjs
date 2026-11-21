@@ -160,7 +160,10 @@ const HEADER = `<!-- Written by scripts/app-icon.mjs — edit the drawing there,
 // ── iOS ─────────────────────────────────────────────────────────────────────
 const IOS = 'ios/App/App/Assets.xcassets'
 // Opaque, full bleed: iOS rounds the corners itself and refuses alpha.
-put(`${IOS}/AppIcon.appiconset/AppIcon-512@2x.png`, await png(1024, svg(), { ground: '#8a1a10' }))
+const iosIcon = await png(1024, svg(), { ground: '#8a1a10' })
+put(`${IOS}/AppIcon.appiconset/AppIcon-512@2x.png`, iosIcon)
+// The Apple Watch remote's icon: the same picture (watchOS rounds it to a circle).
+put('ios/App/JukeboxWatch/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png', iosIcon)
 // The splash: the icon, rounded, in the middle of the paper — the ground the
 // app itself opens on, so the launch doesn't flash a colour the app hasn't got.
 const splash = await png(2732, svg(), { inset: 0.26, radius: '22.4%', ground: PAPER })

@@ -1455,6 +1455,7 @@ final class JukeboxEngine: NSObject {
             centre.nowPlayingInfo = nil
             centre.playbackState = .stopped
             WidgetShare.playback(playing: false, elapsed: 0, duration: 0)
+            WatchBridge.shared.engineChanged()
             return
         }
         var info: [String: Any] = [
@@ -1472,6 +1473,35 @@ final class JukeboxEngine: NSObject {
         centre.playbackState = isPlaying ? .playing : .paused
         // The widget's "Now playing" — it reloads only on a real change.
         WidgetShare.playback(playing: isPlaying, elapsed: position, duration: duration)
+        // The Apple Watch's — it sends only on a real change too.
+        WatchBridge.shared.engineChanged()
+    }
+
+    // MARK: - Apple Watch
+
+    /// A transport button on the watch (`WatchBridge`): exactly a lock-screen
+    /// press — the page's own handlers while the app is active, the engine's
+    /// at once while it is not.
+    @discardableResult
+    func remote(_ action: String) -> Bool {
+        command(action, position: nil) == .success
+    }
+
+    /// The song on the deck, for the watch (`WatchNowPlaying`). The plain
+    /// artist, never the lock screen's lyric line in its place.
+    func watchNowPlaying() -> WatchNowPlaying {
+        guard enabled, let e = decks[active].entry else { return .nothing }
+        return WatchNowPlaying(has: true, title: e.title, artist: e.artist, album: e.album, albumId: e.albumId,
+                               playing: isPlaying, elapsed: position, duration: duration,
+                               at: Date().timeIntervalSince1970)
+    }
+
+    /// The lock screen's picture of the song on the deck, if it is this song's
+    /// album's — what the watch shows when the library sent it has no cover
+    /// of its own for the album (past the cover cap, say).
+    func watchArtwork(side: CGFloat) -> UIImage? {
+        guard let e = decks[active].entry, artworkAlbum == e.albumId else { return nil }
+        return artwork?.image(at: CGSize(width: side, height: side))
     }
 
     /// The page's lock-screen picture (`NowPlayingPlugin.show`): the record it

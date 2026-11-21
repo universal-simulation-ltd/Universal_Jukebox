@@ -38,6 +38,8 @@ class JukeboxViewController: CAPBridgeViewController {
         // The music itself, played natively — and the queue run natively
         // while the phone is locked. See `JukeboxEngine.swift`.
         bridge?.registerPluginInstance(JukeboxEnginePlugin())
+        // The Apple Watch remote's library, from the page (`WatchBridge.swift`).
+        bridge?.registerPluginInstance(WatchPlugin())
 
         // ⚠️ THE EDGE SWIPE BACK (James, 2026-09-10: "Mobile should also have
         // the edge of screen side swipe to go back instead of having to use
@@ -63,6 +65,26 @@ class JukeboxViewController: CAPBridgeViewController {
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
+        // Simulator runs of the Apple Watch remote and its store screenshots:
+        // `-JukeboxTryExample YES` presses the welcome screen's "example
+        // library" button, and `-JukeboxLanguage fr` picks the app's language
+        // (Tune this app ▸ Language), as `store-assets/generate.mjs` does in
+        // Chromium. DEBUG only, like the flag above.
+        if let lang = UserDefaults.standard.string(forKey: "JukeboxLanguage"),
+           lang.range(of: "^[A-Za-z-]{2,8}$", options: .regularExpression) != nil {
+            webView?.configuration.userContentController.addUserScript(WKUserScript(
+                source: "try{localStorage.setItem('universal:language:jukebox','\(lang)')}catch(e){}",
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            ))
+        }
+        if UserDefaults.standard.bool(forKey: "JukeboxTryExample") {
+            webView?.configuration.userContentController.addUserScript(WKUserScript(
+                source: "setInterval(function(){var b=document.querySelector('.jx-welcome .jx-btn.primary');if(b&&!b.disabled)b.click()},700);",
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            ))
+        }
         #endif
     }
 }

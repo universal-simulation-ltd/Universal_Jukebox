@@ -1,0 +1,25 @@
+/* The Apple Watch remote (ios/App/JukeboxWatch). English is the key. */
+"Jukebox" = "Jukebox";
+"Now playing" = "En cours de lecture";
+"Nothing playing" = "Rien en lecture";
+"Albums" = "Albums";
+"Artists" = "Artistes";
+"Shelves" = "Étagères";
+"Shuffle songs" = "Morceaux en aléatoire";
+"Shuffle albums" = "Albums en aléatoire";
+"Shuffle artists" = "Artistes en aléatoire";
+"Shuffle" = "Aléatoire";
+"Plays on your iPhone" = "Lecture sur votre iPhone";
+"Plays on your iPhone. Swipe left to shuffle." = "Lecture sur votre iPhone. Balayez vers la gauche pour l’aléatoire.";
+"Open Jukebox on your iPhone to see your music here." = "Ouvrez Jukebox sur votre iPhone pour voir votre musique ici.";
+"Open Jukebox on your iPhone to start this." = "Ouvrez Jukebox sur votre iPhone pour lancer ceci.";
+"That’s no longer in your library." = "Ce n’est plus dans votre bibliothèque.";
+"Your iPhone isn’t reachable." = "Votre iPhone est hors de portée.";
+"Put songs on a shelf on your iPhone and they’ll be here." = "Mettez des morceaux sur une étagère sur votre iPhone et ils apparaîtront ici.";
+"Previous" = "Précédent";
+"Play" = "Lire";
+"Pause" = "Pause";
+"Next" = "Suivant";
+"Unknown artist" = "Artiste inconnu";
+"Unknown album" = "Album inconnu";
+"%@ of %@" = "%1$@ sur %2$@";

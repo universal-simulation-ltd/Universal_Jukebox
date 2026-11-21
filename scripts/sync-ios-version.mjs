@@ -17,6 +17,15 @@
 // ever need to re-upload the same version, bump the patch rather than editing
 // this by hand.
 //
+// ⚠️ EVERY TARGET, NOT JUST THE APP. The project holds the iPhone app, the
+// "Resume listening" widget (JukeboxWidget) and the Apple Watch app
+// (JukeboxWatch), and App Store Connect refuses an upload whose embedded watch
+// app or extension carries a different version or build from the app around
+// it. The replacements below are global for exactly that reason, and the
+// watch app's Info.plist is generated from these same two settings
+// (GENERATE_INFOPLIST_FILE) — never give a target a literal of its own.
+// `--check` also fails if any target has drifted from the others.
+//
 // --check exits non-zero instead of writing, for CI.
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -36,6 +45,11 @@ if ([major, minor, patch].some((n) => !Number.isInteger(n))) {
 const build = major * 10000 + minor * 100 + patch
 
 const before = readFileSync(PBXPROJ, 'utf8')
+
+// Every target's values — the app, the widget, the watch app — side by side.
+const found = (key) => [...before.matchAll(new RegExp(`${key} = ([^;]+);`, 'g'))].map((m) => m[1])
+const targets = { MARKETING_VERSION: found('MARKETING_VERSION'), CURRENT_PROJECT_VERSION: found('CURRENT_PROJECT_VERSION') }
+const drifted = Object.entries(targets).filter(([, values]) => new Set(values).size > 1)
 const after = before
   .replace(/MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${version};`)
   .replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${build};`)
@@ -45,9 +59,10 @@ if (after === before) {
   process.exit(0)
 }
 if (process.argv.includes('--check')) {
+  for (const [key, values] of drifted) console.error(`Targets disagree on ${key}: ${[...new Set(values)].join(', ')}`)
   console.error(`iOS project is out of date — run: node scripts/sync-ios-version.mjs`)
   console.error(`Expected MARKETING_VERSION ${version}, CURRENT_PROJECT_VERSION ${build}.`)
   process.exit(1)
 }
 writeFileSync(PBXPROJ, after)
-console.log(`iOS project stamped: MARKETING_VERSION ${version}, CURRENT_PROJECT_VERSION ${build}.`)
+console.log(`iOS project stamped: MARKETING_VERSION ${version}, CURRENT_PROJECT_VERSION ${build} (${targets.MARKETING_VERSION.length} target configurations, the watch app's included).`)

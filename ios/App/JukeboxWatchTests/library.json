@@ -1,0 +1,74 @@
+{
+  "v": 1,
+  "rev": "1u6roil",
+  "sections": [
+    "albums",
+    "artists",
+    "songs",
+    "shelves"
+  ],
+  "albums": [
+    {
+      "id": "a-long",
+      "t": "The Long Player",
+      "a": "The Tone Arms",
+      "n": 2,
+      "h": 237
+    },
+    {
+      "id": "a-quiet",
+      "t": "Quiet Rooms",
+      "a": "Marguerite Vale",
+      "n": 1,
+      "h": 149
+    },
+    {
+      "id": "a-sides",
+      "t": "Sides A and B",
+      "a": "The Tone Arms",
+      "n": 2,
+      "h": 193
+    }
+  ],
+  "artists": [
+    {
+      "id": "Marguerite Vale",
+      "al": [
+        "a-quiet"
+      ],
+      "c": 1
+    },
+    {
+      "id": "The Tone Arms",
+      "al": [
+        "a-sides",
+        "a-long"
+      ],
+      "c": 4
+    }
+  ],
+  "shelves": [
+    {
+      "id": "most",
+      "n": "Most played",
+      "k": "most",
+      "ids": [
+        "t3",
+        "t1"
+      ],
+      "art": "a-quiet"
+    },
+    {
+      "id": "s2",
+      "n": "Sunday",
+      "k": "shelf",
+      "ids": [
+        "t5",
+        "t2"
+      ],
+      "art": "a-long"
+    }
+  ],
+  "songs": 5,
+  "example": false
+}
