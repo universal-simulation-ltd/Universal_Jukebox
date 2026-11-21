@@ -88,6 +88,7 @@ const player: Draft['player'] = {
   'level_loud_aria_off': 'Forte: no, tocca per {db} dB',
   'level_loud_aria_on_next': 'Forte: {shown}, tocca per {db} dB',
   'level_loud_aria_on_off': 'Forte: {shown}, tocca per disattivare',
+  'level_hold_off': 'Tieni premuto per disattivare.',
 
   'output': 'Uscita',
   'output_aria_away': 'L’audio va a un altro dispositivo: scegli da dove esce',

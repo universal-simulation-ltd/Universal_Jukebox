@@ -88,6 +88,7 @@ const player: Draft['player'] = {
   'level_loud_aria_off': 'Lauter: aus – tippen für {db} dB',
   'level_loud_aria_on_next': 'Lauter: {shown} – tippen für {db} dB',
   'level_loud_aria_on_off': 'Lauter: {shown} – tippen zum Ausschalten',
+  'level_hold_off': 'Halten zum Ausschalten.',
 
   'output': 'Ausgabe',
   'output_aria_away': 'Der Ton geht an ein anderes Gerät – wählen, wo er herauskommt',

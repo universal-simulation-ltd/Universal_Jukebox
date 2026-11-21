@@ -88,6 +88,7 @@ const player: Draft['player'] = {
   'level_loud_aria_off': 'Yüksek: kapalı — {db} dB için dokunun',
   'level_loud_aria_on_next': 'Yüksek: {shown} — {db} dB için dokunun',
   'level_loud_aria_on_off': 'Yüksek: {shown} — kapatmak için dokunun',
+  'level_hold_off': 'Kapatmak için basılı tutun.',
 
   'output': 'Çıkış',
   'output_aria_away': 'Ses başka bir cihaza gidiyor — sesin nereden çıkacağını seçin',

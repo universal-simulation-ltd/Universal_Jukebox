@@ -11,6 +11,9 @@ import { useT } from '../i18n'
 // tapping Loud while Quiet is on starts Loud from +10 and turns Quiet off. The
 // Settings ▸ Sound slider moves in 5 dB steps; a level set there between these
 // steps goes on to the next step further out.
+// Hold either one (half a second) and it goes straight back to off, 0 dB
+// (James, 2026-11-21: "if you tap and hold, it should then revert to the
+// original number"). The release after the hold isn't also a tap.
 
 export default function LevelButton({ kind }: { kind: 'quiet' | 'loud' }) {
   const levelDb = useSettingsStore((s) => s.levelDb)
@@ -36,8 +39,9 @@ export default function LevelButton({ kind }: { kind: 'quiet' | 'loud' }) {
     <ModeButton
       label={on ? shown : word}
       on={on}
-      ariaLabel={aria}
+      ariaLabel={on ? `${aria}. ${t('player.level_hold_off')}` : aria}
       onClick={() => set('levelDb', next)}
+      onLongPress={() => set('levelDb', 0)}
     >
       {kind === 'quiet' ? <QuietGlyph /> : <LoudGlyph />}
     </ModeButton>

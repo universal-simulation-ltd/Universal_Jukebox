@@ -88,6 +88,7 @@ const player: Draft['player'] = {
   'level_loud_aria_off': 'Fuerte: desactivado; toca para {db} dB',
   'level_loud_aria_on_next': 'Fuerte: {shown}; toca para {db} dB',
   'level_loud_aria_on_off': 'Fuerte: {shown}; toca para desactivarlo',
+  'level_hold_off': 'Mantén pulsado para desactivarlo.',
 
   'output': 'Salida',
   'output_aria_away': 'El sonido va a otro dispositivo: elige por dónde sale',

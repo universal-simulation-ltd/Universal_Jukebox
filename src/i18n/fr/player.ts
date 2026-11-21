@@ -96,6 +96,7 @@ const player: Draft['player'] = {
   'level_loud_aria_off': 'Plus fort : désactivé — touchez pour {db} dB',
   'level_loud_aria_on_next': 'Plus fort : {shown} — touchez pour {db} dB',
   'level_loud_aria_on_off': 'Plus fort : {shown} — touchez pour désactiver',
+  'level_hold_off': 'Maintenez pour désactiver.',
 
   // Output (OutputButton)
   'output': 'Sortie',

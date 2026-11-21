@@ -102,6 +102,7 @@ export default {
   'level_loud_aria_off': 'Loud: off — tap for {db} dB',
   'level_loud_aria_on_next': 'Loud: {shown} — tap for {db} dB', // {shown} is "+20 dB"
   'level_loud_aria_on_off': 'Loud: {shown} — tap for off',
+  'level_hold_off': 'Hold to turn it off.',
 
   // Output (OutputButton) — opens the phone's or browser's own speaker picker
   'output': 'Output', // round button's word; keep to ~8 characters

@@ -96,6 +96,7 @@ const player: Draft['player'] = {
   'level_loud_aria_off': 'Alto: desativado — toque para {db} dB',
   'level_loud_aria_on_next': 'Alto: {shown} — toque para {db} dB',
   'level_loud_aria_on_off': 'Alto: {shown} — toque para desativar',
+  'level_hold_off': 'Mantenha pressionado para desativar.',
 
   // Output
   'output': 'Saída',
