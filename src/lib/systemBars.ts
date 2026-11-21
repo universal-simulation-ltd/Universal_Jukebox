@@ -10,10 +10,11 @@
 //   Light, slate in Dark.
 // - Android with an older WebView: SystemBars pads the web view natively and
 //   the glyphs sit over the WINDOW background. Android 15 ignores a
-//   status-bar colour set at run time, so the shell's own WindowThemePlugin
-//   repaints that background instead (android/…/WindowThemePlugin.java, the
-//   phone app's paper / warm black in values/colors.xml), and the glyphs
-//   follow once it has.
+//   status-bar colour set at run time, so @unisim/sdk's
+//   `setAndroidWindowTheme()` (its native UnisimWindowTheme plugin, which
+//   `cap sync` registers) repaints that background instead (the phone app's
+//   paper / warm black in android/…/values/colors.xml), and the glyphs follow
+//   once it has.
 //
 // capacitor.config.ts starts the glyphs dark (`style: 'LIGHT'`, "for a light
 // background"), right for the Light default. A user who picks Dark would
@@ -27,6 +28,7 @@
 // the other plugin's the first time the phone turned. And Capacitor's names
 // read backwards: `Dark` means "for a dark background", i.e. LIGHT glyphs.
 
+import { setAndroidWindowTheme } from '@unisim/sdk'
 import { isNativeShell, nativePlatform } from './nativeFile'
 
 /** Is the page drawn under the status bar (so the navbar is behind the glyphs)? */
@@ -45,20 +47,19 @@ export function followThemeWithStatusBar(): void {
   const underBar = pageUnderStatusBar(platform, navigator.userAgent)
   if (!underBar && platform !== 'android') return
   let last: boolean | null = null
-  let windowTheme: { set(options: { theme: 'light' | 'dark' }): Promise<void> } | null = null
   const apply = () => {
     const dark = document.documentElement.classList.contains('dark')
     if (dark === last) return
     last = dark
     void (async () => {
       try {
-        const { registerPlugin, SystemBars, SystemBarsStyle } = await import('@capacitor/core')
-        if (!underBar) {
-          // Android only (no iOS side): the strip first, then the glyphs.
-          windowTheme ??= registerPlugin<{ set(options: { theme: 'light' | 'dark' }): Promise<void> }>('WindowTheme')
-          await windowTheme.set({ theme: dark ? 'dark' : 'light' })
-        }
-        await SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light })
+        // Android only (no iOS side): the strip first, then the glyphs. It
+        // resolves false, never throws, when the strip was not repainted.
+        const repainted = !underBar && (await setAndroidWindowTheme(dark ? 'dark' : 'light'))
+        const { SystemBars, SystemBarsStyle } = await import('@capacitor/core')
+        // Light glyphs only over something dark: the page, or a repainted strip.
+        const lightGlyphs = dark && (underBar || repainted)
+        await SystemBars.setStyle({ style: lightGlyphs ? SystemBarsStyle.Dark : SystemBarsStyle.Light })
       } catch {
         /* Cosmetic: a status bar that cannot be styled never breaks a render. */
       }

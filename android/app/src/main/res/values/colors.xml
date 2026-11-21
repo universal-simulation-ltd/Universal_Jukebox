@@ -10,9 +10,11 @@
 
      Two colours, one per app theme: the phone app's own page colour
      (`html.jx-phone` in src/native/native.css), paper and warm black. The
-     light one is the theme's own (the app's default); WindowThemePlugin
-     switches to the dark one when the app is set to Dark, or to Match my
-     device on a phone in dark mode. -->
+     light one is the theme's own (the app's default); @unisim/sdk's
+     UnisimWindowTheme plugin switches to the dark one when the app is set to
+     Dark, or to Match my device on a phone in dark mode. These override the
+     SDK's own defaults of the same names (its navbar's #ffffff / #0f172a):
+     the app's win when resources are merged. -->
 <resources>
     <color name="unisimWindowBackground">#f6f2ec</color>
     <color name="unisimWindowBackgroundDark">#14110f</color>
