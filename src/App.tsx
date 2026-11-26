@@ -36,6 +36,7 @@ import Settings from './components/Settings'
 import Tidy from './components/Tidy'
 import TrackList from './components/TrackList'
 import { NAVIGATED, arrivedByHistory, currentRoute, goHome, navigate, type Route, type View } from './lib/route'
+import { showRoute } from './lib/morph'
 import { useBooting } from './lib/boot'
 import { MINI_QUERY } from './lib/miniMode'
 import { matchAlbums, matchArtistNames, tabCounts } from './lib/search'
@@ -124,8 +125,11 @@ const TABS: { view: HomeTab; label: MessageKey; home: MessageKey; doubleTap: Mes
 
 function useRoute(): Route {
   const [route, setRoute] = useState<Route>(() => currentRoute())
+  // The route on screen, for `showRoute` to tell a Now Playing ↔ album change
+  // (a morph, `lib/morph.ts`) from any other.
+  const shown = useRef(route)
   useEffect(() => {
-    const sync = () => setRoute(currentRoute())
+    const sync = () => showRoute(shown, currentRoute(), setRoute)
     window.addEventListener('popstate', sync)
     // Our own pushState does NOT fire popstate — miss this and the URL and the
     // screen disagree.

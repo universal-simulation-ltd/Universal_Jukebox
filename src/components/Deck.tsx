@@ -105,6 +105,11 @@ interface DeckProps {
    */
   onOpen?: () => void
   openTip?: string
+  /**
+   * This machine is the one that travels into the album's header and back
+   * (`lib/morph.ts`). Now Playing's deck only: two on a page would spoil it.
+   */
+  morph?: boolean
 }
 
 /** How long a press is held before it is a long press. */
@@ -114,7 +119,7 @@ const DOUBLE_TAP_MS = 260
 /** How far the finger may wander and still be holding — a swipe starts at 8px. */
 const LONG_PRESS_SLOP = 8
 
-export default function Deck({ album, size, ceremonial = false, underArm, onLongPress, onOpen, openTip }: DeckProps) {
+export default function Deck({ album, size, ceremonial = false, underArm, onLongPress, onOpen, openTip, morph = false }: DeckProps) {
   const t = useT()
   const playing = usePlayerStore((s) => s.playing)
   const ceremony = usePlayerStore((s) => s.ceremony)
@@ -330,6 +335,7 @@ export default function Deck({ album, size, ceremonial = false, underArm, onLong
         tabIndex={0}
         aria-label={album ? t('decks.open_album_named', { album: shownName(album.title) }) : t('decks.open_album')}
         ref={deckEl}
+        data-morph={morph ? 'sleeve' : undefined}
         onClick={tapDeck}
         {...pressHandlers}
         onKeyDown={(e) => {

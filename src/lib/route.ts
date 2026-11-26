@@ -253,9 +253,30 @@ function apply(then: 'push' | 'replace', hash: string): void {
   window.dispatchEvent(new Event(NAVIGATED))
 }
 
+/** When the app last moved the screen itself (a tap), not history (a swipe back). */
+let appMovedAt = -Infinity
+
+/**
+ * Did the app itself just move the screen, rather than the edge swipe or a
+ * browser button? The Now Playing ↔ album morph (`morph.ts`) plays only then:
+ * WKWebView's swipe back draws its own slide, and two animations at once look
+ * broken. ⚠️ A time, not the `byHistory` flag: tapping the album's name on Now
+ * Playing is often a `history.go(-1)` (back up to that album), which lands as
+ * a popstate and sets `byHistory` exactly like a swipe.
+ */
+export function appMovedRecently(withinMs = 1500): boolean {
+  return typeof performance !== 'undefined' && performance.now() - appMovedAt < withinMs
+}
+
+/** The screen has changed: a swipe back a moment after a tap is still a swipe. */
+export function forgetAppMove(): void {
+  appMovedAt = -Infinity
+}
+
 function go(rawHash: string): void {
   const hash = home(rawHash)
   if (pending === null && home(location.hash) === hash) return
+  appMovedAt = typeof performance !== 'undefined' ? performance.now() : 0
   const plan = planNavigation(stack, hash)
   if (plan.back === 0) {
     if (plan.then !== 'none') apply(plan.then, hash)

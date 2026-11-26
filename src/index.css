@@ -460,3 +460,51 @@ body {
 @media (prefers-reduced-motion: reduce) {
   [data-shelf-item] .jb-sleeve-disc { transition: none; }
 }
+
+/* ── Now Playing ↔ the playing album (`lib/morph.ts`) ─────────────────────────
+   The machine on Now Playing and the album page's cover share one name for the
+   length of the change only, so the browser blends them into one thing that
+   travels: up into the header on the way in, back down onto the deck on the
+   way out (the same movement played the other way). `contain`, so a landscape
+   cassette and a square sleeve are never stretched into each other's shape. */
+html.jb-morph [data-morph='sleeve'] {
+  view-transition-name: jb-sleeve;
+}
+::view-transition-group(jb-sleeve) {
+  animation-duration: 520ms;
+  animation-timing-function: cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+::view-transition-old(jb-sleeve),
+::view-transition-new(jb-sleeve) {
+  height: 100%;
+  object-fit: contain;
+  animation-duration: 520ms;
+}
+/* The rest of the page: the album page rises in behind the sleeve on the way
+   in, and sinks away under it on the way back. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+html.jb-morph-open::view-transition-new(root) {
+  animation-name: jb-morph-rise;
+}
+html.jb-morph-close::view-transition-old(root) {
+  animation-name: jb-morph-sink;
+  /* The page going away stays on top while it sinks. */
+  z-index: 1;
+}
+@keyframes jb-morph-rise {
+  from { opacity: 0; transform: translateY(24px); }
+}
+@keyframes jb-morph-sink {
+  to { opacity: 0; transform: translateY(24px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

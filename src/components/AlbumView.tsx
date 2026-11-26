@@ -178,6 +178,8 @@ export default function AlbumView({ albumId }: { albumId: string }) {
           type="button"
           onClick={openTheJukebox}
           disabled={tracks.length === 0}
+          // Grows out of Now Playing's machine, and shrinks back onto it (`lib/morph.ts`).
+          data-morph="sleeve"
           aria-label={onTheDeck ? t('library.open_jukebox_album_on', { title }) : t('library.play_album_on_deck', { title })}
           className="group relative block w-full max-w-[260px] shrink-0 rounded-xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E05504] disabled:cursor-default md:w-[260px]"
         >

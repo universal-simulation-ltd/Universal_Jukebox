@@ -239,6 +239,8 @@ export default function NowPlaying() {
           album={onTheDeck}
           size={deckSize}
           ceremonial
+          // The machine the album page's cover grows out of (`lib/morph.ts`).
+          morph
           onLongPress={() => setPickerOpen(true)}
           // The phone app: the record opens the queue, which takes the place
           // of the row of records under it (James, 2026-10-12).

@@ -127,6 +127,8 @@ export function AlbumScreen({ albumId }: { albumId: string }) {
         <button
           type="button"
           className="jx-hero-open jx-sleeve"
+          // Grows out of Now Playing's machine, and shrinks back onto it (`lib/morph.ts`).
+          data-morph="sleeve"
           {...sleeveHold.bind(() => setSlides((n) => n + 1))}
           onClick={() => {
             if (sleeveHold.consumed()) return

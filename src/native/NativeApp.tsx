@@ -35,6 +35,7 @@ import { useBooting } from '../lib/boot'
 import { haptic } from '../lib/haptics'
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { NAVIGATED, arrivedByHistory, currentRoute, entryBelow, goHome, navigate, type Route, type View } from '../lib/route'
+import { showRoute } from '../lib/morph'
 import { useLibraryStore } from '../stores/libraryStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { adoptOnce, useSettingsStore, type HomeTab, type ListTab } from '../stores/settingsStore'
@@ -132,8 +133,11 @@ const LIBRARY_VIEWS = new Set<View>(['albums', 'artists', 'tracks', 'jukebox', '
 
 function useRoute(): Route {
   const [route, setRoute] = useState<Route>(() => currentRoute())
+  // The route on screen, for `showRoute` to tell a Now Playing ↔ album change
+  // (a morph, `lib/morph.ts`) from any other.
+  const shown = useRef(route)
   useEffect(() => {
-    const sync = () => setRoute(currentRoute())
+    const sync = () => showRoute(shown, currentRoute(), setRoute)
     window.addEventListener('popstate', sync)
     window.addEventListener(NAVIGATED, sync)
     window.addEventListener('hashchange', sync)
