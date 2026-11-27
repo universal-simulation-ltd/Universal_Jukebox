@@ -52,6 +52,7 @@ import { MiniPlayer } from './MiniPlayer'
 import { goBack } from './shell'
 import { shownName } from '../lib/format'
 import { WelcomeScreen } from './WelcomeScreen'
+import { NewFeatures } from './whatsNew'
 import { useKeepAwake } from '../lib/keepAwake'
 import { useHitsStore } from '../stores/hitsStore'
 import { AboutAndHelp, YourMusic } from './TuneExtras'
@@ -586,6 +587,8 @@ export default function NativeApp() {
         </p>
       )}
       <BedsideHost />
+      {/* "New features", once after an update (whatsNew.tsx). */}
+      <NewFeatures />
     </div>
   )
 }

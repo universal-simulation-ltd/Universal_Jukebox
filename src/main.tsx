@@ -1,3 +1,5 @@
+// First, before any store writes its keys (native/firstRun.ts).
+import './native/firstRun'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { UniversalProvider, installBoxStyles, installButtonStyles, installTabStyles } from '@unisim/sdk'
