@@ -40,6 +40,7 @@ import {
   setDeckPlaying,
   setDeckSpeed,
   setFader,
+  syncDeck,
   startRecording,
   stopAllDecks,
   stopRecording,
@@ -49,6 +50,7 @@ import {
   type DeckId,
 } from '../lib/mixer'
 import { ARM_REST_DEG, SPEED_RANGE, angleDelta, armAngleDeg, bendFromTurn, discAngleDeg, onRim, pointerAngle, speedPercent, turnToSec } from '../lib/mixMath'
+import { bpmLabel } from '../lib/mixSync'
 import { MAX_RECORD_SEC, recordingSupported } from '../lib/mixRecorder'
 import { matchTracks } from '../lib/search'
 import type { Track } from '../lib/types'
@@ -331,6 +333,8 @@ function Deck({ id, onPick }: { id: DeckId; onPick(mode: Picking['mode']): void 
         </button>
       </label>
 
+      <TempoRow id={id} />
+
       {/* Last, so the two decks' speed sliders stay level whatever waits on each. */}
       {deck.waiting.length > 0 && (
         <ol className="jx-mix-waiting" aria-label={t('native.mix_waiting', { deck: name })}>
@@ -350,6 +354,58 @@ function Deck({ id, onPick }: { id: DeckId; onPick(mode: Picking['mode']): void 
         </ol>
       )}
     </section>
+  )
+}
+
+/**
+ * Under the speed slider: this record's tempo (worked out on the device when it
+ * went on the deck) and Sync, which matches it to the other deck's. Always drawn
+ * so the two decks stay level; "…" while it is worked out, "BPM unknown" when
+ * there is no steady beat, never a guess.
+ */
+function TempoRow({ id }: { id: DeckId }) {
+  const t = useT()
+  const name = DECK_NAMES[id]
+  const deck = useMixStore((s) => s.decks[id])
+  const otherKnown = useMixStore((s) => s.decks[id === 0 ? 1 : 0].bpm.state === 'known')
+  const [cannot, setCannot] = useState(false)
+  const timer = useRef(0)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  // A new record, or the other one changing, clears an old "can't".
+  useEffect(() => setCannot(false), [deck.track, deck.speed])
+
+  const synced = deck.sync !== null
+  const usable = deck.bpm.state === 'known' && otherKnown
+  const press = () => {
+    haptic('tap')
+    const result = syncDeck(id)
+    if (result === 'cannot') {
+      setCannot(true)
+      window.clearTimeout(timer.current)
+      timer.current = window.setTimeout(() => setCannot(false), 3000)
+    }
+  }
+
+  const reading =
+    deck.bpm.state === 'known' ? <b aria-label={t('native.mix_bpm', { bpm: bpmLabel(deck.bpm.value) })}>{t('native.mix_bpm', { bpm: bpmLabel(deck.bpm.value) })}</b>
+      : deck.bpm.state === 'working' ? <b role="status" aria-label={t('native.mix_bpm_working')}>…</b>
+        : deck.bpm.state === 'unknown' ? <b>{t('native.mix_bpm_unknown')}</b>
+          : <b aria-hidden>&nbsp;</b>
+
+  return (
+    <div className={`jx-mix-tempo${synced ? ' synced' : ''}`}>
+      <span className="jx-mix-bpm">{reading}</span>
+      <button
+        type="button"
+        className={cannot ? 'cannot' : synced ? 'on' : ''}
+        disabled={!deck.track || (!synced && !usable)}
+        aria-pressed={synced}
+        aria-label={synced ? t('native.mix_synced_aria', { deck: name }) : usable ? t('native.mix_sync_aria', { deck: name }) : t('native.mix_sync_need')}
+        onClick={press}
+      >
+        {cannot ? t('native.mix_sync_cannot') : synced ? t('native.mix_synced') : t('native.mix_sync')}
+      </button>
+    </div>
   )
 }
 

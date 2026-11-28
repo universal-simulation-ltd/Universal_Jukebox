@@ -666,6 +666,16 @@ html.dark .jx .jb-sleeve-disc { background-color: #232c40; box-shadow: 0 0 0 1px
   background: var(--jx-bg); font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums;
 }
 .jx-mix-speed button.off { color: var(--jx-acc); border-color: var(--jx-acc); }
+.jx-mix-tempo { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; }
+.jx-mix-bpm { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--jx-fg); min-width: 0; }
+.jx-mix-bpm b { font-weight: 700; }
+.jx-mix-tempo button {
+  min-height: 34px; padding: 0 14px; border: 1px solid var(--jx-line); border-radius: 999px;
+  background: var(--jx-bg); color: var(--jx-fg); font-size: 13px; font-weight: 700;
+}
+.jx-mix-tempo button.on { background: var(--jx-acc); border-color: var(--jx-acc); color: #fff; }
+.jx-mix-tempo button.cannot { color: var(--jx-acc); border-color: var(--jx-acc); }
+.jx-mix-tempo button:disabled { opacity: 0.45; }
 .jx-mix-fader {
   display: flex; align-items: center; gap: 12px; padding: 14px 16px;
   border-radius: 20px; background: var(--jx-row); border: 1px solid var(--jx-line);

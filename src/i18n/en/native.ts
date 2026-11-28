@@ -155,6 +155,15 @@ export default {
   'mix_pause': 'Stop deck {deck}',
   'mix_speed': 'Speed of deck {deck}', // screen reader: the speed slider
   'mix_speed_reset': 'Back to normal speed', // hover on the speed readout ("+3.2%")
+  'mix_bpm': '{bpm} BPM', // beats a minute readout, {bpm} like 128 or 127.5
+  'mix_bpm_unknown': 'BPM unknown', // shown when no steady beat was found (speech, ambient)
+  'mix_bpm_working': 'Working out the tempo', // screen reader, while the tempo is being worked out (the eye sees …)
+  'mix_sync': 'Sync', // button: match this deck’s tempo to the other
+  'mix_sync_aria': 'Match deck {deck} to the other deck’s tempo', // screen reader label of the Sync button
+  'mix_synced': 'Synced · undo', // the Sync button while it is on; pressing it undoes it
+  'mix_synced_aria': 'Deck {deck} is synced. Press to put its speed back', // screen reader label of the Sync button while on
+  'mix_sync_cannot': 'Can’t sync these two', // said when the two tempos are too far apart
+  'mix_sync_need': 'Sync needs a tempo on both decks', // screen reader, Sync disabled
   'mix_crossfader': 'Crossfader: deck A to deck B', // screen reader: the slider between the decks
   'mix_pick_title': 'A record for deck {deck}', // title of the song picker
   'mix_search': 'Search songs', // placeholder of the picker's search box

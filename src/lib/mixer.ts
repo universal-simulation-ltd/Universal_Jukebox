@@ -28,6 +28,9 @@ import { create } from 'zustand'
 import { requestPlaybackSession } from './audioGraph'
 import { noteEvent } from './bgLog'
 import { crossfadeGains, clampSpeed } from './mixMath'
+import { excerptMono } from './bpm'
+import { cachedBpm, detectBpm, rememberBpm } from './bpmDetect'
+import { effectiveBpm, syncPlan } from './mixSync'
 import { quickTimeMp3Frames } from './quickTimeMp3'
 import { MAX_RECORD_SEC, MIN_RECORD_SEC, recordedSec, saveRecording } from './mixRecorder'
 import type { Track } from './types'
@@ -49,6 +52,13 @@ export type DeckId = 0 | 1
 export type DeckStatus = 'empty' | 'loading' | 'ready' | 'error'
 export type DeckError = 'unplayable' | 'too_long' | 'unsupported'
 
+/**
+ * The tempo of the record on a deck, worked out on the device from the decoded
+ * audio: `working` while it is, `unknown` when there is no steady beat to find
+ * (speech, ambient): never a guessed number.
+ */
+export type DeckBpm = { state: 'idle' | 'working' | 'unknown' } | { state: 'known'; value: number }
+
 export interface DeckState {
   track: Track | null
   /**
@@ -62,6 +72,12 @@ export interface DeckState {
   duration: number
   playing: boolean
   speed: number
+  bpm: DeckBpm
+  /**
+   * Set while Sync has this deck's speed (`syncDeck`): the speed to give back
+   * when it is undone. Moving the speed slider by hand lets go of it.
+   */
+  sync: { prevSpeed: number } | null
 }
 
 /** The Record button: off, taking down the mix, or writing it into the library. */
@@ -80,7 +96,7 @@ interface MixState {
   recordNote: RecordNote | null
 }
 
-const EMPTY: DeckState = { track: null, waiting: [], status: 'empty', duration: 0, playing: false, speed: 1 }
+const EMPTY: DeckState = { track: null, waiting: [], status: 'empty', duration: 0, playing: false, speed: 1, bpm: { state: 'idle' }, sync: null }
 
 export const useMixStore = create<MixState>(() => ({
   decks: [{ ...EMPTY }, { ...EMPTY }],
@@ -184,12 +200,19 @@ const loads = [0, 0]
 export async function loadDeck(id: DeckId, track: Track): Promise<void> {
   const ticket = ++loads[id]
   const stale = () => ticket !== loads[id]
-  patch(id, { track, status: 'loading', error: undefined, playing: false, duration: track.durationSec ?? 0 })
+  // A new record gives back the speed Sync had changed: it was for the old one.
+  const was = useMixStore.getState().decks[id]
+  const known = cachedBpm(track.id)
+  patch(id, {
+    track, status: 'loading', error: undefined, playing: false, duration: track.durationSec ?? 0,
+    speed: was.sync ? was.sync.prevSpeed : was.speed, sync: null,
+    bpm: known === undefined ? { state: 'working' } : known === null ? { state: 'unknown' } : { state: 'known', value: known },
+  })
   where[id] = { sec: 0, v: 0, at: performance.now() }
-  if (track.durationSec && track.durationSec > MAX_MIX_SEC) return patch(id, { status: 'error', error: 'too_long' })
+  if (track.durationSec && track.durationSec > MAX_MIX_SEC) return patch(id, { status: 'error', error: 'too_long', bpm: { state: 'idle' } })
   const e = await startEngine()
   if (stale()) return
-  if (!e) return patch(id, { status: 'error', error: 'unsupported' })
+  if (!e) return patch(id, { status: 'error', error: 'unsupported', bpm: { state: 'idle' } })
   e.nodes[id].port.postMessage({ type: 'unload' })
   /** How far a load got, for the console and the saved background log when it fails. */
   let stage = 'prepare'
@@ -216,18 +239,27 @@ export async function loadDeck(id: DeckId, track: Track): Promise<void> {
     // decoder refuses; its bare MP3 frames decode fine (`quickTimeMp3.ts`).
     const audio = await e.ctx.decodeAudioData(quickTimeMp3Frames(bytes) ?? bytes)
     if (stale()) return
-    if (audio.duration > MAX_MIX_SEC) return patch(id, { status: 'error', error: 'too_long' })
+    if (audio.duration > MAX_MIX_SEC) return patch(id, { status: 'error', error: 'too_long', bpm: { state: 'idle' } })
     // Copies, so the AudioBuffer can be let go of once they are handed over.
     const left = new Float32Array(audio.getChannelData(0))
     const right = audio.numberOfChannels > 1 ? new Float32Array(audio.getChannelData(1)) : null
+    // The tempo is worked out from a copy of the middle minute, off the main
+    // thread, before the deck's own copies are handed to the audio thread.
+    const excerpt = cachedBpm(track.id) === undefined ? excerptMono(left, right, audio.sampleRate) : null
     e.nodes[id].port.postMessage({ type: 'load', left, right }, right ? [left.buffer, right.buffer] : [left.buffer])
     e.nodes[id].port.postMessage({ type: 'speed', value: useMixStore.getState().decks[id].speed })
     patch(id, { status: 'ready', duration: audio.duration })
+    if (excerpt) {
+      void detectBpm(excerpt, audio.sampleRate).then((bpm) => {
+        rememberBpm(track.id, bpm)
+        if (!stale()) patch(id, { bpm: bpm === null ? { state: 'unknown' } : { state: 'known', value: bpm } })
+      })
+    }
   } catch (err) {
     if (stale()) return
     console.error(`[jukebox] Could not put “${track.title}” on a deck (${stage}):`, err)
     noteEvent('mix-load-failed', { stage, ext: track.ext, error: String(err) })
-    patch(id, { status: 'error', error: 'unplayable' })
+    patch(id, { status: 'error', error: 'unplayable', bpm: { state: 'idle' } })
   }
 }
 
@@ -243,7 +275,9 @@ export function clearDeck(id: DeckId): void {
     return
   }
   loads[id]++
-  patch(id, { ...EMPTY, speed })
+  const { sync } = useMixStore.getState().decks[id]
+  patch(id, { ...EMPTY, speed: sync ? sync.prevSpeed : speed })
+  send(id, { type: 'speed', value: sync ? sync.prevSpeed : speed })
   send(id, { type: 'unload' })
 }
 
@@ -310,8 +344,41 @@ export function stopAllDecks(): void {
 
 export function setDeckSpeed(id: DeckId, speed: number): void {
   const value = clampSpeed(speed)
-  patch(id, { speed: value })
+  // Moving it by hand lets go of Sync.
+  patch(id, { speed: value, sync: null })
   send(id, { type: 'speed', value })
+}
+
+/** What pressing Sync did. */
+export type SyncResult = 'synced' | 'undone' | 'cannot'
+
+/**
+ * Sync: bring deck `id`'s tempo onto the other deck's, as that deck is running
+ * now, by changing this deck's playback rate (within ±8%: `mixSync.ts`). It is
+ * tempo only: where the beats fall is still the hand on the record's edge. The
+ * rate is varispeed, as the speed slider's is, so the PITCH moves with it.
+ * Pressed again it gives the old speed back; 'cannot' leaves everything as it was.
+ */
+export function syncDeck(id: DeckId): SyncResult {
+  const { decks } = useMixStore.getState()
+  const me = decks[id]
+  if (me.sync) {
+    const value = me.sync.prevSpeed
+    patch(id, { speed: value, sync: null })
+    send(id, { type: 'speed', value })
+    return 'undone'
+  }
+  const other = decks[id === 0 ? 1 : 0]
+  const plan = syncPlan(
+    me.bpm.state === 'known' ? me.bpm.value : null,
+    other.bpm.state === 'known' ? effectiveBpm(other.bpm.value, other.speed) : null,
+  )
+  if (!plan) return 'cannot'
+  // Not `clampSpeed`: its snap-to-normal would turn a 0.4% match into none.
+  const value = plan.rate
+  patch(id, { speed: value, sync: { prevSpeed: me.speed } })
+  send(id, { type: 'speed', value })
+  return 'synced'
 }
 
 export function setFader(x: number): void {

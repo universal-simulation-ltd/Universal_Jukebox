@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MAX_DECK_RECORDS, addToDeck, clearDeck, nextOnDeck, unqueueFromDeck, useMixStore } from './mixer'
+import { MAX_DECK_RECORDS, addToDeck, clearDeck, nextOnDeck, setDeckSpeed, syncDeck, unqueueFromDeck, useMixStore } from './mixer'
 import type { Track } from './types'
 
 // No AudioContext here, so a record put on a deck ends 'unsupported' — the
@@ -51,5 +51,52 @@ describe('a deck holds up to three records', () => {
     for (const t of ['A', 'B', 'C']) addToDeck(0, track(t))
     unqueueFromDeck(0, 0)
     expect(names()).toEqual(['A', 'C'])
+  })
+})
+
+describe('Sync on the decks', () => {
+  const known = (id: 0 | 1, bpm: number, speed = 1) =>
+    useMixStore.setState((s) => {
+      const decks = [...s.decks] as typeof s.decks
+      decks[id] = { ...decks[id], bpm: { state: 'known', value: bpm }, speed, sync: null }
+      return { decks }
+    })
+  const d = (id: 0 | 1) => useMixStore.getState().decks[id]
+
+  it('matches one deck to the other, and pressing again puts the speed back', () => {
+    known(0, 128)
+    known(1, 125, 1.02)
+    expect(syncDeck(0)).toBe('synced')
+    expect(128 * d(0).speed).toBeCloseTo(125 * 1.02, 2)
+    expect(d(0).sync).not.toBeNull()
+    expect(syncDeck(0)).toBe('undone')
+    expect(d(0).speed).toBe(1)
+    expect(d(0).sync).toBeNull()
+  })
+
+  it('says it cannot, and changes nothing, when the tempos are too far apart', () => {
+    known(0, 90)
+    known(1, 128)
+    expect(syncDeck(0)).toBe('cannot')
+    expect(d(0).speed).toBe(1)
+    expect(d(0).sync).toBeNull()
+  })
+
+  it('cannot when the other deck has no tempo', () => {
+    known(0, 120)
+    useMixStore.setState((s) => {
+      const decks = [...s.decks] as typeof s.decks
+      decks[1] = { ...decks[1], bpm: { state: 'unknown' } }
+      return { decks }
+    })
+    expect(syncDeck(0)).toBe('cannot')
+  })
+
+  it('moving the speed slider by hand lets go of Sync', () => {
+    known(0, 128)
+    known(1, 125)
+    syncDeck(0)
+    setDeckSpeed(0, 1.05)
+    expect(d(0).sync).toBeNull()
   })
 })
