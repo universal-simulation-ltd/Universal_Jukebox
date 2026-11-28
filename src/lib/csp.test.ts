@@ -8,7 +8,10 @@ import { describe, expect, it } from 'vitest'
 // scripts by a single character and the live site refuses it — the pre-paint
 // theme silently stops working. This keeps the hashes and the scripts together.
 
-const read = (rel: string) => readFileSync(fileURLToPath(new URL(`../../${rel}`, import.meta.url)), 'utf8')
+// The website is built from the repository's LF copy. A Windows checkout holds
+// CRLF, which hashes differently, so compare what is deployed, not what is on disk.
+const read = (rel: string) =>
+  readFileSync(fileURLToPath(new URL(`../../${rel}`, import.meta.url)), 'utf8').replace(/\r\n/g, '\n')
 
 function policy(): string {
   const line = read('public/_headers').split('\n').find((l) => /^\s*Content-Security-Policy:/.test(l))
